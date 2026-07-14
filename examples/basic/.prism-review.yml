@@ -1,0 +1,14 @@
+risk:
+  largeDiff:
+    maxFiles: 20
+    maxChangedLines: 600
+
+rules:
+  missingTests:
+    enabled: true
+  sensitiveFiles:
+    enabled: true
+
+comment:
+  mode: "upsert"
+  includeLowSeverity: false
