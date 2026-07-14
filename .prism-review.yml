@@ -1,0 +1,28 @@
+risk:
+  largeDiff:
+    maxFiles: 25
+    maxChangedLines: 800
+
+rules:
+  missingTests:
+    enabled: true
+    sourceGlobs:
+      - "src/**/*.ts"
+      - "app/**/*.tsx"
+    testGlobs:
+      - "**/*.test.ts"
+      - "**/*.spec.ts"
+  sensitiveFiles:
+    enabled: true
+    patterns:
+      - ".github/workflows/**"
+      - "**/auth/**"
+      - "**/permissions/**"
+      - "**/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+
+comment:
+  mode: "upsert"
+  includeLowSeverity: false
