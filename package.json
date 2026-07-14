@@ -1,0 +1,35 @@
+{
+  "name": "prism-review",
+  "version": "0.1.0",
+  "description": "A GitHub Action that reviews pull requests for risk signals before human review.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "prism-review": "./dist/src/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "npm run typecheck && npm run test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node dist/tests/run-tests.js",
+    "analyze:fixture": "npm run build && node dist/src/cli/main.js analyze --fixture fixtures/diffs/risky-auth-change.diff"
+  },
+  "keywords": [
+    "github-action",
+    "pull-request",
+    "code-review",
+    "developer-tools",
+    "ci"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "minimatch": "^10.0.1",
+    "yaml": "^2.8.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "typescript": "^5.8.3"
+  }
+}
