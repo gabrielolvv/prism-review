@@ -105,7 +105,14 @@ flowchart TD
 | --- | --- |
 | `large-diff` | Flags PRs that exceed file or line thresholds. |
 | `missing-tests` | Flags source changes without test changes. |
-| `sensitive-files` | Flags auth, permissions, CI, dependency, migration, and deployment-sensitive files. |
+| `sensitive-files` | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
+| `dependency-risk` | Flags dependency manifest and lockfile changes for supply-chain review. |
+
+## Example Output
+
+Prism Review posts one upserted pull request comment with a risk summary, findings, and a reviewer checklist.
+
+See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full example.
 
 ## Security Model
 
@@ -114,12 +121,13 @@ flowchart TD
 - The action uses minimal GitHub token permissions.
 - Comment publishing uses an HTML marker to update the existing bot comment instead of spamming.
 - GitHub API calls use a minimal REST client with explicit request paths.
+- Patch content is redacted before review flows can use it.
 - AI features are not part of the deterministic core.
 
 ## Roadmap
 
 - Add dependency risk rule
-- Add secret redaction before optional AI review
+- Add secret redaction before review enrichment
 - Add prompt-injection test fixtures
 - Add OpenAI-powered advisory summaries
 - Add GitHub App mode with queue-based processing
