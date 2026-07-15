@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { loadConfig } from "../config/load-config.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
+import { redactChangedFiles } from "../security/redact-secrets.js";
 import { loadDiffFixture } from "../testing/fixture-loader.js";
 async function main() {
     const [command, ...args] = process.argv.slice(2);
@@ -14,7 +15,7 @@ async function main() {
     if (!options.fixture) {
         throw new Error("Missing required --fixture option.");
     }
-    const files = loadDiffFixture(resolve(options.fixture));
+    const files = redactChangedFiles(loadDiffFixture(resolve(options.fixture)));
     const config = loadConfig(options.config ? resolve(options.config) : ".prism-review.yml");
     const result = analyzePullRequest(files, config);
     process.stdout.write(`${renderMarkdown(result)}\n`);

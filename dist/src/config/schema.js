@@ -28,10 +28,27 @@ export const prismConfigSchema = z.object({
                 ".github/workflows/**",
                 "**/auth/**",
                 "**/permissions/**",
-                "**/migrations/**",
+                "**/migrations/**"
+            ])
+        })
+            .default({}),
+        dependencyRisk: z
+            .object({
+            enabled: z.boolean().default(true),
+            manifests: z
+                .array(z.string())
+                .default([
                 "package.json",
                 "package-lock.json",
-                "pnpm-lock.yaml"
+                "pnpm-lock.yaml",
+                "yarn.lock",
+                "requirements.txt",
+                "pyproject.toml",
+                "poetry.lock",
+                "go.mod",
+                "go.sum",
+                "Cargo.toml",
+                "Cargo.lock"
             ])
         })
             .default({})
