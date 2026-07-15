@@ -19,9 +19,20 @@ rules:
       - "**/auth/**"
       - "**/permissions/**"
       - "**/migrations/**"
+  dependencyRisk:
+    enabled: true
+    manifests:
       - "package.json"
       - "package-lock.json"
       - "pnpm-lock.yaml"
+      - "yarn.lock"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "go.mod"
+      - "go.sum"
+      - "Cargo.toml"
+      - "Cargo.lock"
 
 comment:
   mode: "upsert"

@@ -13,3 +13,15 @@ export function testDefaultRules(): void {
   assert.ok(ruleIds.includes("sensitive-files"));
   assert.ok(ruleIds.includes("missing-tests"));
 }
+
+export function testDependencyRiskRule(): void {
+  const files = loadDiffFixture("fixtures/diffs/dependency-change.diff");
+
+  const result = analyzePullRequest(files, defaultConfig);
+  const dependencyFindings = result.findings.filter(
+    (finding) => finding.ruleId === "dependency-risk"
+  );
+
+  assert.equal(dependencyFindings.length, 2);
+  assert.ok(dependencyFindings.every((finding) => finding.severity === "warning"));
+}

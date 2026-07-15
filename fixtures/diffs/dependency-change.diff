@@ -1,0 +1,21 @@
+diff --git a/package.json b/package.json
+index 1111111..2222222 100644
+--- a/package.json
++++ b/package.json
+@@ -8,6 +8,7 @@
+   "dependencies": {
+     "yaml": "^2.8.0",
++    "minimatch": "^10.0.1",
+     "zod": "^3.25.76"
+   }
+ }
+diff --git a/package-lock.json b/package-lock.json
+index 3333333..4444444 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -14,6 +14,9 @@
+       "dependencies": {
++        "minimatch": "^10.0.1",
+         "yaml": "^2.8.0",
+         "zod": "^3.25.76"
+       }
