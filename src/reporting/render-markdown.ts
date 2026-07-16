@@ -2,8 +2,17 @@ import type { ReviewResult } from "../analysis/finding.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 
-export function renderMarkdown(result: ReviewResult): string {
-  const findings = result.findings.filter((finding) => finding.severity !== "info");
+export type RenderOptions = {
+  includeLowSeverity: boolean;
+};
+
+export function renderMarkdown(
+  result: ReviewResult,
+  options: RenderOptions = { includeLowSeverity: false }
+): string {
+  const findings = options.includeLowSeverity
+    ? result.findings
+    : result.findings.filter((finding) => finding.severity !== "info");
 
   return [
     PRISM_COMMENT_MARKER,

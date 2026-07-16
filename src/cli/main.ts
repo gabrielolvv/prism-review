@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   const files = redactChangedFiles(loadDiffFixture(resolve(options.fixture)));
   const config = loadConfig(options.config ? resolve(options.config) : ".prism-review.yml");
   const result = analyzePullRequest(files, config);
-  process.stdout.write(`${renderMarkdown(result)}\n`);
+  process.stdout.write(`${renderMarkdown(result, config.comment)}\n`);
 }
 
 function parseArgs(args: string[]): CliOptions {

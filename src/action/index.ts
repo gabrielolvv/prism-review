@@ -24,7 +24,7 @@ async function run(): Promise<void> {
   );
   const config = loadConfig(inputs.configPath);
   const result = analyzePullRequest(files, config);
-  const body = renderMarkdown(result);
+  const body = renderMarkdown(result, config.comment);
 
   if (inputs.dryRun) {
     console.log(body);
