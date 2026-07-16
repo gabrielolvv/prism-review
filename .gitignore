@@ -1,5 +1,5 @@
 node_modules/
-dist/tests/
+build/
 coverage/
 .npm-cache/
 .env

@@ -5,14 +5,15 @@
   "type": "module",
   "private": true,
   "bin": {
-    "prism-review": "./dist/src/cli/main.js"
+    "prism-review": "./dist/cli/main.cjs"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "bundle": "node scripts/bundle.mjs",
     "check": "npm run typecheck && npm run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node dist/tests/run-tests.js",
-    "analyze:fixture": "npm run build && node dist/src/cli/main.js analyze --fixture fixtures/diffs/risky-auth-change.diff"
+    "test": "npm run build && node build/tests/run-tests.js",
+    "analyze:fixture": "npm run bundle && node dist/cli/main.cjs analyze --fixture fixtures/diffs/risky-auth-change.diff"
   },
   "keywords": [
     "github-action",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.14",
+    "esbuild": "^0.28.2",
     "typescript": "^5.8.3"
   }
 }
