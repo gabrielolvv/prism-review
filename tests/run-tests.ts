@@ -1,3 +1,9 @@
+import {
+  testPaginateFollowsPagesUntilShortBatch,
+  testRequestFailsWithStatus,
+  testRequestReturnsUndefinedForNoContent,
+  testRequestSendsAuthenticatedJson
+} from "./unit/github-client.test.js";
 import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
 import {
   testRedactChangedFilesDoesNotMutateOriginal,
@@ -10,7 +16,9 @@ import {
 } from "./unit/render-markdown.test.js";
 import { testDefaultRules, testDependencyRiskRule } from "./unit/rules.test.js";
 
-const tests = [
+type Test = () => void | Promise<void>;
+
+const tests: Array<[string, Test]> = [
   ["parseUnifiedDiff parses changed files", testParseUnifiedDiff],
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
@@ -21,11 +29,15 @@ const tests = [
   [
     "renderMarkdown includes info findings when enabled",
     testRenderMarkdownIncludesLowSeverityWhenEnabled
-  ]
-] as const;
+  ],
+  ["GitHub client sends authenticated JSON requests", testRequestSendsAuthenticatedJson],
+  ["GitHub client returns undefined for 204 responses", testRequestReturnsUndefinedForNoContent],
+  ["GitHub client fails with the response status", testRequestFailsWithStatus],
+  ["GitHub client paginates until a short batch", testPaginateFollowsPagesUntilShortBatch]
+];
 
 for (const [name, test] of tests) {
-  test();
+  await test();
   console.log(`ok - ${name}`);
 }
 
