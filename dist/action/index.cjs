@@ -13498,6 +13498,10 @@ function loadConfig(configPath) {
 
 // src/github/client.ts
 var githubApiBaseUrl = "https://api.github.com";
+var requestTimeoutMs = 15e3;
+var pageSize = 100;
+var maxPages = 30;
+var maxErrorDetailLength = 300;
 function createGitHubClient(token) {
   async function request(path2, options = {}) {
     const response = await fetch(`${githubApiBaseUrl}${path2}`, {
@@ -13508,10 +13512,11 @@ function createGitHubClient(token) {
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28"
       },
-      body: options.body === void 0 ? void 0 : JSON.stringify(options.body)
+      body: options.body === void 0 ? void 0 : JSON.stringify(options.body),
+      signal: AbortSignal.timeout(requestTimeoutMs)
     });
     if (!response.ok) {
-      const details = await response.text();
+      const details = truncate(await response.text(), maxErrorDetailLength);
       throw new Error(`GitHub API request failed: ${response.status} ${details}`);
     }
     if (response.status === 204) {
@@ -13521,18 +13526,20 @@ function createGitHubClient(token) {
   }
   async function paginate(path2) {
     const items = [];
-    let page = 1;
-    while (true) {
-      const separator = path2.includes("?") ? "&" : "?";
-      const batch = await request(`${path2}${separator}per_page=100&page=${page}`);
+    const separator = path2.includes("?") ? "&" : "?";
+    for (let page = 1; page <= maxPages; page += 1) {
+      const batch = await request(`${path2}${separator}per_page=${pageSize}&page=${page}`);
       items.push(...batch);
-      if (batch.length < 100) {
-        return items;
+      if (batch.length < pageSize) {
+        break;
       }
-      page += 1;
     }
+    return items;
   }
   return { request, paginate };
+}
+function truncate(value, maxLength) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 }
 
 // src/github/fetch-pull-request.ts
