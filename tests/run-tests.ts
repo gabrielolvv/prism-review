@@ -4,7 +4,12 @@ import {
   testRequestReturnsUndefinedForNoContent,
   testRequestSendsAuthenticatedJson
 } from "./unit/github-client.test.js";
+import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
+import {
+  testUpsertCreatesCommentWhenMarkerIsMissing,
+  testUpsertUpdatesExistingComment
+} from "./unit/publish-comment.test.js";
 import {
   testRedactChangedFilesDoesNotMutateOriginal,
   testRedactSecrets
@@ -33,7 +38,10 @@ const tests: Array<[string, Test]> = [
   ["GitHub client sends authenticated JSON requests", testRequestSendsAuthenticatedJson],
   ["GitHub client returns undefined for 204 responses", testRequestReturnsUndefinedForNoContent],
   ["GitHub client fails with the response status", testRequestFailsWithStatus],
-  ["GitHub client paginates until a short batch", testPaginateFollowsPagesUntilShortBatch]
+  ["GitHub client paginates until a short batch", testPaginateFollowsPagesUntilShortBatch],
+  ["fetchPullRequestFiles normalizes the API response", testFetchPullRequestFilesNormalizesResponse],
+  ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
+  ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment]
 ];
 
 for (const [name, test] of tests) {
