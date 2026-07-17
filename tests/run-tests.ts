@@ -1,8 +1,11 @@
 import {
   testPaginateFollowsPagesUntilShortBatch,
+  testPaginateStopsAtPageLimit,
   testRequestFailsWithStatus,
   testRequestReturnsUndefinedForNoContent,
-  testRequestSendsAuthenticatedJson
+  testRequestSendsAuthenticatedJson,
+  testRequestTruncatesErrorDetails,
+  testRequestUsesTimeoutSignal
 } from "./unit/github-client.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
@@ -39,6 +42,9 @@ const tests: Array<[string, Test]> = [
   ["GitHub client returns undefined for 204 responses", testRequestReturnsUndefinedForNoContent],
   ["GitHub client fails with the response status", testRequestFailsWithStatus],
   ["GitHub client paginates until a short batch", testPaginateFollowsPagesUntilShortBatch],
+  ["GitHub client stops paginating at the page limit", testPaginateStopsAtPageLimit],
+  ["GitHub client truncates error details", testRequestTruncatesErrorDetails],
+  ["GitHub client sets a request timeout", testRequestUsesTimeoutSignal],
   ["fetchPullRequestFiles normalizes the API response", testFetchPullRequestFilesNormalizesResponse],
   ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
   ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment]

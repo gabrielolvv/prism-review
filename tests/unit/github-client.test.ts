@@ -74,6 +74,49 @@ export async function testPaginateFollowsPagesUntilShortBatch(): Promise<void> {
   );
 }
 
+export async function testPaginateStopsAtPageLimit(): Promise<void> {
+  await withMockFetch(
+    () => ({ json: numbered(100, 0) }),
+    async (requests) => {
+      const client = createGitHubClient("test-token");
+
+      const items = await client.paginate("/repos/acme/widgets/pulls/1/files");
+
+      assert.equal(requests.length, 30);
+      assert.equal(items.length, 3000);
+    }
+  );
+}
+
+export async function testRequestTruncatesErrorDetails(): Promise<void> {
+  await withMockFetch(
+    () => ({ status: 500, text: "x".repeat(5000) }),
+    async () => {
+      const client = createGitHubClient("test-token");
+
+      await assert.rejects(client.request("/repos/acme/widgets/pulls/1/files"), (error) => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /^GitHub API request failed: 500 x+\.\.\.$/);
+        assert.ok(error.message.length < 400);
+        return true;
+      });
+    }
+  );
+}
+
+export async function testRequestUsesTimeoutSignal(): Promise<void> {
+  await withMockFetch(
+    () => ({ json: {} }),
+    async (requests) => {
+      const client = createGitHubClient("test-token");
+
+      await client.request("/repos/acme/widgets/pulls/1/files");
+
+      assert.ok(requests[0]?.signal instanceof AbortSignal);
+    }
+  );
+}
+
 function numbered(count: number, offset: number): Array<{ id: number }> {
   return Array.from({ length: count }, (_, index) => ({ id: offset + index }));
 }

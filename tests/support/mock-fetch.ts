@@ -3,6 +3,7 @@ export type RecordedRequest = {
   method: string;
   headers: Record<string, string>;
   body?: unknown;
+  signal?: AbortSignal;
 };
 
 export type MockResponse = {
@@ -25,7 +26,8 @@ export async function withMockFetch(
       url: String(input),
       method: init?.method ?? "GET",
       headers: { ...(init?.headers as Record<string, string> | undefined) },
-      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined
+      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+      signal: init?.signal ?? undefined
     };
     requests.push(request);
 
