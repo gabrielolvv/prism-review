@@ -20,8 +20,13 @@ import {
   testUpsertUpdatesExistingComment
 } from "./unit/publish-comment.test.js";
 import {
+  testAllowlistDoesNotShieldOtherSecrets,
+  testConfigRejectsInvalidAllowlistPattern,
+  testPrepareChangedFilesAppliesAllowlist,
   testRedactChangedFilesDoesNotMutateOriginal,
-  testRedactSecrets
+  testRedactSecrets,
+  testRedactSecretsKeepsAllowlistedAssignments,
+  testRedactSecretsKeepsAllowlistedValues
 } from "./unit/redact-secrets.test.js";
 import {
   testRenderMarkdown,
@@ -57,7 +62,12 @@ const tests: Array<[string, Test]> = [
   ["limitPatchSizes omits oversized patches", testLimitPatchSizesOmitsOversizedPatches],
   ["limitPatchSizes measures patches in bytes", testLimitPatchSizesCountsBytes],
   ["oversized patch rule reports omitted patches", testOversizedPatchRuleReportsOmittedPatches],
-  ["prepareChangedFiles limits patches before redacting", testPrepareChangedFilesLimitsThenRedacts]
+  ["prepareChangedFiles limits patches before redacting", testPrepareChangedFilesLimitsThenRedacts],
+  ["redactSecrets keeps allowlisted values", testRedactSecretsKeepsAllowlistedValues],
+  ["redactSecrets keeps allowlisted assignments", testRedactSecretsKeepsAllowlistedAssignments],
+  ["redaction allowlist does not shield other secrets", testAllowlistDoesNotShieldOtherSecrets],
+  ["config rejects invalid allowlist patterns", testConfigRejectsInvalidAllowlistPattern],
+  ["prepareChangedFiles applies the redaction allowlist", testPrepareChangedFilesAppliesAllowlist]
 ];
 
 for (const [name, test] of tests) {

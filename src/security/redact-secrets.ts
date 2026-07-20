@@ -14,7 +14,12 @@ const standaloneSecretPatterns = [
   /\b[A-Za-z0-9+/]{40,}={0,2}\b/g
 ];
 
-export function redactSecrets(value: string): string {
+export type RedactionOptions = {
+  allowlist?: RegExp[];
+};
+
+export function redactSecrets(value: string, options: RedactionOptions = {}): string {
+  const allowlist = options.allowlist ?? [];
   let redacted = value;
 
   for (const pattern of assignmentPatterns) {
@@ -24,22 +29,39 @@ export function redactSecrets(value: string): string {
         return redaction;
       }
 
+      const assigned = match.slice(separatorIndex + 1).trim().replace(/^["']/, "");
+      if (isAllowed(assigned, allowlist)) {
+        return match;
+      }
+
       return `${match.slice(0, separatorIndex + 1)} ${redaction}`;
     });
   }
 
   for (const pattern of standaloneSecretPatterns) {
-    redacted = redacted.replace(pattern, redaction);
+    redacted = redacted.replace(pattern, (match) =>
+      isAllowed(match, allowlist) ? match : redaction
+    );
   }
 
   return redacted;
 }
 
-export function redactChangedFiles(files: ChangedFile[]): ChangedFile[] {
+export function redactChangedFiles(
+  files: ChangedFile[],
+  options: RedactionOptions = {}
+): ChangedFile[] {
   return files.map((file) => ({
     ...file,
-    patch: file.patch ? redactSecrets(file.patch) : file.patch
+    patch: file.patch ? redactSecrets(file.patch, options) : file.patch
   }));
+}
+
+function isAllowed(candidate: string, allowlist: RegExp[]): boolean {
+  return allowlist.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(candidate);
+  });
 }
 
 function findSeparatorIndex(value: string): number {

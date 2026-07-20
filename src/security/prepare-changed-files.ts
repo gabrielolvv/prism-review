@@ -5,5 +5,8 @@ import { redactChangedFiles } from "./redact-secrets.js";
 
 // Size limits run first so redaction never scans unbounded input.
 export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): ChangedFile[] {
-  return redactChangedFiles(limitPatchSizes(files, config.security.maxPatchBytes));
+  const { maxPatchBytes, redaction } = config.security;
+  const allowlist = redaction.allowlist.map((source) => new RegExp(source));
+
+  return redactChangedFiles(limitPatchSizes(files, maxPatchBytes), { allowlist });
 }

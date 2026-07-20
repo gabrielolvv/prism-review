@@ -57,7 +57,20 @@ export const prismConfigSchema = z.object({
     .default({}),
   security: z
     .object({
-      maxPatchBytes: z.number().int().positive().default(200_000)
+      maxPatchBytes: z.number().int().positive().default(200_000),
+      redaction: z
+        .object({
+          allowlist: z
+            .array(
+              z
+                .string()
+                .min(1)
+                .max(200)
+                .refine(isRegularExpression, "Must be a valid regular expression.")
+            )
+            .default([])
+        })
+        .default({})
     })
     .default({}),
   comment: z
@@ -67,6 +80,15 @@ export const prismConfigSchema = z.object({
     })
     .default({})
 });
+
+function isRegularExpression(source: string): boolean {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export type PrismConfig = z.infer<typeof prismConfigSchema>;
 
