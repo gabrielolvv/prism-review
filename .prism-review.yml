@@ -37,3 +37,9 @@ rules:
 comment:
   mode: "upsert"
   includeLowSeverity: false
+
+security:
+  maxPatchBytes: 200000
+  redaction:
+    allowlist:
+      - "^[0-9a-f]{40}$"
