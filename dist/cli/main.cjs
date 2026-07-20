@@ -9324,6 +9324,22 @@ var missingTestsRule = {
   }
 };
 
+// src/rules/oversized-patch.ts
+var oversizedPatchRule = {
+  id: "oversized-patch",
+  description: "Reports files whose patch was too large to inspect.",
+  run({ files }) {
+    return files.filter((file) => file.patchOmitted).map((file) => ({
+      ruleId: "oversized-patch",
+      title: "Patch too large to inspect",
+      severity: "info",
+      file: file.path,
+      message: `${file.path} exceeds the configured patch size limit, so its content was not inspected.`,
+      recommendation: "Review this file manually or split the change into smaller pull requests."
+    }));
+  }
+};
+
 // src/rules/sensitive-files.ts
 var sensitiveKeywordPattern = /(auth|authorization|permission|role|session|token|jwt|oauth|billing|payment|secret|migration|workflow|dockerfile)/i;
 var sensitiveFilesRule = {
@@ -9352,7 +9368,8 @@ var defaultRules = [
   largeDiffRule,
   missingTestsRule,
   sensitiveFilesRule,
-  dependencyRiskRule
+  dependencyRiskRule,
+  oversizedPatchRule
 ];
 
 // src/analysis/severity.ts
@@ -13479,11 +13496,27 @@ var prismConfigSchema = external_exports.object({
       ])
     }).default({})
   }).default({}),
+  security: external_exports.object({
+    maxPatchBytes: external_exports.number().int().positive().default(2e5),
+    redaction: external_exports.object({
+      allowlist: external_exports.array(
+        external_exports.string().min(1).max(200).refine(isRegularExpression, "Must be a valid regular expression.")
+      ).default([])
+    }).default({})
+  }).default({}),
   comment: external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
     includeLowSeverity: external_exports.boolean().default(false)
   }).default({})
 });
+function isRegularExpression(source) {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+}
 var defaultConfig = prismConfigSchema.parse({});
 
 // src/config/load-config.ts
@@ -13541,6 +13574,16 @@ function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+// src/security/limit-patches.ts
+function limitPatchSizes(files, maxPatchBytes) {
+  return files.map((file) => {
+    if (file.patch === void 0 || Buffer.byteLength(file.patch, "utf8") <= maxPatchBytes) {
+      return { ...file };
+    }
+    return { ...file, patch: void 0, patchOmitted: true };
+  });
+}
+
 // src/security/redact-secrets.ts
 var redaction = "[REDACTED]";
 var assignmentPatterns = [
@@ -13553,7 +13596,8 @@ var standaloneSecretPatterns = [
   /\bAKIA[0-9A-Z]{16}\b/g,
   /\b[A-Za-z0-9+/]{40,}={0,2}\b/g
 ];
-function redactSecrets(value) {
+function redactSecrets(value, options = {}) {
+  const allowlist = options.allowlist ?? [];
   let redacted = value;
   for (const pattern of assignmentPatterns) {
     redacted = redacted.replace(pattern, (match2) => {
@@ -13561,19 +13605,32 @@ function redactSecrets(value) {
       if (separatorIndex === -1) {
         return redaction;
       }
+      const assigned = match2.slice(separatorIndex + 1).trim().replace(/^["']/, "");
+      if (isAllowed(assigned, allowlist)) {
+        return match2;
+      }
       return `${match2.slice(0, separatorIndex + 1)} ${redaction}`;
     });
   }
   for (const pattern of standaloneSecretPatterns) {
-    redacted = redacted.replace(pattern, redaction);
+    redacted = redacted.replace(
+      pattern,
+      (match2) => isAllowed(match2, allowlist) ? match2 : redaction
+    );
   }
   return redacted;
 }
-function redactChangedFiles(files) {
+function redactChangedFiles(files, options = {}) {
   return files.map((file) => ({
     ...file,
-    patch: file.patch ? redactSecrets(file.patch) : file.patch
+    patch: file.patch ? redactSecrets(file.patch, options) : file.patch
   }));
+}
+function isAllowed(candidate, allowlist) {
+  return allowlist.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(candidate);
+  });
 }
 function findSeparatorIndex(value) {
   const equalsIndex = value.indexOf("=");
@@ -13585,6 +13642,13 @@ function findSeparatorIndex(value) {
     return equalsIndex;
   }
   return Math.min(equalsIndex, colonIndex);
+}
+
+// src/security/prepare-changed-files.ts
+function prepareChangedFiles(files, config) {
+  const { maxPatchBytes, redaction: redaction2 } = config.security;
+  const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
+  return redactChangedFiles(limitPatchSizes(files, maxPatchBytes), { allowlist });
 }
 
 // src/testing/fixture-loader.ts
@@ -13645,8 +13709,8 @@ async function main() {
   if (!options.fixture) {
     throw new Error("Missing required --fixture option.");
   }
-  const files = redactChangedFiles(loadDiffFixture((0, import_node_path.resolve)(options.fixture)));
   const config = loadConfig(options.config ? (0, import_node_path.resolve)(options.config) : ".prism-review.yml");
+  const files = prepareChangedFiles(loadDiffFixture((0, import_node_path.resolve)(options.fixture)), config);
   const result = analyzePullRequest(files, config);
   process.stdout.write(`${renderMarkdown(result, config.comment)}
 `);
