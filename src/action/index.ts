@@ -5,7 +5,7 @@ import { createGitHubClient } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { upsertPullRequestComment } from "../github/publish-comment.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
-import { redactChangedFiles } from "../security/redact-secrets.js";
+import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { readInputs } from "./inputs.js";
 
 async function run(): Promise<void> {
@@ -19,10 +19,11 @@ async function run(): Promise<void> {
 
   const { owner, repo } = readRepository();
   const client = createGitHubClient(inputs.githubToken);
-  const files = redactChangedFiles(
-    await fetchPullRequestFiles(client, owner, repo, pullRequest.number)
-  );
   const config = loadConfig(inputs.configPath);
+  const files = prepareChangedFiles(
+    await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
+    config
+  );
   const result = analyzePullRequest(files, config);
   const body = renderMarkdown(result, config.comment);
 

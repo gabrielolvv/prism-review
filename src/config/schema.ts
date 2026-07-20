@@ -55,6 +55,11 @@ export const prismConfigSchema = z.object({
         .default({})
     })
     .default({}),
+  security: z
+    .object({
+      maxPatchBytes: z.number().int().positive().default(200_000)
+    })
+    .default({}),
   comment: z
     .object({
       mode: z.enum(["upsert", "append"]).default("upsert"),

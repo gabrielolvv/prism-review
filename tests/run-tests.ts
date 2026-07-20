@@ -8,7 +8,13 @@ import {
   testRequestUsesTimeoutSignal
 } from "./unit/github-client.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
+import {
+  testLimitPatchSizesCountsBytes,
+  testLimitPatchSizesOmitsOversizedPatches,
+  testOversizedPatchRuleReportsOmittedPatches
+} from "./unit/limit-patches.test.js";
 import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
+import { testPrepareChangedFilesLimitsThenRedacts } from "./unit/prepare-changed-files.test.js";
 import {
   testUpsertCreatesCommentWhenMarkerIsMissing,
   testUpsertUpdatesExistingComment
@@ -47,7 +53,11 @@ const tests: Array<[string, Test]> = [
   ["GitHub client sets a request timeout", testRequestUsesTimeoutSignal],
   ["fetchPullRequestFiles normalizes the API response", testFetchPullRequestFilesNormalizesResponse],
   ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
-  ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment]
+  ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment],
+  ["limitPatchSizes omits oversized patches", testLimitPatchSizesOmitsOversizedPatches],
+  ["limitPatchSizes measures patches in bytes", testLimitPatchSizesCountsBytes],
+  ["oversized patch rule reports omitted patches", testOversizedPatchRuleReportsOmittedPatches],
+  ["prepareChangedFiles limits patches before redacting", testPrepareChangedFilesLimitsThenRedacts]
 ];
 
 for (const [name, test] of tests) {

@@ -6,6 +6,7 @@ export type ChangedFile = {
   additions: number;
   deletions: number;
   patch?: string;
+  patchOmitted?: boolean;
 };
 
 export function changedLines(file: ChangedFile): number {
