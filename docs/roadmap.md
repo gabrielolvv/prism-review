@@ -2,30 +2,28 @@
 
 This roadmap is intentionally staged so the project grows like a real developer tool: deterministic review first, safety controls second, optional AI last.
 
+## Shipped
+
+- Dependency risk rule for manifests and lockfiles across Node.js, Python, Go, and Rust.
+- Secret redaction before patch content reaches any review flow.
+- Redaction allowlist for known false positives.
+- Patch size limits with an `oversized-patch` finding.
+- Self-contained action bundle, so the runner never installs dependencies.
+- Mocked `fetch` coverage for the GitHub client, pagination, and comment upserts.
+
 ## Near Term
 
-### Add dependency risk rule
+### Add prompt-injection fixtures
 
-Detect changes to dependency manifests and lockfiles, then ask reviewers to verify package provenance, lockfile consistency, runtime impact, and supply-chain risk.
-
-Target files:
-
-- `package.json`
-- `package-lock.json`
-- `pnpm-lock.yaml`
-- `yarn.lock`
-- `requirements.txt`
-- `pyproject.toml`
-- `go.mod`
-- `Cargo.toml`
-
-### Add secret redaction before publishing review comments
-
-Redact token-like values from patches before any future feature uses diff content in logs, comments, or AI prompts.
+Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
 
 ### Add inline PR annotations
 
 Support optional GitHub Checks annotations so findings can appear beside changed files while preserving the summary comment.
+
+### Load configuration from the base branch
+
+The action currently reads `.prism-review.yml` from the checked-out pull request. Reading it from the base branch would stop a pull request from relaxing its own review rules.
 
 ## Mid Term
 
@@ -33,9 +31,9 @@ Support optional GitHub Checks annotations so findings can appear beside changed
 
 Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets.
 
-### Add integration tests for the GitHub API client
+### Implement `append` comment mode
 
-Cover pagination, comment creation, comment updates, and API failure handling with mocked `fetch`.
+The schema accepts `comment.mode: append`, but only `upsert` is implemented.
 
 ## Later
 
