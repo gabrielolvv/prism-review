@@ -8,11 +8,21 @@ The GitHub Action layer is responsible for reading inputs, fetching pull request
 
 1. GitHub emits a `pull_request` event.
 2. The action reads inputs and repository context.
-3. The GitHub client fetches changed files.
-4. The config loader validates `.prism-review.yml`.
-5. The analysis engine runs rule modules.
-6. The Markdown renderer creates the review body.
-7. The publisher creates or updates one PR comment.
+3. The config loader validates `.prism-review.yml`.
+4. The GitHub client fetches changed files.
+5. Oversized patches are dropped and the remaining patches are redacted.
+6. The analysis engine runs rule modules.
+7. The Markdown renderer creates the review body.
+8. The publisher creates or updates one PR comment.
+
+## Build Outputs
+
+| Directory | Produced by | Tracked | Purpose |
+| --- | --- | --- | --- |
+| `build/` | `npm run build` | No | Compiler output used by type checking and tests. |
+| `dist/` | `npm run bundle` | Yes | Self-contained bundles executed by GitHub and the CLI. |
+
+GitHub runs an action straight from the repository checkout and does not install dependencies, so `dist/` must contain everything the action imports. CI rebuilds the bundle and fails when the committed copy is stale.
 
 ## Design Principles
 
