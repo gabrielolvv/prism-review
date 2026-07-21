@@ -1,6 +1,6 @@
 {
   "name": "prism-review",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A GitHub Action that reviews pull requests for risk signals before human review.",
   "type": "module",
   "private": true,
