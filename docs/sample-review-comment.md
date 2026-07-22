@@ -1,5 +1,7 @@
 # Sample Review Comment
 
+Generated with `npm run analyze:fixture`, which reviews `fixtures/diffs/risky-auth-change.diff`.
+
 ```md
 <!-- prism-review-comment -->
 
@@ -21,6 +23,12 @@ File: `src/auth/session.ts`
 
 Recommendation: Ask for focused review from someone familiar with this area and verify rollback or mitigation steps.
 
+#### Warning - Source changed without tests
+
+Source files changed, but no test files were modified in this pull request.
+
+Recommendation: Add or update tests for the modified behavior, or explain why existing coverage is sufficient.
+
 #### Warning - Dependency definition changed
 
 package.json changes Node.js dependency metadata or lockfile state.
@@ -28,12 +36,6 @@ package.json changes Node.js dependency metadata or lockfile state.
 File: `package.json`
 
 Recommendation: Verify package provenance, lockfile consistency, license impact, and whether the dependency is required at runtime.
-
-#### Warning - Source changed without tests
-
-Source files changed, but no test files were modified in this pull request.
-
-Recommendation: Add or update tests for the modified behavior, or explain why existing coverage is sufficient.
 
 ### Suggested Review Checklist
 
