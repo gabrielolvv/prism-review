@@ -13641,11 +13641,18 @@ function capitalize(value) {
 }
 
 // src/github/publish-comment.ts
+async function publishPullRequestComment(client, owner, repo, issueNumber, body, mode) {
+  if (mode === "append") {
+    await createComment(client, owner, repo, issueNumber, body);
+    return;
+  }
+  await upsertPullRequestComment(client, owner, repo, issueNumber, body);
+}
 async function upsertPullRequestComment(client, owner, repo, issueNumber, body) {
   const comments = await client.paginate(
     `/repos/${owner}/${repo}/issues/${issueNumber}/comments`
   );
-  const existing = comments.find((comment) => comment.body?.includes(PRISM_COMMENT_MARKER));
+  const existing = [...comments].reverse().find((comment) => comment.body?.includes(PRISM_COMMENT_MARKER));
   if (existing) {
     await client.request(`/repos/${owner}/${repo}/issues/comments/${existing.id}`, {
       method: "PATCH",
@@ -13653,6 +13660,9 @@ async function upsertPullRequestComment(client, owner, repo, issueNumber, body) 
     });
     return;
   }
+  await createComment(client, owner, repo, issueNumber, body);
+}
+async function createComment(client, owner, repo, issueNumber, body) {
   await client.request(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
     method: "POST",
     body: { body }
@@ -13781,7 +13791,14 @@ async function run() {
     console.log(body);
     return;
   }
-  await upsertPullRequestComment(client, owner, repo, pullRequest.number, body);
+  await publishPullRequestComment(
+    client,
+    owner,
+    repo,
+    pullRequest.number,
+    body,
+    config.comment.mode
+  );
 }
 function readGitHubEvent() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
