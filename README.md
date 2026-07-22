@@ -152,4 +152,4 @@ See [`docs/roadmap.md`](docs/roadmap.md) for details and shipped items.
 
 ## License
 
-MIT
+[MIT](LICENSE)
