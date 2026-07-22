@@ -3,7 +3,7 @@ import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { loadConfig } from "../config/load-config.js";
 import { createGitHubClient } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
-import { upsertPullRequestComment } from "../github/publish-comment.js";
+import { publishPullRequestComment } from "../github/publish-comment.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { readInputs } from "./inputs.js";
@@ -32,7 +32,14 @@ async function run(): Promise<void> {
     return;
   }
 
-  await upsertPullRequestComment(client, owner, repo, pullRequest.number, body);
+  await publishPullRequestComment(
+    client,
+    owner,
+    repo,
+    pullRequest.number,
+    body,
+    config.comment.mode
+  );
 }
 
 type PullRequestEvent = {

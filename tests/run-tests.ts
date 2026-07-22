@@ -16,8 +16,11 @@ import {
 import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
 import { testPrepareChangedFilesLimitsThenRedacts } from "./unit/prepare-changed-files.test.js";
 import {
+  testAppendModeAlwaysCreatesComment,
   testUpsertCreatesCommentWhenMarkerIsMissing,
-  testUpsertUpdatesExistingComment
+  testUpsertModeUpdatesExistingComment,
+  testUpsertUpdatesExistingComment,
+  testUpsertUpdatesMostRecentMarkerComment
 } from "./unit/publish-comment.test.js";
 import {
   testAllowlistDoesNotShieldOtherSecrets,
@@ -59,6 +62,9 @@ const tests: Array<[string, Test]> = [
   ["fetchPullRequestFiles normalizes the API response", testFetchPullRequestFilesNormalizesResponse],
   ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
   ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment],
+  ["upsert updates the most recent Prism Review comment", testUpsertUpdatesMostRecentMarkerComment],
+  ["append mode always creates a new comment", testAppendModeAlwaysCreatesComment],
+  ["upsert mode updates the existing comment", testUpsertModeUpdatesExistingComment],
   ["limitPatchSizes omits oversized patches", testLimitPatchSizesOmitsOversizedPatches],
   ["limitPatchSizes measures patches in bytes", testLimitPatchSizesCountsBytes],
   ["oversized patch rule reports omitted patches", testOversizedPatchRuleReportsOmittedPatches],
