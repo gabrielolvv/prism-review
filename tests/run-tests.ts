@@ -9,6 +9,12 @@ import {
 } from "./unit/github-client.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import {
+  testParseConfigAppliesDefaults,
+  testParseConfigReportsSourceAndField,
+  testParseConfigReportsYamlErrors,
+  testParseConfigTreatsEmptyFileAsDefaults
+} from "./unit/load-config.test.js";
+import {
   testLimitPatchSizesCountsBytes,
   testLimitPatchSizesOmitsOversizedPatches,
   testOversizedPatchRuleReportsOmittedPatches
@@ -73,7 +79,11 @@ const tests: Array<[string, Test]> = [
   ["redactSecrets keeps allowlisted assignments", testRedactSecretsKeepsAllowlistedAssignments],
   ["redaction allowlist does not shield other secrets", testAllowlistDoesNotShieldOtherSecrets],
   ["config rejects invalid allowlist patterns", testConfigRejectsInvalidAllowlistPattern],
-  ["prepareChangedFiles applies the redaction allowlist", testPrepareChangedFilesAppliesAllowlist]
+  ["prepareChangedFiles applies the redaction allowlist", testPrepareChangedFilesAppliesAllowlist],
+  ["parseConfig applies defaults to partial config", testParseConfigAppliesDefaults],
+  ["parseConfig treats an empty file as defaults", testParseConfigTreatsEmptyFileAsDefaults],
+  ["parseConfig reports the source and field of invalid values", testParseConfigReportsSourceAndField],
+  ["parseConfig reports YAML syntax errors with the source", testParseConfigReportsYamlErrors]
 ];
 
 for (const [name, test] of tests) {
