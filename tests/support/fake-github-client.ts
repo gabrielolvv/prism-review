@@ -6,7 +6,11 @@ export type FakeCall = {
   body?: unknown;
 };
 
-export function createFakeGitHubClient(pages: Record<string, unknown[]>): {
+// `responses` maps request paths to results; an Error value is thrown instead.
+export function createFakeGitHubClient(
+  pages: Record<string, unknown[]>,
+  responses: Record<string, unknown> = {}
+): {
   client: GitHubClient;
   calls: FakeCall[];
 } {
@@ -15,7 +19,12 @@ export function createFakeGitHubClient(pages: Record<string, unknown[]>): {
   const client: GitHubClient = {
     async request<T>(path: string, options: { method?: string; body?: unknown } = {}) {
       calls.push({ path, method: options.method ?? "GET", body: options.body });
-      return undefined as T;
+      const response = responses[path];
+      if (response instanceof Error) {
+        throw response;
+      }
+
+      return response as T;
     },
     async paginate<T>(path: string) {
       calls.push({ path, method: "GET" });

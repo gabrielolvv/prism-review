@@ -1,3 +1,4 @@
+import { isSafeRepositoryPath, normalizeRepositoryPath } from "../analysis/repository-path.js";
 import { defaultConfigPath } from "../config/schema.js";
 
 export type ActionInputs = {
@@ -11,9 +12,20 @@ export function readInputs(): ActionInputs {
 
   return {
     githubToken,
-    configPath: getInput("config-path") || defaultConfigPath,
+    configPath: readConfigPath(),
     dryRun: parseBooleanInput(getInput("dry-run") || "false")
   };
+}
+
+function readConfigPath(): string {
+  const configPath = getInput("config-path") || defaultConfigPath;
+  if (!isSafeRepositoryPath(configPath)) {
+    throw new Error(
+      `Invalid config-path "${configPath}": config-path must be a relative path inside the repository.`
+    );
+  }
+
+  return normalizeRepositoryPath(configPath);
 }
 
 // Matches the runner and @actions/core: spaces become underscores, hyphens are kept.

@@ -21,6 +21,24 @@ export function testReadInputsDefaultsConfigPath(): void {
   });
 }
 
+export function testReadInputsNormalizesConfigPath(): void {
+  withInputs({ "INPUT_GITHUB-TOKEN": "test-token", "INPUT_CONFIG-PATH": "./config/prism.yml" }, () => {
+    assert.equal(readInputs().configPath, "config/prism.yml");
+  });
+}
+
+export function testReadInputsRejectsPathsOutsideRepository(): void {
+  for (const configPath of ["../shared/prism.yml", "/etc/prism.yml", "C:/prism.yml", "config//prism.yml"]) {
+    withInputs({ "INPUT_GITHUB-TOKEN": "test-token", "INPUT_CONFIG-PATH": configPath }, () => {
+      assert.throws(
+        () => readInputs(),
+        /config-path must be a relative path inside the repository/,
+        configPath
+      );
+    });
+  }
+}
+
 function withInputs(values: Record<string, string>, run: () => void): void {
   const names = ["INPUT_GITHUB-TOKEN", "INPUT_CONFIG-PATH", "INPUT_DRY-RUN"];
   const previous = new Map(names.map((name) => [name, process.env[name]]));

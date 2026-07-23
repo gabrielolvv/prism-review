@@ -22,8 +22,15 @@ import {
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import {
   testReadInputsDefaultsConfigPath,
-  testReadInputsReadsRunnerVariableNames
+  testReadInputsNormalizesConfigPath,
+  testReadInputsReadsRunnerVariableNames,
+  testReadInputsRejectsPathsOutsideRepository
 } from "./unit/inputs.test.js";
+import {
+  testLoadBaseBranchConfigNamesBaseCommitInErrors,
+  testLoadBaseBranchConfigParsesBaseFile,
+  testLoadBaseBranchConfigReturnsUndefinedWhenMissing
+} from "./unit/load-base-config.test.js";
 import {
   testParseConfigAppliesDefaults,
   testParseConfigReportsSourceAndField,
@@ -113,7 +120,12 @@ const tests: Array<[string, Test]> = [
   ["fetchRepositoryFile rejects content it cannot decode", testFetchRepositoryFileRejectsUnreadableContent],
   ["fetchRepositoryFile propagates other API errors", testFetchRepositoryFilePropagatesOtherErrors],
   ["readInputs reads the variable names the runner sets", testReadInputsReadsRunnerVariableNames],
-  ["readInputs defaults the config path", testReadInputsDefaultsConfigPath]
+  ["readInputs defaults the config path", testReadInputsDefaultsConfigPath],
+  ["readInputs normalizes the config path", testReadInputsNormalizesConfigPath],
+  ["readInputs rejects config paths outside the repository", testReadInputsRejectsPathsOutsideRepository],
+  ["loadBaseBranchConfig parses the base branch file", testLoadBaseBranchConfigParsesBaseFile],
+  ["loadBaseBranchConfig returns undefined when the file is missing", testLoadBaseBranchConfigReturnsUndefinedWhenMissing],
+  ["loadBaseBranchConfig names the base commit in errors", testLoadBaseBranchConfigNamesBaseCommitInErrors]
 ];
 
 for (const [name, test] of tests) {

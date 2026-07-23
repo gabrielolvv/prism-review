@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
-import { loadConfig } from "../config/load-config.js";
+import { defaultConfig } from "../config/schema.js";
 import { createGitHubClient } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
+import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
@@ -19,7 +20,18 @@ async function run(): Promise<void> {
 
   const { owner, repo } = readRepository();
   const client = createGitHubClient(inputs.githubToken);
-  const config = loadConfig(inputs.configPath);
+  const baseConfig = await loadBaseBranchConfig(
+    client,
+    owner,
+    repo,
+    inputs.configPath,
+    readBaseSha(pullRequest)
+  );
+  if (!baseConfig) {
+    console.log(`No ${inputs.configPath} on the base branch; using the default configuration.`);
+  }
+
+  const config = baseConfig ?? defaultConfig;
   const files = prepareChangedFiles(
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
     config
@@ -42,11 +54,25 @@ async function run(): Promise<void> {
   );
 }
 
-type PullRequestEvent = {
-  pull_request?: {
-    number: number;
+type PullRequest = {
+  number: number;
+  base?: {
+    sha?: string;
   };
 };
+
+type PullRequestEvent = {
+  pull_request?: PullRequest;
+};
+
+function readBaseSha(pullRequest: PullRequest): string {
+  const sha = pullRequest.base?.sha;
+  if (!sha) {
+    throw new Error("The pull_request event payload has no base commit SHA.");
+  }
+
+  return sha;
+}
 
 function readGitHubEvent(): PullRequestEvent {
   const eventPath = process.env.GITHUB_EVENT_PATH;
