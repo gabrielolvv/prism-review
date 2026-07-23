@@ -12,6 +12,13 @@ import {
   testConfigChangeRuleFlagsRenamedConfig,
   testConfigChangeRuleUsesConfiguredPath
 } from "./unit/config-change.test.js";
+import {
+  testFetchRepositoryFileDecodesContent,
+  testFetchRepositoryFilePropagatesOtherErrors,
+  testFetchRepositoryFileRejectsDirectories,
+  testFetchRepositoryFileRejectsUnreadableContent,
+  testFetchRepositoryFileReturnsUndefinedWhenMissing
+} from "./unit/fetch-repository-file.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import {
   testParseConfigAppliesDefaults,
@@ -95,7 +102,12 @@ const tests: Array<[string, Test]> = [
   ["parseUnifiedDiff records the source of renames", testParseUnifiedDiffRecordsRenameSource],
   ["config change rule flags the default config file", testConfigChangeRuleFlagsDefaultConfig],
   ["config change rule follows the configured path", testConfigChangeRuleUsesConfiguredPath],
-  ["config change rule flags a renamed config file", testConfigChangeRuleFlagsRenamedConfig]
+  ["config change rule flags a renamed config file", testConfigChangeRuleFlagsRenamedConfig],
+  ["fetchRepositoryFile decodes base64 file content", testFetchRepositoryFileDecodesContent],
+  ["fetchRepositoryFile returns undefined for missing files", testFetchRepositoryFileReturnsUndefinedWhenMissing],
+  ["fetchRepositoryFile rejects directories", testFetchRepositoryFileRejectsDirectories],
+  ["fetchRepositoryFile rejects content it cannot decode", testFetchRepositoryFileRejectsUnreadableContent],
+  ["fetchRepositoryFile propagates other API errors", testFetchRepositoryFilePropagatesOtherErrors]
 ];
 
 for (const [name, test] of tests) {

@@ -8,6 +8,16 @@ type RequestOptions = {
   body?: unknown;
 };
 
+export class GitHubApiError extends Error {
+  constructor(
+    readonly status: number,
+    details: string
+  ) {
+    super(`GitHub API request failed: ${status} ${details}`);
+    this.name = "GitHubApiError";
+  }
+}
+
 const githubApiBaseUrl = "https://api.github.com";
 const requestTimeoutMs = 15_000;
 const pageSize = 100;
@@ -30,8 +40,10 @@ export function createGitHubClient(token: string): GitHubClient {
     });
 
     if (!response.ok) {
-      const details = truncate(await response.text(), maxErrorDetailLength);
-      throw new Error(`GitHub API request failed: ${response.status} ${details}`);
+      throw new GitHubApiError(
+        response.status,
+        truncate(await response.text(), maxErrorDetailLength)
+      );
     }
 
     if (response.status === 204) {
