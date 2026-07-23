@@ -16,8 +16,9 @@ export function readInputs(): ActionInputs {
   };
 }
 
+// Matches the runner and @actions/core: spaces become underscores, hyphens are kept.
 function getInput(name: string): string {
-  const envName = `INPUT_${name.replace(/ /g, "_").replace(/-/g, "_").toUpperCase()}`;
+  const envName = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`;
   return process.env[envName]?.trim() ?? "";
 }
 

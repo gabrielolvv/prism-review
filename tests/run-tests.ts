@@ -21,6 +21,10 @@ import {
 } from "./unit/fetch-repository-file.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import {
+  testReadInputsDefaultsConfigPath,
+  testReadInputsReadsRunnerVariableNames
+} from "./unit/inputs.test.js";
+import {
   testParseConfigAppliesDefaults,
   testParseConfigReportsSourceAndField,
   testParseConfigReportsYamlErrors,
@@ -107,7 +111,9 @@ const tests: Array<[string, Test]> = [
   ["fetchRepositoryFile returns undefined for missing files", testFetchRepositoryFileReturnsUndefinedWhenMissing],
   ["fetchRepositoryFile rejects directories", testFetchRepositoryFileRejectsDirectories],
   ["fetchRepositoryFile rejects content it cannot decode", testFetchRepositoryFileRejectsUnreadableContent],
-  ["fetchRepositoryFile propagates other API errors", testFetchRepositoryFilePropagatesOtherErrors]
+  ["fetchRepositoryFile propagates other API errors", testFetchRepositoryFilePropagatesOtherErrors],
+  ["readInputs reads the variable names the runner sets", testReadInputsReadsRunnerVariableNames],
+  ["readInputs defaults the config path", testReadInputsDefaultsConfigPath]
 ];
 
 for (const [name, test] of tests) {
