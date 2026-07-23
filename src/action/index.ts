@@ -24,7 +24,7 @@ async function run(): Promise<void> {
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
     config
   );
-  const result = analyzePullRequest(files, config);
+  const result = analyzePullRequest(files, config, { configPath: inputs.configPath });
   const body = renderMarkdown(result, config.comment);
 
   if (inputs.dryRun) {

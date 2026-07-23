@@ -1,3 +1,4 @@
+import { configChangeRule } from "./config-change.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { largeDiffRule } from "./large-diff.js";
 import { missingTestsRule } from "./missing-tests.js";
@@ -9,6 +10,7 @@ export const defaultRules: Rule[] = [
   largeDiffRule,
   missingTestsRule,
   sensitiveFilesRule,
+  configChangeRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];

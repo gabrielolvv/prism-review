@@ -5,6 +5,7 @@ import type { Finding } from "./finding.js";
 export type AnalysisContext = {
   files: ChangedFile[];
   config: PrismConfig;
+  configPath: string;
 };
 
 export type Rule = {

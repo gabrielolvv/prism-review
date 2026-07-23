@@ -1,0 +1,10 @@
+diff --git a/.prism-review.yml b/.prism-review.yml
+index 5555555..6666666 100644
+--- a/.prism-review.yml
++++ b/.prism-review.yml
+@@ -1,4 +1,4 @@
+ risk:
+   largeDiff:
+     maxFiles: 25
+-    maxChangedLines: 800
++    maxChangedLines: 5000

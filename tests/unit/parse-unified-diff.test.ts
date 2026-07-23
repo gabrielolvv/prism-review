@@ -23,3 +23,18 @@ export function testParseUnifiedDiff(): void {
     }
   );
 }
+
+export function testParseUnifiedDiffRecordsRenameSource(): void {
+  const diff = [
+    "diff --git a/.prism-review.yml b/config/prism-review.yml",
+    "similarity index 100%",
+    "rename from .prism-review.yml",
+    "rename to config/prism-review.yml"
+  ].join("\n");
+
+  const files = parseUnifiedDiff(diff);
+
+  assert.equal(files[0]?.path, "config/prism-review.yml");
+  assert.equal(files[0]?.status, "renamed");
+  assert.equal(files[0]?.previousPath, ".prism-review.yml");
+}

@@ -1,3 +1,5 @@
+import { defaultConfigPath } from "../config/schema.js";
+
 export type ActionInputs = {
   githubToken: string;
   configPath: string;
@@ -9,7 +11,7 @@ export function readInputs(): ActionInputs {
 
   return {
     githubToken,
-    configPath: getInput("config-path") || ".prism-review.yml",
+    configPath: getInput("config-path") || defaultConfigPath,
     dryRun: parseBooleanInput(getInput("dry-run") || "false")
   };
 }

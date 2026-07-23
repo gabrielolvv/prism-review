@@ -90,6 +90,8 @@ function isRegularExpression(source: string): boolean {
   }
 }
 
+export const defaultConfigPath = ".prism-review.yml";
+
 export type PrismConfig = z.infer<typeof prismConfigSchema>;
 
 export const defaultConfig: PrismConfig = prismConfigSchema.parse({});

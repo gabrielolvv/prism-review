@@ -3,6 +3,7 @@ import type { ChangedFile, FileStatus } from "../analysis/changed-file.js";
 
 type GitHubPullFile = {
   filename: string;
+  previous_filename?: string;
   status: string;
   additions: number;
   deletions: number;
@@ -21,6 +22,7 @@ export async function fetchPullRequestFiles(
 
   return files.map((file) => ({
     path: file.filename,
+    ...(file.previous_filename ? { previousPath: file.previous_filename } : {}),
     status: normalizeStatus(file.status),
     additions: file.additions,
     deletions: file.deletions,

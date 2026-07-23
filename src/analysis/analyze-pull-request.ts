@@ -1,17 +1,23 @@
 import { changedLines, type ChangedFile } from "./changed-file.js";
 import type { Finding, ReviewResult, RiskLevel } from "./finding.js";
 import type { Rule } from "./rule.js";
-import type { PrismConfig } from "../config/schema.js";
+import { defaultConfigPath, type PrismConfig } from "../config/schema.js";
 import { defaultRules } from "../rules/index.js";
 import { compareSeverity } from "./severity.js";
+
+export type AnalyzeOptions = {
+  rules?: Rule[];
+  configPath?: string;
+};
 
 export function analyzePullRequest(
   files: ChangedFile[],
   config: PrismConfig,
-  rules: Rule[] = defaultRules
+  options: AnalyzeOptions = {}
 ): ReviewResult {
+  const { rules = defaultRules, configPath = defaultConfigPath } = options;
   const findings = rules
-    .flatMap((rule) => rule.run({ files, config }))
+    .flatMap((rule) => rule.run({ files, config, configPath }))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
 
   return {

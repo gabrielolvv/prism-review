@@ -7,6 +7,11 @@ import {
   testRequestTruncatesErrorDetails,
   testRequestUsesTimeoutSignal
 } from "./unit/github-client.test.js";
+import {
+  testConfigChangeRuleFlagsDefaultConfig,
+  testConfigChangeRuleFlagsRenamedConfig,
+  testConfigChangeRuleUsesConfiguredPath
+} from "./unit/config-change.test.js";
 import { testFetchPullRequestFilesNormalizesResponse } from "./unit/fetch-pull-request.test.js";
 import {
   testParseConfigAppliesDefaults,
@@ -19,7 +24,10 @@ import {
   testLimitPatchSizesOmitsOversizedPatches,
   testOversizedPatchRuleReportsOmittedPatches
 } from "./unit/limit-patches.test.js";
-import { testParseUnifiedDiff } from "./unit/parse-unified-diff.test.js";
+import {
+  testParseUnifiedDiff,
+  testParseUnifiedDiffRecordsRenameSource
+} from "./unit/parse-unified-diff.test.js";
 import { testPrepareChangedFilesLimitsThenRedacts } from "./unit/prepare-changed-files.test.js";
 import {
   testAppendModeAlwaysCreatesComment,
@@ -83,7 +91,11 @@ const tests: Array<[string, Test]> = [
   ["parseConfig applies defaults to partial config", testParseConfigAppliesDefaults],
   ["parseConfig treats an empty file as defaults", testParseConfigTreatsEmptyFileAsDefaults],
   ["parseConfig reports the source and field of invalid values", testParseConfigReportsSourceAndField],
-  ["parseConfig reports YAML syntax errors with the source", testParseConfigReportsYamlErrors]
+  ["parseConfig reports YAML syntax errors with the source", testParseConfigReportsYamlErrors],
+  ["parseUnifiedDiff records the source of renames", testParseUnifiedDiffRecordsRenameSource],
+  ["config change rule flags the default config file", testConfigChangeRuleFlagsDefaultConfig],
+  ["config change rule follows the configured path", testConfigChangeRuleUsesConfiguredPath],
+  ["config change rule flags a renamed config file", testConfigChangeRuleFlagsRenamedConfig]
 ];
 
 for (const [name, test] of tests) {

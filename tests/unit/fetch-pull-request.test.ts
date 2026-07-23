@@ -12,7 +12,13 @@ export async function testFetchPullRequestFilesNormalizesResponse(): Promise<voi
         deletions: 1,
         patch: "@@ -1 +1 @@"
       },
-      { filename: "docs/old-name.md", status: "renamed", additions: 0, deletions: 0 },
+      {
+        filename: "docs/new-name.md",
+        previous_filename: "docs/old-name.md",
+        status: "renamed",
+        additions: 0,
+        deletions: 0
+      },
       { filename: "assets/logo.png", status: "changed", additions: 0, deletions: 0 }
     ]
   });
@@ -27,7 +33,14 @@ export async function testFetchPullRequestFilesNormalizesResponse(): Promise<voi
       deletions: 1,
       patch: "@@ -1 +1 @@"
     },
-    { path: "docs/old-name.md", status: "renamed", additions: 0, deletions: 0, patch: undefined },
+    {
+      path: "docs/new-name.md",
+      previousPath: "docs/old-name.md",
+      status: "renamed",
+      additions: 0,
+      deletions: 0,
+      patch: undefined
+    },
     { path: "assets/logo.png", status: "modified", additions: 0, deletions: 0, patch: undefined }
   ]);
 }
