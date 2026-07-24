@@ -42,12 +42,13 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: gabrielolvv/prism-review@v0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: .prism-review.yml
 ```
+
+No checkout step is needed. The action reads the pull request and its configuration through the GitHub API, so pull request code never lands on the runner.
 
 ## Local Development
 

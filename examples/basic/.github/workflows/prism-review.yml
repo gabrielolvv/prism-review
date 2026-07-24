@@ -13,8 +13,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: your-username/prism-review@v0
+      - uses: gabrielolvv/prism-review@v0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: .prism-review.yml
