@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { fakeBaseSha } from "../support/fake-github-api.js";
+import { fakeAppendBaseSha, fakeBaseSha } from "../support/fake-github-api.js";
 
 // Runs the committed bundle the way the runner does, against a fake GitHub API.
 const actionEntry = resolve("dist/action/index.cjs");
@@ -59,37 +59,59 @@ const scenarios: Array<[string, () => void]> = [
 
       assert.equal(run.status, 0, run.stderr);
       assert.match(run.stdout, /<!-- prism-review-comment -->/);
-      assert.match(run.stdout, /Review configuration changed/);
-      // Only the base configuration sets maxFiles to 1.
+      // Each of these depends on a value that only the base configuration sets.
       assert.match(run.stdout, /Large pull request/);
-      assert.doesNotMatch(run.stdout, /sk-thisShouldNeverAppear/);
+      assert.match(run.stdout, /#### Info - Patch too large to inspect\n\n[^\n]+\n\nFile: `src\/billing\/charge\.ts`/);
+      assert.match(run.stdout, /#### High - Review configuration changed\n\n[^\n]+\n\nFile: `\.prism-review\.yml`/);
+      assert.doesNotMatch(run.stdout, /File: `config\/prism\.yml`/);
       assert.ok(run.requests.every((request) => request.method === "GET"));
       assert.ok(run.requests.every((request) => request.authorization === "Bearer test-token"));
     }
   ],
   [
-    "publishing posts one marked comment",
+    "upsert updates the bot comment and ignores marked human comments",
     () => {
       const run = runAction({}, pullRequestEvent);
-      const posts = run.requests.filter((request) => request.method === "POST");
+      const writes = run.requests.filter((request) => request.method !== "GET");
 
       assert.equal(run.status, 0, run.stderr);
-      assert.equal(posts.length, 1);
-      assert.equal(posts[0]?.path, "/repos/acme/widgets/issues/7/comments");
-      assert.match(posts[0]?.body?.body ?? "", /<!-- prism-review-comment -->/);
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0]?.method, "PATCH");
+      assert.equal(writes[0]?.path, "/repos/acme/widgets/issues/comments/5");
+      assert.match(writes[0]?.body?.body ?? "", /^<!-- prism-review-comment -->/);
     }
   ],
   [
-    "a missing base configuration falls back to defaults",
+    "append mode from the base branch posts a new comment",
+    () => {
+      const run = runAction({}, { pull_request: { number: 7, base: { sha: fakeAppendBaseSha } } });
+      const writes = run.requests.filter((request) => request.method !== "GET");
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0]?.method, "POST");
+      assert.equal(writes[0]?.path, "/repos/acme/widgets/issues/7/comments");
+    }
+  ],
+  [
+    "a custom config path is fetched, and a missing file falls back to defaults",
     () => {
       const run = runAction(
-        { "INPUT_DRY-RUN": "true", "INPUT_CONFIG-PATH": "config/prism.yml" },
+        { "INPUT_DRY-RUN": "true", "INPUT_CONFIG-PATH": "./config/prism.yml" },
         pullRequestEvent
       );
 
       assert.equal(run.status, 0, run.stderr);
+      assert.ok(
+        run.requests.some(
+          (request) => request.path === `/repos/acme/widgets/contents/config/prism.yml?ref=${fakeBaseSha}`
+        )
+      );
       assert.match(run.stdout, /No config\/prism\.yml on the base branch; using the default configuration\./);
       assert.doesNotMatch(run.stdout, /Large pull request/);
+      assert.doesNotMatch(run.stdout, /Patch too large to inspect/);
+      assert.match(run.stdout, /#### High - Review configuration changed\n\n[^\n]+\n\nFile: `config\/prism\.yml`/);
+      assert.doesNotMatch(run.stdout, /File: `\.prism-review\.yml`/);
     }
   ],
   [
