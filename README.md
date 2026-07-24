@@ -123,13 +123,13 @@ flowchart TD
 | `large-diff` | Flags PRs that exceed file or line thresholds. |
 | `missing-tests` | Flags source changes without test changes. |
 | `sensitive-files` | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
-| `config-change` | Flags edits, deletions, and renames of the Prism Review configuration file. |
+| `config-change` | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
 | `dependency-risk` | Flags dependency manifest and lockfile changes for supply-chain review. |
 | `oversized-patch` | Reports files whose patch exceeded the size limit and was not inspected. |
 
 ## Example Output
 
-Prism Review posts one upserted pull request comment with a risk summary, findings, and a reviewer checklist.
+Prism Review posts a pull request comment with a risk summary, findings, and a reviewer checklist. By default it updates that comment on every push; `comment.mode: append` posts a new one instead.
 
 See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full example.
 
@@ -139,7 +139,7 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 - Configuration is read from the base commit, not from the pull request.
 - Pull request content is treated as untrusted input.
 - The action uses minimal GitHub token permissions.
-- In the default `upsert` mode, an HTML marker keeps a single bot comment instead of spamming.
+- In the default `upsert` mode, an HTML marker keeps a single bot comment instead of spamming. Comments written by people are never edited, even when they contain the marker.
 - GitHub API calls use a minimal REST client with explicit request paths.
 - Oversized patches are dropped before any pattern matching runs.
 - Patch content is redacted before review flows can use it.

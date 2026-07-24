@@ -11,7 +11,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Self-contained action bundle, so the runner never installs dependencies.
 - Mocked `fetch` coverage for the GitHub client, pagination, and comment upserts.
 - Configuration loaded from the pull request base commit.
-- `config-change` rule for edits to the review configuration.
+- `config-change` rule for any change to the review configuration.
 - `append` comment mode.
 - End-to-end smoke test of the bundled action in CI.
 

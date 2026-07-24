@@ -7,7 +7,8 @@ Prism Review treats pull request content as untrusted input.
 - Repository code is not executed, and the action does not need a checkout.
 - Configuration is read from the base commit, so a pull request cannot relax the rules that review it.
 - GitHub token permissions are intentionally narrow.
-- Review comments are upserted through a stable marker to avoid comment spam.
+- In the default `upsert` mode, one review comment is updated through a stable marker to avoid comment spam; `append` posts one comment per run.
+- Only a comment posted by a bot and starting with the marker is ever edited, so pasting the marker into a comment cannot redirect the review.
 - Oversized patches are dropped before any pattern matching runs.
 - Patch content is redacted before analysis entrypoints use it.
 - GitHub API requests are bounded in time, page count, and error output.
@@ -16,7 +17,7 @@ Prism Review treats pull request content as untrusted input.
 
 ## Configuration Source
 
-The action fetches `config-path` from the pull request base commit through the contents API. Edits to that file inside the pull request only take effect after they are merged, and the `config-change` rule flags them as high risk so a reviewer checks whether thresholds, patterns, or allowlist entries were relaxed.
+The action fetches `config-path` from the pull request base commit through the contents API. Changes to that file inside the pull request, including adding it, only take effect after they are merged, and the `config-change` rule flags them as high risk so a reviewer checks whether thresholds, patterns, or allowlist entries were relaxed.
 
 `config-path` must be a relative path inside the repository. Absolute paths and `..` segments are rejected before any request is made.
 

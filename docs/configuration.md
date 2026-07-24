@@ -7,7 +7,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 The action reads the configuration from the **base commit** of the pull request through the GitHub contents API, not from the pull request itself. A pull request that edits the configuration is reviewed with the rules that were already merged, and the edit is reported by the `config-change` rule.
 
 - `config-path` selects the file. It must be a relative path inside the repository; absolute paths and `..` segments fail the run.
-- When the file does not exist on the base commit, the defaults apply and the log says so. This is the case for the pull request that first adds a configuration file.
+- When the file does not exist on the base commit, the defaults apply and the log says so. This is the case for the pull request that first adds a configuration file, which also receives a high-risk `config-change` finding.
 - The CLI reads the file from disk, because it analyzes local diff fixtures and has no base commit.
 
 ## Example
@@ -62,7 +62,7 @@ Invalid values fail the run with the file and the field that was rejected, for e
 
 ## Rules Without Options
 
-- `config-change` always runs. It reports a high-risk finding when a pull request edits, deletes, or renames the file named by `config-path`.
+- `config-change` always runs. It reports a high-risk finding when a pull request adds, edits, deletes, or renames the file named by `config-path`.
 - `oversized-patch` always runs. It reports an `info` finding for each file whose patch exceeded `security.maxPatchBytes`.
 
 ## Security
@@ -94,7 +94,9 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 
 ### `comment.mode`
 
-- `upsert` (default) keeps a single review comment. It updates the most recent comment that carries the `<!-- prism-review-comment -->` marker, or creates one.
+- `upsert` (default) keeps a single review comment. It updates the most recent comment that a bot posted with a body starting with the `<!-- prism-review-comment -->` marker, or creates one. Comments written by people are never edited, even when they quote the marker.
+
+  The default `GITHUB_TOKEN` and GitHub App tokens post as a bot. A personal access token posts as its user, so `upsert` never finds the earlier comment and creates a new one on every run.
 - `append` posts a new comment on every run, which keeps the history of reviews in the conversation at the cost of more notifications.
 
 ### `comment.includeLowSeverity`
