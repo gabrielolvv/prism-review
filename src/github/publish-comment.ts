@@ -5,6 +5,9 @@ import { PRISM_COMMENT_MARKER } from "../reporting/render-markdown.js";
 type GitHubComment = {
   id: number;
   body?: string;
+  user?: {
+    type?: string;
+  };
 };
 
 export type CommentMode = PrismConfig["comment"]["mode"];
@@ -37,9 +40,7 @@ export async function upsertPullRequestComment(
   );
 
   // Append mode can leave several marked comments behind; keep the newest one current.
-  const existing = [...comments]
-    .reverse()
-    .find((comment) => comment.body?.includes(PRISM_COMMENT_MARKER));
+  const existing = [...comments].reverse().find(isPrismReviewComment);
 
   if (existing) {
     await client.request(`/repos/${owner}/${repo}/issues/comments/${existing.id}`, {
@@ -50,6 +51,11 @@ export async function upsertPullRequestComment(
   }
 
   await createComment(client, owner, repo, issueNumber, body);
+}
+
+// Anyone who can comment can paste the marker, so only a bot comment that starts with it counts.
+function isPrismReviewComment(comment: GitHubComment): boolean {
+  return comment.user?.type === "Bot" && (comment.body?.startsWith(PRISM_COMMENT_MARKER) ?? false);
 }
 
 async function createComment(

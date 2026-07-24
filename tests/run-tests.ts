@@ -50,6 +50,8 @@ import { testPrepareChangedFilesLimitsThenRedacts } from "./unit/prepare-changed
 import {
   testAppendModeAlwaysCreatesComment,
   testUpsertCreatesCommentWhenMarkerIsMissing,
+  testUpsertIgnoresBotCommentsWithoutLeadingMarker,
+  testUpsertIgnoresMarkerInHumanComments,
   testUpsertModeUpdatesExistingComment,
   testUpsertUpdatesExistingComment,
   testUpsertUpdatesMostRecentMarkerComment
@@ -95,6 +97,8 @@ const tests: Array<[string, Test]> = [
   ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
   ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment],
   ["upsert updates the most recent Prism Review comment", testUpsertUpdatesMostRecentMarkerComment],
+  ["upsert ignores the marker in comments written by people", testUpsertIgnoresMarkerInHumanComments],
+  ["upsert ignores bot comments that do not start with the marker", testUpsertIgnoresBotCommentsWithoutLeadingMarker],
   ["append mode always creates a new comment", testAppendModeAlwaysCreatesComment],
   ["upsert mode updates the existing comment", testUpsertModeUpdatesExistingComment],
   ["limitPatchSizes omits oversized patches", testLimitPatchSizesOmitsOversizedPatches],
