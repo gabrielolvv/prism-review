@@ -2,6 +2,14 @@
 
 Prism Review reads `.prism-review.yml` from the repository root by default. Every option is optional; missing values fall back to the defaults shown below.
 
+## Where the Configuration Comes From
+
+The action reads the configuration from the **base commit** of the pull request through the GitHub contents API, not from the pull request itself. A pull request that edits the configuration is reviewed with the rules that were already merged, and the edit is reported by the `config-change` rule.
+
+- `config-path` selects the file. It must be a relative path inside the repository; absolute paths and `..` segments fail the run.
+- When the file does not exist on the base commit, the defaults apply and the log says so. This is the case for the pull request that first adds a configuration file.
+- The CLI reads the file from disk, because it analyzes local diff fixtures and has no base commit.
+
 ## Example
 
 ```yaml
@@ -50,6 +58,13 @@ comment:
   includeLowSeverity: false
 ```
 
+Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
+
+## Rules Without Options
+
+- `config-change` always runs. It reports a high-risk finding when a pull request edits, deletes, or renames the file named by `config-path`.
+- `oversized-patch` always runs. It reports an `info` finding for each file whose patch exceeded `security.maxPatchBytes`.
+
 ## Security
 
 ### `security.maxPatchBytes`
@@ -79,9 +94,8 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 
 ### `comment.mode`
 
-`upsert` is the recommended mode. It updates a previous Prism Review comment using a stable HTML marker.
-
-`append` is reserved for future use.
+- `upsert` (default) keeps a single review comment. It updates the most recent comment that carries the `<!-- prism-review-comment -->` marker, or creates one.
+- `append` posts a new comment on every run, which keeps the history of reviews in the conversation at the cost of more notifications.
 
 ### `comment.includeLowSeverity`
 

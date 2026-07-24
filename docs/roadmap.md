@@ -10,6 +10,10 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Patch size limits with an `oversized-patch` finding.
 - Self-contained action bundle, so the runner never installs dependencies.
 - Mocked `fetch` coverage for the GitHub client, pagination, and comment upserts.
+- Configuration loaded from the pull request base commit.
+- `config-change` rule for edits to the review configuration.
+- `append` comment mode.
+- End-to-end smoke test of the bundled action in CI.
 
 ## Near Term
 
@@ -19,11 +23,7 @@ Add diff fixtures that contain instructions aimed at a reviewer model, so any fu
 
 ### Add inline PR annotations
 
-Support optional GitHub Checks annotations so findings can appear beside changed files while preserving the summary comment.
-
-### Load configuration from the base branch
-
-The action currently reads `.prism-review.yml` from the checked-out pull request. Reading it from the base branch would stop a pull request from relaxing its own review rules.
+Support optional GitHub Checks annotations so findings can appear beside changed files while preserving the summary comment. This needs the `checks: write` permission, so it should stay opt-in.
 
 ## Mid Term
 
@@ -31,9 +31,9 @@ The action currently reads `.prism-review.yml` from the checked-out pull request
 
 Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets.
 
-### Implement `append` comment mode
+### Support GitHub Enterprise Server
 
-The schema accepts `comment.mode: append`, but only `upsert` is implemented.
+Read the API base URL from `GITHUB_API_URL` instead of assuming `https://api.github.com`.
 
 ## Later
 

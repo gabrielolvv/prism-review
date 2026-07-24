@@ -4,7 +4,8 @@ Prism Review treats pull request content as untrusted input.
 
 ## Current Boundaries
 
-- Repository code is not executed.
+- Repository code is not executed, and the action does not need a checkout.
+- Configuration is read from the base commit, so a pull request cannot relax the rules that review it.
 - GitHub token permissions are intentionally narrow.
 - Review comments are upserted through a stable marker to avoid comment spam.
 - Oversized patches are dropped before any pattern matching runs.
@@ -12,6 +13,12 @@ Prism Review treats pull request content as untrusted input.
 - GitHub API requests are bounded in time, page count, and error output.
 - The action runs from a committed bundle and installs nothing at runtime.
 - AI review is not part of the deterministic core.
+
+## Configuration Source
+
+The action fetches `config-path` from the pull request base commit through the contents API. Edits to that file inside the pull request only take effect after they are merged, and the `config-change` rule flags them as high risk so a reviewer checks whether thresholds, patterns, or allowlist entries were relaxed.
+
+`config-path` must be a relative path inside the repository. Absolute paths and `..` segments are rejected before any request is made.
 
 ## Patch Size Limits
 
@@ -42,14 +49,14 @@ The long-token pattern also matches harmless values such as 40-character commit 
 - Requests time out after 15 seconds.
 - Pagination stops after 30 pages of 100 items, which matches the 3000-file cap of the pull request files endpoint.
 - Error response bodies are truncated to 300 characters before they are included in error messages.
+- Failures raise `GitHubApiError`, which keeps the HTTP status. Only a `404` for the configuration file is treated as "no configuration"; any other failure stops the run.
 
 ## Known Limitations
 
-- Configuration is read from the pull request checkout, so a pull request can change the rules that review it. Treat a change to `.prism-review.yml` as a sensitive change.
+- For `pull_request` events, GitHub runs the workflow definition from the pull request. A pull request that edits the workflow can change the inputs passed to Prism Review or remove the step. Changes under `.github/workflows/` are flagged by `sensitive-files`, and branch protection should require review for them.
+- GitHub can answer `404` instead of `403` when a token cannot read a private resource, so a token without `contents: read` may fall back to the defaults. The log line `No <path> on the base branch` makes this visible.
 - Allowlist patterns are regular expressions supplied by the repository. A pathological pattern can slow the run down; the job timeout is the backstop.
 
 ## Future Hardening
 
 - Add prompt injection fixtures before AI review.
-- Load configuration from the base branch.
-- Flag changes to `.prism-review.yml` as sensitive by default.

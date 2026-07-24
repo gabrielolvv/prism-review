@@ -2,18 +2,20 @@
 
 Prism Review is built around a deterministic analysis engine.
 
-The GitHub Action layer is responsible for reading inputs, fetching pull request files, and publishing a comment. The analysis layer is independent of GitHub, which makes it easy to test locally with diff fixtures.
+The GitHub Action layer is responsible for reading inputs, fetching the configuration and the pull request files, and publishing a comment. The analysis layer is independent of GitHub, which makes it easy to test locally with diff fixtures.
 
 ## Core Flow
 
 1. GitHub emits a `pull_request` event.
 2. The action reads inputs and repository context.
-3. The config loader validates `.prism-review.yml`.
+3. The GitHub client fetches `.prism-review.yml` from the pull request base commit, and the config loader validates it.
 4. The GitHub client fetches changed files.
 5. Oversized patches are dropped and the remaining patches are redacted.
 6. The analysis engine runs rule modules.
 7. The Markdown renderer creates the review body.
-8. The publisher creates or updates one PR comment.
+8. The publisher creates or updates the PR comment, depending on `comment.mode`.
+
+Nothing in this flow reads the workspace, so workflows do not need a checkout step.
 
 ## Build Outputs
 
@@ -22,7 +24,7 @@ The GitHub Action layer is responsible for reading inputs, fetching pull request
 | `build/` | `npm run build` | No | Compiler output used by type checking and tests. |
 | `dist/` | `npm run bundle` | Yes | Self-contained bundles executed by GitHub and the CLI. |
 
-GitHub runs an action straight from the repository checkout and does not install dependencies, so `dist/` must contain everything the action imports. CI rebuilds the bundle and fails when the committed copy is stale.
+GitHub runs an action straight from the repository checkout and does not install dependencies, so `dist/` must contain everything the action imports. CI rebuilds the bundle, fails when the committed copy is stale, and then runs `npm run test:action`, which starts the bundle the way the runner does against a fake GitHub API.
 
 ## Design Principles
 

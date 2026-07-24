@@ -6,7 +6,7 @@ inputs:
     description: "GitHub token used to read pull request data and publish comments."
     required: true
   config-path:
-    description: "Path to the Prism Review configuration file."
+    description: "Repository path of the Prism Review configuration file, read from the pull request base commit."
     required: false
     default: ".prism-review.yml"
   dry-run:

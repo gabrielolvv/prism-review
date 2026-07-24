@@ -22,6 +22,7 @@ Expected result:
 - The bot posts one PR comment.
 - The comment includes `dependency-risk` and/or `missing-tests` findings.
 - Re-pushing to the branch updates the same comment instead of creating duplicates.
+- Editing `.prism-review.yml` in the branch adds a `config-change` finding, while the review itself still uses the configuration on `master`.
 
 ## Review Checklist
 

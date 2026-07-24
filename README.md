@@ -15,9 +15,10 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Runs on GitHub Pull Request events
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
-- Posts or updates a single PR comment
+- Loads its configuration from the pull request base commit, so a PR cannot relax its own review
+- Posts or updates a single PR comment, or appends one per run
 - Supports local fixture-based analysis
-- Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client
+- Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus an end-to-end run of the bundled action
 - Ships as a self-contained bundle, so no dependency install happens on the runner
 - Uses minimal GitHub permissions
 - Avoids executing repository code or relying on broad action helper packages
@@ -105,9 +106,11 @@ flowchart TD
     A["GitHub Pull Request Event"] --> B["GitHub Action Runner"]
     B --> C["Action Entry Point"]
     C --> D["GitHub Client"]
+    D --> K["Base Branch Configuration"]
     D --> E["Changed Files"]
     E --> P["Patch Limits and Secret Redaction"]
     P --> F["Analysis Engine"]
+    K --> F
     F --> G["Rule Modules"]
     G --> H["Markdown Renderer"]
     H --> I["Comment Publisher"]
@@ -120,6 +123,7 @@ flowchart TD
 | `large-diff` | Flags PRs that exceed file or line thresholds. |
 | `missing-tests` | Flags source changes without test changes. |
 | `sensitive-files` | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
+| `config-change` | Flags edits, deletions, and renames of the Prism Review configuration file. |
 | `dependency-risk` | Flags dependency manifest and lockfile changes for supply-chain review. |
 | `oversized-patch` | Reports files whose patch exceeded the size limit and was not inspected. |
 
@@ -131,10 +135,11 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 
 ## Security Model
 
-- Repository code is never executed.
+- Repository code is never executed, and no checkout is needed.
+- Configuration is read from the base commit, not from the pull request.
 - Pull request content is treated as untrusted input.
 - The action uses minimal GitHub token permissions.
-- Comment publishing uses an HTML marker to update the existing bot comment instead of spamming.
+- In the default `upsert` mode, an HTML marker keeps a single bot comment instead of spamming.
 - GitHub API calls use a minimal REST client with explicit request paths.
 - Oversized patches are dropped before any pattern matching runs.
 - Patch content is redacted before review flows can use it.
