@@ -13737,7 +13737,7 @@ async function upsertPullRequestComment(client, owner, repo, issueNumber, body) 
   const comments = await client.paginate(
     `/repos/${owner}/${repo}/issues/${issueNumber}/comments`
   );
-  const existing = [...comments].reverse().find((comment) => comment.body?.includes(PRISM_COMMENT_MARKER));
+  const existing = [...comments].reverse().find(isPrismReviewComment);
   if (existing) {
     await client.request(`/repos/${owner}/${repo}/issues/comments/${existing.id}`, {
       method: "PATCH",
@@ -13746,6 +13746,9 @@ async function upsertPullRequestComment(client, owner, repo, issueNumber, body) 
     return;
   }
   await createComment(client, owner, repo, issueNumber, body);
+}
+function isPrismReviewComment(comment) {
+  return comment.user?.type === "Bot" && (comment.body?.startsWith(PRISM_COMMENT_MARKER) ?? false);
 }
 async function createComment(client, owner, repo, issueNumber, body) {
   await client.request(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {

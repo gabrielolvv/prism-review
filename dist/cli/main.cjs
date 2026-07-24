@@ -13712,7 +13712,7 @@ function parseUnifiedDiff(diff) {
     }
     const path2 = match2[2];
     const status = detectStatus(lines);
-    const previousPath = status === "renamed" ? readRenameSource(lines) ?? match2[1] : void 0;
+    const previousPath = status === "renamed" ? readRenameSource(lines) : void 0;
     const patch = `diff --git ${section}`.trimEnd();
     const additions = lines.filter((line) => line.startsWith("+") && !line.startsWith("+++")).length;
     const deletions = lines.filter((line) => line.startsWith("-") && !line.startsWith("---")).length;
