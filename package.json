@@ -13,6 +13,7 @@
     "check": "npm run typecheck && npm run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node build/tests/run-tests.js",
+    "test:action": "npm run build && node build/tests/action/run-action-smoke.js",
     "analyze:fixture": "npm run bundle && node dist/cli/main.cjs analyze --fixture fixtures/diffs/risky-auth-change.diff"
   },
   "keywords": [
