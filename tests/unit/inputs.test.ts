@@ -22,13 +22,25 @@ export function testReadInputsDefaultsConfigPath(): void {
 }
 
 export function testReadInputsNormalizesConfigPath(): void {
-  withInputs({ "INPUT_GITHUB-TOKEN": "test-token", "INPUT_CONFIG-PATH": "./config/prism.yml" }, () => {
-    assert.equal(readInputs().configPath, "config/prism.yml");
-  });
+  for (const configPath of ["./config/prism.yml", "config\\prism.yml", " config/prism.yml "]) {
+    withInputs({ "INPUT_GITHUB-TOKEN": "test-token", "INPUT_CONFIG-PATH": configPath }, () => {
+      assert.equal(readInputs().configPath, "config/prism.yml", configPath);
+    });
+  }
 }
 
 export function testReadInputsRejectsPathsOutsideRepository(): void {
-  for (const configPath of ["../shared/prism.yml", "/etc/prism.yml", "C:/prism.yml", "config//prism.yml"]) {
+  const configPaths = [
+    "../shared/prism.yml",
+    "..\\shared\\prism.yml",
+    "/etc/prism.yml",
+    "C:/prism.yml",
+    "C:\\prism.yml",
+    "config//prism.yml",
+    "config/./prism.yml"
+  ];
+
+  for (const configPath of configPaths) {
     withInputs({ "INPUT_GITHUB-TOKEN": "test-token", "INPUT_CONFIG-PATH": configPath }, () => {
       assert.throws(
         () => readInputs(),

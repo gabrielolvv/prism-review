@@ -57,6 +57,26 @@ export async function testFetchRepositoryFileRejectsDirectories(): Promise<void>
   );
 }
 
+export async function testFetchRepositoryFileRejectsSymlinksAndSubmodules(): Promise<void> {
+  for (const json of [
+    { type: "symlink", target: "../elsewhere.yml" },
+    { type: "submodule", submodule_git_url: "https://example.com/config.git" }
+  ]) {
+    await withMockFetch(
+      () => ({ json }),
+      async () => {
+        const client = createGitHubClient("test-token");
+
+        await assert.rejects(
+          fetchRepositoryFile(client, "acme", "widgets", ".prism-review.yml", "abc123"),
+          /^Error: \.prism-review\.yml is not a file at abc123\.$/,
+          json.type
+        );
+      }
+    );
+  }
+}
+
 export async function testFetchRepositoryFileRejectsUnreadableContent(): Promise<void> {
   await withMockFetch(
     () => ({ json: { type: "file", encoding: "none", content: "" } }),

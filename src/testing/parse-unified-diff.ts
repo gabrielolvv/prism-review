@@ -14,8 +14,7 @@ export function parseUnifiedDiff(diff: string): ChangedFile[] {
 
     const path = match[2];
     const status = detectStatus(lines);
-    const previousPath =
-      status === "renamed" ? readRenameSource(lines) ?? match[1] : undefined;
+    const previousPath = status === "renamed" ? readRenameSource(lines) : undefined;
     const patch = `diff --git ${section}`.trimEnd();
     const additions = lines.filter((line) => line.startsWith("+") && !line.startsWith("+++")).length;
     const deletions = lines.filter((line) => line.startsWith("-") && !line.startsWith("---")).length;

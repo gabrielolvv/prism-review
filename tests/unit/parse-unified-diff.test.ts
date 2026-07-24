@@ -38,3 +38,18 @@ export function testParseUnifiedDiffRecordsRenameSource(): void {
   assert.equal(files[0]?.status, "renamed");
   assert.equal(files[0]?.previousPath, ".prism-review.yml");
 }
+
+export function testParseUnifiedDiffReadsRenameSourceFromRenameLine(): void {
+  // The header alone is ambiguous when the old path contains " b/".
+  const diff = [
+    "diff --git a/docs/a b/x.md b/docs/new.md",
+    "similarity index 100%",
+    "rename from docs/a b/x.md",
+    "rename to docs/new.md"
+  ].join("\n");
+
+  const files = parseUnifiedDiff(diff);
+
+  assert.equal(files[0]?.status, "renamed");
+  assert.equal(files[0]?.previousPath, "docs/a b/x.md");
+}

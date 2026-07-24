@@ -21,6 +21,13 @@ export function testParseConfigReportsSourceAndField(): void {
   );
 }
 
+export function testParseConfigLabelsRootErrors(): void {
+  assert.throws(
+    () => parseConfig("- risk\n", "list.yml"),
+    /^Error: Invalid Prism Review configuration in list\.yml: \(root\): /
+  );
+}
+
 export function testParseConfigReportsYamlErrors(): void {
   assert.throws(
     () => parseConfig("risk: [unclosed\n", "broken.yml"),

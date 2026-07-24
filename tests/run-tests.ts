@@ -16,6 +16,7 @@ import {
   testFetchRepositoryFileDecodesContent,
   testFetchRepositoryFilePropagatesOtherErrors,
   testFetchRepositoryFileRejectsDirectories,
+  testFetchRepositoryFileRejectsSymlinksAndSubmodules,
   testFetchRepositoryFileRejectsUnreadableContent,
   testFetchRepositoryFileReturnsUndefinedWhenMissing
 } from "./unit/fetch-repository-file.test.js";
@@ -33,6 +34,7 @@ import {
 } from "./unit/load-base-config.test.js";
 import {
   testParseConfigAppliesDefaults,
+  testParseConfigLabelsRootErrors,
   testParseConfigReportsSourceAndField,
   testParseConfigReportsYamlErrors,
   testParseConfigTreatsEmptyFileAsDefaults
@@ -44,6 +46,7 @@ import {
 } from "./unit/limit-patches.test.js";
 import {
   testParseUnifiedDiff,
+  testParseUnifiedDiffReadsRenameSourceFromRenameLine,
   testParseUnifiedDiffRecordsRenameSource
 } from "./unit/parse-unified-diff.test.js";
 import { testPrepareChangedFilesLimitsThenRedacts } from "./unit/prepare-changed-files.test.js";
@@ -113,14 +116,17 @@ const tests: Array<[string, Test]> = [
   ["parseConfig applies defaults to partial config", testParseConfigAppliesDefaults],
   ["parseConfig treats an empty file as defaults", testParseConfigTreatsEmptyFileAsDefaults],
   ["parseConfig reports the source and field of invalid values", testParseConfigReportsSourceAndField],
+  ["parseConfig labels errors at the document root", testParseConfigLabelsRootErrors],
   ["parseConfig reports YAML syntax errors with the source", testParseConfigReportsYamlErrors],
   ["parseUnifiedDiff records the source of renames", testParseUnifiedDiffRecordsRenameSource],
+  ["parseUnifiedDiff reads the rename source from the rename line", testParseUnifiedDiffReadsRenameSourceFromRenameLine],
   ["config change rule flags the default config file", testConfigChangeRuleFlagsDefaultConfig],
   ["config change rule follows the configured path", testConfigChangeRuleUsesConfiguredPath],
   ["config change rule flags a renamed config file", testConfigChangeRuleFlagsRenamedConfig],
   ["fetchRepositoryFile decodes base64 file content", testFetchRepositoryFileDecodesContent],
   ["fetchRepositoryFile returns undefined for missing files", testFetchRepositoryFileReturnsUndefinedWhenMissing],
   ["fetchRepositoryFile rejects directories", testFetchRepositoryFileRejectsDirectories],
+  ["fetchRepositoryFile rejects symlinks and submodules", testFetchRepositoryFileRejectsSymlinksAndSubmodules],
   ["fetchRepositoryFile rejects content it cannot decode", testFetchRepositoryFileRejectsUnreadableContent],
   ["fetchRepositoryFile propagates other API errors", testFetchRepositoryFilePropagatesOtherErrors],
   ["readInputs reads the variable names the runner sets", testReadInputsReadsRunnerVariableNames],
