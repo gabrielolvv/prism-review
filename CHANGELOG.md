@@ -2,6 +2,34 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.3.0 - 2026-07-24
+
+### Added
+
+- The action loads its configuration from the pull request base commit through the contents API, so a pull request cannot relax the rules that review it.
+- `config-change` rule flags any change to the configuration file, including adding, deleting, or renaming it, as high risk.
+- `comment.mode: append` posts a new comment on every run.
+- `npm run test:action` runs the bundled action end to end against a fake GitHub API, and CI runs it after rebuilding the bundle.
+- MIT `LICENSE` file.
+
+### Changed
+
+- Workflows no longer need `actions/checkout`; the action reads everything through the GitHub API.
+- `config-path` must be a relative path inside the repository.
+- Configuration errors name the file, the base commit, and the rejected field.
+- `upsert` updates the most recent comment that a bot posted starting with the marker.
+- `analyzePullRequest` takes an options object with `rules` and `configPath`.
+- Renamed files carry `previousPath`.
+- GitHub API failures raise `GitHubApiError`, which keeps the HTTP status.
+- CI runs on Node 24, the same runtime the action declares.
+
+### Fixed
+
+- Action inputs were read from `INPUT_GITHUB_TOKEN` instead of `INPUT_GITHUB-TOKEN`, so the action failed on every pull request with a missing `github-token` error.
+- `upsert` could overwrite any comment that contained the marker, including a person's reply that quoted the review.
+- `comment.mode: append` was accepted by the schema but behaved like `upsert`.
+- `docs/sample-review-comment.md` listed findings in a different order than the real output.
+
 ## 0.2.0 - 2026-07-21
 
 ### Added
