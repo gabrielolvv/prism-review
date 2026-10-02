@@ -78,6 +78,12 @@ export const prismConfigSchema = z.object({
       mode: z.enum(["upsert", "append"]).default("upsert"),
       includeLowSeverity: z.boolean().default(false)
     })
+    .default({}),
+  annotations: z
+    .object({
+      enabled: z.boolean().default(false),
+      includeLowSeverity: z.boolean().default(false)
+    })
     .default({})
 });
 

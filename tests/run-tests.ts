@@ -73,6 +73,14 @@ import {
   testRedactSecretsKeepsAllowlistedValues
 } from "./unit/redact-secrets.test.js";
 import {
+  testConfigDisablesAnnotationsByDefault,
+  testRenderAnnotationsEscapesPullRequestContent,
+  testRenderAnnotationsHidesInfoByDefault,
+  testRenderAnnotationsIncludesLineAndRecommendation,
+  testRenderAnnotationsMapsSeverityToCommands,
+  testRenderAnnotationsSkipsFindingsWithoutFile
+} from "./unit/render-annotations.test.js";
+import {
   testRenderMarkdown,
   testRenderMarkdownHidesLowSeverityByDefault,
   testRenderMarkdownIncludesLowSeverityWhenEnabled
@@ -93,6 +101,12 @@ const tests: Array<[string, Test]> = [
     "renderMarkdown includes info findings when enabled",
     testRenderMarkdownIncludesLowSeverityWhenEnabled
   ],
+  ["renderAnnotations maps severities to workflow commands", testRenderAnnotationsMapsSeverityToCommands],
+  ["renderAnnotations skips findings without a file", testRenderAnnotationsSkipsFindingsWithoutFile],
+  ["renderAnnotations hides info findings by default", testRenderAnnotationsHidesInfoByDefault],
+  ["renderAnnotations includes the line and recommendation", testRenderAnnotationsIncludesLineAndRecommendation],
+  ["renderAnnotations escapes pull request content", testRenderAnnotationsEscapesPullRequestContent],
+  ["config disables annotations by default", testConfigDisablesAnnotationsByDefault],
   ["GitHub client sends authenticated JSON requests", testRequestSendsAuthenticatedJson],
   ["GitHub client returns undefined for 204 responses", testRequestReturnsUndefinedForNoContent],
   ["GitHub client fails with the response status", testRequestFailsWithStatus],
