@@ -24,7 +24,7 @@ export const sensitiveFilesRule: Rule = {
         title: "Sensitive file changed",
         severity: "high" as const,
         file: file.path,
-        message: `${file.path} touches an area that commonly affects security, deployment, data integrity, or access control.`,
+        message: "This file touches an area that commonly affects security, deployment, data integrity, or access control.",
         recommendation:
           "Ask for focused review from someone familiar with this area and verify rollback or mitigation steps."
       }));

@@ -158,13 +158,15 @@ const scenarios: Array<[string, () => void]> = [
         { pull_request: { number: 9, base: { sha: fakeBaseSha } } }
       );
       const lines = run.stdout.split(/\r?\n/);
-      const forged = lines.findIndex((line) => line.startsWith("::error file=README.md::"));
       const stop = lines.findIndex((line) => /^::stop-commands::[0-9a-f-]{36}$/.test(line));
       const resume = lines.findIndex((line) => line === `::${lines[stop]?.slice("::stop-commands::".length)}::`);
+      const body = lines.indexOf("<!-- prism-review-comment -->");
 
       assert.equal(run.status, 0, run.stderr);
-      assert.ok(forged !== -1, run.stdout);
-      assert.ok(stop !== -1 && stop < forged && forged < resume, run.stdout);
+      // The review keeps the path on one line, and the printed review is also fenced off.
+      assert.ok(!lines.some((line) => line.startsWith("::error file=README.md::")), run.stdout);
+      assert.match(run.stdout, /^File: `src\/auth\/x\\n::error file=README\.md::forged by the pull request\\n\.ts`$/m);
+      assert.ok(stop !== -1 && stop < body && body < resume, run.stdout);
       // The annotation for the same path is escaped, so it stays one command.
       assert.match(run.stdout, /^::error file=src\/auth\/x%0A%3A%3Aerror file=README\.md%3A%3Aforged/m);
     }

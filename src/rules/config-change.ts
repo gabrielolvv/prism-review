@@ -18,7 +18,8 @@ export const configChangeRule: Rule = {
         title: "Review configuration changed",
         severity: "high" as const,
         file: file.path,
-        message: `${file.path} changes the Prism Review configuration, which controls how pull requests are reviewed.`,
+        message:
+          "This file is the Prism Review configuration, which controls how pull requests are reviewed.",
         recommendation:
           "Confirm that thresholds, rule patterns, and redaction allowlist entries were not relaxed to hide findings."
       }));
