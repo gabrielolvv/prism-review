@@ -47,6 +47,7 @@ The long-token pattern also matches harmless values such as 40-character commit 
 
 ## GitHub API Client
 
+- Requests go to the API URL in `GITHUB_API_URL`, which the runner sets to `https://api.github.com` on github.com and to the instance API on GitHub Enterprise Server. When it is unset, `https://api.github.com` is used. Values that are not plain `http` or `https` URLs, or that carry credentials, a query string, or a fragment, fail the run before any request is made.
 - Requests time out after 15 seconds.
 - Pagination stops after 30 pages of 100 items, which matches the 3000-file cap of the pull request files endpoint.
 - Error response bodies are truncated to 300 characters before they are included in error messages.

@@ -21,6 +21,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus an end-to-end run of the bundled action
 - Ships as a self-contained bundle, so no dependency install happens on the runner
 - Uses minimal GitHub permissions
+- Works on GitHub Enterprise Server through the API URL the runner provides
 - Avoids executing repository code or relying on broad action helper packages
 
 ## Quick Start

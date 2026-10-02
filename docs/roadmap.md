@@ -14,6 +14,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `config-change` rule for any change to the review configuration.
 - `append` comment mode.
 - End-to-end smoke test of the bundled action in CI.
+- GitHub Enterprise Server support through `GITHUB_API_URL`.
 
 ## Near Term
 
@@ -30,10 +31,6 @@ Support optional GitHub Checks annotations so findings can appear beside changed
 ### Add optional AI review summaries
 
 Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets.
-
-### Support GitHub Enterprise Server
-
-Read the API base URL from `GITHUB_API_URL` instead of assuming `https://api.github.com`.
 
 ## Later
 
