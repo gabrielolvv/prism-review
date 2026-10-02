@@ -10,6 +10,7 @@ Prism Review treats pull request content as untrusted input.
 - In the default `upsert` mode, one review comment is updated through a stable marker to avoid comment spam; `append` posts one comment per run.
 - Only a comment posted by a bot and starting with the marker is ever edited, so pasting the marker into a comment cannot redirect the review.
 - Annotations escape file paths and messages before printing workflow commands, so a crafted file name cannot start a new command such as `::stop-commands::` or `::add-mask::`.
+- `dry-run` prints the review between `::stop-commands::` markers with a random token, so file names quoted in the review are never read as workflow commands.
 - Oversized patches are dropped before any pattern matching runs.
 - Patch content is redacted before analysis entrypoints use it.
 - GitHub API requests are bounded in time, page count, and error output.
