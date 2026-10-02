@@ -16,6 +16,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - End-to-end smoke test of the bundled action in CI.
 - GitHub Enterprise Server support through `GITHUB_API_URL`.
 - Opt-in inline annotations through workflow commands, with no extra permission.
+- `secret-in-diff` rule with line-level findings for credentials added in the diff.
 
 ## Near Term
 
@@ -23,9 +24,9 @@ This roadmap is intentionally staged so the project grows like a real developer 
 
 Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
 
-### Add line-level findings
+### Add more line-level findings
 
-Annotations attach to a file today because no rule reports a line. Rules that inspect patch content can set `line` from the diff hunk so annotations land on the changed line.
+`secret-in-diff` reports the line it found. Other rules that inspect patch content, such as risky API calls or disabled tests, can reuse its hunk line numbering so their annotations land on the changed line.
 
 ## Mid Term
 
