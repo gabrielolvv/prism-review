@@ -11,7 +11,7 @@ export const oversizedPatchRule: Rule = {
         title: "Patch too large to inspect",
         severity: "info" as const,
         file: file.path,
-        message: `${file.path} exceeds the configured patch size limit, so its content was not inspected.`,
+        message: "This file's patch exceeds the configured size limit, so its content was not inspected.",
         recommendation: "Review this file manually or split the change into smaller pull requests."
       }));
   }

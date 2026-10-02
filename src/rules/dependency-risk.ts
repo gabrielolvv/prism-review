@@ -27,7 +27,7 @@ export const dependencyRiskRule: Rule = {
           title: "Dependency definition changed",
           severity: "warning" as const,
           file: file.path,
-          message: `${file.path} changes ${ecosystem} dependency metadata or lockfile state.`,
+          message: `This file changes ${ecosystem} dependency metadata or lockfile state.`,
           recommendation:
             "Verify package provenance, lockfile consistency, license impact, and whether the dependency is required at runtime."
         };

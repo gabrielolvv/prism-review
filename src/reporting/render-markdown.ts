@@ -42,20 +42,37 @@ export function renderMarkdown(
 
 function renderFinding(finding: ReviewResult["findings"][number]): string {
   const sections = [
-    `#### ${capitalize(finding.severity)} - ${finding.title}`,
+    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
     "",
-    finding.message
+    escapeText(finding.message)
   ];
 
   if (finding.file) {
-    sections.push("", `File: \`${finding.file}\``);
+    sections.push("", `File: ${codeSpan(finding.file)}`);
   }
 
   if (finding.recommendation) {
-    sections.push("", `Recommendation: ${finding.recommendation}`);
+    sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
 
   return sections.join("\n");
+}
+
+// Finding text is plain prose, so Markdown and HTML in it are shown literally. Newlines are folded
+// because a new line could start a heading, list, or HTML block in the middle of the comment.
+function escapeText(value: string): string {
+  return value.replace(/\r\n?|\n/g, " ").replace(/[\\`*_[\]<>#|!~&]/g, "\\$&");
+}
+
+// File paths come from the pull request. A code span keeps them literal, and GitHub does not
+// turn @mentions or #references inside one into notifications or links.
+function codeSpan(value: string): string {
+  const content = value.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  const longestRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = "`".repeat(longestRun + 1);
+  const padding = content.startsWith("`") || content.endsWith("`") ? " " : "";
+
+  return `${fence}${padding}${content}${padding}${fence}`;
 }
 
 function capitalize(value: string): string {

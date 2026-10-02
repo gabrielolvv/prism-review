@@ -82,7 +82,10 @@ import {
 } from "./unit/render-annotations.test.js";
 import {
   testRenderMarkdown,
+  testRenderMarkdownEscapesFindingText,
+  testRenderMarkdownFencesBackticksInPaths,
   testRenderMarkdownHidesLowSeverityByDefault,
+  testRenderMarkdownKeepsHostilePathsInert,
   testRenderMarkdownIncludesLowSeverityWhenEnabled
 } from "./unit/render-markdown.test.js";
 import { testDefaultRules, testDependencyRiskRule } from "./unit/rules.test.js";
@@ -107,6 +110,9 @@ const tests: Array<[string, Test]> = [
   ["renderAnnotations includes the line and recommendation", testRenderAnnotationsIncludesLineAndRecommendation],
   ["renderAnnotations escapes pull request content", testRenderAnnotationsEscapesPullRequestContent],
   ["config disables annotations by default", testConfigDisablesAnnotationsByDefault],
+  ["renderMarkdown keeps hostile file paths inert", testRenderMarkdownKeepsHostilePathsInert],
+  ["renderMarkdown fences backticks in file paths", testRenderMarkdownFencesBackticksInPaths],
+  ["renderMarkdown escapes finding text", testRenderMarkdownEscapesFindingText],
   ["GitHub client sends authenticated JSON requests", testRequestSendsAuthenticatedJson],
   ["GitHub client returns undefined for 204 responses", testRequestReturnsUndefinedForNoContent],
   ["GitHub client fails with the response status", testRequestFailsWithStatus],
