@@ -7361,6 +7361,7 @@ var require_dist = __commonJS({
 });
 
 // src/action/index.ts
+var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 
 // src/analysis/changed-file.ts
@@ -13953,7 +13954,7 @@ async function run() {
     }
   }
   if (inputs.dryRun) {
-    console.log(body);
+    printUntrusted(body);
     return;
   }
   await publishPullRequestComment(
@@ -13964,6 +13965,12 @@ async function run() {
     body,
     config.comment.mode
   );
+}
+function printUntrusted(text) {
+  const token = (0, import_node_crypto.randomUUID)();
+  console.log(`::stop-commands::${token}`);
+  console.log(text);
+  console.log(`::${token}::`);
 }
 function readBaseSha(pullRequest) {
   const sha = pullRequest.base?.sha;
