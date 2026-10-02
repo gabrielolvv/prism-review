@@ -38,6 +38,9 @@ comment:
   mode: "upsert"
   includeLowSeverity: false
 
+annotations:
+  enabled: true
+
 security:
   maxPatchBytes: 200000
   redaction:

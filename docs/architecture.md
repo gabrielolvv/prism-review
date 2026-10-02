@@ -13,7 +13,8 @@ The GitHub Action layer is responsible for reading inputs, fetching the configur
 5. Oversized patches are dropped and the remaining patches are redacted.
 6. The analysis engine runs rule modules.
 7. The Markdown renderer creates the review body.
-8. The publisher creates or updates the PR comment, depending on `comment.mode`.
+8. When `annotations.enabled` is set, findings that name a file are printed as workflow command annotations.
+9. The publisher creates or updates the PR comment, depending on `comment.mode`.
 
 Nothing in this flow reads the workspace, so workflows do not need a checkout step.
 

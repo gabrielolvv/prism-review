@@ -56,6 +56,10 @@ security:
 comment:
   mode: "upsert"
   includeLowSeverity: false
+
+annotations:
+  enabled: false
+  includeLowSeverity: false
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
@@ -102,3 +106,23 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 ### `comment.includeLowSeverity`
 
 When `true`, `info` findings such as `oversized-patch` are rendered in the comment. They are hidden by default to keep the comment focused on warnings and high-risk findings.
+
+## Annotations
+
+### `annotations.enabled`
+
+When `true`, the action also prints each finding that names a file as a workflow command annotation. GitHub shows these beside the file in the pull request's **Files changed** tab and in the run summary, alongside the review comment.
+
+| Severity | Annotation |
+| --- | --- |
+| `high` | `error` |
+| `warning` | `warning` |
+| `info` | `notice` |
+
+Findings that are not tied to a file, such as `missing-tests` and `large-diff`, stay in the comment only.
+
+Annotations are printed to the job log, so they need no extra permission and also appear with `dry-run: true`. GitHub shows at most 10 annotations of each type per step; findings are emitted high severity first, so the most important ones survive the limit.
+
+### `annotations.includeLowSeverity`
+
+When `true`, `info` findings are annotated as notices. This is independent of `comment.includeLowSeverity`.
