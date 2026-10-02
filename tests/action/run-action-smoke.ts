@@ -65,6 +65,12 @@ const scenarios: Array<[string, () => void]> = [
       assert.match(run.stdout, /#### Info - Patch too large to inspect\n\n[^\n]+\n\nFile: `src\/billing\/charge\.ts`/);
       assert.match(run.stdout, /#### High - Review configuration changed\n\n[^\n]+\n\nFile: `\.prism-review\.yml`/);
       assert.doesNotMatch(run.stdout, /File: `config\/prism\.yml`/);
+      assert.match(
+        run.stdout,
+        /^::error file=\.prism-review\.yml,title=Prism Review%3A Review configuration changed::\S/m
+      );
+      // annotations.includeLowSeverity is not set, so the info finding stays in the comment only.
+      assert.doesNotMatch(run.stdout, /^::notice /m);
       assert.ok(run.requests.every((request) => request.method === "GET"));
       assert.ok(run.requests.every((request) => request.authorization === "Bearer test-token"));
       assert.ok(run.requests.every((request) => request.url.startsWith("https://api.github.com/")));
@@ -131,6 +137,7 @@ const scenarios: Array<[string, () => void]> = [
       assert.doesNotMatch(run.stdout, /Patch too large to inspect/);
       assert.match(run.stdout, /#### High - Review configuration changed\n\n[^\n]+\n\nFile: `config\/prism\.yml`/);
       assert.doesNotMatch(run.stdout, /File: `\.prism-review\.yml`/);
+      assert.doesNotMatch(run.stdout, /^::/m);
     }
   ],
   [

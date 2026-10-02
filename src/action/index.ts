@@ -5,6 +5,7 @@ import { createGitHubClient, resolveGitHubApiUrl } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
+import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { readInputs } from "./inputs.js";
@@ -41,6 +42,12 @@ async function run(): Promise<void> {
   );
   const result = analyzePullRequest(files, config, { configPath: inputs.configPath });
   const body = renderMarkdown(result, config.comment);
+
+  if (config.annotations.enabled) {
+    for (const annotation of renderAnnotations(result, config.annotations)) {
+      console.log(annotation);
+    }
+  }
 
   if (inputs.dryRun) {
     console.log(body);

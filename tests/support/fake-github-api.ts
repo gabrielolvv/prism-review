@@ -15,6 +15,8 @@ const baseConfig = [
   "  maxPatchBytes: 40",
   "comment:",
   "  includeLowSeverity: true",
+  "annotations:",
+  "  enabled: true",
   ""
 ].join("\n");
 
