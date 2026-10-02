@@ -15,6 +15,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `append` comment mode.
 - End-to-end smoke test of the bundled action in CI.
 - GitHub Enterprise Server support through `GITHUB_API_URL`.
+- Opt-in inline annotations through workflow commands, with no extra permission.
 
 ## Near Term
 
@@ -22,9 +23,9 @@ This roadmap is intentionally staged so the project grows like a real developer 
 
 Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
 
-### Add inline PR annotations
+### Add line-level findings
 
-Support optional GitHub Checks annotations so findings can appear beside changed files while preserving the summary comment. This needs the `checks: write` permission, so it should stay opt-in.
+Annotations attach to a file today because no rule reports a line. Rules that inspect patch content can set `line` from the diff hunk so annotations land on the changed line.
 
 ## Mid Term
 

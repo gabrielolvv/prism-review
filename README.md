@@ -17,6 +17,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Applies configurable risk rules
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run
+- Optionally annotates findings beside the changed files, with no extra permission
 - Supports local fixture-based analysis
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus an end-to-end run of the bundled action
 - Ships as a self-contained bundle, so no dependency install happens on the runner
@@ -96,6 +97,9 @@ security:
 comment:
   mode: "upsert"
   includeLowSeverity: false
+
+annotations:
+  enabled: true
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.

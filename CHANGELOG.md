@@ -6,6 +6,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
+- `annotations.enabled` prints findings that name a file as workflow command annotations, so they appear beside the file in the pull request diff without the `checks: write` permission. `annotations.includeLowSeverity` adds `info` findings as notices.
 - GitHub Enterprise Server support: API requests go to `GITHUB_API_URL`, which the runner sets for the instance, and fall back to `https://api.github.com` when it is unset.
 
 ## 0.3.0 - 2026-07-24
