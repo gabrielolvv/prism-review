@@ -11502,7 +11502,7 @@ var configChangeRule = {
       title: "Review configuration changed",
       severity: "high",
       file: file.path,
-      message: `${file.path} changes the Prism Review configuration, which controls how pull requests are reviewed.`,
+      message: "This file is the Prism Review configuration, which controls how pull requests are reviewed.",
       recommendation: "Confirm that thresholds, rule patterns, and redaction allowlist entries were not relaxed to hide findings."
     }));
   }
@@ -13400,7 +13400,7 @@ var dependencyRiskRule = {
         title: "Dependency definition changed",
         severity: "warning",
         file: file.path,
-        message: `${file.path} changes ${ecosystem} dependency metadata or lockfile state.`,
+        message: `This file changes ${ecosystem} dependency metadata or lockfile state.`,
         recommendation: "Verify package provenance, lockfile consistency, license impact, and whether the dependency is required at runtime."
       };
     });
@@ -13474,7 +13474,7 @@ var oversizedPatchRule = {
       title: "Patch too large to inspect",
       severity: "info",
       file: file.path,
-      message: `${file.path} exceeds the configured patch size limit, so its content was not inspected.`,
+      message: "This file's patch exceeds the configured size limit, so its content was not inspected.",
       recommendation: "Review this file manually or split the change into smaller pull requests."
     }));
   }
@@ -13497,7 +13497,7 @@ var sensitiveFilesRule = {
       title: "Sensitive file changed",
       severity: "high",
       file: file.path,
-      message: `${file.path} touches an area that commonly affects security, deployment, data integrity, or access control.`,
+      message: "This file touches an area that commonly affects security, deployment, data integrity, or access control.",
       recommendation: "Ask for focused review from someone familiar with this area and verify rollback or mitigation steps."
     }));
   }
@@ -13733,17 +13733,27 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
 }
 function renderFinding(finding) {
   const sections = [
-    `#### ${capitalize(finding.severity)} - ${finding.title}`,
+    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
     "",
-    finding.message
+    escapeText(finding.message)
   ];
   if (finding.file) {
-    sections.push("", `File: \`${finding.file}\``);
+    sections.push("", `File: ${codeSpan(finding.file)}`);
   }
   if (finding.recommendation) {
-    sections.push("", `Recommendation: ${finding.recommendation}`);
+    sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
   return sections.join("\n");
+}
+function escapeText(value) {
+  return value.replace(/\r\n?|\n/g, " ").replace(/[\\`*_[\]<>#|!~&]/g, "\\$&");
+}
+function codeSpan(value) {
+  const content = value.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  const longestRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run2) => run2.length));
+  const fence = "`".repeat(longestRun + 1);
+  const padding = content.startsWith("`") || content.endsWith("`") ? " " : "";
+  return `${fence}${padding}${content}${padding}${fence}`;
 }
 function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
