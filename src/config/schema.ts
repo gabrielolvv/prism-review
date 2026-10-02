@@ -52,6 +52,11 @@ export const prismConfigSchema = z.object({
               "Cargo.lock"
             ])
         })
+        .default({}),
+      secretInDiff: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
         .default({})
     })
     .default({}),

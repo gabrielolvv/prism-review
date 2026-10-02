@@ -4,7 +4,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { fakeAppendBaseSha, fakeBaseSha } from "../support/fake-github-api.js";
+import {
+  fakeAnnotationsBaseSha,
+  fakeAppendBaseSha,
+  fakeBaseSha,
+  fakeLeakedToken
+} from "../support/fake-github-api.js";
 
 // Runs the committed bundle the way the runner does, against a fake GitHub API.
 const actionEntry = resolve("dist/action/index.cjs");
@@ -169,6 +174,22 @@ const scenarios: Array<[string, () => void]> = [
       assert.ok(stop !== -1 && stop < body && body < resume, run.stdout);
       // The annotation for the same path is escaped, so it stays one command.
       assert.match(run.stdout, /^::error file=src\/auth\/x%0A%3A%3Aerror file=README\.md%3A%3Aforged/m);
+    }
+  ],
+  [
+    "a leaked token is annotated on its line and never printed",
+    () => {
+      const run = runAction({}, { pull_request: { number: 11, base: { sha: fakeAnnotationsBaseSha } } });
+      const comment = run.requests.find((request) => request.method === "POST")?.body?.body ?? "";
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(
+        run.stdout,
+        /^::error file=scripts\/publish\.sh,line=6,title=Prism Review%3A Possible secret added::Line 6 adds what looks like a GitHub token\./m
+      );
+      assert.match(comment, /Risk level: \*\*High\*\*/);
+      assert.match(comment, /^File: `scripts\/publish\.sh`, line 6$/m);
+      assert.ok(!`${run.stdout}${run.stderr}`.includes(fakeLeakedToken));
     }
   ],
   [

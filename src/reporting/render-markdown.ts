@@ -48,7 +48,8 @@ function renderFinding(finding: ReviewResult["findings"][number]): string {
   ];
 
   if (finding.file) {
-    sections.push("", `File: ${codeSpan(finding.file)}`);
+    const line = finding.line === undefined ? "" : `, line ${finding.line}`;
+    sections.push("", `File: ${codeSpan(finding.file)}${line}`);
   }
 
   if (finding.recommendation) {
