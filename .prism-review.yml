@@ -46,3 +46,5 @@ security:
   redaction:
     allowlist:
       - "^[0-9a-f]{40}$"
+      # Fake key used by fixtures/diffs/secret-leak.diff and the redaction tests.
+      - "^sk-thisShouldNeverAppear"

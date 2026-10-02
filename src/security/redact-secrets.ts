@@ -1,4 +1,5 @@
 import type { ChangedFile } from "../analysis/changed-file.js";
+import { credentialFormats, isAllowlisted } from "./credential-formats.js";
 
 const redaction = "[REDACTED]";
 
@@ -8,9 +9,7 @@ const assignmentPatterns = [
 ];
 
 const standaloneSecretPatterns = [
-  /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g,
-  /\bsk-[A-Za-z0-9_-]{20,}\b/g,
-  /\bAKIA[0-9A-Z]{16}\b/g,
+  ...credentialFormats.map((format) => format.pattern),
   /\b[A-Za-z0-9+/]{40,}={0,2}\b/g
 ];
 
@@ -30,7 +29,7 @@ export function redactSecrets(value: string, options: RedactionOptions = {}): st
       }
 
       const assigned = match.slice(separatorIndex + 1).trim().replace(/^["']/, "");
-      if (isAllowed(assigned, allowlist)) {
+      if (isAllowlisted(assigned, allowlist)) {
         return match;
       }
 
@@ -40,7 +39,7 @@ export function redactSecrets(value: string, options: RedactionOptions = {}): st
 
   for (const pattern of standaloneSecretPatterns) {
     redacted = redacted.replace(pattern, (match) =>
-      isAllowed(match, allowlist) ? match : redaction
+      isAllowlisted(match, allowlist) ? match : redaction
     );
   }
 
@@ -55,13 +54,6 @@ export function redactChangedFiles(
     ...file,
     patch: file.patch ? redactSecrets(file.patch, options) : file.patch
   }));
-}
-
-function isAllowed(candidate: string, allowlist: RegExp[]): boolean {
-  return allowlist.some((pattern) => {
-    pattern.lastIndex = 0;
-    return pattern.test(candidate);
-  });
 }
 
 function findSeparatorIndex(value: string): number {

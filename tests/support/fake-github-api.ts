@@ -3,6 +3,8 @@
 
 export const fakeBaseSha = "0123456789abcdef0123456789abcdef01234567";
 export const fakeAppendBaseSha = "fedcba9876543210fedcba9876543210fedcba98";
+export const fakeAnnotationsBaseSha = "00112233445566778899aabbccddeeff00112233";
+export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
 const marker = "<!-- prism-review-comment -->";
 
@@ -22,11 +24,24 @@ const baseConfig = [
 
 const appendConfig = "comment:\n  mode: append\n";
 
+const annotationsConfig = "annotations:\n  enabled: true\n";
+
 const routes: Record<string, (body: unknown) => unknown> = {
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeBaseSha}`]: () =>
     fileContent(baseConfig),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAppendBaseSha}`]: () =>
     fileContent(appendConfig),
+  [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAnnotationsBaseSha}`]: () =>
+    fileContent(annotationsConfig),
+  "GET /repos/acme/widgets/pulls/11/files?per_page=100&page=1": () => [
+    {
+      filename: "scripts/publish.sh",
+      status: "modified",
+      additions: 1,
+      deletions: 0,
+      patch: `@@ -4,3 +4,4 @@ set -eu\n cd dist\n npm pack\n+export GH_TOKEN=${fakeLeakedToken}\n gh release upload "$TAG" *.tgz`
+    }
+  ],
   "GET /repos/acme/widgets/pulls/7/files?per_page=100&page=1": () => [
     {
       filename: ".prism-review.yml",
@@ -65,6 +80,8 @@ const routes: Record<string, (body: unknown) => unknown> = {
     { id: 6, user: { login: "octocat", type: "User" }, body: `${marker}\n\nnot a real review` }
   ],
   "POST /repos/acme/widgets/issues/7/comments": () => ({ id: 8 }),
+  "GET /repos/acme/widgets/issues/11/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/11/comments": () => ({ id: 12 }),
   "PATCH /repos/acme/widgets/issues/comments/5": () => ({ id: 5 })
 };
 

@@ -89,6 +89,15 @@ import {
   testRenderMarkdownIncludesLowSeverityWhenEnabled
 } from "./unit/render-markdown.test.js";
 import { testDefaultRules, testDependencyRiskRule } from "./unit/rules.test.js";
+import {
+  testFindAddedSecretsHonorsAllowlist,
+  testFindAddedSecretsIgnoresGenericTokens,
+  testFindAddedSecretsNumbersLinesInTheNewFile,
+  testFindAddedSecretsSkipsGitHeaders,
+  testSecretInDiffRuleCanBeDisabled,
+  testSecretInDiffRuleReportsFixtureLeak,
+  testSecretInDiffRuleSummarizesManyLines
+} from "./unit/secret-in-diff.test.js";
 
 type Test = () => void | Promise<void>;
 
@@ -97,6 +106,13 @@ const tests: Array<[string, Test]> = [
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
   ["redactSecrets masks token-like values", testRedactSecrets],
+  ["findAddedSecrets numbers lines in the new file", testFindAddedSecretsNumbersLinesInTheNewFile],
+  ["findAddedSecrets skips git headers", testFindAddedSecretsSkipsGitHeaders],
+  ["findAddedSecrets honors the redaction allowlist", testFindAddedSecretsHonorsAllowlist],
+  ["findAddedSecrets ignores generic long tokens", testFindAddedSecretsIgnoresGenericTokens],
+  ["secret-in-diff rule reports the fixture leak on its line", testSecretInDiffRuleReportsFixtureLeak],
+  ["secret-in-diff rule summarizes many lines", testSecretInDiffRuleSummarizesManyLines],
+  ["secret-in-diff rule can be disabled", testSecretInDiffRuleCanBeDisabled],
   ["redactChangedFiles does not mutate original files", testRedactChangedFilesDoesNotMutateOriginal],
   ["renderMarkdown renders stable review sections", testRenderMarkdown],
   ["renderMarkdown hides info findings by default", testRenderMarkdownHidesLowSeverityByDefault],
