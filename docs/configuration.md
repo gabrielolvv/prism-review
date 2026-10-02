@@ -47,6 +47,8 @@ rules:
       - "go.sum"
       - "Cargo.toml"
       - "Cargo.lock"
+  secretInDiff:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -63,6 +65,21 @@ annotations:
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
+
+## Secrets
+
+### `rules.secretInDiff.enabled`
+
+The `secret-in-diff` rule reports a high-risk finding, with the line number, when an added line contains a value in a format specific enough to be a real credential:
+
+- GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`)
+- OpenAI-style API keys (`sk-`)
+- AWS access key IDs (`AKIA`)
+- Private key headers (`-----BEGIN ... PRIVATE KEY-----`)
+
+Removed and unchanged lines are not reported. Broader patterns, such as long base64 strings and `password: ...` assignments, are still redacted but not reported, because lockfile hashes and type declarations would make them noisy.
+
+The value never appears in the finding, the comment, or the annotation. Values matched by `security.redaction.allowlist` are neither redacted nor reported, which is how to keep a known test value from being flagged.
 
 ## Rules Without Options
 

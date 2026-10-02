@@ -10,7 +10,7 @@ The GitHub Action layer is responsible for reading inputs, fetching the configur
 2. The action reads inputs and repository context.
 3. The GitHub client fetches `.prism-review.yml` from the pull request base commit, and the config loader validates it.
 4. The GitHub client fetches changed files.
-5. Oversized patches are dropped and the remaining patches are redacted.
+5. Oversized patches are dropped, added lines are checked for credentials, and the remaining patches are redacted.
 6. The analysis engine runs rule modules.
 7. The Markdown renderer creates the review body.
 8. When `annotations.enabled` is set, findings that name a file are printed as workflow command annotations.

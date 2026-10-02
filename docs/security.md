@@ -44,9 +44,15 @@ The redactor currently masks:
 
 The redactor returns new changed-file objects instead of mutating the originals, which keeps the analysis pipeline easier to reason about and test.
 
+### Secret Detection
+
+Before redaction, added lines are checked for credential formats that rarely match anything else: GitHub tokens, OpenAI-style keys, AWS access key IDs, and private key headers. The match is recorded as a line number and a kind, never as the value, and the `secret-in-diff` rule reports it. Detection shares its token patterns with the redactor, so a value that is reported is also masked.
+
+A finding means the credential has already been pushed to a branch that others can read. Rotating it matters more than removing it from the pull request.
+
 ### Allowlist
 
-The long-token pattern also matches harmless values such as 40-character commit hashes. `security.redaction.allowlist` keeps those readable. Patterns are tested against one candidate value at a time, so allowlisting a commit hash does not protect a token that appears on the same line.
+The long-token pattern also matches harmless values such as 40-character commit hashes. `security.redaction.allowlist` keeps those readable. The same allowlist stops `secret-in-diff` from reporting a value. Patterns are tested against one candidate value at a time, so allowlisting a commit hash does not protect a token that appears on the same line.
 
 ## GitHub API Client
 
