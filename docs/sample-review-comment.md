@@ -17,7 +17,7 @@ Reviewed 2 changed file(s). Found 1 high-risk and 2 warning-level signal(s).
 
 #### High - Sensitive file changed
 
-src/auth/session.ts touches an area that commonly affects security, deployment, data integrity, or access control.
+This file touches an area that commonly affects security, deployment, data integrity, or access control.
 
 File: `src/auth/session.ts`
 
@@ -31,7 +31,7 @@ Recommendation: Add or update tests for the modified behavior, or explain why ex
 
 #### Warning - Dependency definition changed
 
-package.json changes Node.js dependency metadata or lockfile state.
+This file changes Node.js dependency metadata or lockfile state.
 
 File: `package.json`
 
