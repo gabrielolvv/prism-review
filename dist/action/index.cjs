@@ -13557,14 +13557,14 @@ var GitHubApiError = class extends Error {
   }
   status;
 };
-var githubApiBaseUrl = "https://api.github.com";
+var defaultGitHubApiUrl = "https://api.github.com";
 var requestTimeoutMs = 15e3;
 var pageSize = 100;
 var maxPages = 30;
 var maxErrorDetailLength = 300;
-function createGitHubClient(token) {
+function createGitHubClient(token, apiUrl = defaultGitHubApiUrl) {
   async function request(path2, options = {}) {
-    const response = await fetch(`${githubApiBaseUrl}${path2}`, {
+    const response = await fetch(`${apiUrl}${path2}`, {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/vnd.github+json",
@@ -13599,6 +13599,25 @@ function createGitHubClient(token) {
     return items;
   }
   return { request, paginate };
+}
+function resolveGitHubApiUrl(value) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return defaultGitHubApiUrl;
+  }
+  let url;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  if (url.search || url.hash || url.username || url.password) {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
 }
 function truncate(value, maxLength) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
@@ -13876,7 +13895,10 @@ async function run() {
     return;
   }
   const { owner, repo } = readRepository();
-  const client = createGitHubClient(inputs.githubToken);
+  const client = createGitHubClient(
+    inputs.githubToken,
+    resolveGitHubApiUrl(process.env.GITHUB_API_URL)
+  );
   const baseConfig = await loadBaseBranchConfig(
     client,
     owner,
