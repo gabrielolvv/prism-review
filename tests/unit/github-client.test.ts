@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createGitHubClient } from "../../src/github/client.js";
+import { createGitHubClient, resolveGitHubApiUrl } from "../../src/github/client.js";
 import { withMockFetch } from "../support/mock-fetch.js";
 
 export async function testRequestSendsAuthenticatedJson(): Promise<void> {
@@ -115,6 +115,53 @@ export async function testRequestUsesTimeoutSignal(): Promise<void> {
       assert.ok(requests[0]?.signal instanceof AbortSignal);
     }
   );
+}
+
+export async function testRequestUsesConfiguredApiUrl(): Promise<void> {
+  await withMockFetch(
+    () => ({ json: [] }),
+    async (requests) => {
+      const client = createGitHubClient("test-token", "https://ghe.example.com/api/v3");
+
+      await client.paginate("/repos/acme/widgets/pulls/1/files");
+
+      assert.equal(
+        requests[0]?.url,
+        "https://ghe.example.com/api/v3/repos/acme/widgets/pulls/1/files?per_page=100&page=1"
+      );
+    }
+  );
+}
+
+export function testResolveGitHubApiUrlDefaultsToGitHubCom(): void {
+  assert.equal(resolveGitHubApiUrl(undefined), "https://api.github.com");
+  assert.equal(resolveGitHubApiUrl("  "), "https://api.github.com");
+}
+
+export function testResolveGitHubApiUrlNormalizesEnterpriseUrls(): void {
+  assert.equal(
+    resolveGitHubApiUrl("https://ghe.example.com/api/v3"),
+    "https://ghe.example.com/api/v3"
+  );
+  assert.equal(
+    resolveGitHubApiUrl(" https://GHE.example.com:8443/api/v3/ "),
+    "https://ghe.example.com:8443/api/v3"
+  );
+  assert.equal(resolveGitHubApiUrl("https://api.github.com"), "https://api.github.com");
+}
+
+export function testResolveGitHubApiUrlRejectsInvalidValues(): void {
+  const values = [
+    "api.github.com",
+    "ftp://ghe.example.com/api/v3",
+    "file:///etc/passwd",
+    "https://ghe.example.com/api/v3?token=1",
+    "https://user:secret@ghe.example.com/api/v3"
+  ];
+
+  for (const value of values) {
+    assert.throws(() => resolveGitHubApiUrl(value), /Invalid GITHUB_API_URL value/, value);
+  }
 }
 
 function numbered(count: number, offset: number): Array<{ id: number }> {
