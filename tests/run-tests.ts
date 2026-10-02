@@ -5,7 +5,11 @@ import {
   testRequestReturnsUndefinedForNoContent,
   testRequestSendsAuthenticatedJson,
   testRequestTruncatesErrorDetails,
-  testRequestUsesTimeoutSignal
+  testRequestUsesConfiguredApiUrl,
+  testRequestUsesTimeoutSignal,
+  testResolveGitHubApiUrlDefaultsToGitHubCom,
+  testResolveGitHubApiUrlNormalizesEnterpriseUrls,
+  testResolveGitHubApiUrlRejectsInvalidValues
 } from "./unit/github-client.test.js";
 import {
   testConfigChangeRuleFlagsDefaultConfig,
@@ -96,6 +100,10 @@ const tests: Array<[string, Test]> = [
   ["GitHub client stops paginating at the page limit", testPaginateStopsAtPageLimit],
   ["GitHub client truncates error details", testRequestTruncatesErrorDetails],
   ["GitHub client sets a request timeout", testRequestUsesTimeoutSignal],
+  ["GitHub client sends requests to the configured API URL", testRequestUsesConfiguredApiUrl],
+  ["resolveGitHubApiUrl defaults to api.github.com", testResolveGitHubApiUrlDefaultsToGitHubCom],
+  ["resolveGitHubApiUrl normalizes Enterprise Server URLs", testResolveGitHubApiUrlNormalizesEnterpriseUrls],
+  ["resolveGitHubApiUrl rejects invalid values", testResolveGitHubApiUrlRejectsInvalidValues],
   ["fetchPullRequestFiles normalizes the API response", testFetchPullRequestFilesNormalizesResponse],
   ["upsert creates a comment when the marker is missing", testUpsertCreatesCommentWhenMarkerIsMissing],
   ["upsert updates the existing Prism Review comment", testUpsertUpdatesExistingComment],

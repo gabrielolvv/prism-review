@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { defaultConfig } from "../config/schema.js";
-import { createGitHubClient } from "../github/client.js";
+import { createGitHubClient, resolveGitHubApiUrl } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
@@ -19,7 +19,10 @@ async function run(): Promise<void> {
   }
 
   const { owner, repo } = readRepository();
-  const client = createGitHubClient(inputs.githubToken);
+  const client = createGitHubClient(
+    inputs.githubToken,
+    resolveGitHubApiUrl(process.env.GITHUB_API_URL)
+  );
   const baseConfig = await loadBaseBranchConfig(
     client,
     owner,

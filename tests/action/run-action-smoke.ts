@@ -13,6 +13,7 @@ const workDir = mkdtempSync(join(tmpdir(), "prism-review-smoke-"));
 
 type FakeRequest = {
   method: string;
+  url: string;
   path: string;
   authorization?: string;
   body?: { body?: string };
@@ -66,6 +67,24 @@ const scenarios: Array<[string, () => void]> = [
       assert.doesNotMatch(run.stdout, /File: `config\/prism\.yml`/);
       assert.ok(run.requests.every((request) => request.method === "GET"));
       assert.ok(run.requests.every((request) => request.authorization === "Bearer test-token"));
+      assert.ok(run.requests.every((request) => request.url.startsWith("https://api.github.com/")));
+    }
+  ],
+  [
+    "requests go to the API URL the runner sets",
+    () => {
+      const run = runAction(
+        { GITHUB_API_URL: "https://ghe.example.com/api/v3" },
+        pullRequestEvent
+      );
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.ok(run.requests.length > 0);
+      assert.ok(
+        run.requests.every((request) => request.url.startsWith("https://ghe.example.com/api/v3/repos/")),
+        JSON.stringify(run.requests.map((request) => request.url))
+      );
+      assert.ok(run.requests.some((request) => request.method === "PATCH"));
     }
   ],
   [

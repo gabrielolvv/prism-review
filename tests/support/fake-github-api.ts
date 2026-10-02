@@ -61,12 +61,14 @@ function fileContent(value: string) {
 }
 
 globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
-  const path = String(input).replace("https://api.github.com", "");
+  const url = String(input);
+  // Serves github.com and Enterprise Server (`/api/v3`) URLs; `url` lets scenarios check which was used.
+  const path = url.replace(/^https?:\/\/[^/]+(\/api\/v3)?/, "");
   const method = init.method ?? "GET";
   const headers = (init.headers ?? {}) as Record<string, string>;
   const body = typeof init.body === "string" ? JSON.parse(init.body) : undefined;
   process.stderr.write(
-    `[fake-github] ${JSON.stringify({ method, path, authorization: headers.Authorization, body })}\n`
+    `[fake-github] ${JSON.stringify({ method, url, path, authorization: headers.Authorization, body })}\n`
   );
 
   const route = routes[`${method} ${path}`];

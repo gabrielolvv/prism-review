@@ -18,16 +18,19 @@ export class GitHubApiError extends Error {
   }
 }
 
-const githubApiBaseUrl = "https://api.github.com";
+export const defaultGitHubApiUrl = "https://api.github.com";
 const requestTimeoutMs = 15_000;
 const pageSize = 100;
 // GitHub caps pull request file listings at 3000 entries.
 const maxPages = 30;
 const maxErrorDetailLength = 300;
 
-export function createGitHubClient(token: string): GitHubClient {
+export function createGitHubClient(
+  token: string,
+  apiUrl: string = defaultGitHubApiUrl
+): GitHubClient {
   async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const response = await fetch(`${githubApiBaseUrl}${path}`, {
+    const response = await fetch(`${apiUrl}${path}`, {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/vnd.github+json",
@@ -70,6 +73,31 @@ export function createGitHubClient(token: string): GitHubClient {
   }
 
   return { request, paginate };
+}
+
+// The runner sets GITHUB_API_URL, which points at the GitHub Enterprise Server API on GHES.
+export function resolveGitHubApiUrl(value: string | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return defaultGitHubApiUrl;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+
+  if (url.search || url.hash || url.username || url.password) {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+
+  return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
 }
 
 function truncate(value: string, maxLength: number): string {
