@@ -11448,6 +11448,9 @@ var prismConfigSchema = external_exports.object({
         "Cargo.toml",
         "Cargo.lock"
       ])
+    }).default({}),
+    secretInDiff: external_exports.object({
+      enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
   security: external_exports.object({
@@ -13480,6 +13483,45 @@ var oversizedPatchRule = {
   }
 };
 
+// src/rules/secret-in-diff.ts
+var maxListedLines = 5;
+var secretInDiffRule = {
+  id: "secret-in-diff",
+  description: "Flags added lines that contain a value in a known credential format.",
+  run({ files, config }) {
+    if (!config.rules.secretInDiff.enabled) {
+      return [];
+    }
+    return files.filter((file) => file.secrets !== void 0 && file.secrets.length > 0).map((file) => {
+      const secrets = file.secrets ?? [];
+      const lines = [...new Set(secrets.map((secret) => secret.line))].sort((a, b) => a - b);
+      const kinds = [...new Set(secrets.map((secret) => secret.kind))];
+      return {
+        ruleId: "secret-in-diff",
+        title: "Possible secret added",
+        severity: "high",
+        file: file.path,
+        line: lines[0],
+        message: describe(lines, kinds),
+        recommendation: "Treat the credential as exposed: revoke or rotate it, remove it from the branch history, and load it from a secret store. If it is a known test value, add a pattern for it to security.redaction.allowlist."
+      };
+    });
+  }
+};
+function describe(lines, kinds) {
+  if (lines.length === 1 && kinds.length === 1) {
+    return `Line ${lines[0]} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
+  }
+  const listed = lines.slice(0, maxListedLines).join(", ");
+  const more = lines.length > maxListedLines ? ` and ${lines.length - maxListedLines} more` : "";
+  const subject = lines.length === 1 ? "Line" : "Lines";
+  const verb = lines.length === 1 ? "adds" : "add";
+  return `${subject} ${listed}${more} ${verb} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
+}
+function article(kind) {
+  return /^[AEIOU]/i.test(kind) ? "an" : "a";
+}
+
 // src/rules/sensitive-files.ts
 var sensitiveKeywordPattern = /(auth|authorization|permission|role|session|token|jwt|oauth|billing|payment|secret|migration|workflow|dockerfile)/i;
 var sensitiveFilesRule = {
@@ -13505,6 +13547,7 @@ var sensitiveFilesRule = {
 
 // src/rules/index.ts
 var defaultRules = [
+  secretInDiffRule,
   largeDiffRule,
   missingTestsRule,
   sensitiveFilesRule,
@@ -13738,7 +13781,8 @@ function renderFinding(finding) {
     escapeText(finding.message)
   ];
   if (finding.file) {
-    sections.push("", `File: ${codeSpan(finding.file)}`);
+    const line = finding.line === void 0 ? "" : `, line ${finding.line}`;
+    sections.push("", `File: ${codeSpan(finding.file)}${line}`);
   }
   if (finding.recommendation) {
     sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
@@ -13818,6 +13862,60 @@ function escapeProperty(value) {
   return escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
 
+// src/security/credential-formats.ts
+var credentialFormats = [
+  { kind: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
+  { kind: "OpenAI-style API key", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
+  { kind: "AWS access key ID", pattern: /\bAKIA[0-9A-Z]{16}\b/g }
+];
+function isAllowlisted(candidate, allowlist) {
+  return allowlist.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(candidate);
+  });
+}
+
+// src/security/detect-secrets.ts
+var detectedFormats = [
+  ...credentialFormats,
+  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g }
+];
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+function detectSecrets(files, allowlist = []) {
+  return files.map((file) => {
+    const secrets = file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
+    return secrets.length === 0 ? { ...file } : { ...file, secrets };
+  });
+}
+function findAddedSecrets(patch, allowlist = []) {
+  const secrets = [];
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      for (const kind of matchingKinds(line.slice(1), allowlist)) {
+        secrets.push({ line: newLine, kind });
+      }
+    }
+    if (!line.startsWith("-")) {
+      newLine += 1;
+    }
+  }
+  return secrets;
+}
+function matchingKinds(content, allowlist) {
+  return detectedFormats.filter(
+    ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist))
+  ).map(({ kind }) => kind);
+}
+
 // src/security/limit-patches.ts
 function limitPatchSizes(files, maxPatchBytes) {
   return files.map((file) => {
@@ -13835,9 +13933,7 @@ var assignmentPatterns = [
   /\b(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|OPENAI_API_KEY)\b\s*[:=]\s*["']?[^"',\s]+/g
 ];
 var standaloneSecretPatterns = [
-  /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g,
-  /\bsk-[A-Za-z0-9_-]{20,}\b/g,
-  /\bAKIA[0-9A-Z]{16}\b/g,
+  ...credentialFormats.map((format) => format.pattern),
   /\b[A-Za-z0-9+/]{40,}={0,2}\b/g
 ];
 function redactSecrets(value, options = {}) {
@@ -13850,7 +13946,7 @@ function redactSecrets(value, options = {}) {
         return redaction;
       }
       const assigned = match2.slice(separatorIndex + 1).trim().replace(/^["']/, "");
-      if (isAllowed(assigned, allowlist)) {
+      if (isAllowlisted(assigned, allowlist)) {
         return match2;
       }
       return `${match2.slice(0, separatorIndex + 1)} ${redaction}`;
@@ -13859,7 +13955,7 @@ function redactSecrets(value, options = {}) {
   for (const pattern of standaloneSecretPatterns) {
     redacted = redacted.replace(
       pattern,
-      (match2) => isAllowed(match2, allowlist) ? match2 : redaction
+      (match2) => isAllowlisted(match2, allowlist) ? match2 : redaction
     );
   }
   return redacted;
@@ -13869,12 +13965,6 @@ function redactChangedFiles(files, options = {}) {
     ...file,
     patch: file.patch ? redactSecrets(file.patch, options) : file.patch
   }));
-}
-function isAllowed(candidate, allowlist) {
-  return allowlist.some((pattern) => {
-    pattern.lastIndex = 0;
-    return pattern.test(candidate);
-  });
 }
 function findSeparatorIndex(value) {
   const equalsIndex = value.indexOf("=");
@@ -13892,7 +13982,8 @@ function findSeparatorIndex(value) {
 function prepareChangedFiles(files, config) {
   const { maxPatchBytes, redaction: redaction2 } = config.security;
   const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
-  return redactChangedFiles(limitPatchSizes(files, maxPatchBytes), { allowlist });
+  const limited = limitPatchSizes(files, maxPatchBytes);
+  return redactChangedFiles(detectSecrets(limited, allowlist), { allowlist });
 }
 
 // src/action/inputs.ts
