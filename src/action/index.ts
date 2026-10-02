@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { defaultConfig } from "../config/schema.js";
@@ -50,7 +51,7 @@ async function run(): Promise<void> {
   }
 
   if (inputs.dryRun) {
-    console.log(body);
+    printUntrusted(body);
     return;
   }
 
@@ -62,6 +63,15 @@ async function run(): Promise<void> {
     body,
     config.comment.mode
   );
+}
+
+// The body quotes pull request file names, which may contain newlines followed by workflow
+// commands. The runner ignores commands until it sees the unguessable token again.
+function printUntrusted(text: string): void {
+  const token = randomUUID();
+  console.log(`::stop-commands::${token}`);
+  console.log(text);
+  console.log(`::${token}::`);
 }
 
 type PullRequest = {

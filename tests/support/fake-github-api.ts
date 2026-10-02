@@ -50,6 +50,16 @@ const routes: Record<string, (body: unknown) => unknown> = {
       patch: "+export const chargeTimeoutMs = 30_000; // retry budget for the payment gateway"
     }
   ],
+  // Git allows newlines in file names, so a pull request can smuggle workflow commands into a path.
+  "GET /repos/acme/widgets/pulls/9/files?per_page=100&page=1": () => [
+    {
+      filename: "src/auth/x\n::error file=README.md::forged by the pull request\n.ts",
+      status: "added",
+      additions: 1,
+      deletions: 0,
+      patch: "+export {};"
+    }
+  ],
   "GET /repos/acme/widgets/issues/7/comments?per_page=100&page=1": () => [
     { id: 5, user: { login: "github-actions[bot]", type: "Bot" }, body: `${marker}\n\nprevious review` },
     { id: 6, user: { login: "octocat", type: "User" }, body: `${marker}\n\nnot a real review` }

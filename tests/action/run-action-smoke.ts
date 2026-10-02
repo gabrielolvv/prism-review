@@ -137,7 +137,7 @@ const scenarios: Array<[string, () => void]> = [
       assert.doesNotMatch(run.stdout, /Patch too large to inspect/);
       assert.match(run.stdout, /#### High - Review configuration changed\n\n[^\n]+\n\nFile: `config\/prism\.yml`/);
       assert.doesNotMatch(run.stdout, /File: `\.prism-review\.yml`/);
-      assert.doesNotMatch(run.stdout, /^::/m);
+      assert.doesNotMatch(run.stdout, /^::(error|warning|notice) /m);
     }
   ],
   [
@@ -148,6 +148,25 @@ const scenarios: Array<[string, () => void]> = [
       assert.equal(run.status, 1);
       assert.match(run.stderr, /config-path must be a relative path inside the repository/);
       assert.equal(run.requests.length, 0);
+    }
+  ],
+  [
+    "dry run output cannot issue workflow commands from pull request content",
+    () => {
+      const run = runAction(
+        { "INPUT_DRY-RUN": "true" },
+        { pull_request: { number: 9, base: { sha: fakeBaseSha } } }
+      );
+      const lines = run.stdout.split(/\r?\n/);
+      const forged = lines.findIndex((line) => line.startsWith("::error file=README.md::"));
+      const stop = lines.findIndex((line) => /^::stop-commands::[0-9a-f-]{36}$/.test(line));
+      const resume = lines.findIndex((line) => line === `::${lines[stop]?.slice("::stop-commands::".length)}::`);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.ok(forged !== -1, run.stdout);
+      assert.ok(stop !== -1 && stop < forged && forged < resume, run.stdout);
+      // The annotation for the same path is escaped, so it stays one command.
+      assert.match(run.stdout, /^::error file=src\/auth\/x%0A%3A%3Aerror file=README\.md%3A%3Aforged/m);
     }
   ],
   [
