@@ -11460,6 +11460,10 @@ var prismConfigSchema = external_exports.object({
   comment: external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
     includeLowSeverity: external_exports.boolean().default(false)
+  }).default({}),
+  annotations: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    includeLowSeverity: external_exports.boolean().default(false)
   }).default({})
 });
 function isRegularExpression(source) {

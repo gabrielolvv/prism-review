@@ -11460,6 +11460,10 @@ var prismConfigSchema = external_exports.object({
   comment: external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
     includeLowSeverity: external_exports.boolean().default(false)
+  }).default({}),
+  annotations: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    includeLowSeverity: external_exports.boolean().default(false)
   }).default({})
 });
 function isRegularExpression(source) {
@@ -13776,6 +13780,33 @@ async function createComment(client, owner, repo, issueNumber, body) {
   });
 }
 
+// src/reporting/render-annotations.ts
+var commands = {
+  high: "error",
+  warning: "warning",
+  info: "notice"
+};
+function renderAnnotations(result, options = { includeLowSeverity: false }) {
+  return result.findings.filter((finding) => finding.file !== void 0).filter((finding) => options.includeLowSeverity || finding.severity !== "info").map(renderAnnotation);
+}
+function renderAnnotation(finding) {
+  const properties = [`file=${escapeProperty(finding.file ?? "")}`];
+  if (finding.line !== void 0) {
+    properties.push(`line=${finding.line}`);
+  }
+  properties.push(`title=${escapeProperty(`Prism Review: ${finding.title}`)}`);
+  const message = finding.recommendation ? `${finding.message}
+
+Recommendation: ${finding.recommendation}` : finding.message;
+  return `::${commands[finding.severity]} ${properties.join(",")}::${escapeData(message)}`;
+}
+function escapeData(value) {
+  return value.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+function escapeProperty(value) {
+  return escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
+}
+
 // src/security/limit-patches.ts
 function limitPatchSizes(files, maxPatchBytes) {
   return files.map((file) => {
@@ -13916,6 +13947,11 @@ async function run() {
   );
   const result = analyzePullRequest(files, config, { configPath: inputs.configPath });
   const body = renderMarkdown(result, config.comment);
+  if (config.annotations.enabled) {
+    for (const annotation of renderAnnotations(result, config.annotations)) {
+      console.log(annotation);
+    }
+  }
   if (inputs.dryRun) {
     console.log(body);
     return;
