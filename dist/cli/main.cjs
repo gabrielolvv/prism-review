@@ -11450,6 +11450,9 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     secretInDiff: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    skippedTests: external_exports.object({
+      enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
   security: external_exports.object({
@@ -13546,11 +13549,93 @@ var sensitiveFilesRule = {
   }
 };
 
+// src/analysis/added-lines.ts
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+function addedLines(patch) {
+  const added = [];
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      added.push({ line: newLine, content: line.slice(1) });
+    }
+    if (!line.startsWith("-")) {
+      newLine += 1;
+    }
+  }
+  return added;
+}
+
+// src/rules/skipped-tests.ts
+var markers = [
+  // Jest, Vitest, Mocha, Jasmine, and node:test.
+  ["focused", /\b(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(`]/],
+  ["focused", /\b(?:fdescribe|fit)\s*\(/],
+  ["skipped", /\b(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(`]/],
+  ["skipped", /\b(?:xdescribe|xcontext|xit|xtest)\s*\(/],
+  // pytest and unittest.
+  ["skipped", /@(?:pytest\.mark\.skip|unittest\.skip)\b/],
+  ["skipped", /\bpytest\.skip\s*\(/],
+  // Go and Rust.
+  ["skipped", /\bt\.Skip(?:f|Now)?\s*\(/],
+  ["skipped", /#\[ignore\b/]
+];
+var skippedTestsRule = {
+  id: "skipped-tests",
+  description: "Flags tests that a pull request focuses or skips.",
+  run({ files, config }) {
+    if (!config.rules.skippedTests.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.filter((file) => file.patch !== void 0 && testGlobs.some((glob) => minimatch(file.path, glob))).flatMap((file) => {
+      const found = addedLines(file.patch ?? "").flatMap(
+        ({ line, content }) => markers.filter(([, pattern]) => pattern.test(content)).map(([marker]) => ({ line, marker }))
+      );
+      if (found.length === 0) {
+        return [];
+      }
+      const focused = found.filter((match2) => match2.marker === "focused").map((match2) => match2.line);
+      const skipped = found.filter((match2) => match2.marker === "skipped").map((match2) => match2.line);
+      return [
+        {
+          ruleId: "skipped-tests",
+          title: focused.length > 0 ? "Focused test added" : "Skipped test added",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: [
+            focused.length > 0 ? describeFocused(focused) : "",
+            skipped.length > 0 ? describeSkipped(skipped) : ""
+          ].filter(Boolean).join(" "),
+          recommendation: "Remove focus markers before merging. If a test is skipped on purpose, explain why and link the issue that tracks re-enabling it."
+        }
+      ];
+    });
+  }
+};
+function describeFocused(lines) {
+  const { text, plural } = describeLines(lines);
+  return `${text} ${plural ? "focus tests" : "focuses a test"}, so the runner skips the other tests in scope.`;
+}
+function describeSkipped(lines) {
+  const { text, plural } = describeLines(lines);
+  return plural ? `${text} skip tests, so they no longer run.` : `${text} skips a test, so it no longer runs.`;
+}
+
 // src/rules/index.ts
 var defaultRules = [
   secretInDiffRule,
   largeDiffRule,
   missingTestsRule,
+  skippedTestsRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
@@ -13681,30 +13766,6 @@ function codeSpan(value) {
 }
 function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-// src/analysis/added-lines.ts
-var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
-function addedLines(patch) {
-  const added = [];
-  let newLine;
-  for (const line of patch.split(/\r?\n/)) {
-    const header = hunkHeader.exec(line);
-    if (header) {
-      newLine = Number(header[1]);
-      continue;
-    }
-    if (newLine === void 0 || line.startsWith("\\")) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      added.push({ line: newLine, content: line.slice(1) });
-    }
-    if (!line.startsWith("-")) {
-      newLine += 1;
-    }
-  }
-  return added;
 }
 
 // src/security/credential-formats.ts
