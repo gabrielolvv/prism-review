@@ -98,6 +98,13 @@ import {
   testSecretInDiffRuleReportsFixtureLeak,
   testSecretInDiffRuleSummarizesManyLines
 } from "./unit/secret-in-diff.test.js";
+import {
+  testSkippedTestsRuleCanBeDisabled,
+  testSkippedTestsRuleCoversOtherLanguages,
+  testSkippedTestsRuleIgnoresLookalikes,
+  testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles,
+  testSkippedTestsRuleReportsFocusAndSkipWithLines
+} from "./unit/skipped-tests.test.js";
 
 type Test = () => void | Promise<void>;
 
@@ -113,6 +120,11 @@ const tests: Array<[string, Test]> = [
   ["secret-in-diff rule reports the fixture leak on its line", testSecretInDiffRuleReportsFixtureLeak],
   ["secret-in-diff rule summarizes many lines", testSecretInDiffRuleSummarizesManyLines],
   ["secret-in-diff rule can be disabled", testSecretInDiffRuleCanBeDisabled],
+  ["skipped-tests rule reports focused and skipped tests with lines", testSkippedTestsRuleReportsFocusAndSkipWithLines],
+  ["skipped-tests rule ignores removed lines and non-test files", testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles],
+  ["skipped-tests rule ignores lookalike calls", testSkippedTestsRuleIgnoresLookalikes],
+  ["skipped-tests rule covers Python, Go, and Rust markers", testSkippedTestsRuleCoversOtherLanguages],
+  ["skipped-tests rule can be disabled", testSkippedTestsRuleCanBeDisabled],
   ["redactChangedFiles does not mutate original files", testRedactChangedFilesDoesNotMutateOriginal],
   ["renderMarkdown renders stable review sections", testRenderMarkdown],
   ["renderMarkdown hides info findings by default", testRenderMarkdownHidesLowSeverityByDefault],
