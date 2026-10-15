@@ -13483,8 +13483,17 @@ var oversizedPatchRule = {
   }
 };
 
-// src/rules/secret-in-diff.ts
+// src/rules/line-list.ts
 var maxListedLines = 5;
+function describeLines(lines) {
+  const sorted = [...new Set(lines)].sort((left, right) => left - right);
+  const listed = sorted.slice(0, maxListedLines).join(", ");
+  const more = sorted.length > maxListedLines ? ` and ${sorted.length - maxListedLines} more` : "";
+  const plural = sorted.length > 1;
+  return { text: `${plural ? "Lines" : "Line"} ${listed}${more}`, plural };
+}
+
+// src/rules/secret-in-diff.ts
 var secretInDiffRule = {
   id: "secret-in-diff",
   description: "Flags added lines that contain a value in a known credential format.",
@@ -13509,14 +13518,11 @@ var secretInDiffRule = {
   }
 };
 function describe(lines, kinds) {
-  if (lines.length === 1 && kinds.length === 1) {
-    return `Line ${lines[0]} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
+  const { text, plural } = describeLines(lines);
+  if (!plural && kinds.length === 1) {
+    return `${text} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
   }
-  const listed = lines.slice(0, maxListedLines).join(", ");
-  const more = lines.length > maxListedLines ? ` and ${lines.length - maxListedLines} more` : "";
-  const subject = lines.length === 1 ? "Line" : "Lines";
-  const verb = lines.length === 1 ? "adds" : "add";
-  return `${subject} ${listed}${more} ${verb} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
+  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
 }
 function article(kind) {
   return /^[AEIOU]/i.test(kind) ? "an" : "a";
@@ -13862,6 +13868,30 @@ function escapeProperty(value) {
   return escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
 
+// src/analysis/added-lines.ts
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+function addedLines(patch) {
+  const added = [];
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      added.push({ line: newLine, content: line.slice(1) });
+    }
+    if (!line.startsWith("-")) {
+      newLine += 1;
+    }
+  }
+  return added;
+}
+
 // src/security/credential-formats.ts
 var credentialFormats = [
   { kind: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
@@ -13880,7 +13910,6 @@ var detectedFormats = [
   ...credentialFormats,
   { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g }
 ];
-var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 function detectSecrets(files, allowlist = []) {
   return files.map((file) => {
     const secrets = file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
@@ -13888,27 +13917,9 @@ function detectSecrets(files, allowlist = []) {
   });
 }
 function findAddedSecrets(patch, allowlist = []) {
-  const secrets = [];
-  let newLine;
-  for (const line of patch.split(/\r?\n/)) {
-    const header = hunkHeader.exec(line);
-    if (header) {
-      newLine = Number(header[1]);
-      continue;
-    }
-    if (newLine === void 0 || line.startsWith("\\")) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      for (const kind of matchingKinds(line.slice(1), allowlist)) {
-        secrets.push({ line: newLine, kind });
-      }
-    }
-    if (!line.startsWith("-")) {
-      newLine += 1;
-    }
-  }
-  return secrets;
+  return addedLines(patch).flatMap(
+    ({ line, content }) => matchingKinds(content, allowlist).map((kind) => ({ line, kind }))
+  );
 }
 function matchingKinds(content, allowlist) {
   return detectedFormats.filter(

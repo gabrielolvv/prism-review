@@ -1,6 +1,5 @@
 import type { Rule } from "../analysis/rule.js";
-
-const maxListedLines = 5;
+import { describeLines } from "./line-list.js";
 
 export const secretInDiffRule: Rule = {
   id: "secret-in-diff",
@@ -32,15 +31,12 @@ export const secretInDiffRule: Rule = {
 };
 
 function describe(lines: number[], kinds: string[]): string {
-  if (lines.length === 1 && kinds.length === 1) {
-    return `Line ${lines[0]} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
+  const { text, plural } = describeLines(lines);
+  if (!plural && kinds.length === 1) {
+    return `${text} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
   }
 
-  const listed = lines.slice(0, maxListedLines).join(", ");
-  const more = lines.length > maxListedLines ? ` and ${lines.length - maxListedLines} more` : "";
-  const subject = lines.length === 1 ? "Line" : "Lines";
-  const verb = lines.length === 1 ? "adds" : "add";
-  return `${subject} ${listed}${more} ${verb} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
+  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
 }
 
 function article(kind: string): string {
