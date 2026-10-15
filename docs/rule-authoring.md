@@ -18,7 +18,7 @@ type Rule = {
 
 Renamed files carry `previousPath`, so a rule that tracks a specific file should check both paths.
 
-Set `line` on a finding when it points at a specific line of the new file. The comment shows it next to the path, and annotations attach to it. `src/security/detect-secrets.ts` shows how to number added lines from the hunk headers.
+Set `line` on a finding when it points at a specific line of the new file. The comment shows it next to the path, and annotations attach to it. `addedLines` in `src/analysis/added-lines.ts` returns the lines a patch adds with their numbers in the new file, and `src/rules/skipped-tests.ts` shows a rule built on it.
 
 Rules see patches after redaction. A rule that needs the original values, as `secret-in-diff` does, must collect what it needs in `src/security/prepare-changed-files.ts` before redaction runs, and keep only non-sensitive facts such as line numbers on the changed file.
 
