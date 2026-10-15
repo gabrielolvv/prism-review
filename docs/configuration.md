@@ -49,6 +49,8 @@ rules:
       - "Cargo.lock"
   secretInDiff:
     enabled: true
+  skippedTests:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -65,6 +67,23 @@ annotations:
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
+
+## Skipped Tests
+
+### `rules.skippedTests.enabled`
+
+The `skipped-tests` rule reports a warning, with the first line number, when a pull request adds a focus or skip marker to a test file. A focused test makes the runner skip every other test in scope, and a skipped test stops running without failing anything.
+
+| Framework | Focused | Skipped |
+| --- | --- | --- |
+| Jest, Vitest, Mocha, Jasmine, `node:test` | `describe.only`, `it.only`, `test.only` (and `.each`), `fdescribe`, `fit` | `describe.skip`, `it.skip`, `test.skip` (and `.each`), `xdescribe`, `xit`, `xtest` |
+| pytest, unittest | | `@pytest.mark.skip`, `pytest.skip(...)`, `@unittest.skip` |
+| Go | | `t.Skip`, `t.Skipf`, `t.SkipNow` |
+| Rust | | `#[ignore]` |
+
+Only files matched by `rules.missingTests.testGlobs` are checked, so the same calls in application code are not reported. The default globs cover `*.test.*` and `*.spec.*`; add patterns such as `**/test_*.py`, `**/*_test.go`, or `tests/**/*.rs` to cover other languages. Removing a marker is never reported.
+
+Adding a skip marker counts as a test change, so it also keeps `missing-tests` quiet; this rule is what reports it.
 
 ## Secrets
 

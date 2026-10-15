@@ -17,6 +17,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - GitHub Enterprise Server support through `GITHUB_API_URL`.
 - Opt-in inline annotations through workflow commands, with no extra permission.
 - `secret-in-diff` rule with line-level findings for credentials added in the diff.
+- `skipped-tests` rule for focused and skipped tests across JavaScript, Python, Go, and Rust.
 
 ## Near Term
 
@@ -26,7 +27,7 @@ Add diff fixtures that contain instructions aimed at a reviewer model, so any fu
 
 ### Add more line-level findings
 
-`secret-in-diff` reports the line it found. Other rules that inspect patch content, such as risky API calls or disabled tests, can reuse its hunk line numbering so their annotations land on the changed line.
+`secret-in-diff` and `skipped-tests` report the line they found. Other rules that inspect patch content, such as risky API calls or disabled lint checks, can reuse `addedLines` so their annotations land on the changed line.
 
 ## Mid Term
 
