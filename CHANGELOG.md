@@ -2,7 +2,7 @@
 
 All notable changes to Prism Review are documented in this file.
 
-## Unreleased
+## 0.4.0 - 2026-10-15
 
 ### Added
 
@@ -14,6 +14,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Changed
 
+- `secret-in-diff` and `skipped-tests` are on by default, so workflows that use `@v0` report them as soon as they pick up this release. Each can be turned off in `.prism-review.yml`.
 - Finding messages say "This file" instead of repeating the path; the path is shown on the `File:` line.
 
 ### Fixed
