@@ -109,6 +109,17 @@ const routes: Record<string, (body: unknown) => unknown> = {
   "PATCH /repos/acme/widgets/issues/comments/5": () => ({ id: 5 })
 };
 
+// Pull request 17 fills every page GitHub lists, as a pull request with more than 3000 files does.
+for (let page = 1; page <= 30; page += 1) {
+  routes[`GET /repos/acme/widgets/pulls/17/files?per_page=100&page=${page}`] = () =>
+    Array.from({ length: 100 }, (_, index) => ({
+      filename: `docs/page-${page}-${index}.md`,
+      status: "modified",
+      additions: 1,
+      deletions: 0
+    }));
+}
+
 function fileContent(value: string) {
   return { type: "file", encoding: "base64", content: Buffer.from(value).toString("base64") };
 }

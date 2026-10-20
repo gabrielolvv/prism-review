@@ -62,7 +62,8 @@ import {
 } from "./unit/review-findings-070.test.js";
 import {
   testIncompleteReviewRuleReportsMissingFiles,
-  testIncompleteReviewRuleIsQuietWhenEveryFileArrived
+  testIncompleteReviewRuleIsQuietWhenEveryFileArrived,
+  testIncompleteReviewRuleIgnoresAStaleCountBelowGitHubsLimit
 } from "./unit/incomplete-review.test.js";
 import {
   testWorkflowRiskRuleReportsScriptInjectionAsHigh,
@@ -70,6 +71,14 @@ import {
   testWorkflowRiskRuleIgnoresSafePatterns,
   testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled
 } from "./unit/workflow-risk.test.js";
+import {
+  testWorkflowRiskRuleTreatsEveryMappingValueAsData,
+  testWorkflowRiskRuleReadsScriptBlocks,
+  testWorkflowRiskRuleReadsScriptBlocksThatStartBeforeTheHunk,
+  testWorkflowRiskRuleSeesThroughBracketsFormatAndToJson,
+  testWorkflowRiskRuleIgnoresIgnorePaths,
+  testWorkflowRiskRuleReportsTriggersOnly
+} from "./unit/workflow-risk-review.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -261,10 +270,17 @@ const tests: Array<[string, Test]> = [
   ["render markdown caps the comment length", testRenderMarkdownCapsTheCommentLength],
   ["incomplete-review rule reports files GitHub did not return", testIncompleteReviewRuleReportsMissingFiles],
   ["incomplete-review rule is quiet when every file arrived", testIncompleteReviewRuleIsQuietWhenEveryFileArrived],
+  ["incomplete-review rule ignores a stale count below GitHub's limit", testIncompleteReviewRuleIgnoresAStaleCountBelowGitHubsLimit],
   ["workflow risk rule reports script injection as high", testWorkflowRiskRuleReportsScriptInjectionAsHigh],
   ["workflow risk rule reports risky triggers and permissions", testWorkflowRiskRuleReportsRiskyTriggersAndPermissions],
   ["workflow risk rule ignores safe patterns", testWorkflowRiskRuleIgnoresSafePatterns],
   ["workflow risk rule checks composite actions and can be disabled", testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled],
+  ["workflow risk rule treats every mapping value as data", testWorkflowRiskRuleTreatsEveryMappingValueAsData],
+  ["workflow risk rule reads script blocks", testWorkflowRiskRuleReadsScriptBlocks],
+  ["workflow risk rule reads script blocks that start before the hunk", testWorkflowRiskRuleReadsScriptBlocksThatStartBeforeTheHunk],
+  ["workflow risk rule sees through brackets format and to json", testWorkflowRiskRuleSeesThroughBracketsFormatAndToJson],
+  ["workflow risk rule ignores ignore paths", testWorkflowRiskRuleIgnoresIgnorePaths],
+  ["workflow risk rule reports triggers only", testWorkflowRiskRuleReportsTriggersOnly],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
