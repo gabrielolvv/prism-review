@@ -11,5 +11,7 @@ export type AnalysisContext = {
 export type Rule = {
   id: string;
   description: string;
+  // Security rules see files matched by `ignorePaths` too, so a path setting cannot hide them.
+  seesIgnoredFiles?: boolean;
   run(context: AnalysisContext): Finding[];
 };

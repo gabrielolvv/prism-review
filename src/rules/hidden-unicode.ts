@@ -6,6 +6,7 @@ const effect = "characters that are invisible or reorder text";
 
 export const hiddenUnicodeRule: Rule = {
   id: "hidden-unicode",
+  seesIgnoredFiles: true,
   description: "Flags added bidirectional controls and invisible characters that hide or reorder text.",
   run({ files, config }) {
     if (!config.rules.hiddenUnicode.enabled) {
