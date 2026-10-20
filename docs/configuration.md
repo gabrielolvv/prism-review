@@ -191,7 +191,11 @@ The `workflow-risk` rule checks added lines in `.github/workflows/*.yml` and in 
 | A `ref:` that checks out the pull request head or `refs/pull/...` | Warning | Combined with `pull_request_target`, it runs untrusted code with those secrets. |
 | `permissions: write-all` | Warning | Every job gets every write permission. |
 
-Passing an untrusted value as data is not reported: `TITLE: ${{ github.event.issue.title }}` under `env:`, an action input under `with:`, and `if:` conditions, followed by `run: echo "$TITLE"`. Comment lines are skipped. The untrusted contexts follow GitHub Security Lab's list.
+Only `run` and `script` values, including `|` and `>` blocks, are scripts. Every other value is data and is not reported: `TITLE: ${{ github.event.issue.title }}` under `env:`, an action input under `with:`, a step `name:`, `run-name:`, and `if:` conditions, followed by `run: echo "$TITLE"`. When a hunk starts inside a block, the unchanged lines GitHub shows around it are used to tell which block an added line belongs to.
+
+The untrusted contexts follow GitHub Security Lab's list. Index syntax such as `github.event['issue']['title']` is read like the dotted form, and a context passed whole, as in `toJSON(github.event.pull_request)`, counts too. Safe values such as `github.event.pull_request.number` and `github.sha` are not reported. `pull_request_target` is only reported as a trigger under `on:`, not in comments, strings, or `if:` conditions.
+
+Workflow files are checked even when `ignorePaths` matches them, because a pattern such as `**/*.yml` must not hide them.
 
 ## Hidden Unicode
 
@@ -223,7 +227,7 @@ The value never appears in the finding, the comment, or the annotation. Values m
 
 ## Rules Without Options
 
-- `incomplete-review` always runs in the action. GitHub lists at most 3000 files for a pull request, so when the event says the pull request changes more files than the API returned, it reports a high-risk finding with the number of files that were not reviewed. With `check.failOn: high`, such a pull request cannot pass the gate unreviewed. The CLI reviews the whole diff it is given, so it never reports this.
+- `incomplete-review` always runs in the action. GitHub lists at most 3000 files for a pull request, so when the API returned all 3000 and the event says the pull request changes more, it reports a high-risk finding with the number of files that were not reviewed. With `check.failOn: high`, such a pull request cannot pass the gate unreviewed. A shorter list is complete: the count in the event can be out of date after a push, so it is not compared then. The CLI reviews the whole diff it is given, so it never reports this.
 - `config-change` always runs. It reports a high-risk finding when a pull request adds, edits, deletes, or renames the file named by `config-path`.
 - `oversized-patch` always runs. It reports an `info` finding for each file whose patch exceeded `security.maxPatchBytes`.
 
