@@ -11433,7 +11433,11 @@ var prismConfigSchema = external_exports.object({
         "**/*_spec.rb",
         "**/*_test.rb",
         "**/src/test/**",
-        "**/*Test.php"
+        "**/*Test.php",
+        "**/*Tests.cs",
+        "**/*Test.cs",
+        "**/*.Tests/**",
+        "**/*Tests.swift"
       ])
     }).default({}),
     sensitiveFiles: external_exports.object({
@@ -11563,6 +11567,15 @@ var languages = [
     ]
   },
   { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
+  {
+    files: /\.cs$/,
+    markers: [
+      // Codes after `disable` make it targeted; a trailing comment alone does not.
+      ["C# compiler", /^\s*#pragma\s+warning\s+disable\s*(?:$|\/\/)/],
+      ["ReSharper", /\/\/\s*ReSharper\s+disable\s+All\b/]
+    ]
+  },
+  { files: /\.swift$/, markers: [["SwiftLint", /\/\/\s*swiftlint:disable(?::next|:this|:previous)?\s+all\b/]] },
   { files: /\.(?:rb|rake)$/, markers: [["RuboCop", /#\s*rubocop:\s*(?:disable|todo)\s+all\b/]] },
   {
     files: /\.(?:java|kt)$/,
@@ -13687,6 +13700,26 @@ var languages2 = [
     definitions: /^\s*(?:(?:public|private|protected|static|final|abstract)\s+)*function\s+/
   },
   {
+    files: /\.(?:cs|cshtml|razor)$/,
+    calls: [
+      [
+        "shell command",
+        /\b(?:Process\.Start\s*\(|FileName\s*=)\s*"(?:[^"]*[\/\\])?(?:cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh|sh|bash|zsh)"/
+      ],
+      ["unsafe .NET deserializer", /\b(?:BinaryFormatter|SoapFormatter|NetDataContractSerializer|LosFormatter|ObjectStateFormatter)\b/],
+      ["Html.Raw", /\bHtml\.Raw\s*\(/]
+    ]
+  },
+  {
+    files: /\.swift$/,
+    calls: [
+      ["shell process", /(?:fileURLWithPath:|launchPath\s*=)\s*"\/bin\/(?:sh|bash|zsh)"/],
+      ["NSKeyedUnarchiver", /\bNSKeyedUnarchiver\.unarchiveObject\s*\(|\bNSUnarchiver\b/],
+      // `\(` inside the string is Swift interpolation.
+      ["interpolated evaluateJavaScript", /\bevaluateJavaScript\s*\(\s*"[^"]*\\\(/]
+    ]
+  },
+  {
     files: /\.go$/,
     calls: [
       [
@@ -13896,6 +13929,16 @@ var languages3 = [
     // JUnit 4 and 5, and TestNG.
     files: /\.(?:java|kt)$/,
     markers: [["skipped", /^\s*@(?:Disabled|Ignore)\b|@Test\s*\(\s*enabled\s*=\s*false\b/]]
+  },
+  {
+    // xUnit, NUnit, and MSTest.
+    files: /\.cs$/,
+    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|\[\s*Ignore\b/]]
+  },
+  {
+    // XCTest and Swift Testing.
+    files: /\.swift$/,
+    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]*\.disabled\b/]]
   },
   {
     // PHPUnit and Pest.
