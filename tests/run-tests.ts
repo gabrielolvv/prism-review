@@ -88,7 +88,11 @@ import {
   testRenderMarkdownKeepsHostilePathsInert,
   testRenderMarkdownIncludesLowSeverityWhenEnabled
 } from "./unit/render-markdown.test.js";
-import { testDefaultRules, testDependencyRiskRule } from "./unit/rules.test.js";
+import {
+  testDefaultRules,
+  testDependencyRiskRule,
+  testSensitiveFilesRuleMatchesKeywordsAsWords
+} from "./unit/rules.test.js";
 import {
   testFindAddedSecretsDetectsPgpPrivateKeys,
   testFindAddedSecretsHonorsAllowlist,
@@ -116,6 +120,7 @@ const tests: Array<[string, Test]> = [
   ["parseUnifiedDiff parses changed files", testParseUnifiedDiff],
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
+  ["sensitive files rule matches keywords as whole words", testSensitiveFilesRuleMatchesKeywordsAsWords],
   ["redactSecrets masks token-like values", testRedactSecrets],
   ["findAddedSecrets numbers lines in the new file", testFindAddedSecretsNumbersLinesInTheNewFile],
   ["findAddedSecrets skips git headers", testFindAddedSecretsSkipsGitHeaders],
