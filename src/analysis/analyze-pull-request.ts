@@ -20,6 +20,7 @@ export function analyzePullRequest(
   const reviewed = files.filter((file) => !config.ignorePaths.some((glob) => minimatch(file.path, glob)));
   const findings = rules
     .flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath }))
+    .flatMap((finding) => applySeverityOverride(finding, config))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
 
   return {
@@ -27,6 +28,15 @@ export function analyzePullRequest(
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings
   };
+}
+
+function applySeverityOverride(finding: Finding, config: PrismConfig): Finding[] {
+  const override = config.severity[finding.ruleId];
+  if (override === undefined) {
+    return [finding];
+  }
+
+  return override === "off" ? [] : [{ ...finding, severity: override }];
 }
 
 function buildSummary(reviewedCount: number, ignoredCount: number, findings: Finding[]): string {

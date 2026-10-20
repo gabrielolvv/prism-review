@@ -49,6 +49,11 @@ import {
   testIgnorePathsNeverHidesSecurityFindings,
   testIgnorePathsDefaultsToReviewingEverything
 } from "./unit/ignore-paths.test.js";
+import {
+  testSeverityOverridesChangeFindingsAndRisk,
+  testSeverityOverrideOffRemovesARule,
+  testSeverityOverridesRejectUnknownRules
+} from "./unit/severity-overrides.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -231,6 +236,9 @@ const tests: Array<[string, Test]> = [
   ["ignorePaths keeps ignored files out of the noise rules", testIgnorePathsSkipsNoiseRules],
   ["ignorePaths never hides security findings", testIgnorePathsNeverHidesSecurityFindings],
   ["ignorePaths defaults to reviewing every file", testIgnorePathsDefaultsToReviewingEverything],
+  ["severity overrides change findings and the risk level", testSeverityOverridesChangeFindingsAndRisk],
+  ["a severity override of off removes a rule's findings", testSeverityOverrideOffRemovesARule],
+  ["severity overrides reject unknown rules and severities", testSeverityOverridesRejectUnknownRules],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { defaultRules } from "../rules/index.js";
+
+const ruleIds = new Set(defaultRules.map((rule) => rule.id));
 
 export const prismConfigSchema = z.object({
   risk: z
@@ -123,6 +126,18 @@ export const prismConfigSchema = z.object({
     })
     .default({}),
   ignorePaths: z.array(z.string()).default([]),
+  // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
+  // cannot silently leave a rule at its default.
+  severity: z
+    .record(z.enum(["off", "info", "warning", "high"]))
+    .default({})
+    .superRefine((overrides, context) => {
+      for (const id of Object.keys(overrides)) {
+        if (!ruleIds.has(id)) {
+          context.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
+        }
+      }
+    }),
   check: z
     .object({
       failOn: z.enum(["never", "warning", "high"]).default("never")
