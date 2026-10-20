@@ -7361,6 +7361,7 @@ var require_dist = __commonJS({
 });
 
 // src/cli/main.ts
+var import_node_fs2 = require("node:fs");
 var import_node_path = require("node:path");
 
 // src/analysis/changed-file.ts
@@ -14172,9 +14173,6 @@ function prepareChangedFiles(files, config) {
   return redactChangedFiles(limited, { allowlist });
 }
 
-// src/testing/fixture-loader.ts
-var import_node_fs2 = require("node:fs");
-
 // src/testing/parse-unified-diff.ts
 function parseUnifiedDiff(diff) {
   const files = [];
@@ -14219,26 +14217,42 @@ function detectStatus(lines) {
   return "modified";
 }
 
-// src/testing/fixture-loader.ts
-function loadDiffFixture(path2) {
-  return parseUnifiedDiff((0, import_node_fs2.readFileSync)(path2, "utf8"));
-}
-
 // src/cli/main.ts
+var usage = [
+  "Usage: prism-review analyze --diff <path|-> [--config <path>]",
+  "",
+  "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
+  "                    --fixture is accepted as an alias.",
+  "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
+  "",
+  "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
+  ""
+].join("\n");
+var UsageError = class extends Error {
+};
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (command !== "analyze") {
-    printUsage();
-    process.exitCode = 1;
+  if (command === "--help" || command === "-h") {
+    process.stdout.write(usage);
     return;
   }
+  if (command !== "analyze") {
+    throw new UsageError(command ? `Unknown command: ${command}` : "Missing command.");
+  }
   const options = parseArgs(args);
-  if (!options.fixture) {
-    throw new Error("Missing required --fixture option.");
+  if (options.help) {
+    process.stdout.write(usage);
+    return;
+  }
+  if (!options.diff) {
+    throw new UsageError("Missing required --diff option.");
+  }
+  if (options.config !== void 0 && !(0, import_node_fs2.existsSync)((0, import_node_path.resolve)(options.config))) {
+    throw new Error(`Configuration file not found: ${options.config}`);
   }
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig((0, import_node_path.resolve)(configPath));
-  const files = prepareChangedFiles(loadDiffFixture((0, import_node_path.resolve)(options.fixture)), config);
+  const files = prepareChangedFiles(parseUnifiedDiff(readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}
 `);
@@ -14249,28 +14263,47 @@ async function main() {
     process.exitCode = 1;
   }
 }
+function readDiff(source) {
+  if (source !== "-") {
+    return (0, import_node_fs2.readFileSync)((0, import_node_path.resolve)(source), "utf8");
+  }
+  if (process.stdin.isTTY) {
+    throw new UsageError("--diff - reads a diff from stdin; pipe one in, for example from `git diff`.");
+  }
+  return (0, import_node_fs2.readFileSync)(0, "utf8");
+}
 function parseArgs(args) {
-  const options = {};
+  const options = { help: false };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    const next = args[index + 1];
-    if (arg === "--fixture") {
-      options.fixture = next;
-      index += 1;
+    if (arg === "--help" || arg === "-h") {
+      options.help = true;
+      continue;
     }
-    if (arg === "--config") {
-      options.config = next;
+    if (arg === "--diff" || arg === "--fixture" || arg === "--config") {
+      const value = args[index + 1];
+      if (value === void 0 || value.startsWith("--") && value !== "-") {
+        throw new UsageError(`Missing value for ${arg}.`);
+      }
+      if (arg === "--config") {
+        options.config = value;
+      } else {
+        options.diff = value;
+      }
       index += 1;
+      continue;
     }
+    throw new UsageError(`Unknown option: ${arg}`);
   }
   return options;
-}
-function printUsage() {
-  process.stdout.write("Usage: prism-review analyze --fixture <path> [--config <path>]\n");
 }
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`Prism Review failed: ${message}
 `);
+  if (error instanceof UsageError) {
+    process.stderr.write(`
+${usage}`);
+  }
   process.exitCode = 1;
 });
