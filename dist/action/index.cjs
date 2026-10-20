@@ -13280,109 +13280,6 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// src/config/schema.ts
-var prismConfigSchema = external_exports.object({
-  risk: external_exports.object({
-    largeDiff: external_exports.object({
-      maxFiles: external_exports.number().int().positive().default(25),
-      maxChangedLines: external_exports.number().int().positive().default(800)
-    }).default({})
-  }).default({}),
-  rules: external_exports.object({
-    missingTests: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      sourceGlobs: external_exports.array(external_exports.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
-      testGlobs: external_exports.array(external_exports.string()).default([
-        "**/*.test.*",
-        "**/*.spec.*",
-        "**/__tests__/**",
-        "**/test_*.py",
-        "**/*_test.py",
-        "**/*_test.go",
-        "**/tests/**/*.rs",
-        "**/*_spec.rb",
-        "**/*_test.rb",
-        "**/src/test/**",
-        "**/*Test.php",
-        "**/*Tests.cs",
-        "**/*Test.cs",
-        "**/*.Tests/**",
-        "**/*Tests.swift"
-      ])
-    }).default({}),
-    sensitiveFiles: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      patterns: external_exports.array(external_exports.string()).default([
-        ".github/workflows/**",
-        "**/auth/**",
-        "**/permissions/**",
-        "**/migrations/**"
-      ])
-    }).default({}),
-    dependencyRisk: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      manifests: external_exports.array(external_exports.string()).default([
-        "package.json",
-        "package-lock.json",
-        "pnpm-lock.yaml",
-        "yarn.lock",
-        "requirements.txt",
-        "pyproject.toml",
-        "poetry.lock",
-        "go.mod",
-        "go.sum",
-        "Cargo.toml",
-        "Cargo.lock"
-      ])
-    }).default({}),
-    secretInDiff: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    skippedTests: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    blanketSuppression: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    riskyApis: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    hiddenUnicode: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({})
-  }).default({}),
-  security: external_exports.object({
-    maxPatchBytes: external_exports.number().int().positive().default(2e5),
-    redaction: external_exports.object({
-      allowlist: external_exports.array(
-        external_exports.string().min(1).max(200).refine(isRegularExpression, "Must be a valid regular expression.")
-      ).default([])
-    }).default({})
-  }).default({}),
-  comment: external_exports.object({
-    mode: external_exports.enum(["upsert", "append"]).default("upsert"),
-    includeLowSeverity: external_exports.boolean().default(false)
-  }).default({}),
-  ignorePaths: external_exports.array(external_exports.string()).default([]),
-  check: external_exports.object({
-    failOn: external_exports.enum(["never", "warning", "high"]).default("never")
-  }).default({}),
-  annotations: external_exports.object({
-    enabled: external_exports.boolean().default(false),
-    includeLowSeverity: external_exports.boolean().default(false)
-  }).default({})
-});
-function isRegularExpression(source) {
-  try {
-    new RegExp(source);
-    return true;
-  } catch {
-    return false;
-  }
-}
-var defaultConfigPath = ".prism-review.yml";
-var defaultConfig = prismConfigSchema.parse({});
-
 // src/analysis/added-lines.ts
 var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 function addedLines(patch) {
@@ -14139,6 +14036,119 @@ var defaultRules = [
   oversizedPatchRule
 ];
 
+// src/config/schema.ts
+var ruleIds = new Set(defaultRules.map((rule) => rule.id));
+var prismConfigSchema = external_exports.object({
+  risk: external_exports.object({
+    largeDiff: external_exports.object({
+      maxFiles: external_exports.number().int().positive().default(25),
+      maxChangedLines: external_exports.number().int().positive().default(800)
+    }).default({})
+  }).default({}),
+  rules: external_exports.object({
+    missingTests: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      sourceGlobs: external_exports.array(external_exports.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
+      testGlobs: external_exports.array(external_exports.string()).default([
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/__tests__/**",
+        "**/test_*.py",
+        "**/*_test.py",
+        "**/*_test.go",
+        "**/tests/**/*.rs",
+        "**/*_spec.rb",
+        "**/*_test.rb",
+        "**/src/test/**",
+        "**/*Test.php",
+        "**/*Tests.cs",
+        "**/*Test.cs",
+        "**/*.Tests/**",
+        "**/*Tests.swift"
+      ])
+    }).default({}),
+    sensitiveFiles: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      patterns: external_exports.array(external_exports.string()).default([
+        ".github/workflows/**",
+        "**/auth/**",
+        "**/permissions/**",
+        "**/migrations/**"
+      ])
+    }).default({}),
+    dependencyRisk: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      manifests: external_exports.array(external_exports.string()).default([
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "requirements.txt",
+        "pyproject.toml",
+        "poetry.lock",
+        "go.mod",
+        "go.sum",
+        "Cargo.toml",
+        "Cargo.lock"
+      ])
+    }).default({}),
+    secretInDiff: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    skippedTests: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    blanketSuppression: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    riskyApis: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    hiddenUnicode: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({})
+  }).default({}),
+  security: external_exports.object({
+    maxPatchBytes: external_exports.number().int().positive().default(2e5),
+    redaction: external_exports.object({
+      allowlist: external_exports.array(
+        external_exports.string().min(1).max(200).refine(isRegularExpression, "Must be a valid regular expression.")
+      ).default([])
+    }).default({})
+  }).default({}),
+  comment: external_exports.object({
+    mode: external_exports.enum(["upsert", "append"]).default("upsert"),
+    includeLowSeverity: external_exports.boolean().default(false)
+  }).default({}),
+  ignorePaths: external_exports.array(external_exports.string()).default([]),
+  // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
+  // cannot silently leave a rule at its default.
+  severity: external_exports.record(external_exports.enum(["off", "info", "warning", "high"])).default({}).superRefine((overrides, context) => {
+    for (const id of Object.keys(overrides)) {
+      if (!ruleIds.has(id)) {
+        context.addIssue({ code: external_exports.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
+      }
+    }
+  }),
+  check: external_exports.object({
+    failOn: external_exports.enum(["never", "warning", "high"]).default("never")
+  }).default({}),
+  annotations: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    includeLowSeverity: external_exports.boolean().default(false)
+  }).default({})
+});
+function isRegularExpression(source) {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+}
+var defaultConfigPath = ".prism-review.yml";
+var defaultConfig = prismConfigSchema.parse({});
+
 // src/analysis/severity.ts
 var weights = {
   info: 1,
@@ -14156,12 +14166,19 @@ function isAtLeast(severity, minimum) {
 function analyzePullRequest(files, config, options = {}) {
   const { rules = defaultRules, configPath = defaultConfigPath } = options;
   const reviewed = files.filter((file) => !config.ignorePaths.some((glob) => minimatch(file.path, glob)));
-  const findings = rules.flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath })).sort((left, right) => compareSeverity(left.severity, right.severity));
+  const findings = rules.flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath })).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
   return {
     summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings
   };
+}
+function applySeverityOverride(finding, config) {
+  const override = config.severity[finding.ruleId];
+  if (override === void 0) {
+    return [finding];
+  }
+  return override === "off" ? [] : [{ ...finding, severity: override }];
 }
 function buildSummary(reviewedCount, ignoredCount, findings) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
