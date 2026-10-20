@@ -26,7 +26,7 @@ Expected result:
 
 ## Review Checklist
 
-- Confirm the workflow has `contents: read`, `pull-requests: read`, and `issues: write`.
+- Confirm the workflow has `contents: read` and `pull-requests: write`. On a pull request, the comment endpoint checks the pull requests permission, so `issues: write` alone fails with `403 Resource not accessible by integration`.
 - Confirm the comment contains `<!-- prism-review-comment -->`.
 - Confirm no raw secret-like values appear in generated output.
 - Confirm the finding is useful enough for a human reviewer to act on.
