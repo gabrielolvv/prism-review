@@ -1,6 +1,7 @@
 import { blanketSuppressionRule } from "./blanket-suppression.js";
 import { configChangeRule } from "./config-change.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
+import { destructiveMigrationRule } from "./destructive-migration.js";
 import { hiddenUnicodeRule } from "./hidden-unicode.js";
 import { incompleteReviewRule } from "./incomplete-review.js";
 import { largeDiffRule } from "./large-diff.js";
@@ -23,6 +24,7 @@ export const defaultRules: Rule[] = [
   blanketSuppressionRule,
   riskyApiRule,
   workflowRiskRule,
+  destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,

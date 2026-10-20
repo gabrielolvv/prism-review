@@ -103,6 +103,11 @@ export const prismConfigSchema = z.object({
         .object({
           enabled: z.boolean().default(true)
         })
+        .default({}),
+      destructiveMigration: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
         .default({})
     })
     .default({}),

@@ -79,6 +79,13 @@ import {
   testWorkflowRiskRuleIgnoresIgnorePaths,
   testWorkflowRiskRuleReportsTriggersOnly
 } from "./unit/workflow-risk-review.test.js";
+import {
+  testDestructiveMigrationRuleReportsEachFramework,
+  testDestructiveMigrationRuleIgnoresRollbackSections,
+  testDestructiveMigrationRuleUsesTheHunkHeaderForContext,
+  testDestructiveMigrationRuleIgnoresSafeChangesAndOtherFiles,
+  testDestructiveMigrationRuleCanBeDisabled
+} from "./unit/destructive-migration.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -281,6 +288,11 @@ const tests: Array<[string, Test]> = [
   ["workflow risk rule sees through brackets format and to json", testWorkflowRiskRuleSeesThroughBracketsFormatAndToJson],
   ["workflow risk rule ignores ignore paths", testWorkflowRiskRuleIgnoresIgnorePaths],
   ["workflow risk rule reports triggers only", testWorkflowRiskRuleReportsTriggersOnly],
+  ["destructive-migration rule reports each framework", testDestructiveMigrationRuleReportsEachFramework],
+  ["destructive-migration rule ignores rollback sections", testDestructiveMigrationRuleIgnoresRollbackSections],
+  ["destructive-migration rule uses the hunk header for context", testDestructiveMigrationRuleUsesTheHunkHeaderForContext],
+  ["destructive-migration rule ignores safe changes and other files", testDestructiveMigrationRuleIgnoresSafeChangesAndOtherFiles],
+  ["destructive-migration rule can be disabled", testDestructiveMigrationRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
