@@ -56,6 +56,8 @@ rules:
     enabled: true
   skippedTests:
     enabled: true
+  blanketSuppression:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -103,6 +105,24 @@ Only files matched by `rules.missingTests.testGlobs` are checked, so the same ca
 Conditional skips such as `skipif` are reported too: the reviewer should know where a test stops running, even when it is intended. Removing a marker is never reported.
 
 Adding a skip marker counts as a test change, so it also keeps `missing-tests` quiet; this rule is what reports it.
+
+## Blanket Suppressions
+
+### `rules.blanketSuppression.enabled`
+
+The `blanket-suppression` rule warns, with the first line number, when a pull request adds a lint or type check suppression that does not name the checks it turns off. Such a suppression hides every problem in its scope, including ones introduced later.
+
+| Tool | Reported | Not reported |
+| --- | --- | --- |
+| ESLint | `/* eslint-disable */`, `// eslint-disable-next-line`, `// eslint-disable-line` with no rule names | the same comments followed by rule names |
+| TypeScript | `// @ts-nocheck` | `// @ts-expect-error` |
+| flake8, Ruff | `# noqa`, `# flake8: noqa`, `# ruff: noqa` | `# noqa: E501` |
+| mypy, Pyright | `# type: ignore`, `# mypy: ignore-errors` | `# type: ignore[arg-type]` |
+| Pylint | `# pylint: disable=all` | `# pylint: disable=line-too-long` |
+| golangci-lint | `//nolint` | `//nolint:errcheck` |
+| Rust | `#[allow(warnings)]`, `#[allow(clippy::all)]`, and the `#![...]` forms | `#[allow(dead_code)]` |
+
+Only added lines are checked, and documentation files (`.md`, `.mdx`, `.rst`, `.txt`, `.adoc`) are skipped because they often quote these markers.
 
 ## Secrets
 

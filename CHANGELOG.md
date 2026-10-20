@@ -4,6 +4,10 @@ All notable changes to Prism Review are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- `blanket-suppression` rule warns, with the line number, when a pull request adds a lint or type check suppression that names no rule: `eslint-disable` without rule names, `@ts-nocheck`, a bare `# noqa` or `# type: ignore`, `# pylint: disable=all`, `# mypy: ignore-errors`, `//nolint` without a linter, and Rust `allow(warnings)` or `allow(clippy::all)`. Targeted suppressions are not reported, and documentation files are skipped. `rules.blanketSuppression.enabled` turns it off.
+
 ### Fixed
 
 - `sensitive-files` matched its built-in words anywhere in a path, so files such as `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` were reported as high risk. Words are now matched whole after splitting the path on separators and camelCase; `oauth`, `authenticate`, `authorize`, and plurals still count.
