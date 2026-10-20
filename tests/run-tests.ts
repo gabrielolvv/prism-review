@@ -12,6 +12,11 @@ import {
   testResolveGitHubApiUrlRejectsInvalidValues
 } from "./unit/github-client.test.js";
 import {
+  testConfigNeverFailsByDefault,
+  testDescribeFailureNamesThreshold,
+  testFailingFindingsFollowsThreshold
+} from "./unit/check-outcome.test.js";
+import {
   testConfigChangeRuleFlagsDefaultConfig,
   testConfigChangeRuleFlagsRenamedConfig,
   testConfigChangeRuleUsesConfiguredPath
@@ -148,6 +153,9 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule ignores targeted suppressions", testBlanketSuppressionRuleIgnoresTargetedSuppressions],
   ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
   ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
+  ["failingFindings follows the check.failOn threshold", testFailingFindingsFollowsThreshold],
+  ["describeFailure names the threshold", testDescribeFailureNamesThreshold],
+  ["config never fails the check by default", testConfigNeverFailsByDefault],
   ["redactChangedFiles does not mutate original files", testRedactChangedFilesDoesNotMutateOriginal],
   ["renderMarkdown renders stable review sections", testRenderMarkdown],
   ["renderMarkdown hides info findings by default", testRenderMarkdownHidesLowSeverityByDefault],

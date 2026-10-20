@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
+import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { defaultConfig } from "../config/schema.js";
 import { createGitHubClient, resolveGitHubApiUrl } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
@@ -52,17 +53,23 @@ async function run(): Promise<void> {
 
   if (inputs.dryRun) {
     printUntrusted(body);
-    return;
+  } else {
+    await publishPullRequestComment(
+      client,
+      owner,
+      repo,
+      pullRequest.number,
+      body,
+      config.comment.mode
+    );
   }
 
-  await publishPullRequestComment(
-    client,
-    owner,
-    repo,
-    pullRequest.number,
-    body,
-    config.comment.mode
-  );
+  // Fail only after the review is published, so the reason is on the pull request.
+  const failing = failingFindings(result, config.check.failOn);
+  if (failing.length > 0) {
+    console.error(describeFailure(failing, config.check.failOn));
+    process.exitCode = 1;
+  }
 }
 
 // The body quotes pull request file names, which may contain newlines followed by workflow

@@ -9,3 +9,7 @@ const weights: Record<Severity, number> = {
 export function compareSeverity(left: Severity, right: Severity): number {
   return weights[right] - weights[left];
 }
+
+export function isAtLeast(severity: Severity, minimum: Severity): boolean {
+  return weights[severity] >= weights[minimum];
+}

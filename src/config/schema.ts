@@ -104,6 +104,11 @@ export const prismConfigSchema = z.object({
       includeLowSeverity: z.boolean().default(false)
     })
     .default({}),
+  check: z
+    .object({
+      failOn: z.enum(["never", "warning", "high"]).default("never")
+    })
+    .default({}),
   annotations: z
     .object({
       enabled: z.boolean().default(false),
