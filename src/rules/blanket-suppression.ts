@@ -50,7 +50,10 @@ const languages: Language[] = [
       // The newer `@phpstan-ignore identifier` form names what it ignores.
       ["PHPStan", /@phpstan-ignore-(?:next-)?line\b/],
       // A sniff name after the directive makes it targeted; `-- reason` alone does not.
-      ["PHP_CodeSniffer", /\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/],
+      [
+        "PHP_CodeSniffer",
+        /\bphpcs:ignoreFile\b|\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/
+      ],
       ["Psalm", /@psalm-suppress\s+all\b/i]
     ]
   },

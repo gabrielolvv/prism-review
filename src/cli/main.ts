@@ -57,7 +57,7 @@ async function main(): Promise<void> {
 
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig(resolve(configPath));
-  const files = prepareChangedFiles(parseUnifiedDiff(await readDiff(options.diff)), config);
+  const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}\n`);
 
@@ -66,6 +66,27 @@ async function main(): Promise<void> {
     process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
     process.exitCode = 1;
   }
+}
+
+// The CLI is meant to gate pushes, so input it cannot review is an error, never an empty
+// review that passes.
+function parseDiff(diff: string) {
+  if (diff.trim() === "") {
+    throw new Error(
+      "The diff is empty. If it came from `git diff`, check that the command succeeded and that the range has changes."
+    );
+  }
+
+  if (diff.includes(`${String.fromCharCode(27)}[`)) {
+    throw new Error("The diff contains terminal color codes; run `git diff --no-color`.");
+  }
+
+  const files = parseUnifiedDiff(diff);
+  if (files.length === 0) {
+    throw new Error("No `diff --git` sections found. Pass the output of `git diff`, not a plain patch or a file list.");
+  }
+
+  return files;
 }
 
 async function readDiff(source: string): Promise<string> {

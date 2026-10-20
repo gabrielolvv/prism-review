@@ -1,3 +1,5 @@
+import type { HiddenLine } from "./hidden-characters.js";
+
 export type FileStatus = "added" | "modified" | "removed" | "renamed";
 
 export type ChangedFile = {
@@ -10,6 +12,8 @@ export type ChangedFile = {
   patchOmitted?: boolean;
   // Set by prepareChangedFiles, which scans the patch before redaction.
   secrets?: SecretMatch[];
+  // Set by prepareChangedFiles before oversized patches are dropped.
+  hiddenLines?: HiddenLine[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.

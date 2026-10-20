@@ -14,13 +14,26 @@ const bidiControls = new Map<number, string>([
   [0x2069, "POP DIRECTIONAL ISOLATE"]
 ]);
 
+// Hangul fillers are valid in identifiers yet render as nothing, which hides a variable; the
+// invisible operators render as nothing between letters. The Arabic letter mark and the soft
+// hyphen are left out for the same reason as the marks above: ordinary text uses them.
 const invisibleCharacters = new Map<number, string>([
   [0x200b, "ZERO WIDTH SPACE"],
   [0x2060, "WORD JOINER"],
-  [0xfeff, "ZERO WIDTH NO-BREAK SPACE"]
+  [0x2061, "FUNCTION APPLICATION"],
+  [0x2062, "INVISIBLE TIMES"],
+  [0x2063, "INVISIBLE SEPARATOR"],
+  [0x2064, "INVISIBLE PLUS"],
+  [0xfeff, "ZERO WIDTH NO-BREAK SPACE"],
+  [0x115f, "HANGUL CHOSEONG FILLER"],
+  [0x1160, "HANGUL JUNGSEONG FILLER"],
+  [0x3164, "HANGUL FILLER"],
+  [0xffa0, "HALFWIDTH HANGUL FILLER"]
 ]);
 
 const byteOrderMark = 0xfeff;
+
+import { addedLines } from "./added-lines.js";
 
 export type HiddenCharacters = {
   // Labels in order of first appearance, such as "U+202E RIGHT-TO-LEFT OVERRIDE".
@@ -68,4 +81,13 @@ export function formatCodePoint(codePoint: number): string {
 // Tag characters can spell out text that most editors and diff views do not display.
 function isTagCharacter(codePoint: number): boolean {
   return codePoint >= 0xe0000 && codePoint <= 0xe007f;
+}
+
+export type HiddenLine = HiddenCharacters & { line: number };
+
+// Added lines that contain hidden characters. A byte order mark is allowed at the start of line 1.
+export function findHiddenLines(patch: string): HiddenLine[] {
+  return addedLines(patch)
+    .map(({ line, content }) => ({ line, ...findHiddenCharacters(content, line === 1) }))
+    .filter((found) => found.labels.length > 0);
 }

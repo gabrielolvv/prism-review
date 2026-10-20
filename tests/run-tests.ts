@@ -33,6 +33,17 @@ import {
   testHiddenUnicodeRuleIgnoresRemovedLinesAndCanBeDisabled,
   testPromptInjectionFixtureDoesNotChangeTheReview
 } from "./unit/hidden-unicode.test.js";
+import {
+  testParseUnifiedDiffDecodesQuotedPaths,
+  testParseUnifiedDiffHandlesPrefixSettings,
+  testParseUnifiedDiffRejectsUnrecognizedHeaders,
+  testHiddenUnicodeRuleScansOversizedPatches,
+  testHiddenUnicodeRuleReportsInvisibleIdentifiers,
+  testBlanketSuppressionRuleReportsPhpcsIgnoreFile,
+  testRiskyApiRuleReadsRubyEvalAndShellForms,
+  testSkippedTestsRuleTellsPestFromLaravel,
+  testSkippedTestsRuleReadsCombinedCSharpAttributes
+} from "./unit/review-findings-060.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -203,6 +214,15 @@ const tests: Array<[string, Test]> = [
   ["hidden-unicode rule checks paths and renders them safely", testHiddenUnicodeRuleChecksPathsAndRendersThemSafely],
   ["hidden-unicode rule ignores removed lines and can be disabled", testHiddenUnicodeRuleIgnoresRemovedLinesAndCanBeDisabled],
   ["prompt injection in a diff does not change the review", testPromptInjectionFixtureDoesNotChangeTheReview],
+  ["parse unified diff decodes quoted paths", testParseUnifiedDiffDecodesQuotedPaths],
+  ["parse unified diff handles prefix settings", testParseUnifiedDiffHandlesPrefixSettings],
+  ["parse unified diff rejects unrecognized headers", testParseUnifiedDiffRejectsUnrecognizedHeaders],
+  ["hidden unicode rule scans oversized patches", testHiddenUnicodeRuleScansOversizedPatches],
+  ["hidden unicode rule reports invisible identifiers", testHiddenUnicodeRuleReportsInvisibleIdentifiers],
+  ["blanket suppression rule reports phpcs ignore file", testBlanketSuppressionRuleReportsPhpcsIgnoreFile],
+  ["risky api rule reads ruby eval and shell forms", testRiskyApiRuleReadsRubyEvalAndShellForms],
+  ["skipped tests rule tells pest from laravel", testSkippedTestsRuleTellsPestFromLaravel],
+  ["skipped tests rule reads combined c sharp attributes", testSkippedTestsRuleReadsCombinedCSharpAttributes],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

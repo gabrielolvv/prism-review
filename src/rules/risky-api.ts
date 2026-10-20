@@ -48,9 +48,14 @@ const languages: Language[] = [
   {
     files: /\.(?:rb|rake|erb)$/,
     calls: [
-      ["eval", /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*[(\s]\s*[\w"'`@:]/],
-      ["shell command", /(?<![.\w:])(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
-      ["interpolated shell command", /%x[({[]|`[^`]*#\{/],
+      // A string, heredoc, or variable is evaluated; a `do` or `{` block is not.
+      [
+        "eval",
+        /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*\(?\s*(?:["'`]|<<[~-]?|%[qQ]?[({[]|(?!do\b)[a-z_@$][\w@$]*)|\bKernel\.eval\b/
+      ],
+      ["shell command", /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      // Backticks only run a command outside a string literal.
+      ["interpolated shell command", /%x[({[]|^[^"'`]*(?:(?:"[^"]*"|'[^']*')[^"'`]*)*`[^`]*#\{/],
       ["Marshal.load", /\bMarshal\.load\b/],
       ["YAML.unsafe_load", /\b(?:YAML|Psych)\.unsafe_load\b/],
       ["html_safe or raw", /\.html_safe\b|(?<![.\w])raw\s*\(/]

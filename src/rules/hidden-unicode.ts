@@ -1,5 +1,4 @@
-import { addedLines } from "../analysis/added-lines.js";
-import { findHiddenCharacters } from "../analysis/hidden-characters.js";
+import { findHiddenCharacters, findHiddenLines } from "../analysis/hidden-characters.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
@@ -15,9 +14,11 @@ export const hiddenUnicodeRule: Rule = {
 
     return files.flatMap((file) => {
       const inPath = findHiddenCharacters(file.path);
-      const inLines = addedLines(file.patch ?? "")
-        .map(({ line, content }) => ({ line, found: findHiddenCharacters(content, line === 1) }))
-        .filter(({ found }) => found.labels.length > 0);
+      // Prepared files carry the scan of their full patch; others are scanned here.
+      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).map((found) => ({
+        line: found.line,
+        found
+      }));
 
       if (inPath.labels.length === 0 && inLines.length === 0) {
         return [];
