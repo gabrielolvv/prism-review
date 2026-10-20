@@ -16,7 +16,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
 - Reports credentials added in the diff, on the line where they appear, without ever printing the value
-- Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `t.Skip`, and similar markers
+- Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run
 - Optionally annotates findings beside the changed files, with no extra permission

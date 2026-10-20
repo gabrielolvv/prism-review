@@ -26,6 +26,11 @@ rules:
     testGlobs:
       - "**/*.test.*"
       - "**/*.spec.*"
+      - "**/__tests__/**"
+      - "**/test_*.py"
+      - "**/*_test.py"
+      - "**/*_test.go"
+      - "**/tests/**/*.rs"
   sensitiveFiles:
     enabled: true
     patterns:
@@ -77,11 +82,13 @@ The `skipped-tests` rule reports a warning, with the first line number, when a p
 | Framework | Focused | Skipped |
 | --- | --- | --- |
 | Jest, Vitest, Mocha, Jasmine, `node:test` | `describe.only`, `it.only`, `test.only` (and `.each`), `fdescribe`, `fit` | `describe.skip`, `it.skip`, `test.skip` (and `.each`), `xdescribe`, `xit`, `xtest` |
-| pytest, unittest | | `@pytest.mark.skip`, `pytest.skip(...)`, `@unittest.skip` |
-| Go | | `t.Skip`, `t.Skipf`, `t.SkipNow` |
+| pytest, unittest | | `@pytest.mark.skip`, `@pytest.mark.skipif`, `pytest.skip(...)`, `@unittest.skip`, `@unittest.skipIf`, `@unittest.skipUnless` |
+| Go | | `.Skip`, `.Skipf`, `.SkipNow` on any receiver, such as `t`, `b`, or `s.T()` |
 | Rust | | `#[ignore]` |
 
-Only files matched by `rules.missingTests.testGlobs` are checked, so the same calls in application code are not reported. The default globs cover `*.test.*` and `*.spec.*`; add patterns such as `**/test_*.py`, `**/*_test.go`, or `tests/**/*.rs` to cover other languages. Removing a marker is never reported.
+Only files matched by `rules.missingTests.testGlobs` are checked, so the same calls in application code are not reported. JavaScript markers must not follow a `.`, so calls such as `chart.fit(...)` do not count. The exception is Rust's `#[ignore]`, which is checked in every `.rs` file because unit tests live next to the code and the attribute only applies to tests.
+
+Conditional skips such as `skipif` are reported too: the reviewer should know where a test stops running, even when it is intended. Removing a marker is never reported.
 
 Adding a skip marker counts as a test change, so it also keeps `missing-tests` quiet; this rule is what reports it.
 
@@ -94,9 +101,9 @@ The `secret-in-diff` rule reports a high-risk finding, with the line number, whe
 - GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`)
 - OpenAI-style API keys (`sk-`)
 - AWS access key IDs (`AKIA`)
-- Private key headers (`-----BEGIN ... PRIVATE KEY-----`)
+- Private key headers (`-----BEGIN ... PRIVATE KEY-----`, including PGP key blocks)
 
-Removed and unchanged lines are not reported. Broader patterns, such as long base64 strings and `password: ...` assignments, are still redacted but not reported, because lockfile hashes and type declarations would make them noisy.
+Removed and unchanged lines are not reported. Patches over `security.maxPatchBytes` are still scanned for these formats, because a credential in a large vendored or generated file is still a leak. Broader patterns, such as long base64 strings and `password: ...` assignments, are still redacted but not reported, because lockfile hashes and type declarations would make them noisy.
 
 The value never appears in the finding, the comment, or the annotation. Values matched by `security.redaction.allowlist` are neither redacted nor reported, which is how to keep a known test value from being flagged.
 
@@ -109,7 +116,7 @@ The value never appears in the finding, the comment, or the annotation. Values m
 
 ### `security.maxPatchBytes`
 
-Maximum size, in UTF-8 bytes, of a single file patch. Larger patches are dropped before redaction and analysis, and the file is reported by the `oversized-patch` rule as an `info` finding.
+Maximum size, in UTF-8 bytes, of a single file patch. Larger patches are dropped before redaction and analysis, and the file is reported by the `oversized-patch` rule as an `info` finding. Secret detection is the exception: it scans the full patch first, so `secret-in-diff` still reports a credential in an oversized file.
 
 ### `security.redaction.allowlist`
 

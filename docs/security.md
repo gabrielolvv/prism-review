@@ -28,7 +28,7 @@ The action fetches `config-path` from the pull request base commit through the c
 
 Every changed file passes through a size check before redaction. A patch above `security.maxPatchBytes` is removed from the file entry, which is then marked as omitted and reported by the `oversized-patch` rule.
 
-The limit runs first on purpose: redaction is regex-based, so it should never scan input of unbounded size.
+The limit runs before redaction on purpose: redaction uses broad patterns, so it should never scan input of unbounded size. Secret detection runs before the limit, on the full patch, because a missed credential costs more than the scan. Its patterns are narrow and run in linear time; a unit test feeds them megabytes of near-miss input to keep it that way.
 
 ## Secret Redaction
 
@@ -46,7 +46,7 @@ The redactor returns new changed-file objects instead of mutating the originals,
 
 ### Secret Detection
 
-Before redaction, added lines are checked for credential formats that rarely match anything else: GitHub tokens, OpenAI-style keys, AWS access key IDs, and private key headers. The match is recorded as a line number and a kind, never as the value, and the `secret-in-diff` rule reports it. Detection shares its token patterns with the redactor, so a value that is reported is also masked.
+Before the size limit and redaction, added lines are checked for credential formats that rarely match anything else: GitHub tokens, OpenAI-style keys, AWS access key IDs, and private key headers, including PGP key blocks. The match is recorded as a line number and a kind, never as the value, and the `secret-in-diff` rule reports it. Detection shares its token patterns with the redactor, so a value that is reported is also masked.
 
 A finding means the credential has already been pushed to a branch that others can read. Rotating it matters more than removing it from the pull request.
 
