@@ -172,6 +172,17 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
 
+## Hidden Unicode
+
+### `rules.hiddenUnicode.enabled`
+
+The `hidden-unicode` rule reports added lines, and file names, that contain characters which are invisible or change the order text is displayed in:
+
+- Bidirectional controls, U+202A to U+202E and U+2066 to U+2069, are reported as **high**. They can make code display differently from how it runs, as in the Trojan Source attacks (CVE-2021-42574).
+- Invisible characters, such as U+200B ZERO WIDTH SPACE, U+2060 WORD JOINER, U+FEFF inside a file, and Unicode tag characters, are reported as a **warning**. They can hide text from a reviewer, including instructions aimed at AI tools.
+
+The message names each character by code point, and the comment shows hidden characters in file names as `\u{...}` escapes. A byte order mark at the very start of a file, the zero width joiners used by emoji and several scripts, and the left-to-right and right-to-left marks are not reported. Every file type is checked, documentation included.
+
 ## Secrets
 
 ### `rules.secretInDiff.enabled`
