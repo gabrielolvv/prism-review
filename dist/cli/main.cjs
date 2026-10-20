@@ -11594,7 +11594,10 @@ var languages = [
       // The newer `@phpstan-ignore identifier` form names what it ignores.
       ["PHPStan", /@phpstan-ignore-(?:next-)?line\b/],
       // A sniff name after the directive makes it targeted; `-- reason` alone does not.
-      ["PHP_CodeSniffer", /\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/],
+      [
+        "PHP_CodeSniffer",
+        /\bphpcs:ignoreFile\b|\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/
+      ],
       ["Psalm", /@psalm-suppress\s+all\b/i]
     ]
   },
@@ -13577,7 +13580,15 @@ var bidiControls = /* @__PURE__ */ new Map([
 var invisibleCharacters = /* @__PURE__ */ new Map([
   [8203, "ZERO WIDTH SPACE"],
   [8288, "WORD JOINER"],
-  [65279, "ZERO WIDTH NO-BREAK SPACE"]
+  [8289, "FUNCTION APPLICATION"],
+  [8290, "INVISIBLE TIMES"],
+  [8291, "INVISIBLE SEPARATOR"],
+  [8292, "INVISIBLE PLUS"],
+  [65279, "ZERO WIDTH NO-BREAK SPACE"],
+  [4447, "HANGUL CHOSEONG FILLER"],
+  [4448, "HANGUL JUNGSEONG FILLER"],
+  [12644, "HANGUL FILLER"],
+  [65440, "HALFWIDTH HANGUL FILLER"]
 ]);
 var byteOrderMark = 65279;
 function isHiddenCodePoint(codePoint) {
@@ -13612,6 +13623,9 @@ function formatCodePoint(codePoint) {
 function isTagCharacter(codePoint) {
   return codePoint >= 917504 && codePoint <= 917631;
 }
+function findHiddenLines(patch) {
+  return addedLines(patch).map(({ line, content }) => ({ line, ...findHiddenCharacters(content, line === 1) })).filter((found) => found.labels.length > 0);
+}
 
 // src/rules/hidden-unicode.ts
 var effect = "characters that are invisible or reorder text";
@@ -13624,7 +13638,10 @@ var hiddenUnicodeRule = {
     }
     return files.flatMap((file) => {
       const inPath = findHiddenCharacters(file.path);
-      const inLines = addedLines(file.patch ?? "").map(({ line, content }) => ({ line, found: findHiddenCharacters(content, line === 1) })).filter(({ found }) => found.labels.length > 0);
+      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).map((found) => ({
+        line: found.line,
+        found
+      }));
       if (inPath.labels.length === 0 && inLines.length === 0) {
         return [];
       }
@@ -13763,9 +13780,14 @@ var languages2 = [
   {
     files: /\.(?:rb|rake|erb)$/,
     calls: [
-      ["eval", /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*[(\s]\s*[\w"'`@:]/],
-      ["shell command", /(?<![.\w:])(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
-      ["interpolated shell command", /%x[({[]|`[^`]*#\{/],
+      // A string, heredoc, or variable is evaluated; a `do` or `{` block is not.
+      [
+        "eval",
+        /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*\(?\s*(?:["'`]|<<[~-]?|%[qQ]?[({[]|(?!do\b)[a-z_@$][\w@$]*)|\bKernel\.eval\b/
+      ],
+      ["shell command", /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      // Backticks only run a command outside a string literal.
+      ["interpolated shell command", /%x[({[]|^[^"'`]*(?:(?:"[^"]*"|'[^']*')[^"'`]*)*`[^`]*#\{/],
       ["Marshal.load", /\bMarshal\.load\b/],
       ["YAML.unsafe_load", /\b(?:YAML|Psych)\.unsafe_load\b/],
       ["html_safe or raw", /\.html_safe\b|(?<![.\w])raw\s*\(/]
@@ -14027,7 +14049,8 @@ var languages3 = [
   {
     // xUnit, NUnit, and MSTest.
     files: /\.cs$/,
-    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|\[\s*Ignore\b/]]
+    // `Ignore` can share the brackets with other attributes, as in `[Test, Ignore("flaky")]`.
+    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|(?:^|\])\s*\[(?:[^\]]*[\s,])?Ignore\b/]]
   },
   {
     // XCTest and Swift Testing.
@@ -14039,7 +14062,11 @@ var languages3 = [
     files: /\.php$/,
     markers: [
       ["focused", /->only\s*\(\s*\)/],
-      ["skipped", /\$this->markTest(?:Skipped|Incomplete)\s*\(|->skip\s*\(/]
+      // Pest chains `->skip()` on a test call; Laravel's query and collection `skip(10)` do not count.
+      [
+        "skipped",
+        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]*->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
+      ]
     ]
   }
 ];
@@ -14318,30 +14345,38 @@ function findSeparatorIndex(value) {
 function prepareChangedFiles(files, config) {
   const { maxPatchBytes, redaction: redaction2 } = config.security;
   const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
-  const limited = limitPatchSizes(detectSecrets(files, allowlist), maxPatchBytes);
+  const scanned = detectSecrets(files, allowlist).map((file) => ({
+    ...file,
+    hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch)
+  }));
+  const limited = limitPatchSizes(scanned, maxPatchBytes);
   return redactChangedFiles(limited, { allowlist });
 }
 
 // src/testing/parse-unified-diff.ts
+var BACKSLASH = 92;
+var QUOTE = 34;
 function parseUnifiedDiff(diff) {
   const files = [];
-  const sections = diff.split(/^diff --git /m).filter(Boolean);
+  const sections = diff.split(/^diff --git /m).slice(1);
   for (const section of sections) {
     const lines = section.split(/\r?\n/);
     const header = lines[0] ?? "";
-    const match2 = header.match(/^a\/(.+?) b\/(.+)$/);
-    if (!match2) {
-      continue;
+    const headerPaths = readHeaderPaths(header);
+    if (!headerPaths) {
+      throw new Error(`Unrecognized diff header: diff --git ${header}`);
     }
-    const path2 = match2[2];
+    const prefixed = hasPrefixes(headerPaths);
+    const strip = (path3) => prefixed ? path3.slice(2) : path3;
     const status = detectStatus(lines);
-    const previousPath = status === "renamed" ? readRenameSource(lines) : void 0;
+    const oldPath = readMarkerPath(lines, "--- ", strip) ?? readRenamePath(lines, "rename from ") ?? strip(headerPaths[0]);
+    const path2 = readMarkerPath(lines, "+++ ", strip) ?? readRenamePath(lines, "rename to ") ?? strip(headerPaths[1]);
     const patch = `diff --git ${section}`.trimEnd();
     const additions = lines.filter((line) => line.startsWith("+") && !line.startsWith("+++")).length;
     const deletions = lines.filter((line) => line.startsWith("-") && !line.startsWith("---")).length;
     files.push({
       path: path2,
-      ...previousPath ? { previousPath } : {},
+      ...status === "renamed" ? { previousPath: oldPath } : {},
       status,
       additions,
       deletions,
@@ -14350,8 +14385,77 @@ function parseUnifiedDiff(diff) {
   }
   return files;
 }
-function readRenameSource(lines) {
-  return lines.find((line) => line.startsWith("rename from "))?.slice("rename from ".length);
+function hasPrefixes([oldPath, newPath]) {
+  const prefix = /^[a-z]\//;
+  return prefix.test(oldPath) && prefix.test(newPath) && oldPath[0] !== newPath[0];
+}
+function readHeaderPaths(header) {
+  if (header.charCodeAt(0) === QUOTE) {
+    const first = readQuoted(header, 0);
+    if (!first) {
+      return void 0;
+    }
+    const rest = header.slice(first.end).trimStart();
+    const second = rest.charCodeAt(0) === QUOTE ? readQuoted(rest, 0)?.value : rest;
+    return second ? [first.value, second] : void 0;
+  }
+  const quotedSecond = header.indexOf(' "');
+  if (quotedSecond > 0) {
+    const second = readQuoted(header, quotedSecond + 1);
+    return second ? [header.slice(0, quotedSecond), second.value] : void 0;
+  }
+  const prefixed = /^([a-z]\/.+?) ([a-z]\/.+)$/.exec(header);
+  if (prefixed?.[1] && prefixed[2] && prefixed[1][0] !== prefixed[2][0]) {
+    return [prefixed[1], prefixed[2]];
+  }
+  const half = (header.length - 1) / 2;
+  if (Number.isInteger(half) && header[half] === " " && header.slice(0, half) === header.slice(half + 1)) {
+    return [header.slice(0, half), header.slice(half + 1)];
+  }
+  return void 0;
+}
+function readMarkerPath(lines, marker, strip) {
+  const line = lines.find((candidate) => candidate.startsWith(marker));
+  if (!line) {
+    return void 0;
+  }
+  const raw = line.slice(marker.length);
+  const value = raw.charCodeAt(0) === QUOTE ? readQuoted(raw, 0)?.value : raw.split("	")[0];
+  return value === void 0 || value === "/dev/null" ? void 0 : strip(value);
+}
+function readRenamePath(lines, marker) {
+  const raw = lines.find((line) => line.startsWith(marker))?.slice(marker.length);
+  if (raw === void 0) {
+    return void 0;
+  }
+  return raw.charCodeAt(0) === QUOTE ? readQuoted(raw, 0)?.value : raw;
+}
+function readQuoted(text, start) {
+  const bytes = [];
+  const named = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13 };
+  for (let index = start + 1; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code === QUOTE) {
+      return { value: Buffer.from(bytes).toString("utf8"), end: index + 1 };
+    }
+    if (code !== BACKSLASH) {
+      bytes.push(...Buffer.from(text[index] ?? "", "utf8"));
+      continue;
+    }
+    const next = text[index + 1] ?? "";
+    const octal = /^[0-7]{3}/.exec(text.slice(index + 1, index + 4));
+    if (octal) {
+      bytes.push(Number.parseInt(octal[0], 8));
+      index += 3;
+    } else if (next in named) {
+      bytes.push(named[next] ?? 0);
+      index += 1;
+    } else {
+      bytes.push(next.charCodeAt(0));
+      index += 1;
+    }
+  }
+  return void 0;
 }
 function detectStatus(lines) {
   if (lines.some((line) => line.startsWith("new file mode"))) {
@@ -14401,7 +14505,7 @@ async function main() {
   }
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig((0, import_node_path.resolve)(configPath));
-  const files = prepareChangedFiles(parseUnifiedDiff(await readDiff(options.diff)), config);
+  const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}
 `);
@@ -14411,6 +14515,21 @@ async function main() {
 `);
     process.exitCode = 1;
   }
+}
+function parseDiff(diff) {
+  if (diff.trim() === "") {
+    throw new Error(
+      "The diff is empty. If it came from `git diff`, check that the command succeeded and that the range has changes."
+    );
+  }
+  if (diff.includes(`${String.fromCharCode(27)}[`)) {
+    throw new Error("The diff contains terminal color codes; run `git diff --no-color`.");
+  }
+  const files = parseUnifiedDiff(diff);
+  if (files.length === 0) {
+    throw new Error("No `diff --git` sections found. Pass the output of `git diff`, not a plain patch or a file list.");
+  }
+  return files;
 }
 async function readDiff(source) {
   if (source !== "-") {
