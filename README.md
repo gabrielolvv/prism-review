@@ -179,7 +179,7 @@ flowchart TD
 | `dependency-risk` | Warning | Flags dependency manifest and lockfile changes for supply-chain review. |
 | `oversized-patch` | Info | Reports files whose patch exceeded the size limit and was not fully inspected. |
 
-`check.failOn` decides which severities fail the job. See [`docs/configuration.md`](docs/configuration.md) for each rule's options and exact patterns.
+The severity column shows the defaults; `severity` in `.prism-review.yml` changes them per rule or turns a rule off. `check.failOn` decides which severities fail the job. See [`docs/configuration.md`](docs/configuration.md) for each rule's options and exact patterns.
 
 ## Example Output
 

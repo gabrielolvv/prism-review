@@ -6,6 +6,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
+- `severity` sets a rule's severity, such as `missing-tests: info` or `dependency-risk: high`, or turns it off. It affects the comment, the risk level, annotations, outputs, and `check.failOn`, and an unknown rule id fails configuration loading.
 - The action writes the review to the job summary and sets the `risk-level`, `high-count`, `warning-count`, and `finding-count` step outputs.
 - For a pull request from a fork, where the token is read-only, a failed comment post is a warning instead of a failed run, and the review stays in the job summary. A 403 on a pull request from the repository itself still fails.
 - `ignorePaths` leaves generated, vendored, or snapshot files out of the noise rules and the size check, and the summary says how many files were ignored. `secret-in-diff`, `hidden-unicode`, and `config-change` still read every file. This repository ignores its `dist/` bundles.
