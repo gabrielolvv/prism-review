@@ -1,4 +1,5 @@
 import type { ReviewResult } from "../analysis/finding.js";
+import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 
@@ -68,7 +69,7 @@ function escapeText(value: string): string {
 // File paths come from the pull request. A code span keeps them literal, and GitHub does not
 // turn @mentions or #references inside one into notifications or links.
 function codeSpan(value: string): string {
-  const content = value.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  const content = showHiddenCharacters(value.replace(/\r/g, "\\r").replace(/\n/g, "\\n"));
   const longestRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run) => run.length));
   const fence = "`".repeat(longestRun + 1);
   const padding = content.startsWith("`") || content.endsWith("`") ? " " : "";
@@ -78,4 +79,16 @@ function codeSpan(value: string): string {
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+// A right-to-left override in a file name could make it display as a different name, so hidden
+// characters are written out as \u{...} escapes, the way JavaScript would spell them.
+function showHiddenCharacters(value: string): string {
+  const backslash = String.fromCharCode(92);
+  return [...value]
+    .map((char) => {
+      const codePoint = char.codePointAt(0) ?? 0;
+      return isHiddenCodePoint(codePoint) ? `${backslash}u{${codePoint.toString(16).toUpperCase()}}` : char;
+    })
+    .join("");
 }

@@ -24,6 +24,15 @@ import {
   testLineRulesCoverSwift,
   testLineRulesIgnoreCSharpAndSwiftLookalikes
 } from "./unit/csharp-swift.test.js";
+import {
+  testHiddenUnicodeRuleReportsBidiControlsAsHigh,
+  testHiddenUnicodeRuleReportsInvisibleCharactersAsWarning,
+  testHiddenUnicodeRuleIgnoresLegitimateCharacters,
+  testHiddenUnicodeRuleReportsByteOrderMarkInsideAFile,
+  testHiddenUnicodeRuleChecksPathsAndRendersThemSafely,
+  testHiddenUnicodeRuleIgnoresRemovedLinesAndCanBeDisabled,
+  testPromptInjectionFixtureDoesNotChangeTheReview
+} from "./unit/hidden-unicode.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -187,6 +196,13 @@ const tests: Array<[string, Test]> = [
   ["line rules cover C#", testLineRulesCoverCSharp],
   ["line rules cover Swift", testLineRulesCoverSwift],
   ["line rules ignore C# and Swift lookalikes", testLineRulesIgnoreCSharpAndSwiftLookalikes],
+  ["hidden-unicode rule reports bidirectional controls as high", testHiddenUnicodeRuleReportsBidiControlsAsHigh],
+  ["hidden-unicode rule reports invisible characters as warnings", testHiddenUnicodeRuleReportsInvisibleCharactersAsWarning],
+  ["hidden-unicode rule ignores legitimate characters", testHiddenUnicodeRuleIgnoresLegitimateCharacters],
+  ["hidden-unicode rule reports a byte order mark inside a file", testHiddenUnicodeRuleReportsByteOrderMarkInsideAFile],
+  ["hidden-unicode rule checks paths and renders them safely", testHiddenUnicodeRuleChecksPathsAndRendersThemSafely],
+  ["hidden-unicode rule ignores removed lines and can be disabled", testHiddenUnicodeRuleIgnoresRemovedLinesAndCanBeDisabled],
+  ["prompt injection in a diff does not change the review", testPromptInjectionFixtureDoesNotChangeTheReview],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
