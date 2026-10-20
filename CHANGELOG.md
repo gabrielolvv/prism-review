@@ -6,13 +6,13 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
-- `risky-api` rule warns, with the line number, when a pull request adds a call that runs a string as code, starts a shell, deserializes untrusted data, or writes raw HTML in JavaScript, TypeScript, Python, or Go source. Member calls with the same name, such as `pattern.exec(input)` and `model.eval()`, are not reported, and test files are skipped. `rules.riskyApis.enabled` turns it off.
+- `risky-api` rule warns, with the line number, when a pull request adds a call that runs a string as code, starts a shell, deserializes untrusted data, or writes raw HTML in JavaScript, TypeScript, Python, or Go source. Member calls and definitions with the same name, such as `pattern.exec(input)`, `model.eval()`, and `def eval(self):`, are not reported, and test files are skipped. `rules.riskyApis.enabled` turns it off.
 - `check.failOn` fails the job when the review has a finding at or above `high` or `warning`, after the comment and annotations are published, so branch protection can require Prism Review to pass. The default, `never`, keeps the current behavior. The CLI exits with status 1 under the same condition.
-- `blanket-suppression` rule warns, with the line number, when a pull request adds a lint or type check suppression that names no rule: `eslint-disable` without rule names, `@ts-nocheck`, a bare `# noqa` or `# type: ignore`, `# pylint: disable=all`, `# mypy: ignore-errors`, `//nolint` without a linter, and Rust `allow(warnings)` or `allow(clippy::all)`. Targeted suppressions are not reported, and documentation files are skipped. `rules.blanketSuppression.enabled` turns it off.
+- `blanket-suppression` rule warns, with the line number, when a pull request adds a lint or type check suppression that names no rule: `eslint-disable` without rule names, `@ts-nocheck`, `@ts-ignore`, a bare `# noqa` or `# type: ignore`, `# pylint: disable=all`, `# mypy: ignore-errors`, `//nolint` without a linter, and Rust `allow(warnings)` or `allow(clippy::all)`. Each marker only counts in files of its own language, and targeted suppressions are not reported. `rules.blanketSuppression.enabled` turns it off.
 
 ### Fixed
 
-- `sensitive-files` matched its built-in words anywhere in a path, so files such as `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` were reported as high risk. Words are now matched whole after splitting the path on separators and camelCase; `oauth`, `authenticate`, `authorize`, and plurals still count.
+- `sensitive-files` reported files such as `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` as high risk because their paths contain `auth` or `token`. A short list of words that only look related (`author`, `tokenize`, `parole`, `secretary`) is now left out; every other path that contains a sensitive word, such as `Unauthorized.ts` or `jwtauth/`, is still reported.
 
 ## 0.4.0 - 2026-10-20
 
