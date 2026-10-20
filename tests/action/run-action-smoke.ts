@@ -417,11 +417,20 @@ const scenarios: Array<[string, () => void]> = [
     () => {
       const run = runAction(
         { "INPUT_DRY-RUN": "true" },
-        { pull_request: { ...pullRequestEvent.pull_request, changed_files: 3500 } }
+        { pull_request: { ...pullRequestEvent.pull_request, number: 17, changed_files: 3500 } }
       );
 
       assert.equal(run.status, 0, run.stderr);
-      assert.match(run.stdout, /#### High - Pull request too large to review fully\n\nThis pull request changes 3500 files, but GitHub returned 3, so 3497 files were not reviewed\./);
+      assert.equal(run.requests.filter((request) => request.path.startsWith("/repos/acme/widgets/pulls/17/files")).length, 30);
+      assert.match(run.stdout, /#### High - Pull request too large to review fully\n\nThis pull request changes 3500 files, but GitHub returned 3000, so 500 files were not reviewed\./);
+
+      // A count from the event that is higher than a short list is stale, not a truncated list.
+      const stale = runAction(
+        { "INPUT_DRY-RUN": "true" },
+        { pull_request: { ...pullRequestEvent.pull_request, changed_files: 3500 } }
+      );
+      assert.equal(stale.status, 0, stale.stderr);
+      assert.doesNotMatch(stale.stdout, /Pull request too large to review fully/);
     }
   ],
   [

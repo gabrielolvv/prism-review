@@ -1,5 +1,8 @@
 import type { HiddenLine } from "./hidden-characters.js";
 
+// GitHub lists at most this many files for a pull request.
+export const pullRequestFileLimit = 3000;
+
 export type FileStatus = "added" | "modified" | "removed" | "renamed";
 
 export type ChangedFile = {

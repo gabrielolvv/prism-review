@@ -1,3 +1,5 @@
+import { pullRequestFileLimit } from "../analysis/changed-file.js";
+
 export type GitHubClient = {
   request<T>(path: string, options?: RequestOptions): Promise<T>;
   paginate<T>(path: string): Promise<T[]>;
@@ -21,8 +23,7 @@ export class GitHubApiError extends Error {
 export const defaultGitHubApiUrl = "https://api.github.com";
 const requestTimeoutMs = 15_000;
 const pageSize = 100;
-// GitHub caps pull request file listings at 3000 entries.
-const maxPages = 30;
+const maxPages = pullRequestFileLimit / pageSize;
 const maxErrorDetailLength = 300;
 
 export function createGitHubClient(
