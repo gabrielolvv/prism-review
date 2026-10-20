@@ -2,6 +2,7 @@ import { blanketSuppressionRule } from "./blanket-suppression.js";
 import { configChangeRule } from "./config-change.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { hiddenUnicodeRule } from "./hidden-unicode.js";
+import { incompleteReviewRule } from "./incomplete-review.js";
 import { largeDiffRule } from "./large-diff.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
@@ -12,6 +13,7 @@ import { skippedTestsRule } from "./skipped-tests.js";
 import type { Rule } from "../analysis/rule.js";
 
 export const defaultRules: Rule[] = [
+  incompleteReviewRule,
   secretInDiffRule,
   hiddenUnicodeRule,
   largeDiffRule,
