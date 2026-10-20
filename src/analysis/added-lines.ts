@@ -3,12 +3,14 @@ export type AddedLine = {
   content: string;
 };
 
-const hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+const hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.*)$/;
 
 export type PatchLine = AddedLine & {
   added: boolean;
   // True for the first line of each hunk, where any state carried from earlier lines is unknown.
   startsHunk: boolean;
+  // On the first line of a hunk, the text git shows after `@@`, usually the enclosing function.
+  hunkContext?: string;
 };
 
 // Returns the new version's lines that the patch shows, context and added, numbered as in the new
@@ -17,12 +19,14 @@ export function patchLines(patch: string): PatchLine[] {
   const lines: PatchLine[] = [];
   let newLine: number | undefined;
   let startsHunk = false;
+  let hunkContext: string | undefined;
 
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader.exec(line);
     if (header) {
       newLine = Number(header[1]);
       startsHunk = true;
+      hunkContext = header[2] || undefined;
       continue;
     }
 
@@ -31,7 +35,13 @@ export function patchLines(patch: string): PatchLine[] {
       continue;
     }
 
-    lines.push({ line: newLine, content: line.slice(1), added: line.startsWith("+"), startsHunk });
+    lines.push({
+      line: newLine,
+      content: line.slice(1),
+      added: line.startsWith("+"),
+      startsHunk,
+      ...(startsHunk && hunkContext !== undefined ? { hunkContext } : {})
+    });
     startsHunk = false;
     newLine += 1;
   }
