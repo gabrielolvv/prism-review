@@ -6,6 +6,8 @@ export type AnalysisContext = {
   files: ChangedFile[];
   config: PrismConfig;
   configPath: string;
+  // How many files the pull request changes, when the caller knows; GitHub may return fewer.
+  expectedFileCount?: number;
 };
 
 export type Rule = {

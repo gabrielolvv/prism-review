@@ -9,6 +9,7 @@ import { compareSeverity } from "./severity.js";
 export type AnalyzeOptions = {
   rules?: Rule[];
   configPath?: string;
+  expectedFileCount?: number;
 };
 
 export function analyzePullRequest(
@@ -16,7 +17,7 @@ export function analyzePullRequest(
   config: PrismConfig,
   options: AnalyzeOptions = {}
 ): ReviewResult {
-  const { rules = defaultRules, configPath = defaultConfigPath } = options;
+  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
   // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
@@ -25,7 +26,9 @@ export function analyzePullRequest(
     (file) => !(isIgnored(file.path) && (file.previousPath === undefined || isIgnored(file.previousPath)))
   );
   const findings = rules
-    .flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath }))
+    .flatMap((rule) =>
+      rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
+    )
     .flatMap((finding) => applySeverityOverride(finding, config))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
 

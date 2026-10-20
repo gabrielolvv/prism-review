@@ -43,7 +43,10 @@ async function run(): Promise<void> {
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
     config
   );
-  const result = analyzePullRequest(files, config, { configPath: inputs.configPath });
+  const result = analyzePullRequest(files, config, {
+    configPath: inputs.configPath,
+    expectedFileCount: pullRequest.changed_files
+  });
   const body = renderMarkdown(result, config.comment);
 
   if (config.annotations.enabled) {
@@ -100,6 +103,7 @@ function printUntrusted(text: string): void {
 
 type PullRequest = {
   number: number;
+  changed_files?: number;
   base?: {
     sha?: string;
   };

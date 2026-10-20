@@ -413,6 +413,18 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "a pull request with more files than GitHub returns is reported",
+    () => {
+      const run = runAction(
+        { "INPUT_DRY-RUN": "true" },
+        { pull_request: { ...pullRequestEvent.pull_request, changed_files: 3500 } }
+      );
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /#### High - Pull request too large to review fully\n\nThis pull request changes 3500 files, but GitHub returned 3, so 3497 files were not reviewed\./);
+    }
+  ],
+  [
     "events other than pull_request are skipped",
     () => {
       const run = runAction({}, { ref: "refs/heads/master" });

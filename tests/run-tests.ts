@@ -60,6 +60,10 @@ import {
   testRuleIdListMatchesTheRegisteredRules,
   testRenderMarkdownCapsTheCommentLength
 } from "./unit/review-findings-070.test.js";
+import {
+  testIncompleteReviewRuleReportsMissingFiles,
+  testIncompleteReviewRuleIsQuietWhenEveryFileArrived
+} from "./unit/incomplete-review.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -249,6 +253,8 @@ const tests: Array<[string, Test]> = [
   ["ignore paths match dotfiles and renames", testIgnorePathsMatchDotfilesAndRenames],
   ["rule id list matches the registered rules", testRuleIdListMatchesTheRegisteredRules],
   ["render markdown caps the comment length", testRenderMarkdownCapsTheCommentLength],
+  ["incomplete-review rule reports files GitHub did not return", testIncompleteReviewRuleReportsMissingFiles],
+  ["incomplete-review rule is quiet when every file arrived", testIncompleteReviewRuleIsQuietWhenEveryFileArrived],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
