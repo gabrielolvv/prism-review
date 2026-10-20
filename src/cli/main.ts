@@ -57,7 +57,7 @@ async function main(): Promise<void> {
 
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig(resolve(configPath));
-  const files = prepareChangedFiles(parseUnifiedDiff(readDiff(options.diff)), config);
+  const files = prepareChangedFiles(parseUnifiedDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}\n`);
 
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   }
 }
 
-function readDiff(source: string): string {
+async function readDiff(source: string): Promise<string> {
   if (source !== "-") {
     return readFileSync(resolve(source), "utf8");
   }
@@ -77,7 +77,14 @@ function readDiff(source: string): string {
     throw new UsageError("--diff - reads a diff from stdin; pipe one in, for example from `git diff`.");
   }
 
-  return readFileSync(0, "utf8");
+  // readFileSync(0) fails with EAGAIN when stdin is a non-blocking pipe holding more than one
+  // buffer, which is the usual `git diff | prism-review` case, so read it as a stream.
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 function parseArgs(args: string[]): CliOptions {

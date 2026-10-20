@@ -285,6 +285,23 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI reads a large diff through a shell pipe",
+    () => {
+      // Larger than a pipe buffer, so stdin is read in several chunks, as with `git diff | ...`.
+      const big = join(workDir, "big.diff");
+      writeFileSync(big, riskyDiff.repeat(400));
+      const result = spawnSync("sh", ["-c", 'cat "$1" | "$2" "$3" analyze --diff -', "sh", big, process.execPath, cliEntry], {
+        cwd: workDir,
+        encoding: "utf8",
+        env: { PATH: process.env.PATH }
+      });
+
+      assert.ok(riskyDiff.repeat(400).length > 256 * 1024);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^File: `src\/auth\/session\.ts`$/m);
+    }
+  ],
+  [
     "the CLI still accepts --fixture",
     () => {
       const run = runCli(["analyze", "--fixture", resolve("fixtures/diffs/risky-auth-change.diff")]);
