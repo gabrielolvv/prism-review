@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -57,6 +57,28 @@ function runAction(inputs: Record<string, string>, event: unknown): ActionRun {
 }
 
 const pullRequestEvent = { pull_request: { number: 7, base: { sha: fakeBaseSha } } };
+
+const cliEntry = resolve("dist/cli/main.cjs");
+const riskyDiff = readFileSync("fixtures/diffs/risky-auth-change.diff", "utf8");
+
+type CliRun = { status: number | null; stdout: string; stderr: string };
+
+function runCli(args: string[], stdin?: string): CliRun {
+  const result = spawnSync(process.execPath, [cliEntry, ...args], {
+    cwd: workDir,
+    encoding: "utf8",
+    input: stdin,
+    env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT }
+  });
+
+  return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
+function writeConfig(name: string, contents: string): string {
+  const path = join(workDir, name);
+  writeFileSync(path, contents);
+  return path;
+}
 
 const scenarios: Array<[string, () => void]> = [
   [
@@ -222,6 +244,56 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI reviews a diff read from stdin",
+    () => {
+      // workDir has no .prism-review.yml, so the defaults apply.
+      const run = runCli(["analyze", "--diff", "-"], riskyDiff);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /^<!-- prism-review-comment -->/);
+      assert.match(run.stdout, /^File: `src\/auth\/session\.ts`$/m);
+      assert.equal(run.stderr, "");
+    }
+  ],
+  [
+    "the CLI applies check.failOn and still prints the review",
+    () => {
+      const config = writeConfig("fail-on-high.yml", "check:\n  failOn: high\n");
+      const run = runCli(["analyze", "--diff", "-", "--config", config], riskyDiff);
+
+      assert.equal(run.status, 1);
+      assert.match(run.stdout, /#### High - Sensitive file changed/);
+      assert.match(run.stderr, /check\.failOn is "high"/);
+    }
+  ],
+  [
+    "the CLI rejects a missing config file and unknown options",
+    () => {
+      const missing = runCli(["analyze", "--diff", "-", "--config", "missing.yml"], riskyDiff);
+      assert.equal(missing.status, 1);
+      assert.match(missing.stderr, /Configuration file not found: missing\.yml/);
+      assert.equal(missing.stdout, "");
+
+      const unknown = runCli(["analyze", "--difff", "-"], riskyDiff);
+      assert.equal(unknown.status, 1);
+      assert.match(unknown.stderr, /Unknown option: --difff/);
+      assert.match(unknown.stderr, /Usage: prism-review analyze --diff/);
+
+      const help = runCli(["--help"]);
+      assert.equal(help.status, 0);
+      assert.match(help.stdout, /Usage: prism-review analyze --diff/);
+    }
+  ],
+  [
+    "the CLI still accepts --fixture",
+    () => {
+      const run = runCli(["analyze", "--fixture", resolve("fixtures/diffs/risky-auth-change.diff")]);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /^File: `src\/auth\/session\.ts`$/m);
+    }
+  ],
+  [
     "events other than pull_request are skipped",
     () => {
       const run = runAction({}, { ref: "refs/heads/master" });
@@ -239,7 +311,7 @@ try {
     console.log(`ok - ${name}`);
   }
 
-  console.log(`${scenarios.length} action smoke test(s) passed.`);
+  console.log(`${scenarios.length} action and CLI smoke test(s) passed.`);
 } finally {
   rmSync(workDir, { recursive: true, force: true });
 }
