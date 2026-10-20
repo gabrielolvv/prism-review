@@ -18,6 +18,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Opt-in inline annotations through workflow commands, with no extra permission.
 - `secret-in-diff` rule with line-level findings for credentials added in the diff.
 - `skipped-tests` rule for focused and skipped tests across JavaScript, Python, Go, and Rust.
+- `blanket-suppression` rule for lint and type check suppressions that name no rule.
 
 ## Near Term
 
@@ -27,7 +28,7 @@ Add diff fixtures that contain instructions aimed at a reviewer model, so any fu
 
 ### Add more line-level findings
 
-`secret-in-diff` and `skipped-tests` report the line they found. Other rules that inspect patch content, such as risky API calls or disabled lint checks, can reuse `addedLines` so their annotations land on the changed line.
+`secret-in-diff`, `skipped-tests`, and `blanket-suppression` report the line they found. Other rules that inspect patch content, such as risky API calls, can reuse `addedLines` so their annotations land on the changed line.
 
 ## Mid Term
 
