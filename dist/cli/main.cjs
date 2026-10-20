@@ -13599,7 +13599,11 @@ function article(kind) {
 }
 
 // src/rules/sensitive-files.ts
-var sensitiveKeywordPattern = /(auth|authorization|permission|role|session|token|jwt|oauth|billing|payment|secret|migration|workflow|dockerfile)/i;
+var sensitiveWordPatterns = [
+  // auth, authn, authz, oauth2, authenticate, authentication, authorize, authorization.
+  /^o?auth(?:[nz]|enticat\w*|ori[sz]\w*)?\d*$/,
+  /^(?:permissions?|roles?|sessions?|tokens?|jwts?|billing|payments?|secrets?|migrations?|workflows?|dockerfile)$/
+];
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -13609,7 +13613,7 @@ var sensitiveFilesRule = {
       return [];
     }
     return files.filter(
-      (file) => ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern)) || sensitiveKeywordPattern.test(file.path)
+      (file) => ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern)) || hasSensitiveWord(file.path)
     ).map((file) => ({
       ruleId: "sensitive-files",
       title: "Sensitive file changed",
@@ -13620,6 +13624,12 @@ var sensitiveFilesRule = {
     }));
   }
 };
+function hasSensitiveWord(path2) {
+  return pathWords(path2).some((word) => sensitiveWordPatterns.some((pattern) => pattern.test(word)));
+}
+function pathWords(path2) {
+  return path2.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word) => word.toLowerCase());
+}
 
 // src/rules/skipped-tests.ts
 var notMember = String.raw`(?<![.\w$])`;
