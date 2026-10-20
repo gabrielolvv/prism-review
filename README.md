@@ -172,6 +172,7 @@ flowchart TD
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `workflow-risk` | High or Warning | Flags script injection, `pull_request_target`, checkout of pull request code, and `write-all` permissions added to GitHub Actions workflows. |
+| `destructive-migration` | High or Warning | Flags migrations that drop tables or columns or delete every row, and warns about renamed or redefined columns. Rollback sections are skipped. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
 | `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
 | `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |
