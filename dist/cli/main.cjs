@@ -11478,6 +11478,9 @@ var prismConfigSchema = external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
     includeLowSeverity: external_exports.boolean().default(false)
   }).default({}),
+  check: external_exports.object({
+    failOn: external_exports.enum(["never", "warning", "high"]).default("never")
+  }).default({}),
   annotations: external_exports.object({
     enabled: external_exports.boolean().default(false),
     includeLowSeverity: external_exports.boolean().default(false)
@@ -13761,6 +13764,9 @@ var weights = {
 function compareSeverity(left, right) {
   return weights[right] - weights[left];
 }
+function isAtLeast(severity, minimum) {
+  return weights[severity] >= weights[minimum];
+}
 
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
@@ -13790,6 +13796,18 @@ function calculateRiskLevel(files, findings, config) {
     return "medium";
   }
   return "low";
+}
+
+// src/analysis/check-outcome.ts
+function failingFindings(result, failOn) {
+  if (failOn === "never") {
+    return [];
+  }
+  return result.findings.filter((finding) => isAtLeast(finding.severity, failOn));
+}
+function describeFailure(failing, failOn) {
+  const severities = failOn === "high" ? "high-risk" : "warning or high-risk";
+  return `Prism Review found ${failing.length} ${severities} finding(s), and check.failOn is "${failOn}".`;
 }
 
 // src/config/load-config.ts
@@ -14018,6 +14036,12 @@ async function main() {
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}
 `);
+  const failing = failingFindings(result, config.check.failOn);
+  if (failing.length > 0) {
+    process.stderr.write(`${describeFailure(failing, config.check.failOn)}
+`);
+    process.exitCode = 1;
+  }
 }
 function parseArgs(args) {
   const options = {};
