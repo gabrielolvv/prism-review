@@ -7362,7 +7362,7 @@ var require_dist = __commonJS({
 
 // src/action/index.ts
 var import_node_crypto = require("node:crypto");
-var import_node_fs = require("node:fs");
+var import_node_fs2 = require("node:fs");
 
 // node_modules/balanced-match/dist/esm/index.js
 var balanced = (a, b, str) => {
@@ -14577,6 +14577,32 @@ function parseBooleanInput(value) {
   return ["1", "true", "yes", "on"].includes(value.toLowerCase());
 }
 
+// src/action/report.ts
+var import_node_fs = require("node:fs");
+function writeOutputs(result, outputPath = process.env.GITHUB_OUTPUT) {
+  if (!outputPath) {
+    return;
+  }
+  const count = (severity) => result.findings.filter((finding) => finding.severity === severity).length;
+  const outputs = {
+    "risk-level": result.riskLevel,
+    "high-count": count("high"),
+    "warning-count": count("warning"),
+    "finding-count": result.findings.length
+  };
+  (0, import_node_fs.appendFileSync)(
+    outputPath,
+    Object.entries(outputs).map(([name, value]) => `${name}=${value}
+`).join("")
+  );
+}
+function writeJobSummary(body, summaryPath = process.env.GITHUB_STEP_SUMMARY) {
+  if (summaryPath) {
+    (0, import_node_fs.appendFileSync)(summaryPath, `${body}
+`);
+  }
+}
+
 // src/action/index.ts
 async function run() {
   const inputs = readInputs();
@@ -14612,17 +14638,28 @@ async function run() {
       console.log(annotation);
     }
   }
+  writeOutputs(result);
+  writeJobSummary(body);
   if (inputs.dryRun) {
     printUntrusted(body);
   } else {
-    await publishPullRequestComment(
-      client,
-      owner,
-      repo,
-      pullRequest.number,
-      body,
-      config.comment.mode
-    );
+    try {
+      await publishPullRequestComment(
+        client,
+        owner,
+        repo,
+        pullRequest.number,
+        body,
+        config.comment.mode
+      );
+    } catch (error) {
+      if (!(error instanceof GitHubApiError && error.status === 403 && isFromFork(pullRequest, owner, repo))) {
+        throw error;
+      }
+      console.log(
+        "::warning title=Prism Review::Could not post the review comment because the token is read-only for pull requests from forks. The review is in the job summary."
+      );
+    }
   }
   const failing = failingFindings(result, config.check.failOn);
   if (failing.length > 0) {
@@ -14636,6 +14673,10 @@ function printUntrusted(text) {
   console.log(text);
   console.log(`::${token}::`);
 }
+function isFromFork(pullRequest, owner, repo) {
+  const headRepository = pullRequest.head?.repo?.full_name;
+  return headRepository === void 0 || headRepository.toLowerCase() !== `${owner}/${repo}`.toLowerCase();
+}
 function readBaseSha(pullRequest) {
   const sha = pullRequest.base?.sha;
   if (!sha) {
@@ -14648,7 +14689,7 @@ function readGitHubEvent() {
   if (!eventPath) {
     throw new Error("GITHUB_EVENT_PATH is not set.");
   }
-  return JSON.parse((0, import_node_fs.readFileSync)(eventPath, "utf8"));
+  return JSON.parse((0, import_node_fs2.readFileSync)(eventPath, "utf8"));
 }
 function readRepository() {
   const repository = process.env.GITHUB_REPOSITORY;
