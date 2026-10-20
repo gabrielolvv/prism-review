@@ -13287,6 +13287,7 @@ var NEVER = INVALID;
 
 // src/rules/ids.ts
 var ruleIds = [
+  "incomplete-review",
   "secret-in-diff",
   "hidden-unicode",
   "large-diff",
@@ -13704,6 +13705,27 @@ var hiddenUnicodeRule = {
         }
       ];
     });
+  }
+};
+
+// src/rules/incomplete-review.ts
+var incompleteReviewRule = {
+  id: "incomplete-review",
+  description: "Flags pull requests with more changed files than GitHub returned for review.",
+  seesIgnoredFiles: true,
+  run({ files, expectedFileCount }) {
+    if (expectedFileCount === void 0 || expectedFileCount <= files.length) {
+      return [];
+    }
+    return [
+      {
+        ruleId: "incomplete-review",
+        title: "Pull request too large to review fully",
+        severity: "high",
+        message: `This pull request changes ${expectedFileCount} files, but GitHub returned ${files.length}, so ${expectedFileCount - files.length} files were not reviewed.`,
+        recommendation: "Split the pull request, or review the remaining files another way, for example with the CLI on the full git diff."
+      }
+    ];
   }
 };
 
@@ -14152,6 +14174,7 @@ function describeSkipped(lines) {
 
 // src/rules/index.ts
 var defaultRules = [
+  incompleteReviewRule,
   secretInDiffRule,
   hiddenUnicodeRule,
   largeDiffRule,
@@ -14180,13 +14203,15 @@ function isAtLeast(severity, minimum) {
 
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
-  const { rules = defaultRules, configPath = defaultConfigPath } = options;
+  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
   const reviewed = files.filter(
     (file) => !(isIgnored(file.path) && (file.previousPath === void 0 || isIgnored(file.previousPath)))
   );
-  const findings = rules.flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath })).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
+  const findings = rules.flatMap(
+    (rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
+  ).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
   return {
     summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
