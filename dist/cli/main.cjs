@@ -9239,6 +9239,11 @@ function changedLines(file) {
   return file.additions + file.deletions;
 }
 
+// src/analysis/finding.ts
+function countBySeverity(findings, severity) {
+  return findings.filter((finding) => finding.severity === severity).length;
+}
+
 // node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -13280,6 +13285,134 @@ var coerce = {
 };
 var NEVER = INVALID;
 
+// src/rules/ids.ts
+var ruleIds = [
+  "secret-in-diff",
+  "hidden-unicode",
+  "large-diff",
+  "missing-tests",
+  "skipped-tests",
+  "blanket-suppression",
+  "risky-api",
+  "sensitive-files",
+  "config-change",
+  "dependency-risk",
+  "oversized-patch"
+];
+
+// src/config/schema.ts
+var knownRuleIds = new Set(ruleIds);
+var prismConfigSchema = external_exports.object({
+  risk: external_exports.object({
+    largeDiff: external_exports.object({
+      maxFiles: external_exports.number().int().positive().default(25),
+      maxChangedLines: external_exports.number().int().positive().default(800)
+    }).default({})
+  }).default({}),
+  rules: external_exports.object({
+    missingTests: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      sourceGlobs: external_exports.array(external_exports.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
+      testGlobs: external_exports.array(external_exports.string()).default([
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/__tests__/**",
+        "**/test_*.py",
+        "**/*_test.py",
+        "**/*_test.go",
+        "**/tests/**/*.rs",
+        "**/*_spec.rb",
+        "**/*_test.rb",
+        "**/src/test/**",
+        "**/*Test.php",
+        "**/*Tests.cs",
+        "**/*Test.cs",
+        "**/*.Tests/**",
+        "**/*Tests.swift"
+      ])
+    }).default({}),
+    sensitiveFiles: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      patterns: external_exports.array(external_exports.string()).default([
+        ".github/workflows/**",
+        "**/auth/**",
+        "**/permissions/**",
+        "**/migrations/**"
+      ])
+    }).default({}),
+    dependencyRisk: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      manifests: external_exports.array(external_exports.string()).default([
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "requirements.txt",
+        "pyproject.toml",
+        "poetry.lock",
+        "go.mod",
+        "go.sum",
+        "Cargo.toml",
+        "Cargo.lock"
+      ])
+    }).default({}),
+    secretInDiff: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    skippedTests: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    blanketSuppression: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    riskyApis: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    hiddenUnicode: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({})
+  }).default({}),
+  security: external_exports.object({
+    maxPatchBytes: external_exports.number().int().positive().default(2e5),
+    redaction: external_exports.object({
+      allowlist: external_exports.array(
+        external_exports.string().min(1).max(200).refine(isRegularExpression, "Must be a valid regular expression.")
+      ).default([])
+    }).default({})
+  }).default({}),
+  comment: external_exports.object({
+    mode: external_exports.enum(["upsert", "append"]).default("upsert"),
+    includeLowSeverity: external_exports.boolean().default(false)
+  }).default({}),
+  ignorePaths: external_exports.array(external_exports.string()).default([]),
+  // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
+  // cannot silently leave a rule at its default.
+  severity: external_exports.record(external_exports.enum(["off", "info", "warning", "high"])).default({}).superRefine((overrides, context) => {
+    for (const id of Object.keys(overrides)) {
+      if (!knownRuleIds.has(id)) {
+        context.addIssue({ code: external_exports.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
+      }
+    }
+  }),
+  check: external_exports.object({
+    failOn: external_exports.enum(["never", "warning", "high"]).default("never")
+  }).default({}),
+  annotations: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    includeLowSeverity: external_exports.boolean().default(false)
+  }).default({})
+});
+function isRegularExpression(source) {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+}
+var defaultConfigPath = ".prism-review.yml";
+var defaultConfig = prismConfigSchema.parse({});
+
 // src/analysis/added-lines.ts
 var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 function addedLines(patch) {
@@ -14032,119 +14165,6 @@ var defaultRules = [
   oversizedPatchRule
 ];
 
-// src/config/schema.ts
-var ruleIds = new Set(defaultRules.map((rule) => rule.id));
-var prismConfigSchema = external_exports.object({
-  risk: external_exports.object({
-    largeDiff: external_exports.object({
-      maxFiles: external_exports.number().int().positive().default(25),
-      maxChangedLines: external_exports.number().int().positive().default(800)
-    }).default({})
-  }).default({}),
-  rules: external_exports.object({
-    missingTests: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      sourceGlobs: external_exports.array(external_exports.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
-      testGlobs: external_exports.array(external_exports.string()).default([
-        "**/*.test.*",
-        "**/*.spec.*",
-        "**/__tests__/**",
-        "**/test_*.py",
-        "**/*_test.py",
-        "**/*_test.go",
-        "**/tests/**/*.rs",
-        "**/*_spec.rb",
-        "**/*_test.rb",
-        "**/src/test/**",
-        "**/*Test.php",
-        "**/*Tests.cs",
-        "**/*Test.cs",
-        "**/*.Tests/**",
-        "**/*Tests.swift"
-      ])
-    }).default({}),
-    sensitiveFiles: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      patterns: external_exports.array(external_exports.string()).default([
-        ".github/workflows/**",
-        "**/auth/**",
-        "**/permissions/**",
-        "**/migrations/**"
-      ])
-    }).default({}),
-    dependencyRisk: external_exports.object({
-      enabled: external_exports.boolean().default(true),
-      manifests: external_exports.array(external_exports.string()).default([
-        "package.json",
-        "package-lock.json",
-        "pnpm-lock.yaml",
-        "yarn.lock",
-        "requirements.txt",
-        "pyproject.toml",
-        "poetry.lock",
-        "go.mod",
-        "go.sum",
-        "Cargo.toml",
-        "Cargo.lock"
-      ])
-    }).default({}),
-    secretInDiff: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    skippedTests: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    blanketSuppression: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    riskyApis: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({}),
-    hiddenUnicode: external_exports.object({
-      enabled: external_exports.boolean().default(true)
-    }).default({})
-  }).default({}),
-  security: external_exports.object({
-    maxPatchBytes: external_exports.number().int().positive().default(2e5),
-    redaction: external_exports.object({
-      allowlist: external_exports.array(
-        external_exports.string().min(1).max(200).refine(isRegularExpression, "Must be a valid regular expression.")
-      ).default([])
-    }).default({})
-  }).default({}),
-  comment: external_exports.object({
-    mode: external_exports.enum(["upsert", "append"]).default("upsert"),
-    includeLowSeverity: external_exports.boolean().default(false)
-  }).default({}),
-  ignorePaths: external_exports.array(external_exports.string()).default([]),
-  // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
-  // cannot silently leave a rule at its default.
-  severity: external_exports.record(external_exports.enum(["off", "info", "warning", "high"])).default({}).superRefine((overrides, context) => {
-    for (const id of Object.keys(overrides)) {
-      if (!ruleIds.has(id)) {
-        context.addIssue({ code: external_exports.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
-      }
-    }
-  }),
-  check: external_exports.object({
-    failOn: external_exports.enum(["never", "warning", "high"]).default("never")
-  }).default({}),
-  annotations: external_exports.object({
-    enabled: external_exports.boolean().default(false),
-    includeLowSeverity: external_exports.boolean().default(false)
-  }).default({})
-});
-function isRegularExpression(source) {
-  try {
-    new RegExp(source);
-    return true;
-  } catch {
-    return false;
-  }
-}
-var defaultConfigPath = ".prism-review.yml";
-var defaultConfig = prismConfigSchema.parse({});
-
 // src/analysis/severity.ts
 var weights = {
   info: 1,
@@ -14161,7 +14181,11 @@ function isAtLeast(severity, minimum) {
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
   const { rules = defaultRules, configPath = defaultConfigPath } = options;
-  const reviewed = files.filter((file) => !config.ignorePaths.some((glob) => minimatch(file.path, glob)));
+  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
+  const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
+  const reviewed = files.filter(
+    (file) => !(isIgnored(file.path) && (file.previousPath === void 0 || isIgnored(file.previousPath)))
+  );
   const findings = rules.flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath })).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
   return {
     summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
@@ -14182,9 +14206,7 @@ function buildSummary(reviewedCount, ignoredCount, findings) {
   if (findings.length === 0) {
     return `${reviewed} No configured risk signals were detected.`;
   }
-  const highCount = findings.filter((finding) => finding.severity === "high").length;
-  const warningCount = findings.filter((finding) => finding.severity === "warning").length;
-  return `${reviewed} Found ${highCount} high-risk and ${warningCount} warning-level signal(s).`;
+  return `${reviewed} Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
 }
 function calculateRiskLevel(files, findings, config) {
   if (findings.some((finding) => finding.severity === "high")) {
@@ -14192,7 +14214,8 @@ function calculateRiskLevel(files, findings, config) {
   }
   const totalChangedLines = files.reduce((total, file) => total + changedLines(file), 0);
   const largeDiff = config.risk.largeDiff;
-  if (findings.filter((finding) => finding.severity === "warning").length >= 2 || files.length > largeDiff.maxFiles || totalChangedLines > largeDiff.maxChangedLines) {
+  const sizeCounts = config.severity["large-diff"] !== "off";
+  if (countBySeverity(findings, "warning") >= 2 || sizeCounts && (files.length > largeDiff.maxFiles || totalChangedLines > largeDiff.maxChangedLines)) {
     return "medium";
   }
   return "low";
@@ -14257,7 +14280,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     "### Findings",
     "",
-    findings.length === 0 ? "No warning or high-risk findings were detected." : findings.map(renderFinding).join("\n\n"),
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings),
     "",
     "### Suggested Review Checklist",
     "",
@@ -14266,6 +14289,26 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "- Are deployment, migration, or rollback risks understood?",
     "- Are new dependencies necessary and trusted?"
   ].join("\n");
+}
+var maxFindingsLength = 55e3;
+function renderFindings(findings) {
+  const rendered = [];
+  let length = 0;
+  for (const finding of findings) {
+    const block = renderFinding(finding);
+    if (length + block.length > maxFindingsLength) {
+      break;
+    }
+    rendered.push(block);
+    length += block.length + 2;
+  }
+  const hidden = findings.length - rendered.length;
+  if (hidden > 0) {
+    rendered.push(
+      `${hidden} more finding(s) are not shown here to keep the comment within GitHub's size limit. Enable annotations or run the CLI to see every finding.`
+    );
+  }
+  return rendered.join("\n\n");
 }
 function renderFinding(finding) {
   const sections = [
