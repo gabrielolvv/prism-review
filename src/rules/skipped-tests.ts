@@ -61,7 +61,8 @@ const languages: Language[] = [
   {
     // xUnit, NUnit, and MSTest.
     files: /\.cs$/,
-    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|\[\s*Ignore\b/]]
+    // `Ignore` can share the brackets with other attributes, as in `[Test, Ignore("flaky")]`.
+    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|(?:^|\])\s*\[(?:[^\]]*[\s,])?Ignore\b/]]
   },
   {
     // XCTest and Swift Testing.
@@ -73,7 +74,11 @@ const languages: Language[] = [
     files: /\.php$/,
     markers: [
       ["focused", /->only\s*\(\s*\)/],
-      ["skipped", /\$this->markTest(?:Skipped|Incomplete)\s*\(|->skip\s*\(/]
+      // Pest chains `->skip()` on a test call; Laravel's query and collection `skip(10)` do not count.
+      [
+        "skipped",
+        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]*->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
+      ]
     ]
   }
 ];

@@ -302,6 +302,57 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI refuses input it cannot review instead of passing it",
+    () => {
+      const escape = String.fromCharCode(27);
+      const cases: Array<[string, RegExp]> = [
+        ["", /The diff is empty/],
+        ["   \n", /The diff is empty/],
+        ["src/a.ts | 2 +-\n 1 file changed\n", /No `diff --git` sections found/],
+        [`${escape}[1mdiff --git a/x b/x${escape}[m\n`, /terminal color codes/],
+        ["diff --git weird-header-with-no-paths\n+x\n", /Unrecognized diff header/]
+      ];
+
+      for (const [input, message] of cases) {
+        const run = runCli(["analyze", "--diff", "-"], input);
+        assert.equal(run.status, 1, JSON.stringify(input));
+        assert.match(run.stderr, message);
+        assert.equal(run.stdout, "");
+      }
+    }
+  ],
+  [
+    "the CLI reviews real git output with quoted names and mnemonic prefixes",
+    () => {
+      const repo = join(workDir, "repo");
+      const git = (...args: string[]) => {
+        const result = spawnSync("git", ["-C", repo, ...args], { encoding: "utf8" });
+        assert.equal(result.status, 0, result.stderr);
+        return result.stdout;
+      };
+      const rlo = String.fromCodePoint(0x202e);
+
+      spawnSync("git", ["init", "-q", repo]);
+      git("config", "user.email", "smoke@example.com");
+      git("config", "user.name", "Smoke");
+      writeFileSync(join(repo, "README.md"), "base\n");
+      git("add", ".");
+      git("commit", "-qm", "base");
+      writeFileSync(join(repo, `invoice${rlo}fdp.exe`), "payload\n");
+      writeFileSync(join(repo, "README.md"), "base\nmore\n");
+      git("add", ".");
+      const diff = git("-c", "diff.mnemonicPrefix=true", "-c", "core.quotePath=true", "diff", "--cached");
+
+      assert.match(diff, /^diff --git "c\/invoice\\342\\200\\256fdp\.exe"/m);
+      const run = runCli(["analyze", "--diff", "-"], diff);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /Reviewed 2 changed file\(s\)/);
+      assert.match(run.stdout, /#### High - Hidden Unicode characters added/);
+      assert.match(run.stdout, /^File: `invoice\\u\{202E\}fdp\.exe`$/m);
+    }
+  ],
+  [
     "the CLI still accepts --fixture",
     () => {
       const run = runCli(["analyze", "--fixture", resolve("fixtures/diffs/risky-auth-change.diff")]);
