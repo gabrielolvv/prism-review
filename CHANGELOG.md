@@ -2,7 +2,7 @@
 
 All notable changes to Prism Review are documented in this file.
 
-## Unreleased
+## 0.6.0 - 2026-10-20
 
 ### Added
 
@@ -14,6 +14,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Changed
 
+- `hidden-unicode` is on by default, and the line-level rules now also read Ruby, Java, Kotlin, PHP, C#, and Swift, so workflows that use `@v0` can report new findings as soon as they pick up this release. With `check.failOn: high`, a bidirectional control character fails the job. Each rule can be turned off in `.prism-review.yml`.
 - The CLI fails with a clear error when `--config` names a file that does not exist, instead of silently using the defaults, and rejects unknown options instead of ignoring them.
 - `rules.missingTests.testGlobs` also matches `*_spec.rb`, `*_test.rb`, `src/test/**`, `*Test.php`, `*Tests.cs`, `*Test.cs`, `*.Tests/**`, and `*Tests.swift` by default, so changes to those files count as test changes.
 - `skipped-tests` only applies each framework's markers to files of its own language, so a Go `.Skip(` call in a JavaScript test is no longer reported.
