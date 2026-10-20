@@ -8,7 +8,7 @@ The action reads the configuration from the **base commit** of the pull request 
 
 - `config-path` selects the file. It must be a relative path inside the repository; absolute paths and `..` segments fail the run.
 - When the file does not exist on the base commit, the defaults apply and the log says so. This is the case for the pull request that first adds a configuration file, which also receives a high-risk `config-change` finding.
-- The CLI reads the file from disk, because it analyzes local diff fixtures and has no base commit.
+- The CLI reads the file from disk, because it reviews local diffs and has no base commit. It uses `.prism-review.yml` in the current directory when present, or the file passed with `--config`; a `--config` path that does not exist is an error rather than a silent fallback to the defaults.
 
 ## Example
 

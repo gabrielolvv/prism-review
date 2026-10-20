@@ -23,8 +23,8 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Posts or updates a single PR comment, or appends one per run
 - Optionally annotates findings beside the changed files, with no extra permission
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
-- Supports local fixture-based analysis
-- Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus an end-to-end run of the bundled action
+- Reviews local diffs from the command line, for example in a pre-push hook
+- Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus end-to-end runs of the bundled action and CLI
 - Ships as a self-contained bundle, so no dependency install happens on the runner
 - Uses minimal GitHub permissions
 - Works on GitHub Enterprise Server through the API URL the runner provides
@@ -70,6 +70,23 @@ npm run analyze:fixture
 ```
 
 `npm test` compiles into `build/`. `npm run bundle` regenerates the committed `dist/` bundles that GitHub executes, so run it before committing source changes.
+
+## Reviewing Before You Push
+
+The CLI reviews any unified diff, so you can see the review before opening a pull request:
+
+```bash
+git diff origin/main...HEAD | node dist/cli/main.cjs analyze --diff -
+```
+
+It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
+
+```sh
+#!/bin/sh
+git diff origin/main...HEAD | node path/to/prism-review/dist/cli/main.cjs analyze --diff - > /dev/null
+```
+
+Run `node dist/cli/main.cjs --help` for every option.
 
 ## Configuration
 
