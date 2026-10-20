@@ -11428,7 +11428,11 @@ var prismConfigSchema = external_exports.object({
         "**/test_*.py",
         "**/*_test.py",
         "**/*_test.go",
-        "**/tests/**/*.rs"
+        "**/tests/**/*.rs",
+        "**/*_spec.rb",
+        "**/*_test.rb",
+        "**/src/test/**",
+        "**/*Test.php"
       ])
     }).default({}),
     sensitiveFiles: external_exports.object({
@@ -11558,6 +11562,25 @@ var languages = [
     ]
   },
   { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
+  { files: /\.(?:rb|rake)$/, markers: [["RuboCop", /#\s*rubocop:\s*(?:disable|todo)\s+all\b/]] },
+  {
+    files: /\.(?:java|kt)$/,
+    markers: [
+      ["compiler warnings", /@SuppressWarnings\(\s*(?:value\s*=\s*)?\{?\s*"all"/],
+      ["Checkstyle", /\/\/\s*CHECKSTYLE:\s*OFF\b/],
+      ["SonarQube", /\/\/\s*NOSONAR\b(?!\s*\()/]
+    ]
+  },
+  {
+    files: /\.php$/,
+    markers: [
+      // The newer `@phpstan-ignore identifier` form names what it ignores.
+      ["PHPStan", /@phpstan-ignore-(?:next-)?line\b/],
+      // A sniff name after the directive makes it targeted; `-- reason` alone does not.
+      ["PHP_CodeSniffer", /\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/],
+      ["Psalm", /@psalm-suppress\s+all\b/i]
+    ]
+  },
   { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]] }
 ];
 var blanketSuppressionRule = {
@@ -13626,6 +13649,39 @@ var languages2 = [
     definitions: /^\s*(?:async\s+)?def\s+\w+\s*\(/
   },
   {
+    files: /\.(?:rb|rake|erb)$/,
+    calls: [
+      ["eval", /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*[(\s]\s*[\w"'`@:]/],
+      ["shell command", /(?<![.\w:])(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      ["interpolated shell command", /%x[({[]|`[^`]*#\{/],
+      ["Marshal.load", /\bMarshal\.load\b/],
+      ["YAML.unsafe_load", /\b(?:YAML|Psych)\.unsafe_load\b/],
+      ["html_safe or raw", /\.html_safe\b|(?<![.\w])raw\s*\(/]
+    ],
+    definitions: /^\s*def\s+/
+  },
+  {
+    files: /\.(?:java|kt)$/,
+    calls: [
+      ["Runtime exec", /\bRuntime\.getRuntime\(\)\.exe[c]\s*\(/],
+      [
+        "shell command",
+        /\bProcessBuilder\s*\(\s*(?:(?:List\.of|listOf|Arrays\.asList)\s*\()?\s*"(?:[^"]*\/)?(?:sh|bash|zsh|cmd(?:\.exe)?|powershell(?:\.exe)?)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+      ],
+      ["Java deserialization", /\b(?:ObjectInputStream|XMLDecoder)\s*\(/]
+    ]
+  },
+  {
+    // `->` and `::` mark method calls, which are excluded like member calls in JavaScript.
+    files: /\.php$/,
+    calls: [
+      ["eval", /(?<![>\w$:])eval\s*\(/],
+      ["shell command", /(?<![>\w$:])(?:exe[c]|shell_exec|system|passthru|popen|proc_open)\s*\(/],
+      ["unserialize", /(?<![>\w$:])unserialize\s*\(/]
+    ],
+    definitions: /^\s*(?:(?:public|private|protected|static|final|abstract)\s+)*function\s+/
+  },
+  {
     files: /\.go$/,
     calls: [
       [
@@ -13793,19 +13849,58 @@ function pathWords(path2) {
 
 // src/rules/skipped-tests.ts
 var notMember = String.raw`(?<![.\w$])`;
-var testFileMarkers = [
-  // Jest, Vitest, Mocha, Jasmine, and node:test.
-  ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
-  ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
-  ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
-  ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)],
-  // pytest and unittest, including conditional skips.
-  ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
-  ["skipped", /\bpytest\.skip\s*\(/],
-  // Go: t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
-  ["skipped", /\.Skip(?:f|Now)?\s*\(/]
+var languages3 = [
+  {
+    // Jest, Vitest, Mocha, Jasmine, and node:test.
+    files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    markers: [
+      ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
+      ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
+      ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
+      ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)]
+    ]
+  },
+  {
+    // pytest and unittest, including conditional skips.
+    files: /\.pyi?$/,
+    markers: [
+      ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
+      ["skipped", /\bpytest\.skip\s*\(/]
+    ]
+  },
+  {
+    // t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
+    files: /\.go$/,
+    markers: [["skipped", /\.Skip(?:f|Now)?\s*\(/]]
+  },
+  {
+    // `#[ignore]` only applies to tests, and Rust keeps unit tests inside source files.
+    files: /\.rs$/,
+    markers: [["skipped", /#\[ignore\b/]],
+    anyFile: true
+  },
+  {
+    // RSpec and Minitest. RSpec blocks take no parentheses, so markers start the line.
+    files: /\.rb$/,
+    markers: [
+      ["focused", /^\s*f(?:it|describe|context|specify|example|scenario|feature)\b(?!\s*=)|\bfocus:\s*true\b|,\s*:focus\b/],
+      ["skipped", /^\s*x(?:it|describe|context|specify|example|scenario|feature)\b(?!\s*=)|^\s*(?:skip|pending)\b(?!\s*[=:.])/]
+    ]
+  },
+  {
+    // JUnit 4 and 5, and TestNG.
+    files: /\.(?:java|kt)$/,
+    markers: [["skipped", /^\s*@(?:Disabled|Ignore)\b|@Test\s*\(\s*enabled\s*=\s*false\b/]]
+  },
+  {
+    // PHPUnit and Pest.
+    files: /\.php$/,
+    markers: [
+      ["focused", /->only\s*\(\s*\)/],
+      ["skipped", /\$this->markTest(?:Skipped|Incomplete)\s*\(|->skip\s*\(/]
+    ]
+  }
 ];
-var rustMarker = ["skipped", /#\[ignore\b/];
 var skippedTestsRule = {
   id: "skipped-tests",
   description: "Flags tests that a pull request focuses or skips.",
@@ -13815,10 +13910,8 @@ var skippedTestsRule = {
     }
     const testGlobs = config.rules.missingTests.testGlobs;
     return files.filter((file) => file.patch !== void 0).flatMap((file) => {
-      const markers = [
-        ...testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : [],
-        ...file.path.endsWith(".rs") ? [rustMarker] : []
-      ];
+      const isTestFile = testGlobs.some((glob) => minimatch(file.path, glob));
+      const markers = languages3.filter((language) => language.files.test(file.path) && (isTestFile || language.anyFile)).flatMap((language) => language.markers);
       const found = matchAddedLines(file.patch ?? "", markers).map(({ line, label }) => ({
         line,
         marker: label
