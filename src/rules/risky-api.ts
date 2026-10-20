@@ -46,6 +46,39 @@ const languages: Language[] = [
     definitions: /^\s*(?:async\s+)?def\s+\w+\s*\(/
   },
   {
+    files: /\.(?:rb|rake|erb)$/,
+    calls: [
+      ["eval", /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*[(\s]\s*[\w"'`@:]/],
+      ["shell command", /(?<![.\w:])(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      ["interpolated shell command", /%x[({[]|`[^`]*#\{/],
+      ["Marshal.load", /\bMarshal\.load\b/],
+      ["YAML.unsafe_load", /\b(?:YAML|Psych)\.unsafe_load\b/],
+      ["html_safe or raw", /\.html_safe\b|(?<![.\w])raw\s*\(/]
+    ],
+    definitions: /^\s*def\s+/
+  },
+  {
+    files: /\.(?:java|kt)$/,
+    calls: [
+      ["Runtime exec", /\bRuntime\.getRuntime\(\)\.exe[c]\s*\(/],
+      [
+        "shell command",
+        /\bProcessBuilder\s*\(\s*(?:(?:List\.of|listOf|Arrays\.asList)\s*\()?\s*"(?:[^"]*\/)?(?:sh|bash|zsh|cmd(?:\.exe)?|powershell(?:\.exe)?)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+      ],
+      ["Java deserialization", /\b(?:ObjectInputStream|XMLDecoder)\s*\(/]
+    ]
+  },
+  {
+    // `->` and `::` mark method calls, which are excluded like member calls in JavaScript.
+    files: /\.php$/,
+    calls: [
+      ["eval", /(?<![>\w$:])eval\s*\(/],
+      ["shell command", /(?<![>\w$:])(?:exe[c]|shell_exec|system|passthru|popen|proc_open)\s*\(/],
+      ["unserialize", /(?<![>\w$:])unserialize\s*\(/]
+    ],
+    definitions: /^\s*(?:(?:public|private|protected|static|final|abstract)\s+)*function\s+/
+  },
+  {
     files: /\.go$/,
     calls: [
       [

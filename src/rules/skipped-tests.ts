@@ -5,24 +5,68 @@ import { describeLines } from "./line-list.js";
 
 type Marker = "focused" | "skipped";
 
+type Language = {
+  files: RegExp;
+  markers: Array<[Marker, RegExp]>;
+  // Most markers only count in files matched by rules.missingTests.testGlobs.
+  anyFile?: boolean;
+};
+
 // JavaScript markers must not follow a `.`, so calls such as `chart.fit(...)` do not count.
 const notMember = String.raw`(?<![.\w$])`;
 
-const testFileMarkers: Array<[Marker, RegExp]> = [
-  // Jest, Vitest, Mocha, Jasmine, and node:test.
-  ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
-  ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
-  ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
-  ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)],
-  // pytest and unittest, including conditional skips.
-  ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
-  ["skipped", /\bpytest\.skip\s*\(/],
-  // Go: t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
-  ["skipped", /\.Skip(?:f|Now)?\s*\(/]
+const languages: Language[] = [
+  {
+    // Jest, Vitest, Mocha, Jasmine, and node:test.
+    files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    markers: [
+      ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
+      ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
+      ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
+      ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)]
+    ]
+  },
+  {
+    // pytest and unittest, including conditional skips.
+    files: /\.pyi?$/,
+    markers: [
+      ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
+      ["skipped", /\bpytest\.skip\s*\(/]
+    ]
+  },
+  {
+    // t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
+    files: /\.go$/,
+    markers: [["skipped", /\.Skip(?:f|Now)?\s*\(/]]
+  },
+  {
+    // `#[ignore]` only applies to tests, and Rust keeps unit tests inside source files.
+    files: /\.rs$/,
+    markers: [["skipped", /#\[ignore\b/]],
+    anyFile: true
+  },
+  {
+    // RSpec and Minitest. RSpec blocks take no parentheses, so markers start the line.
+    files: /\.rb$/,
+    markers: [
+      ["focused", /^\s*f(?:it|describe|context|specify|example|scenario|feature)\b(?!\s*=)|\bfocus:\s*true\b|,\s*:focus\b/],
+      ["skipped", /^\s*x(?:it|describe|context|specify|example|scenario|feature)\b(?!\s*=)|^\s*(?:skip|pending)\b(?!\s*[=:.])/]
+    ]
+  },
+  {
+    // JUnit 4 and 5, and TestNG.
+    files: /\.(?:java|kt)$/,
+    markers: [["skipped", /^\s*@(?:Disabled|Ignore)\b|@Test\s*\(\s*enabled\s*=\s*false\b/]]
+  },
+  {
+    // PHPUnit and Pest.
+    files: /\.php$/,
+    markers: [
+      ["focused", /->only\s*\(\s*\)/],
+      ["skipped", /\$this->markTest(?:Skipped|Incomplete)\s*\(|->skip\s*\(/]
+    ]
+  }
 ];
-
-// `#[ignore]` only applies to tests, and Rust keeps unit tests inside source files.
-const rustMarker: [Marker, RegExp] = ["skipped", /#\[ignore\b/];
 
 export const skippedTestsRule: Rule = {
   id: "skipped-tests",
@@ -37,10 +81,10 @@ export const skippedTestsRule: Rule = {
     return files
       .filter((file) => file.patch !== undefined)
       .flatMap((file) => {
-        const markers = [
-          ...(testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : []),
-          ...(file.path.endsWith(".rs") ? [rustMarker] : [])
-        ];
+        const isTestFile = testGlobs.some((glob) => minimatch(file.path, glob));
+        const markers = languages
+          .filter((language) => language.files.test(file.path) && (isTestFile || language.anyFile))
+          .flatMap((language) => language.markers);
         const found = matchAddedLines(file.patch ?? "", markers).map(({ line, label }) => ({
           line,
           marker: label
