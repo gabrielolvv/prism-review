@@ -15,6 +15,7 @@ The GitHub Action layer is responsible for reading inputs, fetching the configur
 7. The Markdown renderer creates the review body.
 8. When `annotations.enabled` is set, findings that name a file are printed as workflow command annotations.
 9. The publisher creates or updates the PR comment, depending on `comment.mode`.
+10. When a finding reaches `check.failOn`, the job fails after the comment is published.
 
 Nothing in this flow reads the workspace, so workflows do not need a checkout step.
 

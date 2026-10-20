@@ -71,6 +71,9 @@ comment:
 annotations:
   enabled: false
   includeLowSeverity: false
+
+check:
+  failOn: "never"
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
@@ -201,3 +204,18 @@ Annotations are printed to the job log, so they need no extra permission and als
 ### `annotations.includeLowSeverity`
 
 When `true`, `info` findings are annotated as notices. This is independent of `comment.includeLowSeverity`.
+
+## Check
+
+### `check.failOn`
+
+Fails the job when the review has a finding at or above this severity, so branch protection can require the check to pass before merging.
+
+- `never` (default): the job passes whatever the review finds.
+- `high`: the job fails when there is at least one high-risk finding.
+- `warning`: the job fails when there is at least one warning or high-risk finding.
+
+`info` findings never fail the job. The comment and annotations are published first, so the reason is on the pull request when the job turns red. With `dry-run: true`, the review is printed and the job still fails.
+
+Because the configuration is read from the base commit, a pull request cannot lower its own threshold. The CLI applies the same setting and exits with status 1.
+

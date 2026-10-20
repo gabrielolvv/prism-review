@@ -24,6 +24,10 @@ The action fetches `config-path` from the pull request base commit through the c
 
 `config-path` must be a relative path inside the repository. Absolute paths and `..` segments are rejected before any request is made.
 
+## Merge Gate
+
+`check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.
+
 ## Patch Size Limits
 
 Every changed file passes through a size check before redaction. A patch above `security.maxPatchBytes` is removed from the file entry, which is then marked as omitted and reported by the `oversized-patch` rule.
