@@ -11,6 +11,14 @@ import {
   testResolveGitHubApiUrlNormalizesEnterpriseUrls,
   testResolveGitHubApiUrlRejectsInvalidValues
 } from "./unit/github-client.test.js";
+import {
+  testRiskyApiRuleCoversRubyJavaAndPhp,
+  testRiskyApiRuleIgnoresRubyJavaAndPhpLookalikes,
+  testBlanketSuppressionRuleCoversRubyJavaAndPhp,
+  testBlanketSuppressionRuleIgnoresTargetedRubyJavaAndPhp,
+  testSkippedTestsRuleCoversRubyJavaAndPhp,
+  testSkippedTestsRuleKeepsMarkersInTheirLanguage
+} from "./unit/more-languages.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -165,6 +173,12 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
   ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
   ["blanket-suppression rule checks markers in their own language", testBlanketSuppressionRuleChecksMarkersInTheirLanguage],
+  ["risky-api rule covers Ruby, Java, and PHP", testRiskyApiRuleCoversRubyJavaAndPhp],
+  ["risky-api rule ignores Ruby, Java, and PHP lookalikes", testRiskyApiRuleIgnoresRubyJavaAndPhpLookalikes],
+  ["blanket-suppression rule covers Ruby, Java, and PHP", testBlanketSuppressionRuleCoversRubyJavaAndPhp],
+  ["blanket-suppression rule ignores targeted Ruby, Java, and PHP suppressions", testBlanketSuppressionRuleIgnoresTargetedRubyJavaAndPhp],
+  ["skipped-tests rule covers Ruby, Java, and PHP", testSkippedTestsRuleCoversRubyJavaAndPhp],
+  ["skipped-tests rule keeps markers in their own language", testSkippedTestsRuleKeepsMarkersInTheirLanguage],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

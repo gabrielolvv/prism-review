@@ -26,7 +26,11 @@ export const prismConfigSchema = z.object({
               "**/test_*.py",
               "**/*_test.py",
               "**/*_test.go",
-              "**/tests/**/*.rs"
+              "**/tests/**/*.rs",
+              "**/*_spec.rb",
+              "**/*_test.rb",
+              "**/src/test/**",
+              "**/*Test.php"
             ])
         })
         .default({}),
