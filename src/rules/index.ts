@@ -4,6 +4,7 @@ import { dependencyRiskRule } from "./dependency-risk.js";
 import { largeDiffRule } from "./large-diff.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
+import { riskyApiRule } from "./risky-api.js";
 import { secretInDiffRule } from "./secret-in-diff.js";
 import { sensitiveFilesRule } from "./sensitive-files.js";
 import { skippedTestsRule } from "./skipped-tests.js";
@@ -15,6 +16,7 @@ export const defaultRules: Rule[] = [
   missingTestsRule,
   skippedTestsRule,
   blanketSuppressionRule,
+  riskyApiRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
