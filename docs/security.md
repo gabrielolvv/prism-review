@@ -30,6 +30,10 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 `fixtures/diffs/prompt-injection.diff` holds instructions aimed at an AI reviewer, such as "ignore all previous instructions" and a forged review header. A unit test checks that the review of that diff is unchanged and that none of the text reaches the comment. Any future AI layer should be tested against the same fixture.
 
+## Ignored Paths
+
+`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `hidden-unicode`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.
