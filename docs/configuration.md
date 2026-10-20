@@ -70,6 +70,8 @@ rules:
     enabled: true
   workflowRisk:
     enabled: true
+  destructiveMigration:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -196,6 +198,24 @@ Only `run` and `script` values, including `|` and `>` blocks, are scripts. Every
 The untrusted contexts follow GitHub Security Lab's list. Index syntax such as `github.event['issue']['title']` is read like the dotted form, and a context passed whole, as in `toJSON(github.event.pull_request)`, counts too. Safe values such as `github.event.pull_request.number` and `github.sha` are not reported. `pull_request_target` is only reported as a trigger under `on:`, not in comments, strings, or `if:` conditions.
 
 Workflow files are checked even when `ignorePaths` matches them, because a pattern such as `**/*.yml` must not hide them.
+
+## Destructive Migrations
+
+### `rules.destructiveMigration.enabled`
+
+The `destructive-migration` rule checks added lines in database migrations: files under a directory whose name contains `migrat` (`migrations/`, Rails' `db/migrate/`, Flyway's `db/migration/`) or under `alembic/`, and SQL files named like migrations (`V1__init.sql`, `001_users.up.sql`). It reads SQL, including SQL in strings, and the schema calls of Rails, Django, Alembic, Knex, Sequelize, TypeORM, Laravel, Entity Framework Core, and Ecto.
+
+| Reported | Severity | Examples |
+| --- | --- | --- |
+| Drops a table | High | `DROP TABLE`, `drop_table`, `op.drop_table`, `dropTable`, `Schema::drop`, `DropTable`, `DeleteModel` |
+| Drops a column | High | `DROP COLUMN`, `remove_column`, `op.drop_column`, `dropColumn`, `removeColumn`, `RemoveField`, Ecto `remove` |
+| Removes every row | High | `TRUNCATE TABLE`, `DELETE FROM table;` without a `WHERE`, Knex `.truncate()` |
+| Changes a column definition | Warning | `ALTER COLUMN ... TYPE`, `MODIFY COLUMN`, `change_column`, `changeColumn`, `AlterColumn`, Laravel `->change()`, Knex `.alter()` |
+| Renames a table or column | Warning | `RENAME COLUMN ... TO`, `RENAME TO`, `sp_rename`, `rename_column`, `renameColumn`, `RenameField`, `RenameModel` |
+
+Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
+
+Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
 
 ## Hidden Unicode
 

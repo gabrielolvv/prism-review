@@ -7,6 +7,7 @@ All notable changes to Prism Review are documented in this file.
 ### Added
 
 - `workflow-risk` rule reports script injection, as high, when an untrusted context such as an issue title, pull request body, branch name, or commit message is used inside `${{ }}` in a workflow `run` or `script`. It also warns about added `pull_request_target` triggers, checkouts of pull request code, and `permissions: write-all`. Only `run` and `script` values, including multi-line blocks, count as scripts; `env:`, `with:`, `name:`, and `if:` values are data and are not reported. Index syntax and whole objects passed to `toJSON` are recognized, and `ignorePaths` does not hide workflow files. `rules.workflowRisk.enabled` turns it off.
+- `destructive-migration` rule reports database migrations that drop a table or column or remove every row, as high, and that rename or redefine a column, as a warning. It reads SQL and the schema calls of Rails, Django, Alembic, Knex, Sequelize, TypeORM, Laravel, Entity Framework Core, and Ecto, and skips rollback sections and files. `rules.destructiveMigration.enabled` turns it off.
 - `incomplete-review` rule reports a high-risk finding when GitHub returns its limit of 3000 files and the pull request changes more, so the files that were not reviewed cannot pass a `check.failOn` gate unnoticed.
 
 ## 0.7.0 - 2026-10-20
