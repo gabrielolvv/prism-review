@@ -84,6 +84,8 @@ annotations:
 
 check:
   failOn: "never"
+
+ignorePaths: []
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
@@ -262,6 +264,23 @@ Annotations are printed to the job log, so they need no extra permission and als
 ### `annotations.includeLowSeverity`
 
 When `true`, `info` findings are annotated as notices. This is independent of `comment.includeLowSeverity`.
+
+## Ignore Paths
+
+### `ignorePaths`
+
+Globs for changed files that the review leaves out, such as generated bundles, vendored code, or snapshots:
+
+```yaml
+ignorePaths:
+  - "dist/**"
+  - "vendor/**"
+  - "**/__snapshots__/**"
+```
+
+Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `blanket-suppression`, `risky-api`, `sensitive-files`, `dependency-risk`, and `oversized-patch`, and out of the risk level's size check. The summary says how many files were ignored.
+
+`secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs are matched against the new path of each file.
 
 ## Check
 

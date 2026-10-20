@@ -24,6 +24,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Posts or updates a single PR comment, or appends one per run
 - Optionally annotates findings beside the changed files, with no extra permission
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
+- Ignores generated or vendored paths for noise rules, while secret, hidden Unicode, and configuration checks still read every file
 - Reviews local diffs from the command line, for example in a pre-push hook
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus end-to-end runs of the bundled action and CLI
 - Ships as a self-contained bundle, so no dependency install happens on the runner
@@ -124,6 +125,9 @@ comment:
 
 annotations:
   enabled: true
+
+ignorePaths:
+  - "dist/**"
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.
