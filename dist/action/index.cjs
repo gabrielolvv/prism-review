@@ -10930,7 +10930,7 @@ var ZodEffects = class extends ZodType {
   }
   _parse(input) {
     const { status, ctx } = this._processInputParams(input);
-    const effect = this._def.effect || null;
+    const effect2 = this._def.effect || null;
     const checkCtx = {
       addIssue: (arg) => {
         addIssueToContext(ctx, arg);
@@ -10945,8 +10945,8 @@ var ZodEffects = class extends ZodType {
       }
     };
     checkCtx.addIssue = checkCtx.addIssue.bind(checkCtx);
-    if (effect.type === "preprocess") {
-      const processed = effect.transform(ctx.data, checkCtx);
+    if (effect2.type === "preprocess") {
+      const processed = effect2.transform(ctx.data, checkCtx);
       if (ctx.common.async) {
         return Promise.resolve(processed).then(async (processed2) => {
           if (status.value === "aborted")
@@ -10981,9 +10981,9 @@ var ZodEffects = class extends ZodType {
         return result;
       }
     }
-    if (effect.type === "refinement") {
+    if (effect2.type === "refinement") {
       const executeRefinement = (acc) => {
-        const result = effect.refinement(acc, checkCtx);
+        const result = effect2.refinement(acc, checkCtx);
         if (ctx.common.async) {
           return Promise.resolve(result);
         }
@@ -11016,7 +11016,7 @@ var ZodEffects = class extends ZodType {
         });
       }
     }
-    if (effect.type === "transform") {
+    if (effect2.type === "transform") {
       if (ctx.common.async === false) {
         const base = this._def.schema._parseSync({
           data: ctx.data,
@@ -11025,7 +11025,7 @@ var ZodEffects = class extends ZodType {
         });
         if (!isValid(base))
           return INVALID;
-        const result = effect.transform(base.value, checkCtx);
+        const result = effect2.transform(base.value, checkCtx);
         if (result instanceof Promise) {
           throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
         }
@@ -11034,21 +11034,21 @@ var ZodEffects = class extends ZodType {
         return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base) => {
           if (!isValid(base))
             return INVALID;
-          return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
+          return Promise.resolve(effect2.transform(base.value, checkCtx)).then((result) => ({
             status: status.value,
             value: result
           }));
         });
       }
     }
-    util.assertNever(effect);
+    util.assertNever(effect2);
   }
 };
-ZodEffects.create = (schema, effect, params) => {
+ZodEffects.create = (schema, effect2, params) => {
   return new ZodEffects({
     schema,
     typeName: ZodFirstPartyTypeKind.ZodEffects,
-    effect,
+    effect: effect2,
     ...processCreateParams(params)
   });
 };
@@ -11475,6 +11475,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     riskyApis: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    hiddenUnicode: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
@@ -13563,6 +13566,101 @@ function detectEcosystem(path2) {
   return match2?.[1] ?? "project";
 }
 
+// src/analysis/hidden-characters.ts
+var bidiControls = /* @__PURE__ */ new Map([
+  [8234, "LEFT-TO-RIGHT EMBEDDING"],
+  [8235, "RIGHT-TO-LEFT EMBEDDING"],
+  [8236, "POP DIRECTIONAL FORMATTING"],
+  [8237, "LEFT-TO-RIGHT OVERRIDE"],
+  [8238, "RIGHT-TO-LEFT OVERRIDE"],
+  [8294, "LEFT-TO-RIGHT ISOLATE"],
+  [8295, "RIGHT-TO-LEFT ISOLATE"],
+  [8296, "FIRST STRONG ISOLATE"],
+  [8297, "POP DIRECTIONAL ISOLATE"]
+]);
+var invisibleCharacters = /* @__PURE__ */ new Map([
+  [8203, "ZERO WIDTH SPACE"],
+  [8288, "WORD JOINER"],
+  [65279, "ZERO WIDTH NO-BREAK SPACE"]
+]);
+var byteOrderMark = 65279;
+function isHiddenCodePoint(codePoint) {
+  return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
+}
+function findHiddenCharacters(text, allowLeadingBom = false) {
+  const labels = /* @__PURE__ */ new Set();
+  let reordersText = false;
+  let index = 0;
+  for (const char of text) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    const atStart = index === 0;
+    index += 1;
+    if (codePoint === byteOrderMark && atStart && allowLeadingBom) {
+      continue;
+    }
+    const bidiName = bidiControls.get(codePoint);
+    if (bidiName) {
+      labels.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      reordersText = true;
+    } else if (invisibleCharacters.has(codePoint)) {
+      labels.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+    } else if (isTagCharacter(codePoint)) {
+      labels.add("Unicode tag characters");
+    }
+  }
+  return { labels: [...labels], reordersText };
+}
+function formatCodePoint(codePoint) {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+function isTagCharacter(codePoint) {
+  return codePoint >= 917504 && codePoint <= 917631;
+}
+
+// src/rules/hidden-unicode.ts
+var effect = "characters that are invisible or reorder text";
+var hiddenUnicodeRule = {
+  id: "hidden-unicode",
+  description: "Flags added bidirectional controls and invisible characters that hide or reorder text.",
+  run({ files, config }) {
+    if (!config.rules.hiddenUnicode.enabled) {
+      return [];
+    }
+    return files.flatMap((file) => {
+      const inPath = findHiddenCharacters(file.path);
+      const inLines = addedLines(file.patch ?? "").map(({ line, content }) => ({ line, found: findHiddenCharacters(content, line === 1) })).filter(({ found }) => found.labels.length > 0);
+      if (inPath.labels.length === 0 && inLines.length === 0) {
+        return [];
+      }
+      const sentences = [];
+      if (inPath.labels.length > 0) {
+        sentences.push(
+          `The file name contains ${effect} (${inPath.labels.join(", ")}), so it can display as a different name.`
+        );
+      }
+      if (inLines.length > 0) {
+        const { text, plural } = describeLines(inLines.map(({ line }) => line));
+        const labels = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        sentences.push(
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels.join(", ")}), so the code can read differently from how it runs.`
+        );
+      }
+      const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
+      return [
+        {
+          ruleId: "hidden-unicode",
+          title: "Hidden Unicode characters added",
+          severity: reordersText ? "high" : "warning",
+          file: file.path,
+          ...inLines.length > 0 ? { line: Math.min(...inLines.map(({ line }) => line)) } : {},
+          message: sentences.join(" "),
+          recommendation: "Remove the characters, or write them as escape sequences if they are intended, and check the change in an editor that shows control characters."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/large-diff.ts
 var largeDiffRule = {
   id: "large-diff",
@@ -13998,6 +14096,7 @@ function describeSkipped(lines) {
 // src/rules/index.ts
 var defaultRules = [
   secretInDiffRule,
+  hiddenUnicodeRule,
   largeDiffRule,
   missingTestsRule,
   skippedTestsRule,
@@ -14261,7 +14360,7 @@ function escapeText(value) {
   return value.replace(/\r\n?|\n/g, " ").replace(/[\\`*_[\]<>#|!~&]/g, "\\$&");
 }
 function codeSpan(value) {
-  const content = value.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  const content = showHiddenCharacters(value.replace(/\r/g, "\\r").replace(/\n/g, "\\n"));
   const longestRun = Math.max(0, ...(content.match(/`+/g) ?? []).map((run2) => run2.length));
   const fence = "`".repeat(longestRun + 1);
   const padding = content.startsWith("`") || content.endsWith("`") ? " " : "";
@@ -14269,6 +14368,13 @@ function codeSpan(value) {
 }
 function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+function showHiddenCharacters(value) {
+  const backslash = String.fromCharCode(92);
+  return [...value].map((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    return isHiddenCodePoint(codePoint) ? `${backslash}u{${codePoint.toString(16).toUpperCase()}}` : char;
+  }).join("");
 }
 
 // src/github/publish-comment.ts
