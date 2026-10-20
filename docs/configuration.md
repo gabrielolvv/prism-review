@@ -86,6 +86,8 @@ check:
   failOn: "never"
 
 ignorePaths: []
+
+severity: {}
 ```
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
@@ -281,6 +283,21 @@ ignorePaths:
 Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `blanket-suppression`, `risky-api`, `sensitive-files`, `dependency-risk`, and `oversized-patch`, and out of the risk level's size check. The summary says how many files were ignored.
 
 `secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs are matched against the new path of each file.
+
+## Severity
+
+### `severity`
+
+Changes the severity of a rule's findings, or turns a rule off. Keys are rule ids; values are `info`, `warning`, `high`, or `off`:
+
+```yaml
+severity:
+  missing-tests: info
+  dependency-risk: high
+  large-diff: off
+```
+
+The new severity applies everywhere a severity matters: the comment, the risk level, annotations, the step outputs, and `check.failOn`. `info` findings are hidden from the comment unless `comment.includeLowSeverity` is set. An unknown rule id or severity fails configuration loading, so a typo cannot leave a rule at its default unnoticed. The configuration comes from the base commit, so a pull request cannot lower the severity of the rules that review it.
 
 ## Check
 
