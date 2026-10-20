@@ -35,6 +35,10 @@ rules:
       - "**/*_test.rb"
       - "**/src/test/**"
       - "**/*Test.php"
+      - "**/*Tests.cs"
+      - "**/*Test.cs"
+      - "**/*.Tests/**"
+      - "**/*Tests.swift"
   sensitiveFiles:
     enabled: true
     patterns:
@@ -117,6 +121,8 @@ The `skipped-tests` rule reports a warning, with the first line number, when a p
 | RSpec, Minitest | `fit`, `fdescribe`, `fcontext` and the other `f`-prefixed blocks, `focus: true`, `:focus` | `xit`, `xdescribe`, `xcontext` and the other `x`-prefixed blocks, `skip`, `pending` |
 | JUnit, TestNG | | `@Disabled`, `@Ignore`, `@Test(enabled = false)` |
 | PHPUnit, Pest | `->only()` | `$this->markTestSkipped(...)`, `$this->markTestIncomplete(...)`, `->skip(...)` |
+| xUnit, NUnit, MSTest | | `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]` |
+| XCTest, Swift Testing | | `throw XCTSkip(...)`, `XCTSkipIf`, `XCTSkipUnless`, `@Test(.disabled(...))` |
 
 Only files matched by `rules.missingTests.testGlobs` are checked, so the same calls in application code are not reported, and each framework's markers only count in files of its own language. JavaScript markers must not follow a `.`, so calls such as `chart.fit(...)` do not count, and RSpec markers must start the line and not be an assignment. The exception is Rust's `#[ignore]`, which is checked in every `.rs` file because unit tests live next to the code and the attribute only applies to tests.
 
@@ -141,6 +147,8 @@ The `blanket-suppression` rule warns, with the first line number, when a pull re
 | Rust | `#[allow(warnings)]`, `#[allow(clippy::all)]`, and the `#![...]` forms | `#[allow(dead_code)]` |
 | RuboCop | `# rubocop:disable all`, `# rubocop:todo all` | `# rubocop:disable Metrics/MethodLength` |
 | Java, Kotlin | `@SuppressWarnings("all")`, `// CHECKSTYLE:OFF`, `// NOSONAR` | `@SuppressWarnings("unchecked")` |
+| C# | `#pragma warning disable` with no codes, `// ReSharper disable All` | `#pragma warning disable CS0618` |
+| SwiftLint | `// swiftlint:disable all`, including the `:next`, `:this`, and `:previous` forms | `// swiftlint:disable force_cast` |
 | PHPStan, PHP_CodeSniffer, Psalm | `@phpstan-ignore-line`, `@phpstan-ignore-next-line`, `phpcs:ignore` or `phpcs:disable` with no sniff, `@codingStandardsIgnoreFile`, `@psalm-suppress all` | `@phpstan-ignore argument.type`, `phpcs:ignore Generic.Files.LineLength` |
 
 Only added lines are checked, and each marker only counts in files of its own language: ESLint and TypeScript markers in JavaScript and TypeScript sources, Python markers in `.py` and `.pyi` files, and so on. A `#noqa` inside a URL in a `.ts` file is not a suppression, and documentation that quotes these markers is never reported.
@@ -158,6 +166,8 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | Go | `exec.Command` that runs a shell with a command string, such as `sh -c`, `/bin/bash -lc`, `cmd /C`, or `powershell -Command`, and `template.HTML(...)` | `exec.Command("git", "status")` |
 | Ruby | `eval`, `instance_eval`, `class_eval`, and `module_eval` with a string, `system`, `exec`, and `spawn` with a string, `%x(...)` and backticks with interpolation, `Marshal.load`, `YAML.unsafe_load`, `.html_safe`, `raw(...)` | `calculator.eval(...)`, `def eval`, `YAML.safe_load` |
 | Java, Kotlin | `Runtime.getRuntime().exec(...)`, `ProcessBuilder` that runs a shell with a command string, `ObjectInputStream`, `XMLDecoder` | `new ProcessBuilder("git", "status")` |
+| C# | `Process.Start` or `ProcessStartInfo.FileName` with `cmd`, `powershell`, `sh`, or `bash`, `BinaryFormatter` and the other unsafe .NET deserializers, `Html.Raw(...)` | `Process.Start("git", "status")`, `JsonSerializer.Deserialize`, `Html.Encode` |
+| Swift | a `Process` that runs `/bin/sh`, `/bin/bash`, or `/bin/zsh`, `NSKeyedUnarchiver.unarchiveObject`, `NSUnarchiver`, `evaluateJavaScript` with string interpolation | `/usr/bin/git`, `JSONDecoder`, `evaluateJavaScript` with a fixed string |
 | PHP | `eval(...)`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `unserialize(...)` | `$runner->exec(...)`, `Foo::exec(...)`, `function exec(...)`, `json_decode(...)` |
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.

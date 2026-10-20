@@ -8,11 +8,12 @@ All notable changes to Prism Review are documented in this file.
 
 - The CLI reviews a diff from standard input with `analyze --diff -`, so `git diff origin/main...HEAD | prism-review analyze --diff -` works as a pre-push check together with `check.failOn`. `--diff` also takes a file path, and `--fixture` remains as an alias. `--help` prints usage.
 - `risky-api`, `blanket-suppression`, and `skipped-tests` cover Ruby, Java, Kotlin, and PHP: `eval`, shell commands, `Marshal.load`, `.html_safe`, `Runtime.exec`, Java deserialization, `unserialize`, and PHP shell functions; `rubocop:disable all`, `@SuppressWarnings("all")`, `CHECKSTYLE:OFF`, `NOSONAR`, `@phpstan-ignore-line`, and bare `phpcs:ignore`; RSpec focus and skip blocks, Minitest `skip`, JUnit `@Disabled` and `@Ignore`, TestNG `enabled = false`, PHPUnit `markTestSkipped`, and Pest `->only()` and `->skip()`.
+- The same rules cover C# and Swift: `Process.Start` with a shell, `BinaryFormatter` and other unsafe .NET deserializers, `Html.Raw`, a Swift `Process` that runs `/bin/sh`, `NSKeyedUnarchiver.unarchiveObject`, and `evaluateJavaScript` with interpolation; `#pragma warning disable` with no codes, `ReSharper disable All`, and `swiftlint:disable all`; xUnit `Skip =`, NUnit and MSTest `[Ignore]`, `XCTSkip`, and Swift Testing `.disabled`.
 
 ### Changed
 
 - The CLI fails with a clear error when `--config` names a file that does not exist, instead of silently using the defaults, and rejects unknown options instead of ignoring them.
-- `rules.missingTests.testGlobs` also matches `*_spec.rb`, `*_test.rb`, `src/test/**`, and `*Test.php` by default, so changes to those files count as test changes.
+- `rules.missingTests.testGlobs` also matches `*_spec.rb`, `*_test.rb`, `src/test/**`, `*Test.php`, `*Tests.cs`, `*Test.cs`, `*.Tests/**`, and `*Tests.swift` by default, so changes to those files count as test changes.
 - `skipped-tests` only applies each framework's markers to files of its own language, so a Go `.Skip(` call in a JavaScript test is no longer reported.
 
 ## 0.5.0 - 2026-10-20
