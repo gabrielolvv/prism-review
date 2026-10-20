@@ -129,14 +129,20 @@ flowchart TD
 
 ## Current Rules
 
-| Rule | Purpose |
-| --- | --- |
-| `large-diff` | Flags PRs that exceed file or line thresholds. |
-| `missing-tests` | Flags source changes without test changes. |
-| `sensitive-files` | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
-| `config-change` | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
-| `dependency-risk` | Flags dependency manifest and lockfile changes for supply-chain review. |
-| `oversized-patch` | Reports files whose patch exceeded the size limit and was not inspected. |
+| Rule | Severity | Purpose |
+| --- | --- | --- |
+| `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
+| `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
+| `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
+| `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |
+| `missing-tests` | Warning | Flags source changes without test changes. |
+| `skipped-tests` | Warning | Flags tests that a PR focuses with `.only` or disables with a skip marker. |
+| `blanket-suppression` | Warning | Flags lint and type check suppressions that name no rule. |
+| `risky-api` | Warning | Flags added calls that run code, start a shell, deserialize data, or write raw HTML. |
+| `dependency-risk` | Warning | Flags dependency manifest and lockfile changes for supply-chain review. |
+| `oversized-patch` | Info | Reports files whose patch exceeded the size limit and was not fully inspected. |
+
+`check.failOn` decides which severities fail the job. See [`docs/configuration.md`](docs/configuration.md) for each rule's options and exact patterns.
 
 ## Example Output
 
@@ -152,18 +158,19 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 - The action uses minimal GitHub token permissions.
 - In the default `upsert` mode, an HTML marker keeps a single bot comment instead of spamming. Comments written by people are never edited, even when they contain the marker.
 - GitHub API calls use a minimal REST client with explicit request paths.
-- Oversized patches are dropped before any pattern matching runs.
-- Patch content is redacted before review flows can use it.
+- Secret detection scans every added line with linear-time patterns; oversized patches are then dropped before redaction and the other rules.
+- Patch content is redacted before review flows can use it, and detected credentials are never printed.
+- File names and finding text are escaped in the comment, annotations, and dry-run output, so pull request content cannot add Markdown or workflow commands.
+- `check.failOn` is read from the base commit, so a pull request cannot lower its own merge gate.
 - GitHub API requests have timeouts, bounded pagination, and truncated error details.
 - AI features are not part of the deterministic core.
 
 ## Roadmap
 
 - Add prompt-injection test fixtures
-- Add inline PR annotations through the Checks API
-- Add OpenAI-powered advisory summaries
-- Add GitHub App mode with queue-based processing
-- Add dashboard for organization-level risk trends
+- Extend the line-level rules to Ruby, Java, and PHP
+- Add optional, provider-neutral AI review summaries
+- Add GitHub App mode with queue-based processing and organization-level analytics
 
 See [`docs/roadmap.md`](docs/roadmap.md) for details and shipped items.
 
