@@ -59,6 +59,16 @@ const languages: Language[] = [
     markers: [["skipped", /^\s*@(?:Disabled|Ignore)\b|@Test\s*\(\s*enabled\s*=\s*false\b/]]
   },
   {
+    // xUnit, NUnit, and MSTest.
+    files: /\.cs$/,
+    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|\[\s*Ignore\b/]]
+  },
+  {
+    // XCTest and Swift Testing.
+    files: /\.swift$/,
+    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]*\.disabled\b/]]
+  },
+  {
     // PHPUnit and Pest.
     files: /\.php$/,
     markers: [

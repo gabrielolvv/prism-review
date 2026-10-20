@@ -19,6 +19,11 @@ import {
   testSkippedTestsRuleCoversRubyJavaAndPhp,
   testSkippedTestsRuleKeepsMarkersInTheirLanguage
 } from "./unit/more-languages.test.js";
+import {
+  testLineRulesCoverCSharp,
+  testLineRulesCoverSwift,
+  testLineRulesIgnoreCSharpAndSwiftLookalikes
+} from "./unit/csharp-swift.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -179,6 +184,9 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule ignores targeted Ruby, Java, and PHP suppressions", testBlanketSuppressionRuleIgnoresTargetedRubyJavaAndPhp],
   ["skipped-tests rule covers Ruby, Java, and PHP", testSkippedTestsRuleCoversRubyJavaAndPhp],
   ["skipped-tests rule keeps markers in their own language", testSkippedTestsRuleKeepsMarkersInTheirLanguage],
+  ["line rules cover C#", testLineRulesCoverCSharp],
+  ["line rules cover Swift", testLineRulesCoverSwift],
+  ["line rules ignore C# and Swift lookalikes", testLineRulesIgnoreCSharpAndSwiftLookalikes],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
