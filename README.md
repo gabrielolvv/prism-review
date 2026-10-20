@@ -21,7 +21,8 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
-- Posts or updates a single PR comment, or appends one per run
+- Posts or updates a single PR comment, or appends one per run, and writes the review to the job summary
+- Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
 - Ignores generated or vendored paths for noise rules, while secret, hidden Unicode, and configuration checks still read every file
@@ -58,6 +59,19 @@ jobs:
 ```
 
 No checkout step is needed. The action reads the pull request and its configuration through the GitHub API, so pull request code never lands on the runner.
+
+The review is also written to the job summary on the run page. For a pull request from a fork, GitHub gives the workflow a read-only token, so the comment cannot be posted; the action then logs a warning instead of failing, and the review stays in the job summary.
+
+### Outputs
+
+| Output | Value |
+| --- | --- |
+| `risk-level` | `low`, `medium`, or `high` |
+| `high-count` | Number of high-risk findings |
+| `warning-count` | Number of warning findings |
+| `finding-count` | Number of findings of every severity |
+
+Give the step an `id`, such as `id: prism`, and read them as `${{ steps.prism.outputs.risk-level }}`, for example to request a security review when the risk is high.
 
 To block merges on high-risk findings, set `check.failOn: "high"` in `.prism-review.yml` on the default branch and mark the `review` job as a required status check in branch protection.
 
