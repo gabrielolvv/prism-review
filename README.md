@@ -16,7 +16,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
 - Reports credentials added in the diff, on the line where they appear, without ever printing the value
-- Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes
+- Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, and PHP
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
@@ -168,7 +168,6 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 ## Roadmap
 
 - Add prompt-injection test fixtures
-- Extend the line-level rules to Ruby, Java, and PHP
 - Add optional, provider-neutral AI review summaries
 - Add GitHub App mode with queue-based processing and organization-level analytics
 

@@ -21,6 +21,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `blanket-suppression` rule for lint and type check suppressions that name no rule.
 - `risky-api` rule for added calls that run code, start a shell, deserialize data, or write raw HTML.
 - `check.failOn` to fail the job, so branch protection can require the review.
+- Ruby, Java, Kotlin, and PHP patterns for `risky-api`, `blanket-suppression`, and `skipped-tests`.
 
 ## Near Term
 
@@ -28,9 +29,9 @@ This roadmap is intentionally staged so the project grows like a real developer 
 
 Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
 
-### Add more languages to line-level rules
+### Add C# and Swift to the line-level rules
 
-`secret-in-diff`, `skipped-tests`, `blanket-suppression`, and `risky-api` report the line they found. Ruby, Java, and PHP equivalents of their patterns can reuse `addedLines` and the same tests.
+`risky-api`, `blanket-suppression`, and `skipped-tests` cover JavaScript, TypeScript, Python, Go, Rust, Ruby, Java, Kotlin, and PHP. C# (`Process.Start`, `#pragma warning disable`, `[Ignore]`) and Swift follow the same per-language pattern lists.
 
 ## Mid Term
 
