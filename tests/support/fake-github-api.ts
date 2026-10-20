@@ -43,6 +43,12 @@ const routes: Record<string, (body: unknown) => unknown> = {
   "GET /repos/acme/widgets/issues/13/comments?per_page=100&page=1": () => [],
   "POST /repos/acme/widgets/issues/13/comments": () =>
     new ErrorResponse(403, { message: "Resource not accessible by integration" }),
+  "GET /repos/acme/widgets/pulls/15/files?per_page=100&page=1": () => [
+    { filename: "docs/readme.md", status: "modified", additions: 1, deletions: 0, patch: "@@ -1 +1,2 @@\n x\n+y" }
+  ],
+  "GET /repos/acme/widgets/issues/15/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/15/comments": () =>
+    new ErrorResponse(403, { message: "You have exceeded a secondary rate limit." }),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeBaseSha}`]: () =>
     fileContent(baseConfig),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAppendBaseSha}`]: () =>

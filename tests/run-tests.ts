@@ -54,6 +54,12 @@ import {
   testSeverityOverrideOffRemovesARule,
   testSeverityOverridesRejectUnknownRules
 } from "./unit/severity-overrides.test.js";
+import {
+  testLargeDiffOffAlsoSkipsTheSizeCheck,
+  testIgnorePathsMatchDotfilesAndRenames,
+  testRuleIdListMatchesTheRegisteredRules,
+  testRenderMarkdownCapsTheCommentLength
+} from "./unit/review-findings-070.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -239,6 +245,10 @@ const tests: Array<[string, Test]> = [
   ["severity overrides change findings and the risk level", testSeverityOverridesChangeFindingsAndRisk],
   ["a severity override of off removes a rule's findings", testSeverityOverrideOffRemovesARule],
   ["severity overrides reject unknown rules and severities", testSeverityOverridesRejectUnknownRules],
+  ["large diff off also skips the size check", testLargeDiffOffAlsoSkipsTheSizeCheck],
+  ["ignore paths match dotfiles and renames", testIgnorePathsMatchDotfilesAndRenames],
+  ["rule id list matches the registered rules", testRuleIdListMatchesTheRegisteredRules],
+  ["render markdown caps the comment length", testRenderMarkdownCapsTheCommentLength],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

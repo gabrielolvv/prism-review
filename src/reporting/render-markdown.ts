@@ -28,9 +28,7 @@ export function renderMarkdown(
     "",
     "### Findings",
     "",
-    findings.length === 0
-      ? "No warning or high-risk findings were detected."
-      : findings.map(renderFinding).join("\n\n"),
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings),
     "",
     "### Suggested Review Checklist",
     "",
@@ -39,6 +37,35 @@ export function renderMarkdown(
     "- Are deployment, migration, or rollback risks understood?",
     "- Are new dependencies necessary and trusted?"
   ].join("\n");
+}
+
+// GitHub rejects comments over 65536 characters, and the job summary is capped too, so the list
+// stops early and says how much is left out. Findings are sorted by severity, so the most
+// important ones are the ones shown.
+const maxFindingsLength = 55_000;
+
+function renderFindings(findings: ReviewResult["findings"]): string {
+  const rendered: string[] = [];
+  let length = 0;
+
+  for (const finding of findings) {
+    const block = renderFinding(finding);
+    if (length + block.length > maxFindingsLength) {
+      break;
+    }
+
+    rendered.push(block);
+    length += block.length + 2;
+  }
+
+  const hidden = findings.length - rendered.length;
+  if (hidden > 0) {
+    rendered.push(
+      `${hidden} more finding(s) are not shown here to keep the comment within GitHub's size limit. Enable annotations or run the CLI to see every finding.`
+    );
+  }
+
+  return rendered.join("\n\n");
 }
 
 function renderFinding(finding: ReviewResult["findings"][number]): string {
