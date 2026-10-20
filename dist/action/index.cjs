@@ -11462,6 +11462,9 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     skippedTests: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    blanketSuppression: external_exports.object({
+      enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
   security: external_exports.object({
@@ -11491,6 +11494,83 @@ function isRegularExpression(source) {
 }
 var defaultConfigPath = ".prism-review.yml";
 var defaultConfig = prismConfigSchema.parse({});
+
+// src/analysis/added-lines.ts
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+function addedLines(patch) {
+  const added = [];
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      added.push({ line: newLine, content: line.slice(1) });
+    }
+    if (!line.startsWith("-")) {
+      newLine += 1;
+    }
+  }
+  return added;
+}
+
+// src/rules/line-list.ts
+var maxListedLines = 5;
+function describeLines(lines) {
+  const sorted = [...new Set(lines)].sort((left, right) => left - right);
+  const listed = sorted.slice(0, maxListedLines).join(", ");
+  const more = sorted.length > maxListedLines ? ` and ${sorted.length - maxListedLines} more` : "";
+  const plural = sorted.length > 1;
+  return { text: `${plural ? "Lines" : "Line"} ${listed}${more}`, plural };
+}
+
+// src/rules/blanket-suppression.ts
+var suppressions = [
+  ["ESLint", /\beslint-disable(?:-next-line|-line)?(?=\s*(?:\*\/|--|$))/],
+  // The directive only takes effect in a comment that starts the line.
+  ["TypeScript", /^\s*(?:\/\/|\/\*+|\*)\s*@ts-nocheck\b/],
+  ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
+  ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
+  ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/],
+  ["golangci-lint", /\/\/\s*nolint\b(?!:)/],
+  ["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]
+];
+var documentationFile = /\.(?:md|mdx|markdown|rst|txt|adoc)$/i;
+var blanketSuppressionRule = {
+  id: "blanket-suppression",
+  description: "Flags lint and type check suppressions that do not name the checks they turn off.",
+  run({ files, config }) {
+    if (!config.rules.blanketSuppression.enabled) {
+      return [];
+    }
+    return files.filter((file) => file.patch !== void 0 && !documentationFile.test(file.path)).flatMap((file) => {
+      const found = addedLines(file.patch ?? "").flatMap(
+        ({ line, content }) => suppressions.filter(([, pattern]) => pattern.test(content)).map(([kind]) => ({ line, kind }))
+      );
+      if (found.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      const kinds = [...new Set(found.map((match2) => match2.kind))].join(", ");
+      return [
+        {
+          ruleId: "blanket-suppression",
+          title: "Blanket lint suppression added",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
+          recommendation: "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
+        }
+      ];
+    });
+  }
+};
 
 // src/analysis/repository-path.ts
 function normalizeRepositoryPath(path2) {
@@ -13494,30 +13574,6 @@ var oversizedPatchRule = {
   }
 };
 
-// src/analysis/added-lines.ts
-var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
-function addedLines(patch) {
-  const added = [];
-  let newLine;
-  for (const line of patch.split(/\r?\n/)) {
-    const header = hunkHeader.exec(line);
-    if (header) {
-      newLine = Number(header[1]);
-      continue;
-    }
-    if (newLine === void 0 || line.startsWith("\\")) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      added.push({ line: newLine, content: line.slice(1) });
-    }
-    if (!line.startsWith("-")) {
-      newLine += 1;
-    }
-  }
-  return added;
-}
-
 // src/security/credential-formats.ts
 var credentialFormats = [
   { kind: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
@@ -13551,16 +13607,6 @@ function matchingKinds(content, allowlist) {
   return detectedFormats.filter(
     ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist))
   ).map(({ kind }) => kind);
-}
-
-// src/rules/line-list.ts
-var maxListedLines = 5;
-function describeLines(lines) {
-  const sorted = [...new Set(lines)].sort((left, right) => left - right);
-  const listed = sorted.slice(0, maxListedLines).join(", ");
-  const more = sorted.length > maxListedLines ? ` and ${sorted.length - maxListedLines} more` : "";
-  const plural = sorted.length > 1;
-  return { text: `${plural ? "Lines" : "Line"} ${listed}${more}`, plural };
 }
 
 // src/rules/secret-in-diff.ts
@@ -13704,6 +13750,7 @@ var defaultRules = [
   largeDiffRule,
   missingTestsRule,
   skippedTestsRule,
+  blanketSuppressionRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
