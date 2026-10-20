@@ -60,7 +60,7 @@ jobs:
 
 No checkout step is needed. The action reads the pull request and its configuration through the GitHub API, so pull request code never lands on the runner.
 
-The review is also written to the job summary on the run page. For a pull request from a fork, GitHub gives the workflow a read-only token, so the comment cannot be posted; the action then logs a warning instead of failing, and the review stays in the job summary.
+The review is also written to the job summary on the run page. For a pull request from a fork, GitHub gives `pull_request` workflows a read-only token, so the comment cannot be posted; the action then logs a warning instead of failing, and the review stays in the job summary. Other 403 errors still fail the run.
 
 ### Outputs
 

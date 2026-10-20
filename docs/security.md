@@ -32,11 +32,13 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 ## Ignored Paths
 
-`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `hidden-unicode`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it.
+`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `hidden-unicode`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
+
+The `severity` setting can lower or turn off any rule, the security rules included. That is a deliberate choice for maintainers, and the pull request that makes it is reviewed with the previous configuration, where `config-change` reports it as high risk.
 
 ## Pull Requests From Forks
 
-GitHub runs `pull_request` workflows for forks with a read-only token, so the comment cannot be posted. When the pull request's head repository differs from the base repository and the comment request returns 403, the action logs a warning and keeps the review in the job summary instead of failing. The same 403 on a pull request from the repository itself still fails the run, because it means the workflow lacks `pull-requests: write`. `check.failOn` applies either way.
+GitHub runs `pull_request` workflows for forks with a read-only token, so the comment cannot be posted. The action logs a warning and keeps the review in the job summary instead of failing only when all of these hold: the event is `pull_request`, the head repository is a different one (or was deleted), and the comment request returned 403 without a rate-limit message. Any other 403 still fails the run: on the repository's own pull requests it means the workflow lacks `pull-requests: write`, `pull_request_target` runs have a token that can write, and a rate limit is a real failure. `check.failOn` applies either way.
 
 ## Merge Gate
 
