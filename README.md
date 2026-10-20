@@ -21,6 +21,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run
 - Optionally annotates findings beside the changed files, with no extra permission
+- Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
 - Supports local fixture-based analysis
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus an end-to-end run of the bundled action
 - Ships as a self-contained bundle, so no dependency install happens on the runner
@@ -54,6 +55,8 @@ jobs:
 ```
 
 No checkout step is needed. The action reads the pull request and its configuration through the GitHub API, so pull request code never lands on the runner.
+
+To block merges on high-risk findings, set `check.failOn: "high"` in `.prism-review.yml` on the default branch and mark the `review` job as a required status check in branch protection.
 
 ## Local Development
 
