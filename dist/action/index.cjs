@@ -11594,7 +11594,10 @@ var languages = [
       // The newer `@phpstan-ignore identifier` form names what it ignores.
       ["PHPStan", /@phpstan-ignore-(?:next-)?line\b/],
       // A sniff name after the directive makes it targeted; `-- reason` alone does not.
-      ["PHP_CodeSniffer", /\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/],
+      [
+        "PHP_CodeSniffer",
+        /\bphpcs:ignoreFile\b|\bphpcs:(?:ignore|disable)\b(?!\s+[\w.]+)|@codingStandardsIgnore(?:File|Line|Start)\b/
+      ],
       ["Psalm", /@psalm-suppress\s+all\b/i]
     ]
   },
@@ -13581,7 +13584,15 @@ var bidiControls = /* @__PURE__ */ new Map([
 var invisibleCharacters = /* @__PURE__ */ new Map([
   [8203, "ZERO WIDTH SPACE"],
   [8288, "WORD JOINER"],
-  [65279, "ZERO WIDTH NO-BREAK SPACE"]
+  [8289, "FUNCTION APPLICATION"],
+  [8290, "INVISIBLE TIMES"],
+  [8291, "INVISIBLE SEPARATOR"],
+  [8292, "INVISIBLE PLUS"],
+  [65279, "ZERO WIDTH NO-BREAK SPACE"],
+  [4447, "HANGUL CHOSEONG FILLER"],
+  [4448, "HANGUL JUNGSEONG FILLER"],
+  [12644, "HANGUL FILLER"],
+  [65440, "HALFWIDTH HANGUL FILLER"]
 ]);
 var byteOrderMark = 65279;
 function isHiddenCodePoint(codePoint) {
@@ -13616,6 +13627,9 @@ function formatCodePoint(codePoint) {
 function isTagCharacter(codePoint) {
   return codePoint >= 917504 && codePoint <= 917631;
 }
+function findHiddenLines(patch) {
+  return addedLines(patch).map(({ line, content }) => ({ line, ...findHiddenCharacters(content, line === 1) })).filter((found) => found.labels.length > 0);
+}
 
 // src/rules/hidden-unicode.ts
 var effect = "characters that are invisible or reorder text";
@@ -13628,7 +13642,10 @@ var hiddenUnicodeRule = {
     }
     return files.flatMap((file) => {
       const inPath = findHiddenCharacters(file.path);
-      const inLines = addedLines(file.patch ?? "").map(({ line, content }) => ({ line, found: findHiddenCharacters(content, line === 1) })).filter(({ found }) => found.labels.length > 0);
+      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).map((found) => ({
+        line: found.line,
+        found
+      }));
       if (inPath.labels.length === 0 && inLines.length === 0) {
         return [];
       }
@@ -13767,9 +13784,14 @@ var languages2 = [
   {
     files: /\.(?:rb|rake|erb)$/,
     calls: [
-      ["eval", /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*[(\s]\s*[\w"'`@:]/],
-      ["shell command", /(?<![.\w:])(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
-      ["interpolated shell command", /%x[({[]|`[^`]*#\{/],
+      // A string, heredoc, or variable is evaluated; a `do` or `{` block is not.
+      [
+        "eval",
+        /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*\(?\s*(?:["'`]|<<[~-]?|%[qQ]?[({[]|(?!do\b)[a-z_@$][\w@$]*)|\bKernel\.eval\b/
+      ],
+      ["shell command", /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      // Backticks only run a command outside a string literal.
+      ["interpolated shell command", /%x[({[]|^[^"'`]*(?:(?:"[^"]*"|'[^']*')[^"'`]*)*`[^`]*#\{/],
       ["Marshal.load", /\bMarshal\.load\b/],
       ["YAML.unsafe_load", /\b(?:YAML|Psych)\.unsafe_load\b/],
       ["html_safe or raw", /\.html_safe\b|(?<![.\w])raw\s*\(/]
@@ -14031,7 +14053,8 @@ var languages3 = [
   {
     // xUnit, NUnit, and MSTest.
     files: /\.cs$/,
-    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|\[\s*Ignore\b/]]
+    // `Ignore` can share the brackets with other attributes, as in `[Test, Ignore("flaky")]`.
+    markers: [["skipped", /\[\s*(?:Fact|Theory)\s*\([^)\]]*\bSkip\s*=|(?:^|\])\s*\[(?:[^\]]*[\s,])?Ignore\b/]]
   },
   {
     // XCTest and Swift Testing.
@@ -14043,7 +14066,11 @@ var languages3 = [
     files: /\.php$/,
     markers: [
       ["focused", /->only\s*\(\s*\)/],
-      ["skipped", /\$this->markTest(?:Skipped|Incomplete)\s*\(|->skip\s*\(/]
+      // Pest chains `->skip()` on a test call; Laravel's query and collection `skip(10)` do not count.
+      [
+        "skipped",
+        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]*->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
+      ]
     ]
   }
 ];
@@ -14502,7 +14529,11 @@ function findSeparatorIndex(value) {
 function prepareChangedFiles(files, config) {
   const { maxPatchBytes, redaction: redaction2 } = config.security;
   const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
-  const limited = limitPatchSizes(detectSecrets(files, allowlist), maxPatchBytes);
+  const scanned = detectSecrets(files, allowlist).map((file) => ({
+    ...file,
+    hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch)
+  }));
+  const limited = limitPatchSizes(scanned, maxPatchBytes);
   return redactChangedFiles(limited, { allowlist });
 }
 
