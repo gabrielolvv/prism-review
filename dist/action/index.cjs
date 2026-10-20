@@ -13297,6 +13297,7 @@ var ruleIds = [
   "blanket-suppression",
   "risky-api",
   "workflow-risk",
+  "destructive-migration",
   "sensitive-files",
   "config-change",
   "dependency-risk",
@@ -13376,6 +13377,9 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     workflowRisk: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    destructiveMigration: external_exports.object({
+      enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
   security: external_exports.object({
@@ -13420,22 +13424,30 @@ var defaultConfigPath = ".prism-review.yml";
 var defaultConfig = prismConfigSchema.parse({});
 
 // src/analysis/added-lines.ts
-var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.*)$/;
 function patchLines(patch) {
   const lines = [];
   let newLine;
   let startsHunk = false;
+  let hunkContext;
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader.exec(line);
     if (header) {
       newLine = Number(header[1]);
       startsHunk = true;
+      hunkContext = header[2] || void 0;
       continue;
     }
     if (newLine === void 0 || line.startsWith("\\") || line.startsWith("-")) {
       continue;
     }
-    lines.push({ line: newLine, content: line.slice(1), added: line.startsWith("+"), startsHunk });
+    lines.push({
+      line: newLine,
+      content: line.slice(1),
+      added: line.startsWith("+"),
+      startsHunk,
+      ...startsHunk && hunkContext !== void 0 ? { hunkContext } : {}
+    });
     startsHunk = false;
     newLine += 1;
   }
@@ -13529,7 +13541,7 @@ var blanketSuppressionRule = {
         return [];
       }
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const kinds = [...new Set(found.map((match2) => match2.label))].join(", ");
+      const kinds2 = [...new Set(found.map((match2) => match2.label))].join(", ");
       return [
         {
           ruleId: "blanket-suppression",
@@ -13537,7 +13549,7 @@ var blanketSuppressionRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
-          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
+          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds2}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
           recommendation: "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
         }
       ];
@@ -13607,6 +13619,98 @@ var dependencyRiskRule = {
 function detectEcosystem(path2) {
   const match2 = ecosystemHints.find(([pattern]) => pattern.test(path2));
   return match2?.[1] ?? "project";
+}
+
+// src/rules/destructive-migration.ts
+var kinds = [
+  {
+    kind: "drops a table",
+    destructive: true,
+    pattern: /\bdrop\s+(?:table|schema|database)\b|(?<!\w)(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel)\b|\bSchema::drop(?:IfExists)?\s*\(/i
+  },
+  {
+    kind: "drops a column",
+    destructive: true,
+    pattern: /\bdrop\s+column\b|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
+  },
+  {
+    kind: "removes every row",
+    destructive: true,
+    pattern: /\btruncate\s+table\b|^\s*truncate\s+["`[]?\w|\bdelete\s+from\s+[\w."`[\]]+\s*;|\.truncate\s*\(\s*\)/i
+  },
+  {
+    kind: "changes a column definition",
+    destructive: false,
+    pattern: /\balter\s+column\s+["`[]?[\w.]+["`\]]?\s+(?!(?:set|drop|add|reset|restart|options)\b)\w|\b(?:modify|change)\s+column\b|(?<!\w)(?:change_column(?!_)|changeColumn|AlterColumn)\b|->change\s*\(\s*\)|\.alter\s*\(\s*\)|\balter_column\s*\([^)]*\btype_\s*=|^\s*modify\s+:/i
+  },
+  {
+    kind: "renames a table or column",
+    destructive: false,
+    pattern: /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<!\w)(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField|RenameModel)\b|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
+  }
+];
+var migrationPath = /(?:^|\/)[^/]*(?:migrat|alembic)[^/]*\/|(?:^|\/)(?:V\d[^/]*__[^/]*|[^/]*\.up)\.sql$/i;
+var migrationFile = /\.(?:sql|rb|py|[cm]?[jt]s|php|cs|go|java|kt|exs?)$/i;
+var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
+var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
+var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
+var commentLine = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var destructiveMigrationRule = {
+  id: "destructive-migration",
+  description: "Flags migrations that drop tables or columns, delete every row, or rename or redefine columns.",
+  run({ files, config }) {
+    if (!config.rules.destructiveMigration.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !migrationPath.test(file.path) || !migrationFile.test(file.path) || rollbackFile.test(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findChanges(file.patch);
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = kinds.filter(({ kind }) => found.some((match2) => match2.kind === kind));
+      const destructive = listed.some((entry) => entry.destructive);
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      const many = plural || listed.length > 1;
+      return [
+        {
+          ruleId: "destructive-migration",
+          title: destructive ? "Destructive migration added" : "Breaking schema change added",
+          severity: destructive ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry) => entry.kind).join(", ")}.`,
+          recommendation: "Back up the affected data and deploy in steps: stop using the table or column in one release, then drop or rename it in a later one, so running code does not break. Check that the migration can be rolled back."
+        }
+      ];
+    });
+  }
+};
+function findChanges(patch) {
+  const found = [];
+  let inRollback = false;
+  for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
+    if (startsHunk) {
+      inRollback = rollbackStart.test(hunkContext ?? "");
+    }
+    if (rollbackStart.test(content)) {
+      inRollback = true;
+    } else if (forwardStart.test(content)) {
+      inRollback = false;
+    }
+    if (!added || inRollback || commentLine.test(content)) {
+      continue;
+    }
+    for (const { kind, pattern } of kinds) {
+      if (pattern.test(content)) {
+        found.push({ line, kind });
+      }
+    }
+  }
+  return found;
 }
 
 // src/analysis/hidden-characters.ts
@@ -13929,9 +14033,9 @@ var riskyApiRule = {
       if (found.length === 0) {
         return [];
       }
-      const kinds = [...new Set(found.map((match2) => match2.label))];
+      const kinds2 = [...new Set(found.map((match2) => match2.label))];
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const many = plural || kinds.length > 1;
+      const many = plural || kinds2.length > 1;
       return [
         {
           ruleId: "risky-api",
@@ -13939,7 +14043,7 @@ var riskyApiRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
-          message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds2.join(", ")}.`,
           recommendation: "Check that no user or pull request input reaches these calls, and prefer a safer alternative such as JSON.parse, execFile with an argument list, yaml.safe_load, or textContent."
         }
       ];
@@ -14012,12 +14116,12 @@ function secretsIn(file, allowlist) {
   }
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
 }
-function describe(lines, kinds) {
+function describe(lines, kinds2) {
   const { text, plural } = describeLines(lines);
-  if (!plural && kinds.length === 1) {
-    return `${text} adds what looks like ${article(kinds[0] ?? "")} ${kinds[0]}. The value is redacted from this review.`;
+  if (!plural && kinds2.length === 1) {
+    return `${text} adds what looks like ${article(kinds2[0] ?? "")} ${kinds2[0]}. The value is redacted from this review.`;
   }
-  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds.join(", ")}). The values are redacted from this review.`;
+  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds2.join(", ")}). The values are redacted from this review.`;
 }
 function article(kind) {
   return /^[AEIOU]/i.test(kind) ? "an" : "a";
@@ -14320,6 +14424,7 @@ var defaultRules = [
   blanketSuppressionRule,
   riskyApiRule,
   workflowRiskRule,
+  destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
