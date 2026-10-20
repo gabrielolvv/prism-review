@@ -90,6 +90,11 @@ export const prismConfigSchema = z.object({
         .object({
           enabled: z.boolean().default(true)
         })
+        .default({}),
+      hiddenUnicode: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
         .default({})
     })
     .default({}),
