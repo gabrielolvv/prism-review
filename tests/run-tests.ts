@@ -89,6 +89,12 @@ import {
   testRenderMarkdownIncludesLowSeverityWhenEnabled
 } from "./unit/render-markdown.test.js";
 import {
+  testBlanketSuppressionRuleCanBeDisabled,
+  testBlanketSuppressionRuleIgnoresRemovedLines,
+  testBlanketSuppressionRuleIgnoresTargetedSuppressions,
+  testBlanketSuppressionRuleReportsEachLanguage
+} from "./unit/blanket-suppression.test.js";
+import {
   testDefaultRules,
   testDependencyRiskRule,
   testSensitiveFilesRuleMatchesKeywordsAsWords
@@ -138,6 +144,10 @@ const tests: Array<[string, Test]> = [
   ["skipped-tests rule ignores lookalike calls", testSkippedTestsRuleIgnoresLookalikes],
   ["skipped-tests rule covers Python, Go, and Rust with the default config", testSkippedTestsRuleCoversOtherLanguagesByDefault],
   ["skipped-tests rule can be disabled", testSkippedTestsRuleCanBeDisabled],
+  ["blanket-suppression rule reports blanket suppressions in each language", testBlanketSuppressionRuleReportsEachLanguage],
+  ["blanket-suppression rule ignores targeted suppressions", testBlanketSuppressionRuleIgnoresTargetedSuppressions],
+  ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
+  ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
   ["redactChangedFiles does not mutate original files", testRedactChangedFilesDoesNotMutateOriginal],
   ["renderMarkdown renders stable review sections", testRenderMarkdown],
   ["renderMarkdown hides info findings by default", testRenderMarkdownHidesLowSeverityByDefault],

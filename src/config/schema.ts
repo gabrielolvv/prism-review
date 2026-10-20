@@ -72,6 +72,11 @@ export const prismConfigSchema = z.object({
         .object({
           enabled: z.boolean().default(true)
         })
+        .default({}),
+      blanketSuppression: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
         .default({})
     })
     .default({}),
