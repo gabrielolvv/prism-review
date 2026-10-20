@@ -46,3 +46,8 @@ security:
   redaction:
     allowlist:
       - "^[0-9a-f]{40}$"
+
+# The bundles in dist/ are generated from src/, which is reviewed. Secret, hidden Unicode,
+# and configuration checks still read them.
+ignorePaths:
+  - "dist/**"
