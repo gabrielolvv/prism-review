@@ -44,6 +44,10 @@ GitHub runs `pull_request` workflows for forks with a read-only token, so the co
 
 GitHub lists at most 3000 files for a pull request. The `incomplete-review` rule compares that list with the `changed_files` count in the event and reports a high-risk finding when files are missing, so a gate fails rather than passing a pull request it could not review in full.
 
+## Workflow Changes
+
+`sensitive-files` reports any change under `.github/workflows/`. `workflow-risk` adds what to look at: script injection through untrusted contexts in `run` and `script`, `pull_request_target`, checkouts of pull request code, and `write-all` permissions. Branch protection should still require review for workflow changes, because a pull request can edit the workflow that runs Prism Review.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.

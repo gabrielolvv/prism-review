@@ -68,6 +68,8 @@ rules:
     enabled: true
   riskyApis:
     enabled: true
+  workflowRisk:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -175,6 +177,21 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | PHP | `eval(...)`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `unserialize(...)` | `$runner->exec(...)`, `Foo::exec(...)`, `function exec(...)`, `json_decode(...)` |
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
+
+## Workflow Risk
+
+### `rules.workflowRisk.enabled`
+
+The `workflow-risk` rule checks added lines in `.github/workflows/*.yml` and in `action.yml` files of composite actions:
+
+| Reported | Severity | Why |
+| --- | --- | --- |
+| An untrusted context, such as `github.event.issue.title`, `github.event.pull_request.body`, `github.head_ref`, or a commit message, inside `${{ }}` in a `run` or `script` value | High | The value is pasted into the script before it runs, so its author can inject commands. |
+| A `pull_request_target` trigger | Warning | The run has a writable token and the repository's secrets. |
+| A `ref:` that checks out the pull request head or `refs/pull/...` | Warning | Combined with `pull_request_target`, it runs untrusted code with those secrets. |
+| `permissions: write-all` | Warning | Every job gets every write permission. |
+
+Passing an untrusted value as data is not reported: `TITLE: ${{ github.event.issue.title }}` under `env:`, an action input under `with:`, and `if:` conditions, followed by `run: echo "$TITLE"`. Comment lines are skipped. The untrusted contexts follow GitHub Security Lab's list.
 
 ## Hidden Unicode
 
