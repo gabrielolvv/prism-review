@@ -89,7 +89,7 @@ export function testSecretInDiffRuleReportsFixtureLeak(): void {
 
   const markdown = renderMarkdown(result);
   assert.match(markdown, /^File: `src\/config\/env\.ts`, line 2$/m);
-  assert.doesNotMatch(markdown, /sk-thisShouldNeverAppear/);
+  assert.doesNotMatch(markdown, /thisShouldNeverAppear/);
   assert.match(renderAnnotations(result)[0] ?? "", /^::error file=src\/config\/env\.ts,line=2,/);
 }
 
