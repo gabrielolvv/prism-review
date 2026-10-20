@@ -17,7 +17,17 @@ export const prismConfigSchema = z.object({
         .object({
           enabled: z.boolean().default(true),
           sourceGlobs: z.array(z.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
-          testGlobs: z.array(z.string()).default(["**/*.test.*", "**/*.spec.*"])
+          testGlobs: z
+            .array(z.string())
+            .default([
+              "**/*.test.*",
+              "**/*.spec.*",
+              "**/__tests__/**",
+              "**/test_*.py",
+              "**/*_test.py",
+              "**/*_test.go",
+              "**/tests/**/*.rs"
+            ])
         })
         .default({}),
       sensitiveFiles: z

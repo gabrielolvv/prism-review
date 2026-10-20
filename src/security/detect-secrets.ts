@@ -5,15 +5,16 @@ import { credentialFormats, isAllowlisted } from "./credential-formats.js";
 // A private key header is not secret itself, but the key material follows it.
 const detectedFormats = [
   ...credentialFormats,
-  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g }
+  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g }
 ];
 
-// Runs before redaction, which would otherwise hide the values it looks for.
+// Runs before redaction, which would otherwise hide the values it looks for. Every file gets a
+// `secrets` array, so the rule can tell "scanned, nothing found" from "never scanned".
 export function detectSecrets(files: ChangedFile[], allowlist: RegExp[] = []): ChangedFile[] {
-  return files.map((file) => {
-    const secrets = file.patch === undefined ? [] : findAddedSecrets(file.patch, allowlist);
-    return secrets.length === 0 ? { ...file } : { ...file, secrets };
-  });
+  return files.map((file) => ({
+    ...file,
+    secrets: file.patch === undefined ? [] : findAddedSecrets(file.patch, allowlist)
+  }));
 }
 
 // Only added lines count: a removed line takes a secret out, and a context line was already there.
