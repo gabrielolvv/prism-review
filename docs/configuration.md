@@ -73,6 +73,18 @@ annotations:
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
 
+## Sensitive Files
+
+### `rules.sensitiveFiles.patterns`
+
+The `sensitive-files` rule reports a high-risk finding for each changed file that matches one of these globs, or whose path contains a built-in sensitive word: `auth` (including `oauth`, `authn`, `authz`, `authenticate`, and `authorize` forms), `permission`, `role`, `session`, `token`, `jwt`, `billing`, `payment`, `secret`, `migration`, `workflow`, or `Dockerfile`, singular or plural.
+
+Words are matched whole after splitting the path on `/`, `.`, `-`, `_`, and camelCase, so `src/oauthClient.ts` and `db/migrations/` count, while `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` do not. A lowercase compound with no separator, such as `authtoken.ts`, is not split; add a glob for it if it matters.
+
+### `rules.sensitiveFiles.enabled`
+
+Set to `false` to turn the rule off, including the built-in words.
+
 ## Skipped Tests
 
 ### `rules.skippedTests.enabled`

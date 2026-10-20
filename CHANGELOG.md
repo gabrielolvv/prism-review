@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- `sensitive-files` matched its built-in words anywhere in a path, so files such as `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` were reported as high risk. Words are now matched whole after splitting the path on separators and camelCase; `oauth`, `authenticate`, `authorize`, and plurals still count.
+
 ## 0.4.0 - 2026-10-20
 
 ### Added
