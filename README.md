@@ -16,6 +16,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
 - Reports credentials added in the diff, on the line where they appear, without ever printing the value
+- Flags script injection and other risky changes to GitHub Actions workflows
 - Flags bidirectional control characters and invisible text that make code read differently from how it runs
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
@@ -170,6 +171,7 @@ flowchart TD
 | `incomplete-review` | High | Flags pull requests with more changed files than GitHub returns (3000), so the unreviewed rest cannot pass a gate. |
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
+| `workflow-risk` | High or Warning | Flags script injection, `pull_request_target`, checkout of pull request code, and `write-all` permissions added to GitHub Actions workflows. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
 | `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
 | `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |

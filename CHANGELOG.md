@@ -6,6 +6,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
+- `workflow-risk` rule reports script injection, as high, when an untrusted context such as an issue title, pull request body, branch name, or commit message is used inside `${{ }}` in a workflow `run` or `script`. It also warns about added `pull_request_target` triggers, checkouts of pull request code, and `permissions: write-all`. Passing values through `env:` is not reported. `rules.workflowRisk.enabled` turns it off.
 - `incomplete-review` rule reports a high-risk finding when a pull request changes more files than GitHub returns (at most 3000), so the files that were not reviewed cannot pass a `check.failOn` gate unnoticed.
 
 ## 0.7.0 - 2026-10-20
