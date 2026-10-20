@@ -11421,7 +11421,15 @@ var prismConfigSchema = external_exports.object({
     missingTests: external_exports.object({
       enabled: external_exports.boolean().default(true),
       sourceGlobs: external_exports.array(external_exports.string()).default(["src/**/*.{ts,tsx,js,jsx}"]),
-      testGlobs: external_exports.array(external_exports.string()).default(["**/*.test.*", "**/*.spec.*"])
+      testGlobs: external_exports.array(external_exports.string()).default([
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/__tests__/**",
+        "**/test_*.py",
+        "**/*_test.py",
+        "**/*_test.go",
+        "**/tests/**/*.rs"
+      ])
     }).default({}),
     sensitiveFiles: external_exports.object({
       enabled: external_exports.boolean().default(true),
@@ -13481,6 +13489,65 @@ var oversizedPatchRule = {
   }
 };
 
+// src/analysis/added-lines.ts
+var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+function addedLines(patch) {
+  const added = [];
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      added.push({ line: newLine, content: line.slice(1) });
+    }
+    if (!line.startsWith("-")) {
+      newLine += 1;
+    }
+  }
+  return added;
+}
+
+// src/security/credential-formats.ts
+var credentialFormats = [
+  { kind: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
+  { kind: "OpenAI-style API key", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
+  { kind: "AWS access key ID", pattern: /\bAKIA[0-9A-Z]{16}\b/g }
+];
+function isAllowlisted(candidate, allowlist) {
+  return allowlist.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(candidate);
+  });
+}
+
+// src/security/detect-secrets.ts
+var detectedFormats = [
+  ...credentialFormats,
+  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g }
+];
+function detectSecrets(files, allowlist = []) {
+  return files.map((file) => ({
+    ...file,
+    secrets: file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist)
+  }));
+}
+function findAddedSecrets(patch, allowlist = []) {
+  return addedLines(patch).flatMap(
+    ({ line, content }) => matchingKinds(content, allowlist).map((kind) => ({ line, kind }))
+  );
+}
+function matchingKinds(content, allowlist) {
+  return detectedFormats.filter(
+    ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist))
+  ).map(({ kind }) => kind);
+}
+
 // src/rules/line-list.ts
 var maxListedLines = 5;
 function describeLines(lines) {
@@ -13499,22 +13566,27 @@ var secretInDiffRule = {
     if (!config.rules.secretInDiff.enabled) {
       return [];
     }
-    return files.filter((file) => file.secrets !== void 0 && file.secrets.length > 0).map((file) => {
-      const secrets = file.secrets ?? [];
-      const lines = [...new Set(secrets.map((secret) => secret.line))].sort((a, b) => a - b);
-      const kinds = [...new Set(secrets.map((secret) => secret.kind))];
-      return {
-        ruleId: "secret-in-diff",
-        title: "Possible secret added",
-        severity: "high",
-        file: file.path,
-        line: lines[0],
-        message: describe(lines, kinds),
-        recommendation: "Treat the credential as exposed: revoke or rotate it, remove it from the branch history, and load it from a secret store. If it is a known test value, add a pattern for it to security.redaction.allowlist."
-      };
-    });
+    const allowlist = config.security.redaction.allowlist.map((source) => new RegExp(source));
+    return files.map((file) => ({ file, secrets: secretsIn(file, allowlist) })).filter(({ secrets }) => secrets.length > 0).map(({ file, secrets }) => ({
+      ruleId: "secret-in-diff",
+      title: "Possible secret added",
+      severity: "high",
+      file: file.path,
+      line: Math.min(...secrets.map((secret) => secret.line)),
+      message: describe(
+        secrets.map((secret) => secret.line),
+        [...new Set(secrets.map((secret) => secret.kind))]
+      ),
+      recommendation: "Treat the credential as exposed: revoke or rotate it, remove it from the branch history, and load it from a secret store. If it is a known test value, add a pattern for it to security.redaction.allowlist."
+    }));
   }
 };
+function secretsIn(file, allowlist) {
+  if (file.secrets !== void 0) {
+    return file.secrets;
+  }
+  return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
+}
 function describe(lines, kinds) {
   const { text, plural } = describeLines(lines);
   if (!plural && kinds.length === 1) {
@@ -13549,44 +13621,21 @@ var sensitiveFilesRule = {
   }
 };
 
-// src/analysis/added-lines.ts
-var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
-function addedLines(patch) {
-  const added = [];
-  let newLine;
-  for (const line of patch.split(/\r?\n/)) {
-    const header = hunkHeader.exec(line);
-    if (header) {
-      newLine = Number(header[1]);
-      continue;
-    }
-    if (newLine === void 0 || line.startsWith("\\")) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      added.push({ line: newLine, content: line.slice(1) });
-    }
-    if (!line.startsWith("-")) {
-      newLine += 1;
-    }
-  }
-  return added;
-}
-
 // src/rules/skipped-tests.ts
-var markers = [
+var notMember = String.raw`(?<![.\w$])`;
+var testFileMarkers = [
   // Jest, Vitest, Mocha, Jasmine, and node:test.
-  ["focused", /\b(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(`]/],
-  ["focused", /\b(?:fdescribe|fit)\s*\(/],
-  ["skipped", /\b(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(`]/],
-  ["skipped", /\b(?:xdescribe|xcontext|xit|xtest)\s*\(/],
-  // pytest and unittest.
-  ["skipped", /@(?:pytest\.mark\.skip|unittest\.skip)\b/],
+  ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
+  ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
+  ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
+  ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)],
+  // pytest and unittest, including conditional skips.
+  ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
   ["skipped", /\bpytest\.skip\s*\(/],
-  // Go and Rust.
-  ["skipped", /\bt\.Skip(?:f|Now)?\s*\(/],
-  ["skipped", /#\[ignore\b/]
+  // Go: t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
+  ["skipped", /\.Skip(?:f|Now)?\s*\(/]
 ];
+var rustMarker = ["skipped", /#\[ignore\b/];
 var skippedTestsRule = {
   id: "skipped-tests",
   description: "Flags tests that a pull request focuses or skips.",
@@ -13595,7 +13644,11 @@ var skippedTestsRule = {
       return [];
     }
     const testGlobs = config.rules.missingTests.testGlobs;
-    return files.filter((file) => file.patch !== void 0 && testGlobs.some((glob) => minimatch(file.path, glob))).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0).flatMap((file) => {
+      const markers = [
+        ...testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : [],
+        ...file.path.endsWith(".rs") ? [rustMarker] : []
+      ];
       const found = addedLines(file.patch ?? "").flatMap(
         ({ line, content }) => markers.filter(([, pattern]) => pattern.test(content)).map(([marker]) => ({ line, marker }))
       );
@@ -13627,7 +13680,7 @@ function describeFocused(lines) {
 }
 function describeSkipped(lines) {
   const { text, plural } = describeLines(lines);
-  return plural ? `${text} skip tests, so they no longer run.` : `${text} skips a test, so it no longer runs.`;
+  return plural ? `${text} skip tests, so they can stop running without failing.` : `${text} skips a test, so it can stop running without failing.`;
 }
 
 // src/rules/index.ts
@@ -13768,41 +13821,6 @@ function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-// src/security/credential-formats.ts
-var credentialFormats = [
-  { kind: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
-  { kind: "OpenAI-style API key", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
-  { kind: "AWS access key ID", pattern: /\bAKIA[0-9A-Z]{16}\b/g }
-];
-function isAllowlisted(candidate, allowlist) {
-  return allowlist.some((pattern) => {
-    pattern.lastIndex = 0;
-    return pattern.test(candidate);
-  });
-}
-
-// src/security/detect-secrets.ts
-var detectedFormats = [
-  ...credentialFormats,
-  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g }
-];
-function detectSecrets(files, allowlist = []) {
-  return files.map((file) => {
-    const secrets = file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
-    return secrets.length === 0 ? { ...file } : { ...file, secrets };
-  });
-}
-function findAddedSecrets(patch, allowlist = []) {
-  return addedLines(patch).flatMap(
-    ({ line, content }) => matchingKinds(content, allowlist).map((kind) => ({ line, kind }))
-  );
-}
-function matchingKinds(content, allowlist) {
-  return detectedFormats.filter(
-    ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist))
-  ).map(({ kind }) => kind);
-}
-
 // src/security/limit-patches.ts
 function limitPatchSizes(files, maxPatchBytes) {
   return files.map((file) => {
@@ -13869,8 +13887,8 @@ function findSeparatorIndex(value) {
 function prepareChangedFiles(files, config) {
   const { maxPatchBytes, redaction: redaction2 } = config.security;
   const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
-  const limited = limitPatchSizes(files, maxPatchBytes);
-  return redactChangedFiles(detectSecrets(limited, allowlist), { allowlist });
+  const limited = limitPatchSizes(detectSecrets(files, allowlist), maxPatchBytes);
+  return redactChangedFiles(limited, { allowlist });
 }
 
 // src/testing/fixture-loader.ts
