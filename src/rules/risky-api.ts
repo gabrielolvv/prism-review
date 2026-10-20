@@ -79,6 +79,26 @@ const languages: Language[] = [
     definitions: /^\s*(?:(?:public|private|protected|static|final|abstract)\s+)*function\s+/
   },
   {
+    files: /\.(?:cs|cshtml|razor)$/,
+    calls: [
+      [
+        "shell command",
+        /\b(?:Process\.Start\s*\(|FileName\s*=)\s*"(?:[^"]*[\/\\])?(?:cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh|sh|bash|zsh)"/
+      ],
+      ["unsafe .NET deserializer", /\b(?:BinaryFormatter|SoapFormatter|NetDataContractSerializer|LosFormatter|ObjectStateFormatter)\b/],
+      ["Html.Raw", /\bHtml\.Raw\s*\(/]
+    ]
+  },
+  {
+    files: /\.swift$/,
+    calls: [
+      ["shell process", /(?:fileURLWithPath:|launchPath\s*=)\s*"\/bin\/(?:sh|bash|zsh)"/],
+      ["NSKeyedUnarchiver", /\bNSKeyedUnarchiver\.unarchiveObject\s*\(|\bNSUnarchiver\b/],
+      // `\(` inside the string is Swift interpolation.
+      ["interpolated evaluateJavaScript", /\bevaluateJavaScript\s*\(\s*"[^"]*\\\(/]
+    ]
+  },
+  {
     files: /\.go$/,
     calls: [
       [

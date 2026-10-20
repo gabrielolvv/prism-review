@@ -26,6 +26,15 @@ const languages: Language[] = [
     ]
   },
   { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
+  {
+    files: /\.cs$/,
+    markers: [
+      // Codes after `disable` make it targeted; a trailing comment alone does not.
+      ["C# compiler", /^\s*#pragma\s+warning\s+disable\s*(?:$|\/\/)/],
+      ["ReSharper", /\/\/\s*ReSharper\s+disable\s+All\b/]
+    ]
+  },
+  { files: /\.swift$/, markers: [["SwiftLint", /\/\/\s*swiftlint:disable(?::next|:this|:previous)?\s+all\b/]] },
   { files: /\.(?:rb|rake)$/, markers: [["RuboCop", /#\s*rubocop:\s*(?:disable|todo)\s+all\b/]] },
   {
     files: /\.(?:java|kt)$/,

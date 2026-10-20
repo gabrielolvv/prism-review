@@ -30,7 +30,11 @@ export const prismConfigSchema = z.object({
               "**/*_spec.rb",
               "**/*_test.rb",
               "**/src/test/**",
-              "**/*Test.php"
+              "**/*Test.php",
+              "**/*Tests.cs",
+              "**/*Test.cs",
+              "**/*.Tests/**",
+              "**/*Tests.swift"
             ])
         })
         .default({}),
