@@ -9,6 +9,7 @@ import { oversizedPatchRule } from "./oversized-patch.js";
 import { riskyApiRule } from "./risky-api.js";
 import { secretInDiffRule } from "./secret-in-diff.js";
 import { sensitiveFilesRule } from "./sensitive-files.js";
+import { workflowRiskRule } from "./workflow-risk.js";
 import { skippedTestsRule } from "./skipped-tests.js";
 import type { Rule } from "../analysis/rule.js";
 
@@ -21,6 +22,7 @@ export const defaultRules: Rule[] = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  workflowRiskRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,

@@ -9,6 +9,7 @@ export const ruleIds: readonly string[] = [
   "skipped-tests",
   "blanket-suppression",
   "risky-api",
+  "workflow-risk",
   "sensitive-files",
   "config-change",
   "dependency-risk",
