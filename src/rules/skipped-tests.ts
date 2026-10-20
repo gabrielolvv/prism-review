@@ -5,19 +5,24 @@ import { describeLines } from "./line-list.js";
 
 type Marker = "focused" | "skipped";
 
-const markers: Array<[Marker, RegExp]> = [
+// JavaScript markers must not follow a `.`, so calls such as `chart.fit(...)` do not count.
+const notMember = String.raw`(?<![.\w$])`;
+
+const testFileMarkers: Array<[Marker, RegExp]> = [
   // Jest, Vitest, Mocha, Jasmine, and node:test.
-  ["focused", /\b(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(`]/],
-  ["focused", /\b(?:fdescribe|fit)\s*\(/],
-  ["skipped", /\b(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(`]/],
-  ["skipped", /\b(?:xdescribe|xcontext|xit|xtest)\s*\(/],
-  // pytest and unittest.
-  ["skipped", /@(?:pytest\.mark\.skip|unittest\.skip)\b/],
+  ["focused", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.only(?:\.each)?\s*[(\x60]`)],
+  ["focused", new RegExp(String.raw`${notMember}(?:fdescribe|fit)\s*\(`)],
+  ["skipped", new RegExp(String.raw`${notMember}(?:describe|context|suite|it|test)\.skip(?:\.each)?\s*[(\x60]`)],
+  ["skipped", new RegExp(String.raw`${notMember}(?:xdescribe|xcontext|xit|xtest)\s*\(`)],
+  // pytest and unittest, including conditional skips.
+  ["skipped", /@(?:pytest\.mark\.skip(?:if)?|unittest\.skip(?:If|Unless)?)\b/],
   ["skipped", /\bpytest\.skip\s*\(/],
-  // Go and Rust.
-  ["skipped", /\bt\.Skip(?:f|Now)?\s*\(/],
-  ["skipped", /#\[ignore\b/]
+  // Go: t.Skip, b.Skip, s.T().Skip, and their f and Now variants.
+  ["skipped", /\.Skip(?:f|Now)?\s*\(/]
 ];
+
+// `#[ignore]` only applies to tests, and Rust keeps unit tests inside source files.
+const rustMarker: [Marker, RegExp] = ["skipped", /#\[ignore\b/];
 
 export const skippedTestsRule: Rule = {
   id: "skipped-tests",
@@ -30,8 +35,12 @@ export const skippedTestsRule: Rule = {
     const testGlobs = config.rules.missingTests.testGlobs;
 
     return files
-      .filter((file) => file.patch !== undefined && testGlobs.some((glob) => minimatch(file.path, glob)))
+      .filter((file) => file.patch !== undefined)
       .flatMap((file) => {
+        const markers = [
+          ...(testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : []),
+          ...(file.path.endsWith(".rs") ? [rustMarker] : [])
+        ];
         const found = addedLines(file.patch ?? "").flatMap(({ line, content }) =>
           markers.filter(([, pattern]) => pattern.test(content)).map(([marker]) => ({ line, marker }))
         );
@@ -71,6 +80,6 @@ function describeFocused(lines: number[]): string {
 function describeSkipped(lines: number[]): string {
   const { text, plural } = describeLines(lines);
   return plural
-    ? `${text} skip tests, so they no longer run.`
-    : `${text} skips a test, so it no longer runs.`;
+    ? `${text} skip tests, so they can stop running without failing.`
+    : `${text} skips a test, so it can stop running without failing.`;
 }

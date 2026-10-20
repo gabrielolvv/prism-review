@@ -27,7 +27,7 @@ export function testSkippedTestsRuleReportsFocusAndSkipWithLines(): void {
     file: "src/auth/login.test.ts",
     line: 2,
     message:
-      "Line 2 focuses a test, so the runner skips the other tests in scope. Lines 3, 5 skip tests, so they no longer run.",
+      "Line 2 focuses a test, so the runner skips the other tests in scope. Lines 3, 5 skip tests, so they can stop running without failing.",
     recommendation:
       "Remove focus markers before merging. If a test is skipped on purpose, explain why and link the issue that tracks re-enabling it."
   });
@@ -45,36 +45,45 @@ export function testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles(): void {
 
 export function testSkippedTestsRuleIgnoresLookalikes(): void {
   const patch = [
-    "@@ -0,0 +1,4 @@",
+    "@@ -0,0 +1,7 @@",
     "+const parts = name.split.only(1);",
     "+describeOnly(\"x\");",
     "+it(\"skips invalid rows\", () => skipRows(rows));",
-    "+expect(result.skipped).toBe(2);"
+    "+expect(result.skipped).toBe(2);",
+    "+fitAddon.fit();",
+    "+const bounds = chart.fit(points);",
+    "+runner.xit(\"not a jasmine global\");"
   ].join("\n");
 
   assert.deepEqual(skippedTestsFindings([testFile("src/rows.spec.ts", patch)]), []);
 }
 
-export function testSkippedTestsRuleCoversOtherLanguages(): void {
-  const config = prismConfigSchema.parse({
-    rules: { missingTests: { testGlobs: ["**/test_*.py", "**/*_test.go", "tests/**/*.rs"] } }
-  });
+export function testSkippedTestsRuleCoversOtherLanguagesByDefault(): void {
   const files = [
     testFile("app/test_billing.py", `@@ -0,0 +1,2 @@\n+@pytest.mark.${"skip"}(reason="flaky")\n+def test_refund(): ...`),
+    testFile("app/tests/test_tax.py", `@@ -0,0 +1 @@\n+@unittest.${"skipIf"}(True, "broken")`),
+    testFile("app/model_test.py", `@@ -0,0 +1 @@\n+@pytest.mark.${"skipif"}(sys.platform == "win32", reason="posix only")`),
     testFile("pkg/charge_test.go", `@@ -10,1 +10,2 @@\n func TestCharge(t *testing.T) {\n+\tt.${"Skip"}("gateway down")`),
-    testFile("tests/refund.rs", `@@ -0,0 +1,2 @@\n+#[${"ignore"}]\n+fn refunds_twice() {}`)
+    testFile("pkg/bench_test.go", `@@ -0,0 +1 @@\n+\ts.T().${"SkipNow"}()`),
+    testFile("tests/refund.rs", `@@ -0,0 +1,2 @@\n+#[${"ignore"}]\n+fn refunds_twice() {}`),
+    testFile("src/lib.rs", `@@ -40,2 +40,3 @@\n     #[test]\n+    #[${"ignore"} = "slow"]\n     fn parses_large_input() {}`),
+    testFile("src/fit.py", `@@ -0,0 +1 @@\n+@pytest.mark.${"skip"}`)
   ];
 
-  const findings = analyzePullRequest(files, config).findings.filter(
+  const findings = analyzePullRequest(files, defaultConfig).findings.filter(
     (finding) => finding.ruleId === "skipped-tests"
   );
 
   assert.deepEqual(
-    findings.map((finding) => [finding.file, finding.line, finding.title]),
+    findings.map((finding) => [finding.file, finding.line]),
     [
-      ["app/test_billing.py", 1, "Skipped test added"],
-      ["pkg/charge_test.go", 11, "Skipped test added"],
-      ["tests/refund.rs", 1, "Skipped test added"]
+      ["app/test_billing.py", 1],
+      ["app/tests/test_tax.py", 1],
+      ["app/model_test.py", 1],
+      ["pkg/charge_test.go", 11],
+      ["pkg/bench_test.go", 1],
+      ["tests/refund.rs", 1],
+      ["src/lib.rs", 41]
     ]
   );
 }

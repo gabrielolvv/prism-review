@@ -8,6 +8,7 @@ export type ChangedFile = {
   deletions: number;
   patch?: string;
   patchOmitted?: boolean;
+  // Set by prepareChangedFiles, which scans the patch before redaction.
   secrets?: SecretMatch[];
 };
 

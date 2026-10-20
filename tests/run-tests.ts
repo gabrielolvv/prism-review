@@ -90,17 +90,21 @@ import {
 } from "./unit/render-markdown.test.js";
 import { testDefaultRules, testDependencyRiskRule } from "./unit/rules.test.js";
 import {
+  testFindAddedSecretsDetectsPgpPrivateKeys,
   testFindAddedSecretsHonorsAllowlist,
   testFindAddedSecretsIgnoresGenericTokens,
   testFindAddedSecretsNumbersLinesInTheNewFile,
   testFindAddedSecretsSkipsGitHeaders,
+  testFindAddedSecretsStaysLinearOnHostileInput,
   testSecretInDiffRuleCanBeDisabled,
   testSecretInDiffRuleReportsFixtureLeak,
+  testSecretInDiffRuleScansOversizedPatches,
+  testSecretInDiffRuleScansUnpreparedFiles,
   testSecretInDiffRuleSummarizesManyLines
 } from "./unit/secret-in-diff.test.js";
 import {
   testSkippedTestsRuleCanBeDisabled,
-  testSkippedTestsRuleCoversOtherLanguages,
+  testSkippedTestsRuleCoversOtherLanguagesByDefault,
   testSkippedTestsRuleIgnoresLookalikes,
   testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles,
   testSkippedTestsRuleReportsFocusAndSkipWithLines
@@ -120,10 +124,14 @@ const tests: Array<[string, Test]> = [
   ["secret-in-diff rule reports the fixture leak on its line", testSecretInDiffRuleReportsFixtureLeak],
   ["secret-in-diff rule summarizes many lines", testSecretInDiffRuleSummarizesManyLines],
   ["secret-in-diff rule can be disabled", testSecretInDiffRuleCanBeDisabled],
+  ["findAddedSecrets detects PGP private keys", testFindAddedSecretsDetectsPgpPrivateKeys],
+  ["secret-in-diff rule scans patches over the size limit", testSecretInDiffRuleScansOversizedPatches],
+  ["secret-in-diff rule scans files that were not prepared", testSecretInDiffRuleScansUnpreparedFiles],
+  ["findAddedSecrets stays linear on hostile input", testFindAddedSecretsStaysLinearOnHostileInput],
   ["skipped-tests rule reports focused and skipped tests with lines", testSkippedTestsRuleReportsFocusAndSkipWithLines],
   ["skipped-tests rule ignores removed lines and non-test files", testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles],
   ["skipped-tests rule ignores lookalike calls", testSkippedTestsRuleIgnoresLookalikes],
-  ["skipped-tests rule covers Python, Go, and Rust markers", testSkippedTestsRuleCoversOtherLanguages],
+  ["skipped-tests rule covers Python, Go, and Rust with the default config", testSkippedTestsRuleCoversOtherLanguagesByDefault],
   ["skipped-tests rule can be disabled", testSkippedTestsRuleCanBeDisabled],
   ["redactChangedFiles does not mutate original files", testRedactChangedFilesDoesNotMutateOriginal],
   ["renderMarkdown renders stable review sections", testRenderMarkdown],

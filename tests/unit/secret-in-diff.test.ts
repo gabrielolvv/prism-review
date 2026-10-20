@@ -12,6 +12,7 @@ import { loadDiffFixture } from "../../src/testing/fixture-loader.js";
 const githubToken = `ghp_${"a1B2".repeat(9)}`;
 const awsKeyId = ["AKIA", "IOSFODNN7EXAMPLE"].join("");
 const privateKeyHeader = ["-----BEGIN OPENSSH PRIVATE", "KEY-----"].join(" ");
+const pgpKeyHeader = ["-----BEGIN PGP PRIVATE", "KEY BLOCK-----"].join(" ");
 
 export function testFindAddedSecretsNumbersLinesInTheNewFile(): void {
   const patch = [
@@ -116,6 +117,57 @@ export function testSecretInDiffRuleCanBeDisabled(): void {
   const result = analyzePullRequest(files, config);
 
   assert.ok(!result.findings.some((finding) => finding.ruleId === "secret-in-diff"));
+}
+
+export function testFindAddedSecretsDetectsPgpPrivateKeys(): void {
+  assert.deepEqual(findAddedSecrets(`@@ -0,0 +1 @@\n+${pgpKeyHeader}`), [{ line: 1, kind: "private key" }]);
+}
+
+export function testSecretInDiffRuleScansOversizedPatches(): void {
+  const config = prismConfigSchema.parse({ security: { maxPatchBytes: 1000 } });
+  const patch = [
+    `@@ -0,0 +1,3 @@`,
+    `+${"a".repeat(2000)}`,
+    `+const vendorKey = "${awsKeyId}";`,
+    "+export {};"
+  ].join("\n");
+  const files = prepareChangedFiles([changedFile("vendor/sdk.min.js", patch)], config);
+
+  const result = analyzePullRequest(files, config);
+
+  assert.equal(files[0]?.patch, undefined);
+  assert.deepEqual(
+    result.findings.map((finding) => [finding.ruleId, finding.line]),
+    [
+      ["secret-in-diff", 2],
+      ["oversized-patch", undefined]
+    ]
+  );
+  assert.doesNotMatch(renderMarkdown(result, { includeLowSeverity: true }), new RegExp(awsKeyId));
+}
+
+export function testSecretInDiffRuleScansUnpreparedFiles(): void {
+  const files = [changedFile("deploy/ci.sh", `@@ -0,0 +1 @@\n+export GH_TOKEN=${githubToken}`)];
+
+  const [finding] = analyzePullRequest(files, defaultConfig).findings;
+
+  assert.equal(finding?.ruleId, "secret-in-diff");
+  assert.equal(finding?.line, 1);
+}
+
+export function testFindAddedSecretsStaysLinearOnHostileInput(): void {
+  // Several megabytes of near-misses; a backtracking pattern would take minutes here.
+  const lines = [
+    `+ ${"sk-".repeat(200_000)}-`,
+    `+ ghp_${"a".repeat(1_000_000)}-`,
+    `+-----BEGIN ${"A ".repeat(500_000)}PUBLIC KEY-----`,
+    `+ ${"AKIA".repeat(250_000)}`
+  ];
+  const started = performance.now();
+
+  findAddedSecrets(`@@ -0,0 +1,4 @@\n${lines.join("\n")}`);
+
+  assert.ok(performance.now() - started < 2000, `took ${Math.round(performance.now() - started)}ms`);
 }
 
 function changedFile(path: string, patch: string): ChangedFile {
