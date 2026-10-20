@@ -11524,6 +11524,11 @@ function addedLines(patch) {
   }
   return added;
 }
+function matchAddedLines(patch, patterns, ignoreLine) {
+  return addedLines(patch).flatMap(
+    ({ line, content }) => ignoreLine?.test(content) ? [] : patterns.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
+  );
+}
 
 // src/rules/line-list.ts
 var maxListedLines = 5;
@@ -11536,17 +11541,26 @@ function describeLines(lines) {
 }
 
 // src/rules/blanket-suppression.ts
-var suppressions = [
-  ["ESLint", /\beslint-disable(?:-next-line|-line)?(?=\s*(?:\*\/|--|$))/],
-  // The directive only takes effect in a comment that starts the line.
-  ["TypeScript", /^\s*(?:\/\/|\/\*+|\*)\s*@ts-nocheck\b/],
-  ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
-  ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
-  ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/],
-  ["golangci-lint", /\/\/\s*nolint\b(?!:)/],
-  ["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]
+var languages = [
+  {
+    files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    markers: [
+      ["ESLint", /\beslint-disable(?:-next-line|-line)?(?=\s*(?:\*\/|--|$))/],
+      // Both directives only take effect in a comment that starts the line.
+      ["TypeScript", /^\s*(?:\/\/|\/\*+|\*)\s*@ts-(?:nocheck|ignore)\b/]
+    ]
+  },
+  {
+    files: /\.pyi?$/,
+    markers: [
+      ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
+      ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
+      ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/]
+    ]
+  },
+  { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
+  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]] }
 ];
-var documentationFile = /\.(?:md|mdx|markdown|rst|txt|adoc)$/i;
 var blanketSuppressionRule = {
   id: "blanket-suppression",
   description: "Flags lint and type check suppressions that do not name the checks they turn off.",
@@ -11554,15 +11568,17 @@ var blanketSuppressionRule = {
     if (!config.rules.blanketSuppression.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && !documentationFile.test(file.path)).flatMap((file) => {
-      const found = addedLines(file.patch ?? "").flatMap(
-        ({ line, content }) => suppressions.filter(([, pattern]) => pattern.test(content)).map(([kind]) => ({ line, kind }))
-      );
+    return files.flatMap((file) => {
+      const language = languages.find((candidate) => candidate.files.test(file.path));
+      if (!language || file.patch === void 0) {
+        return [];
+      }
+      const found = matchAddedLines(file.patch, language.markers);
       if (found.length === 0) {
         return [];
       }
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const kinds = [...new Set(found.map((match2) => match2.kind))].join(", ");
+      const kinds = [...new Set(found.map((match2) => match2.label))].join(", ");
       return [
         {
           ruleId: "blanket-suppression",
@@ -13582,35 +13598,45 @@ var oversizedPatchRule = {
 
 // src/rules/risky-api.ts
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
-var languages = [
+var languages2 = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
     calls: [
-      ["eval", /(?<![.\w$])eval\s*\(/],
+      ["eval", /(?<![.\w$])eval\s*\(|\b(?:window|globalThis|self)\.eval\s*\(/],
       ["Function constructor", /\bnew\s+Function\s*\(/],
-      // `exe[c]` keeps this line from containing the call it describes.
-      ["child_process exec", /(?<![.\w$])exe[c](?:Sync)?\s*\(|\bchild_process\.exe[c](?:Sync)?\s*\(/],
+      [
+        "child_process exec",
+        /(?<![.\w$])exe[c](?:Sync)?\s*\(|\b(?:child_process|childProcess|cp)\.exe[c](?:Sync)?\s*\(/
+      ],
       ["shell option", /\bshell\s*:\s*true\b/],
       [rawHtmlProp, new RegExp(`\\b${rawHtmlProp}\\b`)],
       ["innerHTML assignment", /\.(?:inner|outer)HTML\s*\+?=(?!=)/],
       ["document.write", /\bdocument\.write(?:ln)?\s*\(/]
-    ]
+    ],
+    definitions: /^\s*(?:(?:export|default|async|static|public|private|protected|override)\s+)*(?:function\s*\*?\s*)?(?:eval|exe[c](?:Sync)?)\s*\([^)]*\)\s*(?::[^{]*)?\{/
   },
   {
     files: /\.py$/,
     calls: [
       ["eval", /(?<![.\w])eval\s*\(/],
-      ["exec", /(?<![.\w])exec\s*\(/],
+      ["exec", /(?<![.\w])exe[c]\s*\(/],
       ["pickle", /\b(?:c?pickle|marshal|shelve)\.loads?\s*\(/],
-      ["yaml.load", /\byaml\.(?:load\s*\((?![^)]*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load\s*\()/],
+      [
+        "yaml.load",
+        /\byaml\.(?:load(?:_all)?\s*\((?!.*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
+      ],
       ["shell=True", /\bshell\s*=\s*True\b/],
       ["os.system", /\bos\.(?:system|popen)\s*\(/]
-    ]
+    ],
+    definitions: /^\s*(?:async\s+)?def\s+\w+\s*\(/
   },
   {
     files: /\.go$/,
     calls: [
-      ["shell command", /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:sh|bash|zsh|cmd)"\s*,\s*"(?:-c|\/c)"/],
+      [
+        "shell command",
+        /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+      ],
       ["template.HTML", /\btemplate\.HTML\s*\(/]
     ]
   }
@@ -13624,17 +13650,15 @@ var riskyApiRule = {
     }
     const testGlobs = config.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const language = languages.find((candidate) => candidate.files.test(file.path));
+      const language = languages2.find((candidate) => candidate.files.test(file.path));
       if (!language || file.patch === void 0 || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => language.calls.filter(([, pattern]) => pattern.test(content)).map(([kind]) => ({ line, kind }))
-      );
+      const found = matchAddedLines(file.patch, language.calls, language.definitions);
       if (found.length === 0) {
         return [];
       }
-      const kinds = [...new Set(found.map((match2) => match2.kind))];
+      const kinds = [...new Set(found.map((match2) => match2.label))];
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       const many = plural || kinds.length > 1;
       return [
@@ -13728,11 +13752,21 @@ function article(kind) {
 }
 
 // src/rules/sensitive-files.ts
-var sensitiveWordPatterns = [
-  // auth, authn, authz, oauth2, authenticate, authentication, authorize, authorization.
-  /^o?auth(?:[nz]|enticat\w*|ori[sz]\w*)?\d*$/,
-  /^(?:permissions?|roles?|sessions?|tokens?|jwts?|billing|payments?|secrets?|migrations?|workflows?|dockerfile)$/
+var sensitiveWords = [
+  "auth",
+  "permission",
+  "role",
+  "session",
+  "token",
+  "jwt",
+  "billing",
+  "payment",
+  "secret",
+  "migration",
+  "workflow",
+  "dockerfile"
 ];
+var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -13754,7 +13788,9 @@ var sensitiveFilesRule = {
   }
 };
 function hasSensitiveWord(path2) {
-  return pathWords(path2).some((word) => sensitiveWordPatterns.some((pattern) => pattern.test(word)));
+  return pathWords(path2).some(
+    (word) => !unrelatedWord.test(word) && sensitiveWords.some((sensitive) => word.includes(sensitive))
+  );
 }
 function pathWords(path2) {
   return path2.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word) => word.toLowerCase());
@@ -13788,9 +13824,10 @@ var skippedTestsRule = {
         ...testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : [],
         ...file.path.endsWith(".rs") ? [rustMarker] : []
       ];
-      const found = addedLines(file.patch ?? "").flatMap(
-        ({ line, content }) => markers.filter(([, pattern]) => pattern.test(content)).map(([marker]) => ({ line, marker }))
-      );
+      const found = matchAddedLines(file.patch ?? "", markers).map(({ line, label }) => ({
+        line,
+        marker: label
+      }));
       if (found.length === 0) {
         return [];
       }
