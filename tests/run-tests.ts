@@ -11,6 +11,7 @@ import {
   testResolveGitHubApiUrlNormalizesEnterpriseUrls,
   testResolveGitHubApiUrlRejectsInvalidValues
 } from "./unit/github-client.test.js";
+import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
   testRiskyApiRuleCoversAliasesAndShellForms,
@@ -164,6 +165,8 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
   ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
   ["blanket-suppression rule checks markers in their own language", testBlanketSuppressionRuleChecksMarkersInTheirLanguage],
+  ["README lists every rule", testReadmeListsEveryRule],
+  ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
   ["risky-api rule reports a single call", testRiskyApiRuleReportsASingleCall],
   ["risky-api rule ignores lookalike calls", testRiskyApiRuleIgnoresLookalikes],
