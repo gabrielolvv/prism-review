@@ -1,44 +1,57 @@
 import { minimatch } from "minimatch";
-import { addedLines } from "../analysis/added-lines.js";
+import { matchAddedLines } from "../analysis/added-lines.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
-type Language = { files: RegExp; calls: Array<[string, RegExp]> };
+type Language = { files: RegExp; calls: Array<[string, RegExp]>; definitions?: RegExp };
 
 // Assembled so this file does not match its own pattern.
 const rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 
 // Each call runs a string as code, starts a shell, deserializes untrusted data, or writes raw HTML.
-// Member calls such as `pattern.exec(input)` and `model.eval()` are excluded by the lookbehinds.
+// Member calls such as `pattern.exec(input)` and `model.eval()` are excluded by the lookbehinds,
+// and `definitions` skips lines that define a function or method with the same name.
+// `exe[c]` keeps these lines from containing the call they describe.
 const languages: Language[] = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
     calls: [
-      ["eval", /(?<![.\w$])eval\s*\(/],
+      ["eval", /(?<![.\w$])eval\s*\(|\b(?:window|globalThis|self)\.eval\s*\(/],
       ["Function constructor", /\bnew\s+Function\s*\(/],
-      // `exe[c]` keeps this line from containing the call it describes.
-      ["child_process exec", /(?<![.\w$])exe[c](?:Sync)?\s*\(|\bchild_process\.exe[c](?:Sync)?\s*\(/],
+      [
+        "child_process exec",
+        /(?<![.\w$])exe[c](?:Sync)?\s*\(|\b(?:child_process|childProcess|cp)\.exe[c](?:Sync)?\s*\(/
+      ],
       ["shell option", /\bshell\s*:\s*true\b/],
       [rawHtmlProp, new RegExp(`\\b${rawHtmlProp}\\b`)],
       ["innerHTML assignment", /\.(?:inner|outer)HTML\s*\+?=(?!=)/],
       ["document.write", /\bdocument\.write(?:ln)?\s*\(/]
-    ]
+    ],
+    definitions:
+      /^\s*(?:(?:export|default|async|static|public|private|protected|override)\s+)*(?:function\s*\*?\s*)?(?:eval|exe[c](?:Sync)?)\s*\([^)]*\)\s*(?::[^{]*)?\{/
   },
   {
     files: /\.py$/,
     calls: [
       ["eval", /(?<![.\w])eval\s*\(/],
-      ["exec", /(?<![.\w])exec\s*\(/],
+      ["exec", /(?<![.\w])exe[c]\s*\(/],
       ["pickle", /\b(?:c?pickle|marshal|shelve)\.loads?\s*\(/],
-      ["yaml.load", /\byaml\.(?:load\s*\((?![^)]*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load\s*\()/],
+      [
+        "yaml.load",
+        /\byaml\.(?:load(?:_all)?\s*\((?!.*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
+      ],
       ["shell=True", /\bshell\s*=\s*True\b/],
       ["os.system", /\bos\.(?:system|popen)\s*\(/]
-    ]
+    ],
+    definitions: /^\s*(?:async\s+)?def\s+\w+\s*\(/
   },
   {
     files: /\.go$/,
     calls: [
-      ["shell command", /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:sh|bash|zsh|cmd)"\s*,\s*"(?:-c|\/c)"/],
+      [
+        "shell command",
+        /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+      ],
       ["template.HTML", /\btemplate\.HTML\s*\(/]
     ]
   }
@@ -61,14 +74,12 @@ export const riskyApiRule: Rule = {
         return [];
       }
 
-      const found = addedLines(file.patch).flatMap(({ line, content }) =>
-        language.calls.filter(([, pattern]) => pattern.test(content)).map(([kind]) => ({ line, kind }))
-      );
+      const found = matchAddedLines(file.patch, language.calls, language.definitions);
       if (found.length === 0) {
         return [];
       }
 
-      const kinds = [...new Set(found.map((match) => match.kind))];
+      const kinds = [...new Set(found.map((match) => match.label))];
       const { text, plural } = describeLines(found.map((match) => match.line));
       const many = plural || kinds.length > 1;
 

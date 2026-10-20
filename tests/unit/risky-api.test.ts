@@ -104,6 +104,54 @@ export function testRiskyApiRuleCanBeDisabled(): void {
   assert.ok(!analyzePullRequest(files, config).findings.some((finding) => finding.ruleId === "risky-api"));
 }
 
+export function testRiskyApiRuleCoversAliasesAndShellForms(): void {
+  const findings = riskyFindings([
+    file("src/jobs/run.ts", [
+      "const cp = require(\"child_process\");",
+      "cp.exec(command);",
+      "childProcess.execSync(command);",
+      `window.${ev}(code);`
+    ]),
+    file("app/load.py", ["docs = yaml.load_all(stream)"]),
+    file("pkg/shell.go", [
+      "\tcmd := exec.Command(\"/bin/sh\", \"-c\", script)",
+      "\tcmd := exec.Command(\"cmd\", \"/C\", script)",
+      "\tcmd := exec.Command(\"bash\", \"-lc\", script)"
+    ])
+  ]);
+
+  assert.deepEqual(
+    findings.map((finding) => [finding.file, finding.line]),
+    [
+      ["src/jobs/run.ts", 2],
+      ["app/load.py", 1],
+      ["pkg/shell.go", 1]
+    ]
+  );
+  assert.match(findings[0]?.message ?? "", /^Lines 2, 3, 4 add/);
+  assert.match(findings[2]?.message ?? "", /^Lines 1, 2, 3 add/);
+}
+
+export function testRiskyApiRuleIgnoresDefinitionsAndSafeLoaders(): void {
+  const findings = riskyFindings([
+    file("app/model.py", [
+      "class Net(nn.Module):",
+      `    def ${ev}(self):`,
+      `    async def ${["ex", "ec"].join("")}(self, query):`,
+      "cfg = yaml.load(open(path), Loader=yaml.SafeLoader)"
+    ]),
+    file("src/runner.ts", [
+      "class Runner {",
+      `  ${["ex", "ec"].join("")}(command: string): void {`,
+      `  async ${ev}(code: string): Promise<unknown> {`,
+      `function ${["ex", "ec"].join("")}(command) {`,
+      `export function ${ev}Expression(input: string) {`
+    ])
+  ]);
+
+  assert.deepEqual(findings, []);
+}
+
 function riskyFindings(files: ChangedFile[]) {
   return analyzePullRequest(files, defaultConfig).findings.filter((finding) => finding.ruleId === "risky-api");
 }

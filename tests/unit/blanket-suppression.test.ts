@@ -79,6 +79,27 @@ export function testBlanketSuppressionRuleCanBeDisabled(): void {
   );
 }
 
+export function testBlanketSuppressionRuleChecksMarkersInTheirLanguage(): void {
+  const findings = blanketFindings([
+    file("src/links.ts", [
+      `const docs = "http://example.com#${noqa}";`,
+      `const hint = "# type: ${"ignore"}";`,
+      `const go = "//${nolint}";`
+    ]),
+    file("src/call.ts", ["// @ts-" + "ignore", "legacyCall(value);"]),
+    file("app/views.py", [`render(page)  # ${noqa}`])
+  ]);
+
+  assert.deepEqual(
+    findings.map((finding) => [finding.file, finding.line]),
+    [
+      ["src/call.ts", 1],
+      ["app/views.py", 1]
+    ]
+  );
+  assert.match(findings[0]?.message ?? "", /\(TypeScript\)/);
+}
+
 function blanketFindings(files: ChangedFile[]) {
   return analyzePullRequest(files, defaultConfig).findings.filter(
     (finding) => finding.ruleId === "blanket-suppression"

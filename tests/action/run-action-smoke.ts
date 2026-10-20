@@ -205,6 +205,16 @@ const scenarios: Array<[string, () => void]> = [
       assert.equal(writes[0]?.method, "PATCH");
       assert.match(failing.stderr, /Prism Review found 2 high-risk finding\(s\), and check\.failOn is "high"\./);
 
+      // dry-run prints the review instead of posting it, and the job still fails.
+      const dryRun = runAction(
+        { "INPUT_DRY-RUN": "true" },
+        { pull_request: { number: 7, base: { sha: fakeFailOnHighBaseSha } } }
+      );
+      assert.equal(dryRun.status, 1, dryRun.stderr);
+      assert.ok(dryRun.requests.every((request) => request.method === "GET"));
+      assert.match(dryRun.stdout, /<!-- prism-review-comment -->/);
+      assert.match(dryRun.stderr, /check\.failOn is "high"/);
+
       // The same pull request passes when the base configuration leaves check.failOn at "never".
       const passing = runAction({ "INPUT_DRY-RUN": "true" }, pullRequestEvent);
       assert.equal(passing.status, 0, passing.stderr);

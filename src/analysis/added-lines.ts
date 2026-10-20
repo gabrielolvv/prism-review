@@ -33,3 +33,22 @@ export function addedLines(patch: string): AddedLine[] {
 
   return added;
 }
+
+export type LineMatch<Label> = {
+  line: number;
+  label: Label;
+};
+
+// Tests every added line against labelled patterns. Lines matching `ignoreLine` are skipped whole,
+// which lets a rule leave out definitions that share a name with the calls it looks for.
+export function matchAddedLines<Label>(
+  patch: string,
+  patterns: Array<[Label, RegExp]>,
+  ignoreLine?: RegExp
+): Array<LineMatch<Label>> {
+  return addedLines(patch).flatMap(({ line, content }) =>
+    ignoreLine?.test(content)
+      ? []
+      : patterns.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
+  );
+}
