@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { defaultConfig } from "../config/schema.js";
-import { createGitHubClient, resolveGitHubApiUrl } from "../github/client.js";
+import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
@@ -11,6 +11,7 @@ import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { readInputs } from "./inputs.js";
+import { writeJobSummary, writeOutputs } from "./report.js";
 
 async function run(): Promise<void> {
   const inputs = readInputs();
@@ -51,17 +52,33 @@ async function run(): Promise<void> {
     }
   }
 
+  writeOutputs(result);
+  writeJobSummary(body);
+
   if (inputs.dryRun) {
     printUntrusted(body);
   } else {
-    await publishPullRequestComment(
-      client,
-      owner,
-      repo,
-      pullRequest.number,
-      body,
-      config.comment.mode
-    );
+    try {
+      await publishPullRequestComment(
+        client,
+        owner,
+        repo,
+        pullRequest.number,
+        body,
+        config.comment.mode
+      );
+    } catch (error) {
+      // A pull request from a fork gets a read-only token, so the comment cannot be posted. That is
+      // not the pull request's fault, and the review is still in the job summary. In the same
+      // repository a 403 means the workflow lacks pull-requests: write, which should fail.
+      if (!(error instanceof GitHubApiError && error.status === 403 && isFromFork(pullRequest, owner, repo))) {
+        throw error;
+      }
+
+      console.log(
+        "::warning title=Prism Review::Could not post the review comment because the token is read-only for pull requests from forks. The review is in the job summary."
+      );
+    }
   }
 
   // Fail only after the review is published, so the reason is on the pull request.
@@ -86,7 +103,18 @@ type PullRequest = {
   base?: {
     sha?: string;
   };
+  head?: {
+    repo?: {
+      full_name?: string;
+    } | null;
+  };
 };
+
+// A deleted head repository can only belong to a fork.
+function isFromFork(pullRequest: PullRequest, owner: string, repo: string): boolean {
+  const headRepository = pullRequest.head?.repo?.full_name;
+  return headRepository === undefined || headRepository.toLowerCase() !== `${owner}/${repo}`.toLowerCase();
+}
 
 type PullRequestEvent = {
   pull_request?: PullRequest;

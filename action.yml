@@ -13,6 +13,15 @@ inputs:
     description: "Render the review without publishing a pull request comment."
     required: false
     default: "false"
+outputs:
+  risk-level:
+    description: "Overall risk level of the review: low, medium, or high."
+  high-count:
+    description: "Number of high-risk findings."
+  warning-count:
+    description: "Number of warning findings."
+  finding-count:
+    description: "Number of findings of every severity, including info."
 runs:
   using: "node24"
   main: "dist/action/index.cjs"

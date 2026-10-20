@@ -29,7 +29,20 @@ const annotationsConfig = "annotations:\n  enabled: true\n";
 
 const failOnHighConfig = "check:\n  failOn: high\n";
 
+class ErrorResponse {
+  constructor(
+    readonly status: number,
+    readonly body: unknown
+  ) {}
+}
+
 const routes: Record<string, (body: unknown) => unknown> = {
+  "GET /repos/acme/widgets/pulls/13/files?per_page=100&page=1": () => [
+    { filename: "src/auth/login.ts", status: "modified", additions: 1, deletions: 0, patch: "@@ -1 +1,2 @@\n x\n+y" }
+  ],
+  "GET /repos/acme/widgets/issues/13/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/13/comments": () =>
+    new ErrorResponse(403, { message: "Resource not accessible by integration" }),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeBaseSha}`]: () =>
     fileContent(baseConfig),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAppendBaseSha}`]: () =>
@@ -110,5 +123,11 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
     return new Response('{"message":"Not Found"}', { status: 404 });
   }
 
-  return new Response(JSON.stringify(route(body)), { status: 200 });
+  // A route can answer with an error status by returning { status, body }.
+  const result = route(body);
+  if (result instanceof ErrorResponse) {
+    return new Response(JSON.stringify(result.body), { status: result.status });
+  }
+
+  return new Response(JSON.stringify(result), { status: 200 });
 }) as typeof fetch;

@@ -362,6 +362,49 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the review is written to the job summary and step outputs",
+    () => {
+      const outputPath = join(workDir, "outputs.txt");
+      const summaryPath = join(workDir, "summary.md");
+      writeFileSync(outputPath, "");
+      writeFileSync(summaryPath, "");
+
+      const run = runAction({ GITHUB_OUTPUT: outputPath, GITHUB_STEP_SUMMARY: summaryPath }, pullRequestEvent);
+      const outputs = readFileSync(outputPath, "utf8");
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(outputs, /^risk-level=high$/m);
+      assert.match(outputs, /^high-count=2$/m);
+      // Two high, two warning (large diff, missing tests), and one info finding.
+      assert.match(outputs, /^warning-count=2$/m);
+      assert.match(outputs, /^finding-count=5$/m);
+      assert.match(readFileSync(summaryPath, "utf8"), /^## Prism Review$/m);
+    }
+  ],
+  [
+    "a pull request from a fork that cannot be commented on still passes",
+    () => {
+      const summaryPath = join(workDir, "fork-summary.md");
+      writeFileSync(summaryPath, "");
+      const forkEvent = {
+        pull_request: { number: 13, base: { sha: "1111111111111111111111111111111111111111" }, head: { repo: { full_name: "someone/widgets" } } }
+      };
+
+      const fork = runAction({ GITHUB_STEP_SUMMARY: summaryPath }, forkEvent);
+
+      assert.equal(fork.status, 0, fork.stderr);
+      assert.match(fork.stdout, /^::warning title=Prism Review::Could not post the review comment/m);
+      assert.match(readFileSync(summaryPath, "utf8"), /^#### High - Sensitive file changed$/m);
+
+      // The same 403 on a pull request from this repository is a workflow misconfiguration.
+      const sameRepository = runAction({}, {
+        pull_request: { ...forkEvent.pull_request, head: { repo: { full_name: "acme/widgets" } } }
+      });
+      assert.equal(sameRepository.status, 1);
+      assert.match(sameRepository.stderr, /GitHub API request failed: 403/);
+    }
+  ],
+  [
     "events other than pull_request are skipped",
     () => {
       const run = runAction({}, { ref: "refs/heads/master" });
