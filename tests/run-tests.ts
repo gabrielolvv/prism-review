@@ -64,6 +64,12 @@ import {
   testIncompleteReviewRuleReportsMissingFiles,
   testIncompleteReviewRuleIsQuietWhenEveryFileArrived
 } from "./unit/incomplete-review.test.js";
+import {
+  testWorkflowRiskRuleReportsScriptInjectionAsHigh,
+  testWorkflowRiskRuleReportsRiskyTriggersAndPermissions,
+  testWorkflowRiskRuleIgnoresSafePatterns,
+  testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled
+} from "./unit/workflow-risk.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -255,6 +261,10 @@ const tests: Array<[string, Test]> = [
   ["render markdown caps the comment length", testRenderMarkdownCapsTheCommentLength],
   ["incomplete-review rule reports files GitHub did not return", testIncompleteReviewRuleReportsMissingFiles],
   ["incomplete-review rule is quiet when every file arrived", testIncompleteReviewRuleIsQuietWhenEveryFileArrived],
+  ["workflow risk rule reports script injection as high", testWorkflowRiskRuleReportsScriptInjectionAsHigh],
+  ["workflow risk rule reports risky triggers and permissions", testWorkflowRiskRuleReportsRiskyTriggersAndPermissions],
+  ["workflow risk rule ignores safe patterns", testWorkflowRiskRuleIgnoresSafePatterns],
+  ["workflow risk rule checks composite actions and can be disabled", testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
