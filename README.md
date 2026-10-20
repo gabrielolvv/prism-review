@@ -16,6 +16,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
 - Reports credentials added in the diff, on the line where they appear, without ever printing the value
+- Flags bidirectional control characters and invisible text that make code read differently from how it runs
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
@@ -149,6 +150,7 @@ flowchart TD
 | Rule | Severity | Purpose |
 | --- | --- | --- |
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
+| `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
 | `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
 | `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |
@@ -184,7 +186,6 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 
 ## Roadmap
 
-- Add prompt-injection test fixtures
 - Add optional, provider-neutral AI review summaries
 - Add GitHub App mode with queue-based processing and organization-level analytics
 

@@ -23,12 +23,13 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `check.failOn` to fail the job, so branch protection can require the review.
 - Ruby, Java, Kotlin, PHP, C#, and Swift patterns for `risky-api`, `blanket-suppression`, and `skipped-tests`.
 - `analyze --diff -` in the CLI, for reviewing local changes before pushing.
+- `hidden-unicode` rule for bidirectional controls and invisible characters, and a prompt-injection fixture with a test that the review ignores it.
 
 ## Near Term
 
-### Add prompt-injection fixtures
+### Add more prompt-injection fixtures
 
-Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
+`fixtures/diffs/prompt-injection.diff` covers plain-text instructions and a forged review header. Fixtures with instructions hidden in tag characters, in base64, and in file names should exist before an AI layer reads any patch content.
 
 ## Mid Term
 

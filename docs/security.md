@@ -24,6 +24,12 @@ The action fetches `config-path` from the pull request base commit through the c
 
 `config-path` must be a relative path inside the repository. Absolute paths and `..` segments are rejected before any request is made.
 
+## Hidden Characters
+
+Pull request content can contain characters a reviewer cannot see. The `hidden-unicode` rule reports bidirectional controls and invisible characters on added lines and in file names, and the comment renders hidden characters in file names as `\u{...}` escapes, so a name such as `invoice<U+202E>fdp.exe` cannot pass for `invoiceexe.pdf`.
+
+`fixtures/diffs/prompt-injection.diff` holds instructions aimed at an AI reviewer, such as "ignore all previous instructions" and a forged review header. A unit test checks that the review of that diff is unchanged and that none of the text reaches the comment. Any future AI layer should be tested against the same fixture.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.
