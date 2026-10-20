@@ -9235,6 +9235,7 @@ minimatch.escape = escape;
 minimatch.unescape = unescape;
 
 // src/analysis/changed-file.ts
+var pullRequestFileLimit = 3e3;
 function changedLines(file) {
   return file.additions + file.deletions;
 }
@@ -13420,26 +13421,28 @@ var defaultConfig = prismConfigSchema.parse({});
 
 // src/analysis/added-lines.ts
 var hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
-function addedLines(patch) {
-  const added = [];
+function patchLines(patch) {
+  const lines = [];
   let newLine;
+  let startsHunk = false;
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader.exec(line);
     if (header) {
       newLine = Number(header[1]);
+      startsHunk = true;
       continue;
     }
-    if (newLine === void 0 || line.startsWith("\\")) {
+    if (newLine === void 0 || line.startsWith("\\") || line.startsWith("-")) {
       continue;
     }
-    if (line.startsWith("+")) {
-      added.push({ line: newLine, content: line.slice(1) });
-    }
-    if (!line.startsWith("-")) {
-      newLine += 1;
-    }
+    lines.push({ line: newLine, content: line.slice(1), added: line.startsWith("+"), startsHunk });
+    startsHunk = false;
+    newLine += 1;
   }
-  return added;
+  return lines;
+}
+function addedLines(patch) {
+  return patchLines(patch).filter((line) => line.added).map(({ line, content }) => ({ line, content }));
 }
 function matchAddedLines(patch, patterns, ignoreLine) {
   return addedLines(patch).flatMap(
@@ -13722,7 +13725,7 @@ var incompleteReviewRule = {
   description: "Flags pull requests with more changed files than GitHub returned for review.",
   seesIgnoredFiles: true,
   run({ files, expectedFileCount }) {
-    if (expectedFileCount === void 0 || expectedFileCount <= files.length) {
+    if (expectedFileCount === void 0 || expectedFileCount <= files.length || files.length < pullRequestFileLimit) {
       return [];
     }
     return [
@@ -14067,10 +14070,37 @@ function pathWords(path2) {
 
 // src/rules/workflow-risk.ts
 var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
-var untrustedContext = /\bgithub\.(?:head_ref|event\.(?:issue\.(?:title|body)|pull_request\.(?:title|body|head\.(?:ref|label|repo\.default_branch))|comment\.body|review\.body|review_comment\.body|discussion\.(?:title|body)|pages(?:\.\*|\[\d+\])\.page_name|(?:commits(?:\.\*|\[\d+\])|head_commit)\.(?:message|author\.(?:email|name))|workflow_run\.(?:head_branch|head_commit\.(?:message|author\.(?:email|name)))))\b/g;
-var dataMapping = /^\s*(?:-\s+)?(?!run\b|script\b)[\w-]+:\s*\$\{\{/;
+var untrustedPaths = [
+  "github.head_ref",
+  "github.event.issue.title",
+  "github.event.issue.body",
+  "github.event.pull_request.title",
+  "github.event.pull_request.body",
+  "github.event.pull_request.head.ref",
+  "github.event.pull_request.head.label",
+  "github.event.pull_request.head.repo.default_branch",
+  "github.event.comment.body",
+  "github.event.review.body",
+  "github.event.review_comment.body",
+  "github.event.discussion.title",
+  "github.event.discussion.body",
+  "github.event.pages.*.page_name",
+  "github.event.commits.*.message",
+  "github.event.commits.*.author.email",
+  "github.event.commits.*.author.name",
+  "github.event.head_commit.message",
+  "github.event.head_commit.author.email",
+  "github.event.head_commit.author.name",
+  "github.event.workflow_run.head_branch",
+  "github.event.workflow_run.head_commit.message",
+  "github.event.workflow_run.head_commit.author.email",
+  "github.event.workflow_run.head_commit.author.name"
+].map((path2) => path2.split("."));
+var scriptKeys = /* @__PURE__ */ new Set(["run", "script"]);
+var mapping = /^(\s*)(?:-\s+)?([\w.-]+)\s*:(?:\s+(.*))?$/;
+var blockScalar = /^[|>][+-]?\d*\s*(?:#.*)?$/;
 var warnings = [
-  ["pull_request_target trigger", /\bpull_request_target\b/],
+  ["pull_request_target trigger", /^\s*(?:-\s*)?pull_request_target\s*:?\s*(?:#.*)?$|^\s*on\s*:.*\bpull_request_target\b/],
   ["write-all permissions", /^\s*permissions:\s*write-all\b/],
   [
     "checkout of pull request code",
@@ -14080,41 +14110,30 @@ var warnings = [
 var workflowRiskRule = {
   id: "workflow-risk",
   description: "Flags script injection, risky triggers, and broad permissions added to GitHub Actions workflows.",
+  // A path setting must not be able to hide script injection.
+  seesIgnoredFiles: true,
   run({ files, config }) {
     if (!config.rules.workflowRisk.enabled) {
       return [];
     }
     return files.filter((file) => file.patch !== void 0 && workflowFile.test(file.path)).flatMap((file) => {
-      const injected = [];
-      const kinds = [];
-      const lines = [];
-      for (const { line, content } of addedLines(file.patch ?? "")) {
-        if (/^\s*#/.test(content)) {
-          continue;
-        }
-        const found = dataMapping.test(content) ? [] : [...content.matchAll(/\$\{\{([^}]*)\}\}/g)].flatMap(
-          ([, expression]) => [...(expression ?? "").matchAll(untrustedContext)].map(([context]) => context)
-        );
-        const lineKinds = warnings.filter(([, pattern]) => pattern.test(content)).map(([kind]) => kind);
-        if (found.length > 0 || lineKinds.length > 0) {
-          lines.push(line);
-          injected.push(...found);
-          kinds.push(...lineKinds);
-        }
-      }
+      const injections = findInjections(file.patch ?? "");
+      const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
+      const lines = [...injections.map(({ line }) => line), ...flagged.map(({ line }) => line)];
       if (lines.length === 0) {
         return [];
       }
+      const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
       const labels = [
-        ...injected.length > 0 ? [`untrusted input in a script (${[...new Set(injected)].join(", ")})`] : [],
-        ...new Set(kinds)
+        ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
+        ...new Set(flagged.map(({ label }) => label))
       ];
       const { text, plural } = describeLines(lines);
       return [
         {
           ruleId: "workflow-risk",
           title: "Risky workflow change",
-          severity: injected.length > 0 ? "high" : "warning",
+          severity: contexts.length > 0 ? "high" : "warning",
           file: file.path,
           line: Math.min(...lines),
           message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels.join(", ")}.`,
@@ -14124,6 +14143,56 @@ var workflowRiskRule = {
     });
   }
 };
+function findInjections(patch) {
+  const found = [];
+  let block;
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      block = void 0;
+    }
+    const indent = content.length - content.trimStart().length;
+    if (block && content.trim() !== "" && indent <= block.indent) {
+      block = void 0;
+    }
+    let executed;
+    if (block) {
+      executed = block.script;
+    } else {
+      const entry = mapping.exec(content);
+      const key = entry?.[2];
+      const value = entry?.[3] ?? "";
+      executed = key === void 0 || scriptKeys.has(key);
+      if (entry && key && blockScalar.test(value)) {
+        block = { indent: (entry[1] ?? "").length + (/^\s*-\s+/.test(content) ? content.trimStart().indexOf(key) : 0), script: scriptKeys.has(key) };
+      }
+    }
+    if (!added || /^\s*#/.test(content)) {
+      continue;
+    }
+    const contexts = executed ? untrustedContexts(content) : [];
+    if (contexts.length > 0) {
+      found.push({ line, contexts });
+    }
+  }
+  return found;
+}
+function untrustedContexts(text) {
+  const contexts = [];
+  for (const [, expression = ""] of text.matchAll(/\$\{\{([\s\S]*?)\}\}/g)) {
+    const normalized = expression.replace(/\[\s*['"]([\w-]+)['"]\s*\]/g, ".$1").replace(/\[\s*\d+\s*\]/g, ".*");
+    for (const [path2] of normalized.matchAll(/\bgithub(?:\.[\w*-]+)*/g)) {
+      if (isUntrusted(path2.split("."))) {
+        contexts.push(path2);
+      }
+    }
+  }
+  return contexts;
+}
+function isUntrusted(path2) {
+  return untrustedPaths.some(
+    (untrusted) => path2.length <= untrusted.length && path2.every((segment, index) => untrusted[index] === "*" || untrusted[index] === segment)
+  );
+}
 
 // src/rules/skipped-tests.ts
 var notMember = String.raw`(?<![.\w$])`;
@@ -14339,7 +14408,7 @@ var GitHubApiError = class extends Error {
 var defaultGitHubApiUrl = "https://api.github.com";
 var requestTimeoutMs = 15e3;
 var pageSize = 100;
-var maxPages = 30;
+var maxPages = pullRequestFileLimit / pageSize;
 var maxErrorDetailLength = 300;
 function createGitHubClient(token, apiUrl = defaultGitHubApiUrl) {
   async function request(path2, options = {}) {
