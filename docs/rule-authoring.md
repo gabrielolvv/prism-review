@@ -18,7 +18,11 @@ type Rule = {
 
 Renamed files carry `previousPath`, so a rule that tracks a specific file should check both paths.
 
-Set `line` on a finding when it points at a specific line of the new file. The comment shows it next to the path, and annotations attach to it. `addedLines` in `src/analysis/added-lines.ts` returns the lines a patch adds with their numbers in the new file, and `src/rules/skipped-tests.ts` shows a rule built on it.
+Set `line` on a finding when it points at a specific line of the new file. The comment shows it next to the path, and annotations attach to it. `addedLines` in `src/analysis/added-lines.ts` returns the lines a patch adds with their numbers in the new file. `matchAddedLines` tests those lines against labelled patterns and can skip lines that match an `ignoreLine` pattern; `src/rules/risky-api.ts` and `src/rules/blanket-suppression.ts` show rules built on it.
+
+Every rule in `src/rules/index.ts` must have a row in the README's "Current Rules" table and be named in `docs/configuration.md`; `npm test` fails otherwise.
+
+Patterns are checked against this repository's own pull requests by the dogfood workflow. Write test inputs and pattern sources so they do not contain the text they look for, for example by assembling a marker with `["eval", "("].join("")` in a test or writing `exe[c]` in a regular expression.
 
 Rules see patches after redaction. A rule that needs the original values, as `secret-in-diff` does, must collect what it needs in `src/security/prepare-changed-files.ts` before redaction runs, and keep only non-sensitive facts such as line numbers on the changed file.
 

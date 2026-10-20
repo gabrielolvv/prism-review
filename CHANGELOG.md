@@ -16,6 +16,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Fixed
 
+- The README listed six of the ten rules, described the patch size limit as running before all pattern matching, and still listed shipped annotations as roadmap work. A test now fails when a registered rule is missing from the README or `docs/configuration.md`.
 - `sensitive-files` reported files such as `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` as high risk because their paths contain `auth` or `token`. A short list of words that only look related (`author`, `tokenize`, `parole`, `secretary`) is now left out; every other path that contains a sensitive word, such as `Unauthorized.ts` or `jwtauth/`, is still reported.
 
 ## 0.4.0 - 2026-10-20

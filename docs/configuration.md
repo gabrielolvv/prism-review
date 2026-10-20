@@ -92,6 +92,12 @@ The path is split into words on `/`, `.`, `-`, `_`, and camelCase, and a word co
 
 Set to `false` to turn the rule off, including the built-in words.
 
+## Dependency Risk
+
+### `rules.dependencyRisk.manifests`
+
+The `dependency-risk` rule warns for each changed file that matches one of these globs. The defaults cover Node.js, Python, Go, and Rust manifests and lockfiles, and the message names the ecosystem. `rules.dependencyRisk.enabled: false` turns the rule off.
+
 ## Skipped Tests
 
 ### `rules.skippedTests.enabled`
