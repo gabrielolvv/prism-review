@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { defaultRules } from "../rules/index.js";
+import { ruleIds } from "../rules/ids.js";
 
-const ruleIds = new Set(defaultRules.map((rule) => rule.id));
+const knownRuleIds = new Set(ruleIds);
 
 export const prismConfigSchema = z.object({
   risk: z
@@ -133,7 +133,7 @@ export const prismConfigSchema = z.object({
     .default({})
     .superRefine((overrides, context) => {
       for (const id of Object.keys(overrides)) {
-        if (!ruleIds.has(id)) {
+        if (!knownRuleIds.has(id)) {
           context.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
         }
       }

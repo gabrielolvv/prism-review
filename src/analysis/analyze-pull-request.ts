@@ -1,6 +1,6 @@
-import { minimatch } from "minimatch";
+import { Minimatch } from "minimatch";
 import { changedLines, type ChangedFile } from "./changed-file.js";
-import type { Finding, ReviewResult, RiskLevel } from "./finding.js";
+import { countBySeverity, type Finding, type ReviewResult, type RiskLevel } from "./finding.js";
 import type { Rule } from "./rule.js";
 import { defaultConfigPath, type PrismConfig } from "../config/schema.js";
 import { defaultRules } from "../rules/index.js";
@@ -17,7 +17,13 @@ export function analyzePullRequest(
   options: AnalyzeOptions = {}
 ): ReviewResult {
   const { rules = defaultRules, configPath = defaultConfigPath } = options;
-  const reviewed = files.filter((file) => !config.ignorePaths.some((glob) => minimatch(file.path, glob)));
+  // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
+  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
+  const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
+  // A file moved into an ignored directory is still reviewed, so a rename cannot hide a change.
+  const reviewed = files.filter(
+    (file) => !(isIgnored(file.path) && (file.previousPath === undefined || isIgnored(file.previousPath)))
+  );
   const findings = rules
     .flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath }))
     .flatMap((finding) => applySeverityOverride(finding, config))
@@ -46,9 +52,7 @@ function buildSummary(reviewedCount: number, ignoredCount: number, findings: Fin
     return `${reviewed} No configured risk signals were detected.`;
   }
 
-  const highCount = findings.filter((finding) => finding.severity === "high").length;
-  const warningCount = findings.filter((finding) => finding.severity === "warning").length;
-  return `${reviewed} Found ${highCount} high-risk and ${warningCount} warning-level signal(s).`;
+  return `${reviewed} Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
 }
 
 function calculateRiskLevel(
@@ -60,12 +64,13 @@ function calculateRiskLevel(
     return "high";
   }
 
+  // Turning large-diff off also turns off the size check it shares with the risk level.
   const totalChangedLines = files.reduce((total, file) => total + changedLines(file), 0);
   const largeDiff = config.risk.largeDiff;
+  const sizeCounts = config.severity["large-diff"] !== "off";
   if (
-    findings.filter((finding) => finding.severity === "warning").length >= 2 ||
-    files.length > largeDiff.maxFiles ||
-    totalChangedLines > largeDiff.maxChangedLines
+    countBySeverity(findings, "warning") >= 2 ||
+    (sizeCounts && (files.length > largeDiff.maxFiles || totalChangedLines > largeDiff.maxChangedLines))
   ) {
     return "medium";
   }

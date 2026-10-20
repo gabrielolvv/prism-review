@@ -71,7 +71,7 @@ async function run(): Promise<void> {
       // A pull request from a fork gets a read-only token, so the comment cannot be posted. That is
       // not the pull request's fault, and the review is still in the job summary. In the same
       // repository a 403 means the workflow lacks pull-requests: write, which should fail.
-      if (!(error instanceof GitHubApiError && error.status === 403 && isFromFork(pullRequest, owner, repo))) {
+      if (!isReadOnlyForkToken(error, pullRequest, owner, repo)) {
         throw error;
       }
 
@@ -110,10 +110,28 @@ type PullRequest = {
   };
 };
 
-// A deleted head repository can only belong to a fork.
+// Only the pull_request event gives forks a read-only token; pull_request_target can write, and a
+// rate-limit 403 is a real failure, so both of those still fail the run.
+function isReadOnlyForkToken(error: unknown, pullRequest: PullRequest, owner: string, repo: string): boolean {
+  return (
+    error instanceof GitHubApiError &&
+    error.status === 403 &&
+    !/rate limit/i.test(error.message) &&
+    process.env.GITHUB_EVENT_NAME === "pull_request" &&
+    isFromFork(pullRequest, owner, repo)
+  );
+}
+
+// A deleted head repository (`repo: null`) can only belong to a fork. A payload with no head
+// information at all is not treated as a fork, so its 403 still fails.
 function isFromFork(pullRequest: PullRequest, owner: string, repo: string): boolean {
-  const headRepository = pullRequest.head?.repo?.full_name;
-  return headRepository === undefined || headRepository.toLowerCase() !== `${owner}/${repo}`.toLowerCase();
+  const headRepository = pullRequest.head?.repo;
+  if (headRepository === null) {
+    return true;
+  }
+
+  const fullName = headRepository?.full_name;
+  return fullName !== undefined && fullName.toLowerCase() !== `${owner}/${repo}`.toLowerCase();
 }
 
 type PullRequestEvent = {

@@ -17,3 +17,7 @@ export type ReviewResult = {
   riskLevel: RiskLevel;
   findings: Finding[];
 };
+
+export function countBySeverity(findings: Finding[], severity: Severity): number {
+  return findings.filter((finding) => finding.severity === severity).length;
+}

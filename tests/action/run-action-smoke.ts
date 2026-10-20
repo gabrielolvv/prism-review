@@ -386,22 +386,30 @@ const scenarios: Array<[string, () => void]> = [
     () => {
       const summaryPath = join(workDir, "fork-summary.md");
       writeFileSync(summaryPath, "");
-      const forkEvent = {
-        pull_request: { number: 13, base: { sha: "1111111111111111111111111111111111111111" }, head: { repo: { full_name: "someone/widgets" } } }
-      };
+      const base = { sha: "1111111111111111111111111111111111111111" };
+      const fork = { pull_request: { number: 13, base, head: { repo: { full_name: "someone/widgets" } } } };
+      const onPullRequest = { GITHUB_EVENT_NAME: "pull_request" };
 
-      const fork = runAction({ GITHUB_STEP_SUMMARY: summaryPath }, forkEvent);
-
-      assert.equal(fork.status, 0, fork.stderr);
-      assert.match(fork.stdout, /^::warning title=Prism Review::Could not post the review comment/m);
+      const forkRun = runAction({ ...onPullRequest, GITHUB_STEP_SUMMARY: summaryPath }, fork);
+      assert.equal(forkRun.status, 0, forkRun.stderr);
+      assert.match(forkRun.stdout, /^::warning title=Prism Review::Could not post the review comment/m);
       assert.match(readFileSync(summaryPath, "utf8"), /^#### High - Sensitive file changed$/m);
 
-      // The same 403 on a pull request from this repository is a workflow misconfiguration.
-      const sameRepository = runAction({}, {
-        pull_request: { ...forkEvent.pull_request, head: { repo: { full_name: "acme/widgets" } } }
-      });
-      assert.equal(sameRepository.status, 1);
-      assert.match(sameRepository.stderr, /GitHub API request failed: 403/);
+      const deletedFork = runAction(onPullRequest, { pull_request: { number: 13, base, head: { repo: null } } });
+      assert.equal(deletedFork.status, 0, deletedFork.stderr);
+
+      // Each of these 403s is a real failure, not a read-only fork token.
+      const failures: Array<[string, Record<string, string>, unknown]> = [
+        ["same repository", onPullRequest, { pull_request: { number: 13, base, head: { repo: { full_name: "acme/widgets" } } } }],
+        ["no head information", onPullRequest, { pull_request: { number: 13, base } }],
+        ["pull_request_target", { GITHUB_EVENT_NAME: "pull_request_target" }, fork],
+        ["rate limit", onPullRequest, { pull_request: { number: 15, base, head: { repo: { full_name: "someone/widgets" } } } }]
+      ];
+      for (const [name, env, event] of failures) {
+        const run = runAction(env, event);
+        assert.equal(run.status, 1, name);
+        assert.match(run.stderr, /GitHub API request failed: 403/, name);
+      }
     }
   ],
   [

@@ -1,5 +1,5 @@
 import { appendFileSync } from "node:fs";
-import type { ReviewResult } from "../analysis/finding.js";
+import { countBySeverity, type ReviewResult } from "../analysis/finding.js";
 
 // Step outputs hold only values the action computes, never pull request content.
 export function writeOutputs(result: ReviewResult, outputPath = process.env.GITHUB_OUTPUT): void {
@@ -7,11 +7,10 @@ export function writeOutputs(result: ReviewResult, outputPath = process.env.GITH
     return;
   }
 
-  const count = (severity: string) => result.findings.filter((finding) => finding.severity === severity).length;
   const outputs = {
     "risk-level": result.riskLevel,
-    "high-count": count("high"),
-    "warning-count": count("warning"),
+    "high-count": countBySeverity(result.findings, "high"),
+    "warning-count": countBySeverity(result.findings, "warning"),
     "finding-count": result.findings.length
   };
 
