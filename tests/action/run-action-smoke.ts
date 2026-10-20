@@ -8,6 +8,7 @@ import {
   fakeAnnotationsBaseSha,
   fakeAppendBaseSha,
   fakeBaseSha,
+  fakeFailOnHighBaseSha,
   fakeLeakedToken
 } from "../support/fake-github-api.js";
 
@@ -190,6 +191,24 @@ const scenarios: Array<[string, () => void]> = [
       assert.match(comment, /Risk level: \*\*High\*\*/);
       assert.match(comment, /^File: `scripts\/publish\.sh`, line 6$/m);
       assert.ok(!`${run.stdout}${run.stderr}`.includes(fakeLeakedToken));
+    }
+  ],
+  [
+    "check.failOn fails the job after the review is published",
+    () => {
+      const failing = runAction({}, { pull_request: { number: 7, base: { sha: fakeFailOnHighBaseSha } } });
+      const writes = failing.requests.filter((request) => request.method !== "GET");
+
+      // PR 7 edits .prism-review.yml and src/billing/charge.ts: two high-risk findings.
+      assert.equal(failing.status, 1, failing.stderr);
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0]?.method, "PATCH");
+      assert.match(failing.stderr, /Prism Review found 2 high-risk finding\(s\), and check\.failOn is "high"\./);
+
+      // The same pull request passes when the base configuration leaves check.failOn at "never".
+      const passing = runAction({ "INPUT_DRY-RUN": "true" }, pullRequestEvent);
+      assert.equal(passing.status, 0, passing.stderr);
+      assert.doesNotMatch(passing.stderr, /check\.failOn/);
     }
   ],
   [

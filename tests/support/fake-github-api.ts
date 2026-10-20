@@ -4,6 +4,7 @@
 export const fakeBaseSha = "0123456789abcdef0123456789abcdef01234567";
 export const fakeAppendBaseSha = "fedcba9876543210fedcba9876543210fedcba98";
 export const fakeAnnotationsBaseSha = "00112233445566778899aabbccddeeff00112233";
+export const fakeFailOnHighBaseSha = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
 export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
 const marker = "<!-- prism-review-comment -->";
@@ -26,6 +27,8 @@ const appendConfig = "comment:\n  mode: append\n";
 
 const annotationsConfig = "annotations:\n  enabled: true\n";
 
+const failOnHighConfig = "check:\n  failOn: high\n";
+
 const routes: Record<string, (body: unknown) => unknown> = {
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeBaseSha}`]: () =>
     fileContent(baseConfig),
@@ -33,6 +36,8 @@ const routes: Record<string, (body: unknown) => unknown> = {
     fileContent(appendConfig),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAnnotationsBaseSha}`]: () =>
     fileContent(annotationsConfig),
+  [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeFailOnHighBaseSha}`]: () =>
+    fileContent(failOnHighConfig),
   "GET /repos/acme/widgets/pulls/11/files?per_page=100&page=1": () => [
     {
       filename: "scripts/publish.sh",

@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
+import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { loadConfig } from "../config/load-config.js";
 import { defaultConfigPath } from "../config/schema.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
@@ -30,6 +31,12 @@ async function main(): Promise<void> {
   const files = prepareChangedFiles(loadDiffFixture(resolve(options.fixture)), config);
   const result = analyzePullRequest(files, config, { configPath });
   process.stdout.write(`${renderMarkdown(result, config.comment)}\n`);
+
+  const failing = failingFindings(result, config.check.failOn);
+  if (failing.length > 0) {
+    process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
+    process.exitCode = 1;
+  }
 }
 
 function parseArgs(args: string[]): CliOptions {
