@@ -2,7 +2,7 @@
 
 All notable changes to Prism Review are documented in this file.
 
-## Unreleased
+## 0.7.0 - 2026-10-20
 
 ### Added
 
@@ -11,6 +11,10 @@ All notable changes to Prism Review are documented in this file.
 - For a `pull_request` run from a fork, where the token is read-only, a 403 on the comment is a warning instead of a failed run, and the review stays in the job summary. A 403 on the repository's own pull requests, on `pull_request_target`, or from a rate limit still fails.
 - The comment and job summary stop listing findings before GitHub's comment size limit and say how many were left out, so a pull request with thousands of findings still gets its review.
 - `ignorePaths` leaves generated, vendored, or snapshot files out of the noise rules and the size check, and the summary says how many files were ignored. Globs match dotfiles, and a file renamed into an ignored path is still reviewed unless its old path is ignored too. `secret-in-diff`, `hidden-unicode`, and `config-change` still read every file. This repository ignores its `dist/` bundles.
+
+### Changed
+
+- A `pull_request` run for a pull request from a fork used to fail when the read-only token could not post the comment. It now passes with a warning, and `check.failOn` still decides whether the findings fail the job. Every run also writes the review to the job summary.
 
 ## 0.6.0 - 2026-10-20
 
