@@ -1,3 +1,4 @@
+import { blanketSuppressionRule } from "./blanket-suppression.js";
 import { configChangeRule } from "./config-change.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { largeDiffRule } from "./large-diff.js";
@@ -13,6 +14,7 @@ export const defaultRules: Rule[] = [
   largeDiffRule,
   missingTestsRule,
   skippedTestsRule,
+  blanketSuppressionRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
