@@ -282,7 +282,7 @@ ignorePaths:
 
 Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `blanket-suppression`, `risky-api`, `sensitive-files`, `dependency-risk`, and `oversized-patch`, and out of the risk level's size check. The summary says how many files were ignored.
 
-`secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs are matched against the new path of each file.
+`secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs match dotfiles and dot directories, so `dist/**` covers `dist/.cache/` and `**/*.yml` covers `.github/`. A renamed file is only ignored when its old path is ignored too, so moving `src/auth/session.ts` into `vendor/` is still reviewed.
 
 ## Severity
 
@@ -297,7 +297,7 @@ severity:
   large-diff: off
 ```
 
-The new severity applies everywhere a severity matters: the comment, the risk level, annotations, the step outputs, and `check.failOn`. `info` findings are hidden from the comment unless `comment.includeLowSeverity` is set. An unknown rule id or severity fails configuration loading, so a typo cannot leave a rule at its default unnoticed. The configuration comes from the base commit, so a pull request cannot lower the severity of the rules that review it.
+The new severity applies everywhere a severity matters: the comment, the risk level, annotations, the step outputs, and `check.failOn`. `large-diff: off` also turns off the file and line count check that raises the risk level to medium. `info` findings are hidden from the comment unless `comment.includeLowSeverity` is set. An unknown rule id or severity fails configuration loading, so a typo cannot leave a rule at its default unnoticed. The configuration comes from the base commit, so a pull request cannot lower the severity of the rules that review it. Lowering or turning off `secret-in-diff`, `hidden-unicode`, or `config-change` is allowed, but the pull request that does it is reviewed with the old configuration and reported by `config-change` as high risk.
 
 ## Check
 
