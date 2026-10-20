@@ -19,6 +19,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `secret-in-diff` rule with line-level findings for credentials added in the diff.
 - `skipped-tests` rule for focused and skipped tests across JavaScript, Python, Go, and Rust.
 - `blanket-suppression` rule for lint and type check suppressions that name no rule.
+- `risky-api` rule for added calls that run code, start a shell, deserialize data, or write raw HTML.
+- `check.failOn` to fail the job, so branch protection can require the review.
 
 ## Near Term
 
@@ -26,9 +28,9 @@ This roadmap is intentionally staged so the project grows like a real developer 
 
 Add diff fixtures that contain instructions aimed at a reviewer model, so any future AI layer is tested against hostile pull request content from day one.
 
-### Add more line-level findings
+### Add more languages to line-level rules
 
-`secret-in-diff`, `skipped-tests`, and `blanket-suppression` report the line they found. Other rules that inspect patch content, such as risky API calls, can reuse `addedLines` so their annotations land on the changed line.
+`secret-in-diff`, `skipped-tests`, `blanket-suppression`, and `risky-api` report the line they found. Ruby, Java, and PHP equivalents of their patterns can reuse `addedLines` and the same tests.
 
 ## Mid Term
 

@@ -58,6 +58,8 @@ rules:
     enabled: true
   blanketSuppression:
     enabled: true
+  riskyApis:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -126,6 +128,20 @@ The `blanket-suppression` rule warns, with the first line number, when a pull re
 | Rust | `#[allow(warnings)]`, `#[allow(clippy::all)]`, and the `#![...]` forms | `#[allow(dead_code)]` |
 
 Only added lines are checked, and documentation files (`.md`, `.mdx`, `.rst`, `.txt`, `.adoc`) are skipped because they often quote these markers.
+
+## Risky APIs
+
+### `rules.riskyApis.enabled`
+
+The `risky-api` rule warns, with the first line number, when a pull request adds a call that runs a string as code, starts a shell, deserializes untrusted data, or writes raw HTML. These calls are not wrong in themselves, but a reviewer should check where their input comes from.
+
+| Language | Reported | Not reported |
+| --- | --- | --- |
+| JavaScript, TypeScript | `eval(...)`, `new Function(...)`, `exec` and `execSync` from `child_process`, a `shell: true` option, `dangerouslySetInnerHTML`, assignments to `innerHTML` or `outerHTML`, `document.write` | `pattern.exec(input)`, `execFile(...)`, `textContent =`, comparisons such as `innerHTML === x` |
+| Python | `eval(...)`, `exec(...)`, `pickle`, `marshal`, and `shelve` loads, `yaml.load` without a safe loader, `yaml.unsafe_load`, `shell=True`, `os.system`, `os.popen` | `model.eval()`, `yaml.safe_load`, `yaml.load(..., Loader=yaml.SafeLoader)`, `json.loads`, `shell=False` |
+| Go | `exec.Command` that runs `sh -c`, `bash -c`, or `cmd /c`, `template.HTML(...)` | `exec.Command("git", "status")` |
+
+Only added lines are checked. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
 
 ## Secrets
 
