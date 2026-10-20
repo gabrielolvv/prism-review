@@ -13295,6 +13295,7 @@ var ruleIds = [
   "skipped-tests",
   "blanket-suppression",
   "risky-api",
+  "workflow-risk",
   "sensitive-files",
   "config-change",
   "dependency-risk",
@@ -13370,6 +13371,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     hiddenUnicode: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    workflowRisk: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
@@ -14061,6 +14065,66 @@ function pathWords(path2) {
   return path2.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word) => word.toLowerCase());
 }
 
+// src/rules/workflow-risk.ts
+var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var untrustedContext = /\bgithub\.(?:head_ref|event\.(?:issue\.(?:title|body)|pull_request\.(?:title|body|head\.(?:ref|label|repo\.default_branch))|comment\.body|review\.body|review_comment\.body|discussion\.(?:title|body)|pages(?:\.\*|\[\d+\])\.page_name|(?:commits(?:\.\*|\[\d+\])|head_commit)\.(?:message|author\.(?:email|name))|workflow_run\.(?:head_branch|head_commit\.(?:message|author\.(?:email|name)))))\b/g;
+var dataMapping = /^\s*(?:-\s+)?(?!run\b|script\b)[\w-]+:\s*\$\{\{/;
+var warnings = [
+  ["pull_request_target trigger", /\bpull_request_target\b/],
+  ["write-all permissions", /^\s*permissions:\s*write-all\b/],
+  [
+    "checkout of pull request code",
+    /^\s*ref:\s*.*(?:\bgithub\.event\.pull_request\.head\.(?:sha|ref)\b|\bgithub\.head_ref\b|refs\/pull\/)/
+  ]
+];
+var workflowRiskRule = {
+  id: "workflow-risk",
+  description: "Flags script injection, risky triggers, and broad permissions added to GitHub Actions workflows.",
+  run({ files, config }) {
+    if (!config.rules.workflowRisk.enabled) {
+      return [];
+    }
+    return files.filter((file) => file.patch !== void 0 && workflowFile.test(file.path)).flatMap((file) => {
+      const injected = [];
+      const kinds = [];
+      const lines = [];
+      for (const { line, content } of addedLines(file.patch ?? "")) {
+        if (/^\s*#/.test(content)) {
+          continue;
+        }
+        const found = dataMapping.test(content) ? [] : [...content.matchAll(/\$\{\{([^}]*)\}\}/g)].flatMap(
+          ([, expression]) => [...(expression ?? "").matchAll(untrustedContext)].map(([context]) => context)
+        );
+        const lineKinds = warnings.filter(([, pattern]) => pattern.test(content)).map(([kind]) => kind);
+        if (found.length > 0 || lineKinds.length > 0) {
+          lines.push(line);
+          injected.push(...found);
+          kinds.push(...lineKinds);
+        }
+      }
+      if (lines.length === 0) {
+        return [];
+      }
+      const labels = [
+        ...injected.length > 0 ? [`untrusted input in a script (${[...new Set(injected)].join(", ")})`] : [],
+        ...new Set(kinds)
+      ];
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "workflow-risk",
+          title: "Risky workflow change",
+          severity: injected.length > 0 ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...lines),
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels.join(", ")}.`,
+          recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and grant only the permissions each job needs."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/skipped-tests.ts
 var notMember = String.raw`(?<![.\w$])`;
 var languages3 = [
@@ -14186,6 +14250,7 @@ var defaultRules = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  workflowRiskRule,
   sensitiveFilesRule,
   configChangeRule,
   dependencyRiskRule,
