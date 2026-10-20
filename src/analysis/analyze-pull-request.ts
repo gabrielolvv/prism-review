@@ -1,3 +1,4 @@
+import { minimatch } from "minimatch";
 import { changedLines, type ChangedFile } from "./changed-file.js";
 import type { Finding, ReviewResult, RiskLevel } from "./finding.js";
 import type { Rule } from "./rule.js";
@@ -16,25 +17,28 @@ export function analyzePullRequest(
   options: AnalyzeOptions = {}
 ): ReviewResult {
   const { rules = defaultRules, configPath = defaultConfigPath } = options;
+  const reviewed = files.filter((file) => !config.ignorePaths.some((glob) => minimatch(file.path, glob)));
   const findings = rules
-    .flatMap((rule) => rule.run({ files, config, configPath }))
+    .flatMap((rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath }))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
 
   return {
-    summary: buildSummary(files, findings),
-    riskLevel: calculateRiskLevel(files, findings, config),
+    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
+    riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings
   };
 }
 
-function buildSummary(files: ChangedFile[], findings: Finding[]): string {
+function buildSummary(reviewedCount: number, ignoredCount: number, findings: Finding[]): string {
+  const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
+  const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}.`;
   if (findings.length === 0) {
-    return `Reviewed ${files.length} changed file(s). No configured risk signals were detected.`;
+    return `${reviewed} No configured risk signals were detected.`;
   }
 
   const highCount = findings.filter((finding) => finding.severity === "high").length;
   const warningCount = findings.filter((finding) => finding.severity === "warning").length;
-  return `Reviewed ${files.length} changed file(s). Found ${highCount} high-risk and ${warningCount} warning-level signal(s).`;
+  return `${reviewed} Found ${highCount} high-risk and ${warningCount} warning-level signal(s).`;
 }
 
 function calculateRiskLevel(

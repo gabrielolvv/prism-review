@@ -3,6 +3,7 @@ import type { Rule } from "../analysis/rule.js";
 
 export const configChangeRule: Rule = {
   id: "config-change",
+  seesIgnoredFiles: true,
   description: "Flags pull requests that change the Prism Review configuration.",
   run({ files, configPath }) {
     const target = normalizeRepositoryPath(configPath);

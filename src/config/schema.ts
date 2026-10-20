@@ -122,6 +122,7 @@ export const prismConfigSchema = z.object({
       includeLowSeverity: z.boolean().default(false)
     })
     .default({}),
+  ignorePaths: z.array(z.string()).default([]),
   check: z
     .object({
       failOn: z.enum(["never", "warning", "high"]).default("never")

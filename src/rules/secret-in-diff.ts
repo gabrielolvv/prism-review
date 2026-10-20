@@ -5,6 +5,7 @@ import { describeLines } from "./line-list.js";
 
 export const secretInDiffRule: Rule = {
   id: "secret-in-diff",
+  seesIgnoredFiles: true,
   description: "Flags added lines that contain a value in a known credential format.",
   run({ files, config }) {
     if (!config.rules.secretInDiff.enabled) {

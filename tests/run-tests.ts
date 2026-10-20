@@ -44,6 +44,11 @@ import {
   testSkippedTestsRuleTellsPestFromLaravel,
   testSkippedTestsRuleReadsCombinedCSharpAttributes
 } from "./unit/review-findings-060.test.js";
+import {
+  testIgnorePathsSkipsNoiseRules,
+  testIgnorePathsNeverHidesSecurityFindings,
+  testIgnorePathsDefaultsToReviewingEverything
+} from "./unit/ignore-paths.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -223,6 +228,9 @@ const tests: Array<[string, Test]> = [
   ["risky api rule reads ruby eval and shell forms", testRiskyApiRuleReadsRubyEvalAndShellForms],
   ["skipped tests rule tells pest from laravel", testSkippedTestsRuleTellsPestFromLaravel],
   ["skipped tests rule reads combined c sharp attributes", testSkippedTestsRuleReadsCombinedCSharpAttributes],
+  ["ignorePaths keeps ignored files out of the noise rules", testIgnorePathsSkipsNoiseRules],
+  ["ignorePaths never hides security findings", testIgnorePathsNeverHidesSecurityFindings],
+  ["ignorePaths defaults to reviewing every file", testIgnorePathsDefaultsToReviewingEverything],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
