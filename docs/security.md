@@ -40,6 +40,10 @@ The `severity` setting can lower or turn off any rule, the security rules includ
 
 GitHub runs `pull_request` workflows for forks with a read-only token, so the comment cannot be posted. The action logs a warning and keeps the review in the job summary instead of failing only when all of these hold: the event is `pull_request`, the head repository is a different one (or was deleted), and the comment request returned 403 without a rate-limit message. Any other 403 still fails the run: on the repository's own pull requests it means the workflow lacks `pull-requests: write`, `pull_request_target` runs have a token that can write, and a rate limit is a real failure. `check.failOn` applies either way.
 
+## Pull Requests Over 3000 Files
+
+GitHub lists at most 3000 files for a pull request. The `incomplete-review` rule compares that list with the `changed_files` count in the event and reports a high-risk finding when files are missing, so a gate fails rather than passing a pull request it could not review in full.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.

@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `incomplete-review` rule reports a high-risk finding when a pull request changes more files than GitHub returns (at most 3000), so the files that were not reviewed cannot pass a `check.failOn` gate unnoticed.
+
 ## 0.7.0 - 2026-10-20
 
 ### Added

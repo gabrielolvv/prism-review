@@ -167,6 +167,7 @@ flowchart TD
 
 | Rule | Severity | Purpose |
 | --- | --- | --- |
+| `incomplete-review` | High | Flags pull requests with more changed files than GitHub returns (3000), so the unreviewed rest cannot pass a gate. |
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |

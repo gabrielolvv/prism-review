@@ -206,6 +206,7 @@ The value never appears in the finding, the comment, or the annotation. Values m
 
 ## Rules Without Options
 
+- `incomplete-review` always runs in the action. GitHub lists at most 3000 files for a pull request, so when the event says the pull request changes more files than the API returned, it reports a high-risk finding with the number of files that were not reviewed. With `check.failOn: high`, such a pull request cannot pass the gate unreviewed. The CLI reviews the whole diff it is given, so it never reports this.
 - `config-change` always runs. It reports a high-risk finding when a pull request adds, edits, deletes, or renames the file named by `config-path`.
 - `oversized-patch` always runs. It reports an `info` finding for each file whose patch exceeded `security.maxPatchBytes`.
 
