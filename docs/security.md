@@ -34,6 +34,10 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 `ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `hidden-unicode`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it.
 
+## Pull Requests From Forks
+
+GitHub runs `pull_request` workflows for forks with a read-only token, so the comment cannot be posted. When the pull request's head repository differs from the base repository and the comment request returns 403, the action logs a warning and keeps the review in the job summary instead of failing. The same 403 on a pull request from the repository itself still fails the run, because it means the workflow lacks `pull-requests: write`. `check.failOn` applies either way.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.
