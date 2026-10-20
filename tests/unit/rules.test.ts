@@ -35,12 +35,22 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
     "src/oauth2/callback.ts",
     "src/oauthClient.ts",
     "src/AuthProvider.tsx",
+    "src/errors/Unauthorized.ts",
+    "src/reauth.ts",
+    "src/preauthorize.ts",
+    "pkg/jwtauth/middleware.go",
+    "src/authtoken.ts",
+    "src/accesstoken.ts",
+    "src/sessionid.ts",
+    "src/sessions2.ts",
+    "infra/secretsmanager.tf",
     "src/security/redact-secrets.ts",
     "config/secrets.yml",
     "db/migrations/001_users.sql",
     "src/user_roles.ts",
     "src/jwtVerify.ts",
     "src/PaymentIntent.ts",
+    "docs/repayments-faq.md",
     "services/billing-service/index.ts",
     "src/accessTokens.ts",
     "Dockerfile",
@@ -49,21 +59,23 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
   const ignored = [
     "docs/rule-authoring.md",
     "src/author.ts",
+    "src/coauthors.ts",
     "AUTHORS",
     "src/controllers/user.ts",
     "src/tokenizer.ts",
+    "src/tokenize.ts",
     "src/console.ts",
-    "docs/repayments-faq.md",
-    "src/parole.ts"
+    "src/parole.ts",
+    "docs/secretary.md"
   ];
   const config = prismConfigSchema.parse({ rules: { sensitiveFiles: { patterns: [] } } });
 
   const result = analyzePullRequest([...flagged, ...ignored].map(changedFile), config);
   const sensitive = result.findings
     .filter((finding) => finding.ruleId === "sensitive-files")
-    .map((finding) => finding.file);
+    .map((finding) => finding.file ?? "");
 
-  assert.deepEqual(sensitive, flagged);
+  assert.deepEqual([...sensitive].sort(), [...flagged].sort());
 }
 
 function changedFile(path: string): ChangedFile {

@@ -1,12 +1,25 @@
 import { minimatch } from "minimatch";
 import type { Rule } from "../analysis/rule.js";
 
-// Matched against whole words of the path, so "authoring", "tokenizer", and "parole" do not count.
-const sensitiveWordPatterns = [
-  // auth, authn, authz, oauth2, authenticate, authentication, authorize, authorization.
-  /^o?auth(?:[nz]|enticat\w*|ori[sz]\w*)?\d*$/,
-  /^(?:permissions?|roles?|sessions?|tokens?|jwts?|billing|payments?|secrets?|migrations?|workflows?|dockerfile)$/
+const sensitiveWords = [
+  "auth",
+  "permission",
+  "role",
+  "session",
+  "token",
+  "jwt",
+  "billing",
+  "payment",
+  "secret",
+  "migration",
+  "workflow",
+  "dockerfile"
 ];
+
+// Words that contain a sensitive word without being about it: author (but not authorize),
+// tokenize, parole, secretary. Everything else that contains one, such as "Unauthorized",
+// "reauth", "jwtauth", or "accesstoken", still counts.
+const unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
 
 export const sensitiveFilesRule: Rule = {
   id: "sensitive-files",
@@ -36,10 +49,12 @@ export const sensitiveFilesRule: Rule = {
 };
 
 function hasSensitiveWord(path: string): boolean {
-  return pathWords(path).some((word) => sensitiveWordPatterns.some((pattern) => pattern.test(word)));
+  return pathWords(path).some(
+    (word) => !unrelatedWord.test(word) && sensitiveWords.some((sensitive) => word.includes(sensitive))
+  );
 }
 
-// Splits on separators and camelCase: "src/oauthClient.ts" -> src, oauth, client, ts.
+// Splits on separators and camelCase: "src/AuthorList.ts" -> src, author, list, ts.
 function pathWords(path: string): string[] {
   return path
     .split(/[^A-Za-z0-9]+/)

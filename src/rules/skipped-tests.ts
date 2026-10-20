@@ -1,5 +1,5 @@
 import { minimatch } from "minimatch";
-import { addedLines } from "../analysis/added-lines.js";
+import { matchAddedLines } from "../analysis/added-lines.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
@@ -41,9 +41,10 @@ export const skippedTestsRule: Rule = {
           ...(testGlobs.some((glob) => minimatch(file.path, glob)) ? testFileMarkers : []),
           ...(file.path.endsWith(".rs") ? [rustMarker] : [])
         ];
-        const found = addedLines(file.patch ?? "").flatMap(({ line, content }) =>
-          markers.filter(([, pattern]) => pattern.test(content)).map(([marker]) => ({ line, marker }))
-        );
+        const found = matchAddedLines(file.patch ?? "", markers).map(({ line, label }) => ({
+          line,
+          marker: label
+        }));
         if (found.length === 0) {
           return [];
         }

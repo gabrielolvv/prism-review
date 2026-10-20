@@ -1,22 +1,33 @@
-import { addedLines } from "../analysis/added-lines.js";
+import { matchAddedLines } from "../analysis/added-lines.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
-// Each pattern matches a suppression that names no rule, so it silences every check in its scope.
-// Targeted forms such as `eslint-disable-next-line no-console` or `# noqa: E501` do not match.
-const suppressions: Array<[string, RegExp]> = [
-  ["ESLint", /\beslint-disable(?:-next-line|-line)?(?=\s*(?:\*\/|--|$))/],
-  // The directive only takes effect in a comment that starts the line.
-  ["TypeScript", /^\s*(?:\/\/|\/\*+|\*)\s*@ts-nocheck\b/],
-  ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
-  ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
-  ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/],
-  ["golangci-lint", /\/\/\s*nolint\b(?!:)/],
-  ["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]
-];
+type Language = { files: RegExp; markers: Array<[string, RegExp]> };
 
-// Documentation often shows these markers as examples.
-const documentationFile = /\.(?:md|mdx|markdown|rst|txt|adoc)$/i;
+// Each marker is a suppression that names no rule, so it silences every check in its scope.
+// Targeted forms such as `eslint-disable-next-line no-console` or `# noqa: E501` do not match.
+// Markers only apply to files of their own language, so `"#noqa"` inside a URL in a .ts file
+// is not mistaken for a Python suppression.
+const languages: Language[] = [
+  {
+    files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    markers: [
+      ["ESLint", /\beslint-disable(?:-next-line|-line)?(?=\s*(?:\*\/|--|$))/],
+      // Both directives only take effect in a comment that starts the line.
+      ["TypeScript", /^\s*(?:\/\/|\/\*+|\*)\s*@ts-(?:nocheck|ignore)\b/]
+    ]
+  },
+  {
+    files: /\.pyi?$/,
+    markers: [
+      ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
+      ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
+      ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/]
+    ]
+  },
+  { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
+  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]] }
+];
 
 export const blanketSuppressionRule: Rule = {
   id: "blanket-suppression",
@@ -26,31 +37,32 @@ export const blanketSuppressionRule: Rule = {
       return [];
     }
 
-    return files
-      .filter((file) => file.patch !== undefined && !documentationFile.test(file.path))
-      .flatMap((file) => {
-        const found = addedLines(file.patch ?? "").flatMap(({ line, content }) =>
-          suppressions.filter(([, pattern]) => pattern.test(content)).map(([kind]) => ({ line, kind }))
-        );
-        if (found.length === 0) {
-          return [];
+    return files.flatMap((file) => {
+      const language = languages.find((candidate) => candidate.files.test(file.path));
+      if (!language || file.patch === undefined) {
+        return [];
+      }
+
+      const found = matchAddedLines(file.patch, language.markers);
+      if (found.length === 0) {
+        return [];
+      }
+
+      const { text, plural } = describeLines(found.map((match) => match.line));
+      const kinds = [...new Set(found.map((match) => match.label))].join(", ");
+
+      return [
+        {
+          ruleId: "blanket-suppression",
+          title: "Blanket lint suppression added",
+          severity: "warning" as const,
+          file: file.path,
+          line: Math.min(...found.map((match) => match.line)),
+          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
+          recommendation:
+            "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
         }
-
-        const { text, plural } = describeLines(found.map((match) => match.line));
-        const kinds = [...new Set(found.map((match) => match.kind))].join(", ");
-
-        return [
-          {
-            ruleId: "blanket-suppression",
-            title: "Blanket lint suppression added",
-            severity: "warning" as const,
-            file: file.path,
-            line: Math.min(...found.map((match) => match.line)),
-            message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
-            recommendation:
-              "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
-          }
-        ];
-      });
+      ];
+    });
   }
 };

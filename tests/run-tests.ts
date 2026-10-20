@@ -13,6 +13,8 @@ import {
 } from "./unit/github-client.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
+  testRiskyApiRuleCoversAliasesAndShellForms,
+  testRiskyApiRuleIgnoresDefinitionsAndSafeLoaders,
   testRiskyApiRuleIgnoresLookalikes,
   testRiskyApiRuleReportsASingleCall,
   testRiskyApiRuleReportsEachLanguage,
@@ -102,6 +104,7 @@ import {
 } from "./unit/render-markdown.test.js";
 import {
   testBlanketSuppressionRuleCanBeDisabled,
+  testBlanketSuppressionRuleChecksMarkersInTheirLanguage,
   testBlanketSuppressionRuleIgnoresRemovedLines,
   testBlanketSuppressionRuleIgnoresTargetedSuppressions,
   testBlanketSuppressionRuleReportsEachLanguage
@@ -160,11 +163,14 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule ignores targeted suppressions", testBlanketSuppressionRuleIgnoresTargetedSuppressions],
   ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
   ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
+  ["blanket-suppression rule checks markers in their own language", testBlanketSuppressionRuleChecksMarkersInTheirLanguage],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
   ["risky-api rule reports a single call", testRiskyApiRuleReportsASingleCall],
   ["risky-api rule ignores lookalike calls", testRiskyApiRuleIgnoresLookalikes],
   ["risky-api rule skips tests, docs, and removed lines", testRiskyApiRuleSkipsTestsDocsAndRemovedLines],
   ["risky-api rule can be disabled", testRiskyApiRuleCanBeDisabled],
+  ["risky-api rule covers aliases and common shell forms", testRiskyApiRuleCoversAliasesAndShellForms],
+  ["risky-api rule ignores definitions and safe loaders", testRiskyApiRuleIgnoresDefinitionsAndSafeLoaders],
   ["failingFindings follows the check.failOn threshold", testFailingFindingsFollowsThreshold],
   ["describeFailure names the threshold", testDescribeFailureNamesThreshold],
   ["config never fails the check by default", testConfigNeverFailsByDefault],
