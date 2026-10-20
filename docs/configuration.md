@@ -84,9 +84,9 @@ Invalid values fail the run with the file and the field that was rejected, for e
 
 ### `rules.sensitiveFiles.patterns`
 
-The `sensitive-files` rule reports a high-risk finding for each changed file that matches one of these globs, or whose path contains a built-in sensitive word: `auth` (including `oauth`, `authn`, `authz`, `authenticate`, and `authorize` forms), `permission`, `role`, `session`, `token`, `jwt`, `billing`, `payment`, `secret`, `migration`, `workflow`, or `Dockerfile`, singular or plural.
+The `sensitive-files` rule reports a high-risk finding for each changed file that matches one of these globs, or whose path contains a built-in sensitive word: `auth`, `permission`, `role`, `session`, `token`, `jwt`, `billing`, `payment`, `secret`, `migration`, `workflow`, or `Dockerfile`.
 
-Words are matched whole after splitting the path on `/`, `.`, `-`, `_`, and camelCase, so `src/oauthClient.ts` and `db/migrations/` count, while `docs/rule-authoring.md`, `src/tokenizer.ts`, and `AUTHORS` do not. A lowercase compound with no separator, such as `authtoken.ts`, is not split; add a glob for it if it matters.
+The path is split into words on `/`, `.`, `-`, `_`, and camelCase, and a word counts when it contains a sensitive word, so `src/errors/Unauthorized.ts`, `pkg/jwtauth/`, `src/accesstoken.ts`, and `db/migrations/` are reported. A short list of words that only look related is left out: `author` and its forms (but not `authorize`), `tokenize`, `parole`, and `secretary`. That keeps `docs/rule-authoring.md`, `AUTHORS`, and `src/tokenizer.ts` from being reported.
 
 ### `rules.sensitiveFiles.enabled`
 
@@ -120,14 +120,14 @@ The `blanket-suppression` rule warns, with the first line number, when a pull re
 | Tool | Reported | Not reported |
 | --- | --- | --- |
 | ESLint | `/* eslint-disable */`, `// eslint-disable-next-line`, `// eslint-disable-line` with no rule names | the same comments followed by rule names |
-| TypeScript | `// @ts-nocheck` | `// @ts-expect-error` |
+| TypeScript | `// @ts-nocheck`, `// @ts-ignore` | `// @ts-expect-error` |
 | flake8, Ruff | `# noqa`, `# flake8: noqa`, `# ruff: noqa` | `# noqa: E501` |
 | mypy, Pyright | `# type: ignore`, `# mypy: ignore-errors` | `# type: ignore[arg-type]` |
 | Pylint | `# pylint: disable=all` | `# pylint: disable=line-too-long` |
 | golangci-lint | `//nolint` | `//nolint:errcheck` |
 | Rust | `#[allow(warnings)]`, `#[allow(clippy::all)]`, and the `#![...]` forms | `#[allow(dead_code)]` |
 
-Only added lines are checked, and documentation files (`.md`, `.mdx`, `.rst`, `.txt`, `.adoc`) are skipped because they often quote these markers.
+Only added lines are checked, and each marker only counts in files of its own language: ESLint and TypeScript markers in JavaScript and TypeScript sources, Python markers in `.py` and `.pyi` files, and so on. A `#noqa` inside a URL in a `.ts` file is not a suppression, and documentation that quotes these markers is never reported.
 
 ## Risky APIs
 
@@ -137,11 +137,11 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 
 | Language | Reported | Not reported |
 | --- | --- | --- |
-| JavaScript, TypeScript | `eval(...)`, `new Function(...)`, `exec` and `execSync` from `child_process`, a `shell: true` option, `dangerouslySetInnerHTML`, assignments to `innerHTML` or `outerHTML`, `document.write` | `pattern.exec(input)`, `execFile(...)`, `textContent =`, comparisons such as `innerHTML === x` |
-| Python | `eval(...)`, `exec(...)`, `pickle`, `marshal`, and `shelve` loads, `yaml.load` without a safe loader, `yaml.unsafe_load`, `shell=True`, `os.system`, `os.popen` | `model.eval()`, `yaml.safe_load`, `yaml.load(..., Loader=yaml.SafeLoader)`, `json.loads`, `shell=False` |
-| Go | `exec.Command` that runs `sh -c`, `bash -c`, or `cmd /c`, `template.HTML(...)` | `exec.Command("git", "status")` |
+| JavaScript, TypeScript | `eval(...)` and `window.eval(...)`, `new Function(...)`, `exec` and `execSync` from `child_process` (bare, or as `cp.`, `childProcess.`, or `child_process.`), a `shell: true` option, `dangerouslySetInnerHTML`, assignments to `innerHTML` or `outerHTML`, `document.write` | `pattern.exec(input)`, `execFile(...)`, `textContent =`, comparisons such as `innerHTML === x` |
+| Python | `eval(...)`, `exec(...)`, `pickle`, `marshal`, and `shelve` loads, `yaml.load` and `yaml.load_all` without a safe loader on the same line, `yaml.unsafe_load`, `shell=True`, `os.system`, `os.popen` | `model.eval()`, `yaml.safe_load`, `yaml.load(..., Loader=yaml.SafeLoader)`, `json.loads`, `shell=False` |
+| Go | `exec.Command` that runs a shell with a command string, such as `sh -c`, `/bin/bash -lc`, `cmd /C`, or `powershell -Command`, and `template.HTML(...)` | `exec.Command("git", "status")` |
 
-Only added lines are checked. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
+Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
 
 ## Secrets
 
