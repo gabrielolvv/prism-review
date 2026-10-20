@@ -80,7 +80,7 @@ The CLI reviews any unified diff, so you can see the review before opening a pul
 git diff origin/main...HEAD | node dist/cli/main.cjs analyze --diff -
 ```
 
-It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
+It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. It also exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
 
 ```sh
 #!/bin/sh

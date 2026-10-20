@@ -120,8 +120,8 @@ The `skipped-tests` rule reports a warning, with the first line number, when a p
 | Rust | | `#[ignore]` |
 | RSpec, Minitest | `fit`, `fdescribe`, `fcontext` and the other `f`-prefixed blocks, `focus: true`, `:focus` | `xit`, `xdescribe`, `xcontext` and the other `x`-prefixed blocks, `skip`, `pending` |
 | JUnit, TestNG | | `@Disabled`, `@Ignore`, `@Test(enabled = false)` |
-| PHPUnit, Pest | `->only()` | `$this->markTestSkipped(...)`, `$this->markTestIncomplete(...)`, `->skip(...)` |
-| xUnit, NUnit, MSTest | | `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]` |
+| PHPUnit, Pest | `->only()` | `$this->markTestSkipped(...)`, `$this->markTestIncomplete(...)`, and `->skip(...)` chained on a Pest test, but not Laravel's `->skip(10)` |
+| xUnit, NUnit, MSTest | | `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]`, including combined forms such as `[Test, Ignore("...")]` |
 | XCTest, Swift Testing | | `throw XCTSkip(...)`, `XCTSkipIf`, `XCTSkipUnless`, `@Test(.disabled(...))` |
 
 Only files matched by `rules.missingTests.testGlobs` are checked, so the same calls in application code are not reported, and each framework's markers only count in files of its own language. JavaScript markers must not follow a `.`, so calls such as `chart.fit(...)` do not count, and RSpec markers must start the line and not be an assignment. The exception is Rust's `#[ignore]`, which is checked in every `.rs` file because unit tests live next to the code and the attribute only applies to tests.
@@ -149,7 +149,7 @@ The `blanket-suppression` rule warns, with the first line number, when a pull re
 | Java, Kotlin | `@SuppressWarnings("all")`, `// CHECKSTYLE:OFF`, `// NOSONAR` | `@SuppressWarnings("unchecked")` |
 | C# | `#pragma warning disable` with no codes, `// ReSharper disable All` | `#pragma warning disable CS0618` |
 | SwiftLint | `// swiftlint:disable all`, including the `:next`, `:this`, and `:previous` forms | `// swiftlint:disable force_cast` |
-| PHPStan, PHP_CodeSniffer, Psalm | `@phpstan-ignore-line`, `@phpstan-ignore-next-line`, `phpcs:ignore` or `phpcs:disable` with no sniff, `@codingStandardsIgnoreFile`, `@psalm-suppress all` | `@phpstan-ignore argument.type`, `phpcs:ignore Generic.Files.LineLength` |
+| PHPStan, PHP_CodeSniffer, Psalm | `@phpstan-ignore-line`, `@phpstan-ignore-next-line`, `phpcs:ignoreFile`, `phpcs:ignore` or `phpcs:disable` with no sniff, `@codingStandardsIgnoreFile`, `@psalm-suppress all` | `@phpstan-ignore argument.type`, `phpcs:ignore Generic.Files.LineLength` |
 
 Only added lines are checked, and each marker only counts in files of its own language: ESLint and TypeScript markers in JavaScript and TypeScript sources, Python markers in `.py` and `.pyi` files, and so on. A `#noqa` inside a URL in a `.ts` file is not a suppression, and documentation that quotes these markers is never reported.
 
@@ -164,7 +164,7 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | JavaScript, TypeScript | `eval(...)` and `window.eval(...)`, `new Function(...)`, `exec` and `execSync` from `child_process` (bare, or as `cp.`, `childProcess.`, or `child_process.`), a `shell: true` option, `dangerouslySetInnerHTML`, assignments to `innerHTML` or `outerHTML`, `document.write` | `pattern.exec(input)`, `execFile(...)`, `textContent =`, comparisons such as `innerHTML === x` |
 | Python | `eval(...)`, `exec(...)`, `pickle`, `marshal`, and `shelve` loads, `yaml.load` and `yaml.load_all` without a safe loader on the same line, `yaml.unsafe_load`, `shell=True`, `os.system`, `os.popen` | `model.eval()`, `yaml.safe_load`, `yaml.load(..., Loader=yaml.SafeLoader)`, `json.loads`, `shell=False` |
 | Go | `exec.Command` that runs a shell with a command string, such as `sh -c`, `/bin/bash -lc`, `cmd /C`, or `powershell -Command`, and `template.HTML(...)` | `exec.Command("git", "status")` |
-| Ruby | `eval`, `instance_eval`, `class_eval`, and `module_eval` with a string, `system`, `exec`, and `spawn` with a string, `%x(...)` and backticks with interpolation, `Marshal.load`, `YAML.unsafe_load`, `.html_safe`, `raw(...)` | `calculator.eval(...)`, `def eval`, `YAML.safe_load` |
+| Ruby | `eval`, `instance_eval`, `class_eval`, and `module_eval` with a string, heredoc, or variable, `system`, `exec`, and `spawn` with a string, including `Kernel.` and `Process.` calls, `%x(...)` and backticks with interpolation outside a string literal, `Marshal.load`, `YAML.unsafe_load`, `.html_safe`, `raw(...)` | `calculator.eval(...)`, `def eval`, `class_eval do ... end`, `YAML.safe_load` |
 | Java, Kotlin | `Runtime.getRuntime().exec(...)`, `ProcessBuilder` that runs a shell with a command string, `ObjectInputStream`, `XMLDecoder` | `new ProcessBuilder("git", "status")` |
 | C# | `Process.Start` or `ProcessStartInfo.FileName` with `cmd`, `powershell`, `sh`, or `bash`, `BinaryFormatter` and the other unsafe .NET deserializers, `Html.Raw(...)` | `Process.Start("git", "status")`, `JsonSerializer.Deserialize`, `Html.Encode` |
 | Swift | a `Process` that runs `/bin/sh`, `/bin/bash`, or `/bin/zsh`, `NSKeyedUnarchiver.unarchiveObject`, `NSUnarchiver`, `evaluateJavaScript` with string interpolation | `/usr/bin/git`, `JSONDecoder`, `evaluateJavaScript` with a fixed string |
@@ -179,9 +179,11 @@ Only added lines are checked, and lines that define a function or method with on
 The `hidden-unicode` rule reports added lines, and file names, that contain characters which are invisible or change the order text is displayed in:
 
 - Bidirectional controls, U+202A to U+202E and U+2066 to U+2069, are reported as **high**. They can make code display differently from how it runs, as in the Trojan Source attacks (CVE-2021-42574).
-- Invisible characters, such as U+200B ZERO WIDTH SPACE, U+2060 WORD JOINER, U+FEFF inside a file, and Unicode tag characters, are reported as a **warning**. They can hide text from a reviewer, including instructions aimed at AI tools.
+- Invisible characters are reported as a **warning**: U+200B ZERO WIDTH SPACE, U+2060 WORD JOINER, the invisible operators U+2061 to U+2064, U+FEFF inside a file, the Hangul fillers U+115F, U+1160, U+3164, and U+FFA0, which are valid in identifiers yet render as nothing, and Unicode tag characters. They can hide text or a variable from a reviewer, including instructions aimed at AI tools.
 
-The message names each character by code point, and the comment shows hidden characters in file names as `\u{...}` escapes. A byte order mark at the very start of a file, the zero width joiners used by emoji and several scripts, and the left-to-right and right-to-left marks are not reported. Every file type is checked, documentation included.
+Patches over `security.maxPatchBytes` are still scanned, like they are for `secret-in-diff`.
+
+The message names each character by code point, and the comment shows hidden characters in file names as `\u{...}` escapes. A byte order mark at the very start of a file, the zero width joiners used by emoji and several scripts, the left-to-right, right-to-left, and Arabic letter marks, and the soft hyphen are not reported, because ordinary text uses them. Every file type is checked, documentation included.
 
 ## Secrets
 
