@@ -237,6 +237,49 @@ export function testLockfileSourceRuleReadsOlderAndNewerFormats(): void {
   assert.equal(byFile.get("go.mod")?.severity, "warning");
 }
 
+export function testLockfileSourceRuleReadsPyprojectSources(): void {
+  const findings = sourceFindings([
+    file("pyproject.toml", [
+      "[project]",
+      'name = "app"',
+      "dependencies = [",
+      '  "requests>=2.32",',
+      '  "toolkit @ https://downloads.evil.example/toolkit-1.0-py3-none-any.whl",',
+      '  "patched @ git+https://github.com/acme/patched@0123abc",',
+      "]",
+      "",
+      "[project.urls]",
+      'Homepage = "https://app.example.com"',
+      'url = "https://docs.example.com"',
+      "",
+      "[[tool.poetry.source]]",
+      'name = "internal"',
+      'url = "https://pypi.internal.example/simple"',
+      'priority = "supplemental"',
+      "",
+      "[tool.uv]",
+      'extra-index-url = ["https://pypi.org/simple"]',
+      "",
+      "[[tool.uv.index]]",
+      'url = "http://mirror.example/simple"',
+      "",
+      "[tool.uv.sources]",
+      'shared = { git = "https://github.com/acme/shared", rev = "0123abc" }',
+      'local = { path = "../local", editable = true }',
+      "",
+      "[tool.something-else]",
+      'url = "https://evil.example/not-a-source"'
+    ])
+  ]);
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]?.severity, "high");
+  assert.equal(
+    findings[0]?.message,
+    "Lines 5, 6, 15, 19, 22 and 1 more add dependencies downloaded from hosts that are not allowed registries (downloads.evil.example, pypi.internal.example), downloaded over plain HTTP, installed from a Git repository, and fetched from an extra package index."
+  );
+}
+
 export function testLockfileSourceRuleSeesIgnoredLockfiles(): void {
   // Lockfiles are a common entry in ignorePaths, which must not hide a poisoned URL.
   const config = prismConfigSchema.parse({ ignorePaths: ["**/package-lock.json"] });
