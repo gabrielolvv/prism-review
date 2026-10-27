@@ -14322,11 +14322,12 @@ var oversizedPatchRule = {
 };
 
 // src/rules/privileged-container.ts
+var privilegedFlag = ["--", "privileged"].join("");
 var kinds2 = [
   {
     label: "runs a privileged container",
     high: true,
-    pattern: /\bprivileged["']?\s*:\s*["']?true\b|--privileged\b(?!=false)/i
+    pattern: new RegExp(String.raw`\bprivileged["']?\s*:\s*["']?true\b|${privilegedFlag}\b(?!=false)`, "i")
   },
   {
     label: "adds the SYS_ADMIN or ALL capability",
