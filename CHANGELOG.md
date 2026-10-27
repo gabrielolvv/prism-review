@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Prompt-injection fixtures and tests for instructions in base64, Markdown and HTML comments, a file name, a suppression reason that claims approval, and Unicode tag characters. None of them changes the review, and none of the injected text reaches the comment, the JSON, or the SARIF report, except a file name inside a code span.
+
+### Changed
+
+- `docs/roadmap.md` lists everything shipped through 0.15.0.
+
 ## 0.15.0 - 2026-10-27
 
 ### Added
