@@ -136,7 +136,7 @@ The `lockfile-source` rule reads the download URLs that added lines put in lockf
 | A go.mod `replace` that points a module at a different module, such as `golang.org/x/crypto => github.com/someone/crypto` | Warning, with the module named |
 | A pip `--extra-index-url`, which lets a public package with the same name as a private one win | Warning |
 
-It reads `resolved` and `resolution` in `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` (v1 and berry), and `pnpm-lock.yaml`; `url` in `poetry.lock`, `Pipfile`, and `Pipfile.lock`; `registry`, `url`, and `git` in `uv.lock`; `replace` directives in `go.mod`; `source` in `Cargo.lock`; `remote` in `Gemfile.lock`; index options, `--trusted-host`, and direct URLs in `requirements*.txt` and `requirements/*.in`; `registry` in `.npmrc`; `npmRegistryServer` in `.yarnrc.yml`; and `index-url` and `trusted-host` in `pip.conf`. npm lockfile v1 keeps Git and tarball URLs in `version`, which is read too. Package sources in `pyproject.toml` are not read yet.
+It reads `resolved` and `resolution` in `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` (v1 and berry), and `pnpm-lock.yaml`; `url` in `poetry.lock`, `Pipfile`, and `Pipfile.lock`; `registry`, `url`, and `git` in `uv.lock`; `replace` directives in `go.mod`; `source` in `Cargo.lock`; `remote` in `Gemfile.lock`; index options, `--trusted-host`, and direct URLs in `requirements*.txt` and `requirements/*.in`; `registry` in `.npmrc`; `npmRegistryServer` in `.yarnrc.yml`; and `index-url` and `trusted-host` in `pip.conf`. npm lockfile v1 keeps Git and tarball URLs in `version`, which is read too. In `pyproject.toml`, it reads `name @ URL` dependencies, `index-url` and `extra-index-url`, `url` in `[[tool.poetry.source]]`, `[[tool.uv.index]]`, and `[[tool.pdm.source]]`, and inline `{ git = ... }` and `{ url = ... }` tables such as uv sources and Poetry dependencies. Other tables' `url` keys, such as `[project.urls]`, are not package sources.
 
 The public registries are always allowed: `https://registry.npmjs.org/`, `https://registry.yarnpkg.com/`, `https://pypi.org/`, `https://files.pythonhosted.org/`, `https://rubygems.org/`, `https://index.crates.io/`, `https://static.crates.io/`, and `https://github.com/rust-lang/crates.io-index`. Add private registries as URL prefixes:
 
@@ -146,6 +146,7 @@ rules:
     allowedSources:
       - "https://npm.pkg.github.com/"
       - "https://artifactory.acme.example/api/npm/"
+      - "https://download.pytorch.org/whl/"
 ```
 
 A URL is allowed when its scheme and host match and its path continues the prefix at a `/`, so `https://artifactory.acme.example/api/npm-evil/` does not match the second entry. Entries must be http or https URLs.

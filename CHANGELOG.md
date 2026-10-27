@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Changed
+
+- `lockfile-source` also reads package sources in `pyproject.toml`: `name @ URL` dependencies, index URLs, Poetry, uv, and PDM source tables, and inline `git` and `url` sources.
+
 ## 0.9.0 - 2026-10-27
 
 ### Added
