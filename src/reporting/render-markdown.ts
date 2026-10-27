@@ -2,6 +2,7 @@ import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/findi
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 import { compareSeverity, type Severity } from "../analysis/severity.js";
 import { areaOf, areas } from "../rules/areas.js";
+import { checklistQuestions } from "./checklist.js";
 import { compareWithPrevious, renderState, type Comparison, type PreviousFindings } from "./review-state.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
@@ -12,6 +13,8 @@ export type RenderOptions = {
   previous?: PreviousFindings;
   // Records the findings in the comment, for the next run to compare with.
   recordState?: boolean;
+  // Questions added to the checklist on every review.
+  checklist?: readonly string[];
 };
 
 export function renderMarkdown(
@@ -25,7 +28,9 @@ export function renderMarkdown(
   const comparison = options.previous === undefined ? undefined : compareWithPrevious(findings, options.previous);
   const changes = comparison === undefined ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
-  const budget = maxFindingsLength - [...suppressed, ...changes, ...state].join("\n").length;
+  const checklist = checklistQuestions(findings, options.checklist).map((question) => `- ${escapeText(question)}`);
+  // Everything else that can grow comes out of the findings' share of the size limit.
+  const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
 
   return [
     PRISM_COMMENT_MARKER,
@@ -48,10 +53,7 @@ export function renderMarkdown(
     ...suppressed,
     "### Suggested Review Checklist",
     "",
-    "- Are tests covering the changed behavior?",
-    "- Are security-sensitive changes reviewed by the right owner?",
-    "- Are deployment, migration, or rollback risks understood?",
-    "- Are new dependencies necessary and trusted?",
+    ...checklist,
     ...state
   ].join("\n");
 }

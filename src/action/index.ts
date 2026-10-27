@@ -57,6 +57,7 @@ async function run(): Promise<void> {
   const previous = inputs.dryRun ? undefined : await findReviewComment(client, owner, repo, pullRequest.number);
   const body = renderMarkdown(result, {
     includeLowSeverity: config.comment.includeLowSeverity,
+    checklist: config.comment.checklist,
     previous: previous === undefined ? undefined : readState(previous.body),
     recordState: true
   });

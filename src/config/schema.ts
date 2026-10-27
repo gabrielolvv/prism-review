@@ -188,7 +188,9 @@ export const prismConfigSchema = z.object({
   comment: z
     .object({
       mode: z.enum(["upsert", "append"]).default("upsert"),
-      includeLowSeverity: z.boolean().default(false)
+      includeLowSeverity: z.boolean().default(false),
+      // The repository's own questions, added to every review's checklist.
+      checklist: z.array(z.string().trim().min(1).max(300)).max(10).default([])
     })
     .default({}),
   ignorePaths: z.array(z.string()).default([]),
