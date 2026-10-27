@@ -24,17 +24,21 @@ const testDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests_
 
 const commentLine = /^\s*[#;]/;
 const assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
-// The name must end with the secret word, so `TOKEN_TTL_SECONDS` and `MAX_TOKENS` do not count.
+// The name must end with the secret word, so `TOKEN_TTL_SECONDS` and `MAX_TOKENS` do not count, and
+// `PWD` is the working directory.
 const secretName =
-  /(?:secret|passw(?:or)?d|[_.-]pass|pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
+  /(?:secret|passw(?:or)?d|[_.-]pass|[_.-]pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
 // Build tools inline these into code sent to browsers, so they are public by design.
 const publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
-const urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@([^\s:/?#]+)/i;
+const urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@(\[[^\]\s]*\]|[^\s:/?#]+)/i;
 const localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
 const registryToken = /(?:_authToken|_auth|_password|npmAuthToken|npmAuthIdent)\s*[=:]\s*(.*)$|^\s*password\s*[=:]\s*(.*)$/i;
 // Empty values, references to other variables, and the values examples use.
 const placeholder =
   /^(?:|\$\{?[\w:-]*\}?|<[^>]*>|x+|\*+|\.{3}|change[_-]?me|replace[_-]?me|your[\w-]*|placeholder|example|todo|tbd|none|null|true|false|\d)$/i;
+// A path names the file that holds the credential, as `GOOGLE_APPLICATION_CREDENTIALS` does.
+// Base64 values can start with `/` too, so a path needs a directory or an extension and no `+` or `=`.
+const filePath = /^(?:~|\.{1,2})?\/[\w.-]+(?:\/[\w.-]+)+$|^(?:~\/|\.{0,2}\/)?[\w.-]+(?:\/[\w.-]+)*\.(?:json|pem|key|p12|pfx|jks|crt)$/i;
 // Defaults that local development setups, such as a Docker Compose database, commit on purpose.
 const localDefault = /^(?:password|passw0rd|pass|secret|postgres|mysql|root|admin|guest|dev|development|test|local|default|123456)$/i;
 
@@ -97,7 +101,7 @@ function registrySecret(content: string): boolean {
 }
 
 function isPlaceholder(value: string): boolean {
-  return placeholder.test(value) || localDefault.test(value);
+  return placeholder.test(value) || localDefault.test(value) || filePath.test(value);
 }
 
 // Drops a trailing comment from an unquoted value, and the quotes around a quoted one.
