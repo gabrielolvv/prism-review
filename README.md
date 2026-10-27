@@ -40,6 +40,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Sets rule severity for the whole repository or for chosen paths
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
 - Ignores generated or vendored paths for noise rules, including files marked `linguist-generated` or `linguist-vendored` in `.gitattributes`, while secret, hidden Unicode, and configuration checks still read every file
+- Optionally adds an advisory AI summary of the change, written from the redacted diff, which cannot change the risk level, the findings, or the check
 - Reviews local diffs from the command line, for example in a pre-push hook
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus end-to-end runs of the bundled action and CLI
 - Ships as a self-contained bundle, so no dependency install happens on the runner
@@ -201,6 +202,10 @@ overrides:
   - paths: ["legacy/**"]
     severity:
       risky-api: "off"
+
+# Off by default; needs the ai-api-key input.
+ai:
+  enabled: false
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.
@@ -284,12 +289,10 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 - File names and finding text are escaped in the comment, annotations, and dry-run output, so pull request content cannot add Markdown or workflow commands.
 - `check.failOn` is read from the base commit, so a pull request cannot lower its own merge gate.
 - GitHub API requests have timeouts, bounded pagination, and truncated error details.
-- AI features are not part of the deterministic core.
+- The optional AI summary is off by default and needs an API key. It sees only the redacted diff of the reviewed files, its reply is validated and escaped, and it cannot change the risk level, the findings, or the check.
 
 ## Roadmap
 
-- Group findings by area in long reviews
-- Add optional, provider-neutral AI review summaries
 - Add GitHub App mode with queue-based processing and organization-level analytics
 
 See [`docs/roadmap.md`](docs/roadmap.md) for details and shipped items.

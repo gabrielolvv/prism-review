@@ -49,13 +49,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `stale-lockfile` rule for manifests whose dependencies change while their lockfile, on the base commit, is not updated (0.27.0).
 - Go modules in the dependency checks, read from `go.mod` with `go.sum` as the lockfile (0.28.0).
 - Composer and NuGet manifests in the dependency checks, with `composer.lock` and per-project `packages.lock.json` (0.29.0).
-- Maven and Gradle builds in the dependency checks: `pom.xml` dependency blocks, Gradle build scripts, and version catalogs, with `gradle.lockfile`.
-
-## Mid Term
-
-### Add optional AI review summaries
-
-Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets. The prompt-injection fixtures are in place and should be extended to check the AI output too, before it ships.
+- Maven and Gradle builds in the dependency checks: `pom.xml` dependency blocks, Gradle build scripts, and version catalogs, with `gradle.lockfile` (0.30.0).
+- An optional AI summary written from the redacted diff, behind a provider interface, with a validated reply, a fallback that publishes the review without it, and prompt-injection fixtures checked against what the model is sent and what the comment shows.
 
 ## Later
 
