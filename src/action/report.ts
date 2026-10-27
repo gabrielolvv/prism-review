@@ -1,4 +1,5 @@
-import { appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { countBySeverity, type ReviewResult } from "../analysis/finding.js";
 
 // Step outputs hold only values the action computes, never pull request content.
@@ -27,4 +28,16 @@ export function writeJobSummary(body: string, summaryPath = process.env.GITHUB_S
   if (summaryPath) {
     appendFileSync(summaryPath, `${body}\n`);
   }
+}
+
+// The action needs no checkout, so the workspace may be empty; the report's directory is created.
+export function writeSarif(
+  relativePath: string,
+  sarif: string,
+  workspace = process.env.GITHUB_WORKSPACE ?? process.cwd()
+): void {
+  const target = join(workspace, relativePath);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, `${sarif}\n`);
+  console.log(`Wrote the SARIF report to ${relativePath}.`);
 }
