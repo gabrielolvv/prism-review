@@ -173,6 +173,7 @@ flowchart TD
 | `incomplete-review` | High | Flags pull requests with more changed files than GitHub returns (3000), so the unreviewed rest cannot pass a gate. |
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `credential-file` | High | Flags committed private keys, key stores, Terraform state, and credential files, and secrets added to `.env`, `.npmrc`, and `.pypirc` files. |
+| `disabled-security-check` | High or Warning | Flags code that turns off TLS certificate verification or token signature checks, and warns when CSRF protection is turned off. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `workflow-risk` | High or Warning | Flags script injection, `pull_request_target`, checkout of pull request code, and `write-all` permissions added to GitHub Actions workflows. |
 | `unpinned-action` | Warning | Flags third-party actions, reusable workflows, and `docker://` images in workflows that are used by a tag or branch instead of a commit SHA or digest. |

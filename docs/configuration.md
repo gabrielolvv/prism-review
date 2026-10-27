@@ -70,6 +70,8 @@ rules:
     enabled: true
   remoteScripts:
     enabled: true
+  disabledSecurityChecks:
+    enabled: true
   workflowRisk:
     enabled: true
   unpinnedActions:
@@ -229,6 +231,22 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | PHP | `eval(...)`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `unserialize(...)` | `$runner->exec(...)`, `Foo::exec(...)`, `function exec(...)`, `json_decode(...)` |
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
+
+## Disabled Security Checks
+
+### `rules.disabledSecurityChecks.enabled`
+
+The `disabled-security-check` rule reports added lines that turn off a check meant to stop attackers:
+
+| Reported | Severity | Examples |
+| --- | --- | --- |
+| TLS certificate verification | High | `rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `strict-ssl=false`, Python `verify=False`, `ssl._create_unverified_context()`, `CERT_NONE`, Go `InsecureSkipVerify: true`, Java `NoopHostnameVerifier`, a .NET certificate callback that returns `true`, PHP `CURLOPT_SSL_VERIFYPEER => false`, Ruby `VERIFY_NONE`, `curl -k`, `wget --no-check-certificate`, `http.sslVerify false`, `insecure-skip-tls-verify: true` |
+| Token signature or expiry checks | High | `verify_signature: False`, `verify_exp: False`, `ignoreExpiration: true`, `algorithms: ["none"]`, Go `ParseUnverified(` |
+| CSRF protection | Warning | Spring `csrf().disable()` and `csrf(AbstractHttpConfigurer::disable)`, Django `@csrf_exempt`, Flask `csrf.exempt` and `WTF_CSRF_ENABLED = False`, Rails `skip_before_action :verify_authenticity_token` and `skip_forgery_protection` |
+
+Without certificate verification, anyone on the network path can read and change the traffic. Without signature checks, anyone can forge a token. CSRF protection is often turned off on purpose for an API or a signed webhook, so it is a warning.
+
+A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
 
 ## Remote Scripts
 
