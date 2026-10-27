@@ -14080,6 +14080,29 @@ var readers = [
   { files: /(?:^|\/)poetry\.lock$/i, urls: firstUrl(quotedUrl("url")) },
   { files: /(?:^|\/)Pipfile(?:\.lock)?$/i, urls: firstUrl(quotedUrl("url")) },
   {
+    files: /(?:^|\/)pyproject\.toml$/i,
+    urls: (content, section) => {
+      const entries = [];
+      const direct = /["']\s*[\w.-]+(?:\[[^\]]*\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
+      if (direct) {
+        entries.push({ url: direct[1] ?? "" });
+      }
+      const index = /^\s*(index-url|extra-index-url)\s*=\s*\[?\s*["']([^"']+)["']/i.exec(content);
+      if (index) {
+        entries.push({ url: index[2] ?? "", extraIndex: /extra/i.test(index[1] ?? "") });
+      }
+      const sourceUrl = /^\s*url\s*=\s*["']([^"']+)["']/i.exec(content);
+      if (sourceUrl && /^tool\.(?:poetry\.source|uv\.index|pdm\.source)$/i.test(section)) {
+        entries.push({ url: sourceUrl[1] ?? "" });
+      }
+      const inline = /\{[^}]*?\b(git|url)\s*=\s*"([^"]+)"/i.exec(content);
+      if (inline) {
+        entries.push({ url: inline[2] ?? "", git: inline[1]?.toLowerCase() === "git" });
+      }
+      return entries;
+    }
+  },
+  {
     // `source = { registry = "..." }`, `sdist = { url = "..." }`, and `source = { git = "..." }`.
     files: /(?:^|\/)uv\.lock$/i,
     urls: (content) => [...content.matchAll(/\b(registry|url|git)\s*=\s*"([^"]+)"/gi)].map(([, key, url]) => ({
@@ -14127,22 +14150,17 @@ function findLockfileSources(path2, patch, allowedSources) {
     return [];
   }
   const allowed = [...defaultAllowedSources, ...allowedSources].flatMap((source) => parseUrl(source) ?? []);
-  const gemfile = /Gemfile\.lock$/i.test(path2);
   let section = "";
   const found = [];
   for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
-    if (gemfile) {
-      if (startsHunk) {
-        section = /^[A-Z]+$/.exec(hunkContext?.trim() ?? "")?.[0] ?? "";
-      }
-      if (/^[A-Z]+$/.test(content)) {
-        section = content;
-      }
+    if (startsHunk) {
+      section = sectionName(hunkContext ?? "") ?? "";
     }
+    section = sectionName(content) ?? section;
     if (!added) {
       continue;
     }
-    for (const entry of reader.urls(content)) {
+    for (const entry of reader.urls(content, section)) {
       const source = "kind" in entry ? entry : entry.extraIndex ? { kind: "extra-index" } : classify(entry.url, allowed, section === "GIT" || entry.git === true);
       if (source !== void 0) {
         found.push({ line, ...source });
@@ -14150,6 +14168,9 @@ function findLockfileSources(path2, patch, allowedSources) {
     }
   }
   return found;
+}
+function sectionName(content) {
+  return /^([A-Z]+)$|^\s*\[\[?\s*([^\]\s]+)\s*\]\]?\s*(?:#.*)?$/.exec(content.trimEnd())?.slice(1).find(Boolean);
 }
 function classify(raw, allowed, gitSection) {
   if (gitSection || /^git\+|^git:|^ssh:/i.test(raw)) {
