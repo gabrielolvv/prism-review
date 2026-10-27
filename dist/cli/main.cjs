@@ -15627,6 +15627,7 @@ function invalidConfig(source, details) {
 var PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const findings = options.includeLowSeverity ? result.findings : result.findings.filter((finding) => finding.severity !== "info");
+  const suppressed = renderSuppressed(result.suppressed ?? []);
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -15640,9 +15641,9 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     "### Findings",
     "",
-    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings),
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, maxFindingsLength - suppressed.join("\n").length),
     "",
-    ...renderSuppressed(result.suppressed ?? []),
+    ...suppressed,
     "### Suggested Review Checklist",
     "",
     "- Are tests covering the changed behavior?",
@@ -15652,12 +15653,12 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
   ].join("\n");
 }
 var maxFindingsLength = 55e3;
-function renderFindings(findings) {
+function renderFindings(findings, budget) {
   const rendered = [];
   let length = 0;
   for (const finding of findings) {
     const block = renderFinding(finding);
-    if (length + block.length > maxFindingsLength) {
+    if (length + block.length > budget) {
       break;
     }
     rendered.push(block);
@@ -15672,16 +15673,24 @@ function renderFindings(findings) {
   return rendered.join("\n\n");
 }
 var maxSuppressedShown = 50;
+var maxSuppressedLength = 1e4;
 function renderSuppressed(suppressed) {
   if (suppressed.length === 0) {
     return [];
   }
-  const lines = suppressed.slice(0, maxSuppressedShown).map((finding) => {
+  const lines = [];
+  let length = 0;
+  for (const finding of suppressed.slice(0, maxSuppressedShown)) {
     const where = finding.file === void 0 ? "" : ` on line ${finding.line ?? "?"} of ${codeSpan(finding.file)}`;
-    return `- ${codeSpan(finding.ruleId)}${where}: ${escapeText(finding.suppressionReason)}`;
-  });
-  if (suppressed.length > maxSuppressedShown) {
-    lines.push(`- ${suppressed.length - maxSuppressedShown} more suppressed finding(s) are not shown.`);
+    const line = `- ${codeSpan(finding.ruleId)}${where}: ${escapeText(finding.suppressionReason)}`;
+    if (length + line.length > maxSuppressedLength) {
+      break;
+    }
+    lines.push(line);
+    length += line.length + 1;
+  }
+  if (suppressed.length > lines.length) {
+    lines.push(`- ${suppressed.length - lines.length} more suppressed finding(s) are not shown.`);
   }
   return ["### Suppressed Inline", "", ...lines, ""];
 }
