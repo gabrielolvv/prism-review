@@ -152,6 +152,10 @@ import {
   testRenderSarifMapsFindingsForCodeScanning
 } from "./unit/output-formats.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
+import {
+  testPathOverridesChangeSeverityForMatchingFiles,
+  testPathOverridesRejectUnknownRulesAndEmptyPaths
+} from "./unit/path-overrides.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -407,6 +411,8 @@ const tests: Array<[string, Test]> = [
   ["render JSON keeps every field", testRenderJsonKeepsEveryField],
   ["render SARIF maps findings for code scanning", testRenderSarifMapsFindingsForCodeScanning],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
+  ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
+  ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
