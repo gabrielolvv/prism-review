@@ -78,6 +78,35 @@ Give the step an `id`, such as `id: prism`, and read them as `${{ steps.prism.ou
 
 To block merges on high-risk findings, set `check.failOn: "high"` in `.prism-review.yml` on the default branch and mark the `review` job as a required status check in branch protection.
 
+### Code Scanning
+
+Set `sarif-file` to also write the review as SARIF, and upload it with `github/codeql-action/upload-sarif`. Findings then appear as code scanning alerts in the Security tab and on the pull request's changed lines, with history across runs:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      # upload-sarif matches results to files in the checkout; nothing from it is run.
+      - uses: actions/checkout@v4
+      - uses: gabrielolvv/prism-review@v0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sarif-file: prism-review.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: prism-review.sarif
+          category: prism-review
+```
+
+`if: always()` uploads the report even when `check.failOn` fails the review step. Findings about the pull request as a whole, such as `large-diff` and `incomplete-review`, have no file to point to, so they stay in the comment and are not in the SARIF report. Findings suppressed inline are included as suppressed, with their reason, and code scanning shows them as dismissed. `sarif-file` must be a relative path inside the workspace.
+
 ## Local Development
 
 ```bash
@@ -104,6 +133,8 @@ It reads `.prism-review.yml` from the current directory, or the file passed with
 #!/bin/sh
 git diff origin/main...HEAD | node path/to/prism-review/dist/cli/main.cjs analyze --diff - > /dev/null
 ```
+
+`--format json` prints the review as JSON for scripts, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
 
 Run `node dist/cli/main.cjs --help` for every option.
 

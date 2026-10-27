@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- The CLI takes `--format json` and `--format sarif`. JSON lists the risk level, counts, findings with every line they cover, and suppressed findings with their reasons. SARIF 2.1.0 places each finding on its file and line for GitHub code scanning, with inline suppressions as in-source suppressions. `check.failOn` sets the exit status in every format.
+- The `sarif-file` action input also writes the review as SARIF, for `github/codeql-action/upload-sarif`. The README shows a workflow that uploads it.
+
 ## 0.13.0 - 2026-10-27
 
 ### Added
