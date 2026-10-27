@@ -17,6 +17,8 @@ export type ChangedFile = {
   secrets?: SecretMatch[];
   // Set by prepareChangedFiles before oversized patches are dropped.
   hiddenLines?: HiddenLine[];
+  // Set by prepareChangedFiles before redaction, for environment and package manager files.
+  credentialLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
