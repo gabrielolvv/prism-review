@@ -208,14 +208,14 @@ The `destructive-migration` rule checks added lines in database migrations: file
 | Reported | Severity | Examples |
 | --- | --- | --- |
 | Drops a table | High | `DROP TABLE`, `drop_table`, `op.drop_table`, `dropTable`, `Schema::drop`, `DropTable`, `DeleteModel` |
-| Drops a column | High | `DROP COLUMN`, `remove_column`, `op.drop_column`, `dropColumn`, `removeColumn`, `RemoveField`, Ecto `remove` |
+| Drops a column | High | `DROP COLUMN`, MySQL's `ALTER TABLE ... DROP name`, `remove_column`, `op.drop_column`, `dropColumn`, `removeColumn`, `RemoveField`, Ecto `remove` |
 | Removes every row | High | `TRUNCATE TABLE`, `DELETE FROM table;` without a `WHERE`, Knex `.truncate()` |
 | Changes a column definition | Warning | `ALTER COLUMN ... TYPE`, `MODIFY COLUMN`, `change_column`, `changeColumn`, `AlterColumn`, Laravel `->change()`, Knex `.alter()` |
 | Renames a table or column | Warning | `RENAME COLUMN ... TO`, `RENAME TO`, `sp_rename`, `rename_column`, `renameColumn`, `RenameField`, `RenameModel` |
 
 Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
 
-Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
+Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. A function or method defined after a rollback, at the same indentation or less, is not part of it. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, `--` and `/* */` comments in SQL files, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
 
 ## Hidden Unicode
 
