@@ -14,6 +14,7 @@ export const ruleIds: readonly string[] = [
   "workflow-risk",
   "unpinned-action",
   "destructive-migration",
+  "privileged-container",
   "sensitive-files",
   "config-change",
   "lockfile-source",

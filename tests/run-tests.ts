@@ -120,6 +120,11 @@ import {
   testUnpinnedActionRuleSkipsCommentsOtherFilesAndAllowedOwners,
   testUnpinnedActionRuleSeesIgnoredFilesAndCanBeDisabled
 } from "./unit/unpinned-action.test.js";
+import {
+  testPrivilegedContainerRuleReportsHostAccess,
+  testPrivilegedContainerRuleIgnoresHardenedAndUnrelatedSettings,
+  testPrivilegedContainerRuleCanBeDisabled
+} from "./unit/privileged-container.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -355,6 +360,9 @@ const tests: Array<[string, Test]> = [
   ["unpinned-action rule reports tags, branches, and images", testUnpinnedActionRuleReportsTagsBranchesAndImages],
   ["unpinned-action rule skips comments, other files, and allowed owners", testUnpinnedActionRuleSkipsCommentsOtherFilesAndAllowedOwners],
   ["unpinned-action rule sees ignored files and can be disabled", testUnpinnedActionRuleSeesIgnoredFilesAndCanBeDisabled],
+  ["privileged-container rule reports host access", testPrivilegedContainerRuleReportsHostAccess],
+  ["privileged-container rule ignores hardened and unrelated settings", testPrivilegedContainerRuleIgnoresHardenedAndUnrelatedSettings],
+  ["privileged-container rule can be disabled", testPrivilegedContainerRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
