@@ -6,12 +6,15 @@ import { describeLines } from "./line-list.js";
 
 type Kind = { label: string; high: boolean; pattern: RegExp };
 
+// Assembled so this file does not match its own pattern.
+const privilegedFlag = ["--", "privileged"].join("");
+
 // In the order the message lists them. The high ones give the container root on its host.
 const kinds: Kind[] = [
   {
     label: "runs a privileged container",
     high: true,
-    pattern: /\bprivileged["']?\s*:\s*["']?true\b|--privileged\b(?!=false)/i
+    pattern: new RegExp(String.raw`\bprivileged["']?\s*:\s*["']?true\b|${privilegedFlag}\b(?!=false)`, "i")
   },
   {
     label: "adds the SYS_ADMIN or ALL capability",
