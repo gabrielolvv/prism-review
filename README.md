@@ -21,10 +21,16 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
+- Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, unpinned third-party actions, and scripts piped from the internet into a shell
+- Flags infrastructure risks: privileged containers, the Docker socket, sensitive ports open to the internet, public buckets and databases, and destructive database migrations
+- Flags code that turns off TLS, token, or CSRF checks, and SQL built from values instead of parameters
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run, and writes the review to the job summary
 - Exposes the risk level and finding counts as step outputs
-- Optionally annotates findings beside the changed files, with no extra permission
+- Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
+- Writes JSON and SARIF, so findings can go to GitHub code scanning
+- Lets a comment with a reason acknowledge a finding on its line, and lists every acknowledgment in the review
+- Sets rule severity for the whole repository or for chosen paths
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
 - Ignores generated or vendored paths for noise rules, while secret, hidden Unicode, and configuration checks still read every file
 - Reviews local diffs from the command line, for example in a pre-push hook
@@ -264,7 +270,7 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 
 ## Roadmap
 
-- Post line findings as pull request review comments, as an opt-in alternative to annotations
+- Group findings by area in long reviews
 - Add optional, provider-neutral AI review summaries
 - Add GitHub App mode with queue-based processing and organization-level analytics
 

@@ -498,6 +498,33 @@ Annotations are printed to the job log, so they need no extra permission and als
 
 When `true`, `info` findings are annotated as notices. This is independent of `comment.includeLowSeverity`.
 
+## Review Comments
+
+### `reviewComments.enabled`
+
+When `true`, the action also posts each finding that names a file and a line as a pull request review comment on that line, so it shows up in the **Files changed** tab and can be discussed in its own thread. It is an alternative to annotations, which GitHub caps at 10 per type, and to code scanning, which needs `security-events: write`. It needs the same `pull-requests: write` permission as the review comment.
+
+```yaml
+reviewComments:
+  enabled: true
+  includeLowSeverity: false
+  maxComments: 25
+```
+
+- Each comment starts with a hidden `prism-review-line` marker and the rule id. On the next run, a comment for the same rule, file, and line is updated in place instead of posted again.
+- When a finding is no longer reported, its comment is edited to say so. Comments are never deleted, so replies under them stay. A finding that comes back on the same line reactivates its comment.
+- Comments are posted on the pull request's head commit. GitHub only accepts lines that are part of the diff; a finding it rejects is skipped with a warning and stays in the review comment.
+- Only bot comments that start with the marker are updated, so a person who pastes it cannot have their comment edited.
+- Findings suppressed inline are not posted. Comments are not posted with `dry-run: true`, and a read-only token on a pull request from a fork logs a warning, as for the review comment.
+
+### `reviewComments.includeLowSeverity`
+
+When `true`, `info` findings are posted too.
+
+### `reviewComments.maxComments`
+
+The most comments one run posts, from 1 to 100, 25 by default. Findings are taken most severe first, and the rest stay in the review comment.
+
 ## Ignore Paths
 
 ### `ignorePaths`
