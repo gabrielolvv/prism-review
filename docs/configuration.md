@@ -187,6 +187,29 @@ A URL is allowed when its scheme and host match and its path continues the prefi
 
 Local packages (`file:`, workspaces, a go.mod `replace` with a local path or the same module path), registry versions without a URL, and comments are not reported, and neither are lockfiles under test or fixture directories. Like `secret-in-diff`, the rule reads patches before the size limit and redaction, since lockfile diffs are often large and URLs can carry credentials; only the host, or the module path of a go.mod `replace`, is shown. It also checks lockfiles matched by `ignorePaths`. `rules.lockfileSources.enabled: false` turns it off.
 
+## Lookalike Dependencies
+
+The `lookalike-dependency` rule reads the dependencies added in manifests and reports a warning when a name is one character away from a widely used package in the same registry: one character added, removed, or replaced, or two neighbors swapped, such as `expresss`, `lodahs`, or `reqeusts`. Typosquatters publish such names to catch a mistyped install. The names are compared with a list bundled with Prism Review, so no network call is made.
+
+| Registry | Files | Read from |
+| --- | --- | --- |
+| npm | `package.json` | `"name": "version"` entries whose value looks like a version, tag, or source, outside `version` and `engines` |
+| PyPI | `requirements*.txt`, `requirements/*.in` | each requirement line |
+| PyPI | `pyproject.toml` | quoted requirements with a version specifier, such as `"requests>=2.31"`, and Poetry dependency tables |
+| PyPI | `Pipfile` | `[packages]` and `[dev-packages]` |
+| RubyGems | `Gemfile`, `*.gemspec` | `gem "name"` and `add_dependency "name"` |
+| crates.io | `Cargo.toml` | dependency tables, including `[dev-dependencies]` and `[workspace.dependencies]` |
+
+Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
+
+### `rules.lookalikeDependencies.allowed`
+
+Dependency names that are the intended packages, though they look like popular ones, compared without case. A name listed here is never reported.
+
+### `rules.lookalikeDependencies.enabled`
+
+`false` turns the rule off.
+
 ## Skipped Tests
 
 ### `rules.skippedTests.enabled`
