@@ -1,4 +1,4 @@
-import type { ReviewResult, SuppressedFinding } from "../analysis/finding.js";
+import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/finding.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
@@ -117,6 +117,19 @@ function renderFinding(finding: ReviewResult["findings"][number]): string {
   }
 
   return sections.join("\n");
+}
+
+export const LINE_COMMENT_MARKER = "prism-review-line";
+
+// A review comment on one changed line. The marker names the rule, so a later run can find it.
+export function renderLineComment(finding: Finding): string {
+  return [
+    `<!-- ${LINE_COMMENT_MARKER} ${finding.ruleId} -->`,
+    `**${capitalize(finding.severity)}** - ${escapeText(finding.title)}`,
+    "",
+    escapeText(finding.message),
+    ...(finding.recommendation ? ["", `Recommendation: ${escapeText(finding.recommendation)}`] : [])
+  ].join("\n");
 }
 
 // Finding text is plain prose, so Markdown and HTML in it are shown literally. Newlines are folded

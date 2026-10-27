@@ -9,7 +9,9 @@ import {
   fakeAppendBaseSha,
   fakeBaseSha,
   fakeFailOnHighBaseSha,
-  fakeLeakedToken
+  fakeLeakedToken,
+  fakeHeadSha,
+  fakeReviewCommentsBaseSha
 } from "../support/fake-github-api.js";
 
 // Runs the committed bundle the way the runner does, against a fake GitHub API.
@@ -471,6 +473,27 @@ const scenarios: Array<[string, () => void]> = [
       const escape = runAction({ "INPUT_DRY-RUN": "true", "INPUT_SARIF-FILE": "../outside.sarif", GITHUB_WORKSPACE: workspace }, pullRequestEvent);
       assert.equal(escape.status, 1);
       assert.match(escape.stderr, /Invalid sarif-file/);
+    }
+  ],
+  [
+    "line findings become review comments that are updated in place",
+    () => {
+      const run = runAction({}, { pull_request: { number: 21, base: { sha: fakeReviewCommentsBaseSha }, head: { sha: fakeHeadSha } } });
+      assert.equal(run.status, 0, run.stderr);
+
+      const posted = run.requests.filter((request) => request.method === "POST" && request.path === "/repos/acme/widgets/pulls/21/comments");
+      assert.equal(posted.length, 2);
+      const body = posted[0]?.body as unknown as { commit_id: string; path: string; line: number; side: string; body: string };
+      assert.equal(body.commit_id, fakeHeadSha);
+      assert.equal(body.side, "RIGHT");
+      assert.equal(body.line, 1);
+      assert.match(body.body, /^<!-- prism-review-line sql-injection -->\n\*\*Warning\*\* - SQL built from values/);
+
+      const resolved = run.requests.find((request) => request.method === "PATCH" && request.path === "/repos/acme/widgets/pulls/comments/77");
+      assert.match(resolved?.body?.body ?? "", /resolved -->\nThis finding is no longer reported/);
+      assert.ok(!run.requests.some((request) => request.method === "DELETE"));
+      assert.match(run.stdout, /Review comments: 1 posted, 0 updated, 1 marked resolved\./);
+      assert.match(run.stdout, /::warning title=Prism Review::1 line finding\(s\) are outside the diff/);
     }
   ],
   [
