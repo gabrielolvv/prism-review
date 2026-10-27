@@ -167,7 +167,7 @@ function renderDependencyChanges(changes: DependencyChange[]): string[] {
         ? `added${version(change.to)}`
         : change.to === undefined
           ? `removed${version(change.from)}`
-          : `${cell(change.from || "any")} to ${cell(change.to || "any")}`;
+          : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
     const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
     if (length + row.length > maxDependencyLength) {
       break;
@@ -180,6 +180,12 @@ function renderDependencyChanges(changes: DependencyChange[]): string[] {
   const more = hidden === 0 ? [] : [`${hidden} ${rows.length === 0 ? "" : "more "}dependency change(s) are not shown.`];
 
   return ["### Dependency Changes", "", ...table, ...(table.length > 0 && more.length > 0 ? [""] : []), ...more, ""];
+}
+
+// A dependency without a version accepts any, except in Maven and Gradle, where a BOM or parent
+// manages it.
+function unversioned(change: DependencyChange): string {
+  return change.ecosystem === "Maven" ? "managed" : "any";
 }
 
 // Suppressed findings stay visible, so a reviewer can check each reason. They share the comment's

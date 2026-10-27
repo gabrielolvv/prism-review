@@ -11,7 +11,8 @@ import { prepareChangedFiles } from "../../src/security/prepare-changed-files.js
 const length = 200_000;
 const budgetMs = 3_000;
 
-const cases: Array<[path: string, prefix: string, repeated: string]> = [
+// The optional context follows the hunk header, which tells the parser the section a hunk starts in.
+const cases: Array<[path: string, prefix: string, repeated: string, context?: string]> = [
   ["pyproject.toml", "", "{"],
   ["pyproject.toml", "", "github.event['"],
   ["Dockerfile", "", "curl "],
@@ -36,15 +37,19 @@ const cases: Array<[path: string, prefix: string, repeated: string]> = [
   ["Gemfile", "gem ", "a"],
   ["go.mod", "require ", "a"],
   ["App.csproj", "<PackageReference ", "Include=\"a\" "],
-  ["composer.json", '"', "a/"]
+  ["composer.json", '"', "a/"],
+  ["pom.xml", "<dependency>", "<groupId> "],
+  ["build.gradle", "implementation '", "a"],
+  ["build.gradle.kts", "implementation(group = \"", "a"],
+  ["gradle/libs.versions.toml", "a = ", "{ module = \"a", "[libraries]"]
 ];
 
 export function testRulePatternsStayLinearOnLongLines(): void {
   const slow: string[] = [];
 
-  for (const [path, prefix, repeated] of cases) {
+  for (const [path, prefix, repeated, context = ""] of cases) {
     const line = (prefix + repeated.repeat(Math.ceil(length / repeated.length))).slice(0, length) + "x";
-    const file: ChangedFile = { path, status: "added", additions: 1, deletions: 0, patch: `@@ -0,0 +1 @@\n+${line}` };
+    const file: ChangedFile = { path, status: "added", additions: 1, deletions: 0, patch: `@@ -0,0 +1 @@${context && ` ${context}`}\n+${line}` };
     // A large patch limit, so the long line reaches every rule instead of being dropped.
     const config = { ...defaultConfig, security: { ...defaultConfig.security, maxPatchBytes: 1_000_000 } };
 

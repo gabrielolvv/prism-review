@@ -1,6 +1,7 @@
 import { dependencyChanges, type DependencyChange } from "../analysis/manifest-dependencies.js";
 import type { Rule } from "../analysis/rule.js";
 import type { Finding } from "../analysis/finding.js";
+import type { Ecosystem } from "../security/popular-packages.js";
 import { describeLines } from "./line-list.js";
 
 type Problem = { line: number; kind: "older" | "open"; text: string };
@@ -57,15 +58,19 @@ function describeProblem(change: DependencyChange): Problem | undefined {
     if (before !== undefined && after !== undefined && compareVersions(after, before) < 0) {
       return { line: change.line, kind: "older", text: `${name} from ${from} to ${to}, an older version` };
     }
-    if (!compiledInput.test(change.file) && !isOpenEnded(from) && isOpenEnded(to)) {
+    if (!compiledInput.test(change.file) && !isOpenEnded(from, change.ecosystem) && isOpenEnded(to, change.ecosystem)) {
       return { line: change.line, kind: "open", text: `${name} from ${from} to ${shown(to)}, which accepts any future release` };
     }
     return undefined;
   }
 
   // A new dependency with no bound at all. PyPI and RubyGems manifests often list names without a
-  // version and rely on a lockfile, so only npm and Cargo wildcards count.
-  if ((change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim())) {
+  // version and rely on a lockfile, and Maven leaves versions to a BOM, so only explicit wildcards
+  // count: npm's and Cargo's `*` or `latest`, and Maven's and Gradle's `+`, `LATEST`, or open ranges.
+  const wildcard =
+    ((change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim())) ||
+    (change.ecosystem === "Maven" && to !== "" && isOpenEnded(to, change.ecosystem));
+  if (wildcard) {
     return { line: change.line, kind: "open", text: `${name} at ${shown(to)}, which accepts any release` };
   }
   return undefined;
@@ -77,8 +82,17 @@ function shown(version: string): string {
 
 // A requirement with no upper bound: no version, a wildcard, a tag such as `latest`, or only lower
 // bounds such as `>=2.0`.
-function isOpenEnded(version: string): boolean {
+function isOpenEnded(version: string, ecosystem: Ecosystem): boolean {
   const spec = version.trim();
+  // In Maven and Gradle, no version means a BOM or parent manages it, which is bounded.
+  if (spec === "" && ecosystem === "Maven") {
+    return false;
+  }
+  // Gradle's `+` and `latest.release`, Maven's `LATEST` and `RELEASE`, and a Maven range with no
+  // upper bound, such as `[1.0,)`, take any new release.
+  if (/^(?:\+|latest\.\w{1,20}|release)$/i.test(spec) || /^[[(][^,\])]{0,50},\s*\)$/.test(spec)) {
+    return true;
+  }
   if (/^(?:\*|x|latest|next|)$/i.test(spec)) {
     return true;
   }

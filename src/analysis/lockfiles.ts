@@ -8,11 +8,13 @@ const lockfileNames: Array<[RegExp, string[]]> = [
   [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
   [/(?:^|\/)go\.mod$/, ["go.sum"]],
   [/(?:^|\/)composer\.json$/, ["composer.lock"]],
-  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]]
+  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]],
+  [/(?:^|\/)build\.gradle(?:\.kts)?$/, ["gradle.lockfile"]]
 ];
 
-// NuGet keeps a lockfile next to each project, so one in a directory above belongs to another project.
-const ownDirectoryOnly = /\.(?:cs|fs|vb)proj$/i;
+// NuGet and Gradle keep a lockfile next to each project, so one in a directory above belongs to
+// another project.
+const ownDirectoryOnly = /\.(?:cs|fs|vb)proj$|(?:^|\/)build\.gradle(?:\.kts)?$/i;
 
 export function lockfilesFor(manifestPath: string): string[] {
   return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
