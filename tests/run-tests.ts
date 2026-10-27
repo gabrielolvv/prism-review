@@ -165,6 +165,13 @@ import {
   testRenderMarkdownMarksNewFindings,
   testRenderMarkdownLeavesRoomForTheRecord
 } from "./unit/review-state.test.js";
+import {
+  testEveryRuleHasAChecklistQuestion,
+  testChecklistAsksAboutTheFindings,
+  testChecklistFallsBackToGeneralQuestions,
+  testChecklistAddsTheRepositoryQuestions,
+  testChecklistSharesTheCommentSizeLimit
+} from "./unit/checklist.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -443,6 +450,11 @@ const tests: Array<[string, Test]> = [
   ["review state gives up past its limit", testReviewStateGivesUpPastItsLimit],
   ["render markdown marks new findings", testRenderMarkdownMarksNewFindings],
   ["render markdown leaves room for the review state", testRenderMarkdownLeavesRoomForTheRecord],
+  ["every rule has a checklist question", testEveryRuleHasAChecklistQuestion],
+  ["checklist asks about the findings", testChecklistAsksAboutTheFindings],
+  ["checklist falls back to general questions", testChecklistFallsBackToGeneralQuestions],
+  ["checklist adds the repository's questions", testChecklistAddsTheRepositoryQuestions],
+  ["checklist shares the comment size limit", testChecklistSharesTheCommentSizeLimit],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
