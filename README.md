@@ -254,7 +254,7 @@ flowchart TD
 | `skipped-tests` | Warning | Flags tests that a PR focuses with `.only` or disables with a skip marker. |
 | `blanket-suppression` | Warning | Flags lint and type check suppressions that name no rule. |
 | `risky-api` | Warning | Flags added calls that run code, start a shell, deserialize data, or write raw HTML. |
-| `lookalike-dependency` | Warning | Flags added dependencies named one character away from a popular npm, PyPI, RubyGems, crates.io, Go, Packagist, or NuGet package, such as `expresss` or `reqeusts`, a common typosquatting trick. |
+| `lookalike-dependency` | Warning | Flags added dependencies named one character away from a popular npm, PyPI, RubyGems, crates.io, Go, Packagist, NuGet, or Maven package, such as `expresss` or `reqeusts`, a common typosquatting trick. |
 | `risky-dependency-version` | Warning | Flags dependencies moved to an older version, and versions changed to accept any future release, such as `*`, `latest`, or `>=2.0` with no upper bound. |
 | `stale-lockfile` | Warning | Flags manifests whose dependencies change while the lockfile that pins them, such as `package-lock.json` or `Cargo.lock`, is not updated. |
 | `lockfile-source` | High or Warning | Flags lockfile entries and registry settings that download packages from hosts outside the allowed registries, over plain HTTP, or without TLS verification, and warns about Git sources, go.mod replaces, and extra pip indexes. |
