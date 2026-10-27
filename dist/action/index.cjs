@@ -13310,6 +13310,7 @@ var ruleIds = [
   "review-control-change",
   "lockfile-source",
   "lookalike-dependency",
+  "risky-dependency-version",
   "dependency-risk",
   "oversized-patch"
 ];
@@ -13419,6 +13420,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     credentialFiles: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    riskyDependencyVersions: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     lookalikeDependencies: external_exports.object({
@@ -14675,9 +14679,16 @@ function dependencyChanges(files) {
     for (const [key2, dependency] of after) {
       const previous = before.get(key2);
       if (previous === void 0) {
-        changes.push({ file: file.path, ecosystem, name: dependency.name, to: dependency.version });
+        changes.push({ file: file.path, ecosystem, name: dependency.name, to: dependency.version, line: dependency.line });
       } else if (previous.version !== dependency.version) {
-        changes.push({ file: file.path, ecosystem, name: dependency.name, from: previous.version, to: dependency.version });
+        changes.push({
+          file: file.path,
+          ecosystem,
+          name: dependency.name,
+          from: previous.version,
+          to: dependency.version,
+          line: dependency.line
+        });
       }
     }
     for (const [key2, dependency] of before) {
@@ -15308,6 +15319,90 @@ function oneEditApart(left, right) {
     index += 1;
   }
   return shorter.slice(index) === longer.slice(index + 1);
+}
+
+// src/rules/risky-dependency-version.ts
+var maxListed = 3;
+var compiledInput = /\.in$/i;
+var riskyDependencyVersionRule = {
+  id: "risky-dependency-version",
+  description: "Flags dependencies moved to an older version or left open to any future release.",
+  run({ files, config }) {
+    if (!config.rules.riskyDependencyVersions.enabled) {
+      return [];
+    }
+    const byFile = /* @__PURE__ */ new Map();
+    for (const change of dependencyChanges(files)) {
+      const problem = describeProblem(change);
+      if (problem !== void 0) {
+        byFile.set(change.file, [...byFile.get(change.file) ?? [], problem]);
+      }
+    }
+    return [...byFile].map(([file, problems]) => {
+      const { text, plural } = describeLines(problems.map((problem) => problem.line));
+      const listed = problems.slice(0, maxListed).map((problem) => problem.text).join("; ");
+      const more = problems.length > maxListed ? `; and ${problems.length - maxListed} more` : "";
+      const older = problems.some((problem) => problem.kind === "older");
+      return {
+        ruleId: "risky-dependency-version",
+        title: older ? "Dependency moved to an older version" : "Dependency version left open",
+        severity: "warning",
+        file,
+        line: Math.min(...problems.map((problem) => problem.line)),
+        lines: problems.map((problem) => problem.line),
+        message: `${text} ${plural ? "change" : "changes"} dependency versions: ${listed}${more}.`,
+        recommendation: "Check why an older version is needed, since it can bring back fixed vulnerabilities, and keep versions bounded so a new release is reviewed before it is installed."
+      };
+    });
+  }
+};
+function describeProblem(change) {
+  if (change.line === void 0 || change.to === void 0) {
+    return void 0;
+  }
+  const { from, to, name } = change;
+  if (from !== void 0) {
+    const before = versionNumbers(from);
+    const after = versionNumbers(to);
+    if (before !== void 0 && after !== void 0 && compareVersions(after, before) < 0) {
+      return { line: change.line, kind: "older", text: `${name} from ${from} to ${to}, an older version` };
+    }
+    if (!compiledInput.test(change.file) && !isOpenEnded(from) && isOpenEnded(to)) {
+      return { line: change.line, kind: "open", text: `${name} from ${from} to ${shown(to)}, which accepts any future release` };
+    }
+    return void 0;
+  }
+  if ((change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim())) {
+    return { line: change.line, kind: "open", text: `${name} at ${shown(to)}, which accepts any release` };
+  }
+  return void 0;
+}
+function shown(version) {
+  return version === "" ? "no version" : version;
+}
+function isOpenEnded(version) {
+  const spec = version.trim();
+  if (/^(?:\*|x|latest|next|)$/i.test(spec)) {
+    return true;
+  }
+  const parts = spec.split(/\s*,\s*|\s+(?=[<>=])/).filter(Boolean);
+  return parts.length > 0 && !spec.includes("||") && parts.every((part) => /^>=?\s*v?\d/.test(part));
+}
+function versionNumbers(version) {
+  if (/:\/\/|^(?:git|file|link|workspace|npm|github)[:+]/i.test(version.trim())) {
+    return void 0;
+  }
+  const match2 = /(\d{1,9})(?:\.(\d{1,9}))?(?:\.(\d{1,9}))?/.exec(version);
+  return match2 === null ? void 0 : match2.slice(1).filter((part) => part !== void 0).map(Number);
+}
+function compareVersions(left, right) {
+  for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+  return 0;
 }
 
 // src/rules/missing-tests.ts
@@ -15971,7 +16066,7 @@ function pathWords(path2) {
 var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
-var maxListed = 3;
+var maxListed2 = 3;
 var unpinnedActionRule = {
   id: "unpinned-action",
   description: "Flags third-party actions and container images in workflows that are not pinned to a commit SHA or digest.",
@@ -16034,9 +16129,9 @@ function unique(values) {
   return [...new Set(values)];
 }
 function list(targets) {
-  const shown = targets.filter((target) => /^[\w.:/@-]{1,200}$/.test(target)).slice(0, maxListed);
-  const more = targets.length - shown.length;
-  return [...shown, ...more > 0 ? [`${more} more`] : []].join(", ");
+  const shown2 = targets.filter((target) => /^[\w.:/@-]{1,200}$/.test(target)).slice(0, maxListed2);
+  const more = targets.length - shown2.length;
+  return [...shown2, ...more > 0 ? [`${more} more`] : []].join(", ");
 }
 
 // src/rules/workflow-risk.ts
@@ -16386,6 +16481,7 @@ var defaultRules = [
   reviewControlChangeRule,
   lockfileSourceRule,
   lookalikeDependencyRule,
+  riskyDependencyVersionRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];
@@ -16648,6 +16744,7 @@ var ruleAreas = {
   "dependency-risk": "supply-chain",
   "lockfile-source": "supply-chain",
   "lookalike-dependency": "supply-chain",
+  "risky-dependency-version": "supply-chain",
   "unpinned-action": "supply-chain",
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
@@ -16679,6 +16776,7 @@ var ruleQuestions = {
   "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
   "lockfile-source": "Do the packages from other sources come from places the team trusts?",
   "lookalike-dependency": "Is each flagged dependency the package that was meant, and not a lookalike of a popular one?",
+  "risky-dependency-version": "Is each older or open-ended dependency version intended, and does a lockfile pin what is actually installed?",
   "unpinned-action": "Can the third-party actions be pinned to a full commit SHA?",
   "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
   "remote-script": "Is each downloaded script checked against a known checksum or signature before it runs?",
@@ -16746,6 +16844,7 @@ var ruleSections = {
   "review-control-change": "Review Control Changes",
   "lockfile-source": "Lockfile Sources",
   "lookalike-dependency": "Lookalike Dependencies",
+  "risky-dependency-version": "Risky Dependency Versions",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
 };
@@ -16884,18 +16983,18 @@ var maxFindingsLength = 55e3;
 var groupingReserve = 1e3;
 function renderFindings(findings, budget, render) {
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
-  const shown = [];
+  const shown2 = [];
   let length = 0;
   for (const finding of findings) {
     const block = render(finding);
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
-    shown.push({ finding, block });
+    shown2.push({ finding, block });
     length += block.length + 2;
   }
-  const rendered = grouped ? renderGroups(findings, shown) : shown.map(({ block }) => block);
-  const hidden = findings.length - shown.length;
+  const rendered = grouped ? renderGroups(findings, shown2) : shown2.map(({ block }) => block);
+  const hidden = findings.length - shown2.length;
   if (hidden > 0) {
     rendered.push(
       `${hidden} more finding(s) are not shown here to keep the comment within GitHub's size limit. Enable annotations or run the CLI to see every finding.`
@@ -16903,11 +17002,11 @@ function renderFindings(findings, budget, render) {
   }
   return rendered.join("\n\n");
 }
-function renderGroups(findings, shown) {
+function renderGroups(findings, shown2) {
   const groups = areas.map((area) => ({
     area,
     all: findings.filter((finding) => areaOf(finding.ruleId) === area.id),
-    blocks: shown.filter(({ finding }) => areaOf(finding.ruleId) === area.id).map(({ block }) => block)
+    blocks: shown2.filter(({ finding }) => areaOf(finding.ruleId) === area.id).map(({ block }) => block)
   })).filter((group) => group.all.length > 0).sort((left, right) => compareSeverity(topSeverity(left.all), topSeverity(right.all)));
   const overview = groups.map(({ area, all }) => `${area.title} (${all.length})`).join(", ");
   return [
@@ -16989,8 +17088,8 @@ function renderFinding(finding, isNew, owners) {
 var maxOwnersShown = 5;
 function listOwners(owners) {
   const unique2 = [...new Set(owners)];
-  const shown = unique2.slice(0, maxOwnersShown).map(codeSpan).join(", ");
-  return unique2.length > maxOwnersShown ? `${shown} and ${unique2.length - maxOwnersShown} more` : shown;
+  const shown2 = unique2.slice(0, maxOwnersShown).map(codeSpan).join(", ");
+  return unique2.length > maxOwnersShown ? `${shown2} and ${unique2.length - maxOwnersShown} more` : shown2;
 }
 function renderOwnersQuestion(owners) {
   return owners.length === 0 ? [] : [`- Have the code owners of the flagged files, ${listOwners(owners)}, reviewed the change?`];
