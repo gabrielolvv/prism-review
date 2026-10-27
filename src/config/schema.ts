@@ -113,6 +113,15 @@ export const prismConfigSchema = z.object({
         .object({
           enabled: z.boolean().default(true)
         })
+        .default({}),
+      lockfileSources: z
+        .object({
+          enabled: z.boolean().default(true),
+          // URL prefixes of private registries, added to the public ones.
+          allowedSources: z
+            .array(z.string().max(500).refine(isRegistryUrl, "Must be an http or https URL, such as https://npm.pkg.github.com/."))
+            .default([])
+        })
         .default({})
     })
     .default({}),
@@ -170,6 +179,14 @@ function isRegularExpression(source: string): boolean {
   try {
     new RegExp(source);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+function isRegistryUrl(value: string): boolean {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
   } catch {
     return false;
   }

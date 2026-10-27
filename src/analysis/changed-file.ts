@@ -1,3 +1,4 @@
+import type { LockfileSource } from "../security/lockfile-sources.js";
 import type { HiddenLine } from "./hidden-characters.js";
 
 // GitHub lists at most this many files for a pull request.
@@ -19,6 +20,8 @@ export type ChangedFile = {
   hiddenLines?: HiddenLine[];
   // Set by prepareChangedFiles before redaction, for environment and package manager files.
   credentialLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction, for lockfiles and registry settings.
+  lockfileSources?: LockfileSource[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
