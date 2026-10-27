@@ -40,13 +40,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - A reviewer checklist with a question for each rule that reported a finding, and `comment.checklist` for questions of the repository's own (0.19.0).
 - Marketplace branding, and GitHub releases created from pushed version tags (0.19.1).
 - A link from each finding to its rule's section in `docs/configuration.md`, which now covers every rule (0.20.0).
-- The CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone.
+- The CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone (0.21.0).
+- Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` left out like `ignorePaths`.
 
 ## Near Term
 
-### Skip generated and vendored files marked in `.gitattributes`
+### Flag changes to the files that shape the review
 
-Many repositories already mark generated and vendored files with `linguist-generated` or `linguist-vendored` in `.gitattributes`, which GitHub uses to collapse them in diffs. Reading those attributes from the base commit and treating the marked files like `ignorePaths` would cut noise without repeating the list in `.prism-review.yml`.
+`config-change` reports a change to the configuration, but CODEOWNERS and `.gitattributes` now shape the review too: a pull request that marks `src/**` as generated, or removes an owner, changes how every later pull request is reviewed. Reporting changes to those attributes and owners, the way `config-change` does, would keep that from passing as a routine edit.
 
 ## Mid Term
 

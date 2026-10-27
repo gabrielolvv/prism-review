@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `ignoreGenerated`, on by default, leaves files that `.gitattributes` marks `linguist-generated` or `linguist-vendored` out of the noise rules, like `ignorePaths`. The action reads `.gitattributes` from the base commit and the CLI from the current directory. Patterns follow gitattributes, so a directory pattern needs `/**`, and the last matching line wins, so `-linguist-vendored` brings files back. The rules that `ignorePaths` cannot hide still read these files, and the summary counts them apart.
+- A `.gitattributes` that cannot be read logs a warning, and the review goes on with every file.
+
 ## 0.21.0 - 2026-10-27
 
 ### Added
