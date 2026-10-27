@@ -10,6 +10,12 @@ type Check = { label: string; high: boolean; patterns: RegExp[] };
 const word = (...parts: string[]) => new RegExp(`(?:^|[^\\w@-])${parts.join("")}\\b`);
 const insecureKubeFlag = ["--insecure", "-skip-tls-verify"].join("");
 
+// requests' `verify=False` argument, on its own line in a multi-line call too, and `session.verify = False`.
+// Other attributes named `verify` are not about TLS.
+const pythonVerifyOff = /(?:[(,]\s*|^\s*|\b\w*session\.)verify\s*=\s*False\b(?!\s*[^\s,)#])/;
+// Health checks and readiness probes call the local service, often with a self-signed certificate.
+const localUrl = /\bhttps?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])\b/;
+
 const tls: Check = {
   label: "TLS certificate verification",
   high: true,
@@ -17,7 +23,7 @@ const tls: Check = {
     /\brejectUnauthorized\s*:\s*false\b/,
     /\bNODE_TLS_REJECT_UNAUTHORIZED\b["']?\s*[:=]\s*["']?0\b/,
     /\bstrict-ssl\b["']?\s*[=:\s]\s*["']?false\b/,
-    /\bverify\s*=\s*False\b/,
+    pythonVerifyOff,
     /\bssl\._create_unverified_context\b|\bcheck_hostname\s*=\s*False\b|\bPYTHONHTTPSVERIFY\b["']?\s*[:=]\s*["']?0\b/,
     word("CERT", "_NONE"),
     word("VERIFY", "_NONE"),
@@ -116,10 +122,16 @@ export const disabledSecurityCheckRule: Rule = {
 
 // Python's `verify=False` turns off TLS in requests, but token checks in older PyJWT calls.
 function checksIn(content: string): Check[] {
-  const matched = checks.filter((check) => check.patterns.some((pattern) => pattern.test(content)));
-  return matched.includes(tls) && /\bjwt\b/i.test(content) && /\bverify\s*=\s*False\b/.test(content)
+  const matched = checks.filter(
+    (check) => check.patterns.some((pattern) => pattern.test(content)) && !(check === tls && isLocalDownload(content))
+  );
+  return matched.includes(tls) && /\bjwt\b/i.test(content) && pythonVerifyOff.test(content)
     ? [...new Set(matched.map((check) => (check === tls ? token : check)))]
     : matched;
+}
+
+function isLocalDownload(content: string): boolean {
+  return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
 
 function joinLabels(labels: string[]): string {

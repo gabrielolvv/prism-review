@@ -10,6 +10,7 @@ export function testDisabledSecurityCheckRuleReportsEachLanguage(): void {
       'process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";',
       'jwt.verify(token, key, { algorithms: ["none"], ignoreExpiration: true });'
     ]),
+    file("app/session.py", ["session = requests.Session()", "session.verify = False", "requests.post(", "    url,", "    verify=False,", ")"]),
     file("app/client.py", [
       "response = requests.get(url, verify=False)",
       "context = ssl._create_unverified_context()",
@@ -30,6 +31,7 @@ export function testDisabledSecurityCheckRuleReportsEachLanguage(): void {
   assert.deepEqual([...byFile.keys()].sort(), [
     "app/client.py",
     "app/controllers/api_controller.rb",
+    "app/session.py",
     "app/views.py",
     "lib/api.php",
     "lib/client.rb",
@@ -52,6 +54,7 @@ export function testDisabledSecurityCheckRuleReportsEachLanguage(): void {
   assert.equal(byFile.get("app/views.py")?.message, "Line 1 turns off a security check: CSRF protection.");
   assert.equal(byFile.get("app/views.py")?.severity, "warning");
   assert.equal(byFile.get("src/main/java/SecurityConfig.java")?.line, 1);
+  assert.equal(byFile.get("app/session.py")?.message, "Lines 2, 5 turn off security checks: TLS certificate verification.");
 }
 
 export function testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests(): void {
@@ -62,7 +65,12 @@ export function testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests(): void
       "const options = { verify: false };",
       'const decoded = jwt.decode(token); // read claims without trusting them'
     ]),
-    file("app/client.py", ["response = requests.get(url, verify=certifi.where())", "settings.DEBUG_VERIFY = False"]),
+    file("app/client.py", [
+      "response = requests.get(url, verify=certifi.where())",
+      "settings.DEBUG_VERIFY = False",
+      "self.verify = False  # skip schema verification"
+    ]),
+    file("Dockerfile", ["HEALTHCHECK CMD curl -fk https://localhost:8443/health || exit 1", "RUN wget --no-check-certificate -qO- https://127.0.0.1:9000/ready"]),
     file("scripts/fetch.sh", [
       "curl -fsSL https://example.com/data.json -o data.json",
       "curl -H 'Authorization: Bearer x' --keepalive-time 5 https://example.com"
