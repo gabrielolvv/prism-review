@@ -71,6 +71,7 @@ async function run(): Promise<void> {
     includeLowSeverity: config.comment.includeLowSeverity,
     checklist: config.comment.checklist,
     ownersOf: codeOwners?.ownersOf,
+    dependencyChanges: config.comment.dependencyChanges,
     previous: previous === undefined ? undefined : readState(previous.body),
     recordState: true
   });

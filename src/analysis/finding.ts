@@ -1,3 +1,4 @@
+import type { DependencyChange } from "./manifest-dependencies.js";
 import type { Severity } from "./severity.js";
 
 export type Finding = {
@@ -22,6 +23,8 @@ export type ReviewResult = {
   riskLevel: RiskLevel;
   findings: Finding[];
   suppressed?: SuppressedFinding[];
+  // Dependencies the reviewed manifests add, remove, or move to another version.
+  dependencyChanges?: DependencyChange[];
 };
 
 export function countBySeverity(findings: Finding[], severity: Severity): number {
