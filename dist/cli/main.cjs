@@ -13481,6 +13481,16 @@ var prismConfigSchema = external_exports.object({
     enabled: external_exports.boolean().default(false),
     includeLowSeverity: external_exports.boolean().default(false),
     maxComments: external_exports.number().int().min(1).max(100).default(25)
+  }).default({}),
+  // An advisory summary written by a language model from the redacted diff. Off unless enabled,
+  // and it needs the `ai-api-key` input, since it sends the diff to the provider's API.
+  ai: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    provider: external_exports.enum(["anthropic"]).default("anthropic"),
+    model: external_exports.string().trim().regex(/^[\w.:@/-]{1,100}$/, "Must be a model name, such as claude-opus-5-5.").default("claude-opus-5-5"),
+    // The diff text sent, in characters; files past it are sent by name only.
+    maxInputCharacters: external_exports.number().int().min(1e3).max(5e5).default(1e5),
+    timeoutSeconds: external_exports.number().int().min(10).max(600).default(120)
   }).default({})
 });
 function isRegularExpression(source) {
@@ -17066,18 +17076,11 @@ function analyzePullRequest(files, config, options = {}) {
     existingLockfiles
   } = options;
   const changedPaths = new Set(files.flatMap((file) => [file.path, ...file.previousPath === void 0 ? [] : [file.previousPath]]));
-  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
-  const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
   const pathOverrides = config.overrides.map((override) => ({
     matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
     severity: override.severity
   }));
-  const leftOut = (file, excluded) => excluded(file.path) && (file.previousPath === void 0 || excluded(file.previousPath));
-  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
-  const generated = new Set(
-    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path2) => isIgnored(path2) || isGenerated(path2)))
-  );
-  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
+  const { reviewed, ignoredByConfig, generated } = partitionFiles(files, config, isGenerated);
   const all = rules.flatMap(
     (rule) => rule.run({
       files: rule.seesIgnoredFiles ? files : reviewed,
@@ -17097,6 +17100,17 @@ function analyzePullRequest(files, config, options = {}) {
     suppressed,
     ...nonEmpty("dependencyChanges", dependencyChanges(reviewed))
   };
+}
+function partitionFiles(files, config, isGenerated = () => false) {
+  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
+  const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
+  const leftOut = (file, excluded) => excluded(file.path) && (file.previousPath === void 0 || excluded(file.previousPath));
+  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
+  const generated = new Set(
+    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path2) => isIgnored(path2) || isGenerated(path2)))
+  );
+  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
+  return { reviewed, ignoredByConfig, generated };
 }
 function nonEmpty(key, values) {
   return values.length > 0 ? { [key]: values } : {};
@@ -17481,6 +17495,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const findings = options.includeLowSeverity ? result.findings : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
   const dependencies = options.dependencyChanges === false ? [] : renderDependencyChanges(result.dependencyChanges ?? []);
+  const aiSummary = options.aiSummary === void 0 ? [] : renderAiSummary(options.aiSummary);
   const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
   const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
@@ -17490,7 +17505,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     ...renderOwnersQuestion(findings.flatMap(owners)),
     ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
   ];
-  const budget = maxFindingsLength - [...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
+  const budget = maxFindingsLength - [...aiSummary, ...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -17502,6 +17517,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     result.summary,
     "",
+    ...aiSummary,
     "### Findings",
     "",
     ...changes,
@@ -17518,6 +17534,32 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     ...checklist,
     ...state
   ].join("\n");
+}
+function renderAiSummary(summary) {
+  const partial = summary.filesNotSent === 0 ? [] : [`${summary.filesNotSent} changed file(s) were sent by name only, over \`ai.maxInputCharacters\`, so this summary covers part of the change.`, ""];
+  return [
+    "### AI Summary",
+    "",
+    `> Advisory: written by ${codeSpan(summary.model)} from the redacted diff. It does not change the risk level, the findings, or the check, and can be wrong.`,
+    "",
+    advisoryText(summary.overview),
+    "",
+    ...summary.concerns.map(
+      (entry) => `- ${entry.file === void 0 ? "" : `${codeSpan(entry.file)}: `}${advisoryText(entry.concern)}`
+    ),
+    ...summary.concerns.length > 0 ? [""] : [],
+    ...partial
+  ];
+}
+var linkable = /@[\w-]{1,100}(?:\/[\w-]{1,100})?|(?:[\w.-]{1,100}\/[\w.-]{1,100})?#\d{1,10}\b|\bGH-\d{1,10}\b|\b(?:https?:\/\/|www\.)\S{1,2000}/gi;
+function advisoryText(text) {
+  let rendered = "";
+  let last = 0;
+  for (const match2 of text.matchAll(linkable)) {
+    rendered += escapeText(showHiddenCharacters(text.slice(last, match2.index))) + codeSpan(match2[0]);
+    last = match2.index + match2[0].length;
+  }
+  return rendered + escapeText(showHiddenCharacters(text.slice(last)));
 }
 function renderChanges({ newCount, noLongerReported }) {
   const resolved = noLongerReported.reduce((total, [, count]) => total + count, 0);
