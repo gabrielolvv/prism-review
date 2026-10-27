@@ -15914,6 +15914,61 @@ function escapeProperty(value) {
   return escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
 
+// src/reporting/render-sarif.ts
+var levels = { high: "error", warning: "warning", info: "note" };
+function renderSarif(result, rules) {
+  const located = (finding) => finding.file !== void 0;
+  const results = [
+    ...result.findings.filter(located).map((finding) => sarifResult(finding)),
+    ...(result.suppressed ?? []).filter(located).map((finding) => sarifResult(finding, finding))
+  ];
+  return JSON.stringify(
+    {
+      $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+      version: "2.1.0",
+      runs: [
+        {
+          tool: {
+            driver: {
+              name: "Prism Review",
+              informationUri: "https://github.com/gabrielolvv/prism-review",
+              rules: rules.map((rule) => ({
+                id: rule.id,
+                name: rule.id,
+                shortDescription: { text: rule.description },
+                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md"
+              }))
+            }
+          },
+          results
+        }
+      ]
+    },
+    null,
+    2
+  );
+}
+function sarifResult(finding, suppressed) {
+  return {
+    ruleId: finding.ruleId,
+    level: levels[finding.severity],
+    message: { text: [finding.message, finding.recommendation].filter(Boolean).join(" ") },
+    locations: [
+      {
+        physicalLocation: {
+          artifactLocation: { uri: fileUri(finding.file ?? "") },
+          ...finding.line === void 0 ? {} : { region: { startLine: finding.line } }
+        }
+      }
+    ],
+    // An inline suppression is SARIF's in-source suppression; code scanning shows it as dismissed.
+    ...suppressed === void 0 ? {} : { suppressions: [{ kind: "inSource", justification: suppressed.suppressionReason }] }
+  };
+}
+function fileUri(path2) {
+  return path2.split("/").map(encodeURIComponent).join("/");
+}
+
 // src/security/limit-patches.ts
 function limitPatchSizes(files, maxPatchBytes) {
   return files.map((file) => {
@@ -15996,8 +16051,19 @@ function readInputs() {
   return {
     githubToken,
     configPath: readConfigPath(),
-    dryRun: parseBooleanInput(getInput("dry-run") || "false")
+    dryRun: parseBooleanInput(getInput("dry-run") || "false"),
+    ...readSarifFile()
   };
+}
+function readSarifFile() {
+  const sarifFile = getInput("sarif-file");
+  if (!sarifFile) {
+    return {};
+  }
+  if (!isSafeRepositoryPath(sarifFile)) {
+    throw new Error(`Invalid sarif-file "${sarifFile}": sarif-file must be a relative path inside the workspace.`);
+  }
+  return { sarifFile: normalizeRepositoryPath(sarifFile) };
 }
 function readConfigPath() {
   const configPath = getInput("config-path") || defaultConfigPath;
@@ -16025,6 +16091,7 @@ function parseBooleanInput(value) {
 
 // src/action/report.ts
 var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
 function writeOutputs(result, outputPath = process.env.GITHUB_OUTPUT) {
   if (!outputPath) {
     return;
@@ -16046,6 +16113,13 @@ function writeJobSummary(body, summaryPath = process.env.GITHUB_STEP_SUMMARY) {
     (0, import_node_fs.appendFileSync)(summaryPath, `${body}
 `);
   }
+}
+function writeSarif(relativePath, sarif, workspace = process.env.GITHUB_WORKSPACE ?? process.cwd()) {
+  const target = (0, import_node_path.join)(workspace, relativePath);
+  (0, import_node_fs.mkdirSync)((0, import_node_path.dirname)(target), { recursive: true });
+  (0, import_node_fs.writeFileSync)(target, `${sarif}
+`);
+  console.log(`Wrote the SARIF report to ${relativePath}.`);
 }
 
 // src/action/index.ts
@@ -16088,6 +16162,9 @@ async function run() {
   }
   writeOutputs(result);
   writeJobSummary(body);
+  if (inputs.sarifFile !== void 0) {
+    writeSarif(inputs.sarifFile, renderSarif(result, defaultRules));
+  }
   if (inputs.dryRun) {
     printUntrusted(body);
   } else {
