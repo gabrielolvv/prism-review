@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Several rule patterns took time quadratic in a line's length on crafted input, so one long line, such as `curl curl curl ...`, `{{{{...`, or `${{ ${{ ...`, could take seconds and stall a review. Every repeatable span is now bounded, and a test runs each case on a 200,000-character line under three seconds. The affected rules are `lockfile-source`, `remote-script`, `disabled-security-check`, `privileged-container`, `destructive-migration`, `sql-injection`, `workflow-risk`, `blanket-suppression`, `risky-api`, `skipped-tests`, `public-exposure`, and the inline suppression marker.
+
 ## 0.14.0 - 2026-10-27
 
 ### Added
