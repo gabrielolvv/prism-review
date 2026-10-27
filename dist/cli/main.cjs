@@ -13452,6 +13452,12 @@ var prismConfigSchema = external_exports.object({
   annotations: external_exports.object({
     enabled: external_exports.boolean().default(false),
     includeLowSeverity: external_exports.boolean().default(false)
+  }).default({}),
+  // Line findings as pull request review comments on the changed lines.
+  reviewComments: external_exports.object({
+    enabled: external_exports.boolean().default(false),
+    includeLowSeverity: external_exports.boolean().default(false),
+    maxComments: external_exports.number().int().min(1).max(100).default(25)
   }).default({})
 });
 function isRegularExpression(source) {
