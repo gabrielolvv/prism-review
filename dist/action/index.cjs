@@ -14585,6 +14585,14 @@ var nugetTag = /<\s*(?:PackageReference|PackageVersion|GlobalPackageReference)\b
 var nugetName = /\b(?:Include|Update)\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i;
 var nugetVersion = /\bVersion(?:Override)?\s*=\s*"([^"]{0,100})"/i;
 var packagesConfigTag = /<\s*package\b([^>]{0,500})/i;
+var gradleConfiguration = "(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testCompileOnly|testRuntimeOnly|androidTestImplementation|debugImplementation|releaseImplementation|annotationProcessor|kapt|ksp|classpath|compile|testCompile|runtime)";
+var gradleCoordinate = new RegExp(
+  `^\\s*${gradleConfiguration}\\s*\\(?\\s*(?:(?:platform|enforcedPlatform)\\s*\\(\\s*)?["']([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})(?::([^"'@\\s]{1,100}))?(?:@\\w{1,20})?["']`
+);
+var gradleMap = new RegExp(
+  `^\\s*${gradleConfiguration}\\s*\\(?\\s*group\\s*[:=]\\s*["']([A-Za-z0-9_.-]{1,200})["']\\s*,\\s*name\\s*[:=]\\s*["']([A-Za-z0-9_.-]{1,200})["'](?:\\s*,\\s*version\\s*[:=]\\s*["']([^"']{1,100})["'])?`
+);
+var catalogEntry = /^\s*[A-Za-z0-9_.-]{1,100}\s*=\s*(.{1,400})$/;
 var goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 var manifests = [
   {
@@ -14661,6 +14669,46 @@ var manifests = [
     }
   },
   {
+    ecosystem: "Maven",
+    files: /(?:^|\/)pom\.xml$/,
+    entries: () => [],
+    parse: mavenDependencies
+  },
+  {
+    ecosystem: "Maven",
+    files: /(?:^|\/)build\.gradle(?:\.kts)?$/,
+    // `implementation("group:artifact:1.0")`, `implementation 'group:artifact:1.0'`, `platform(...)`,
+    // and `implementation group: 'g', name: 'a', version: '1.0'`.
+    entries(content) {
+      const [matched, group = "", artifact = "", version = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name: `${group}:${artifact}`, version }];
+    }
+  },
+  {
+    ecosystem: "Maven",
+    files: /(?:^|\/)libs\.versions\.toml$/,
+    // `[libraries]` entries: `"group:artifact:1.0"`, or a table with `module` or `group` and `name`,
+    // and a `version`; a `version.ref` names a `[versions]` entry and reads as no version.
+    entries(content, section) {
+      const value = section === "libraries" ? catalogEntry.exec(content)?.[1] : void 0;
+      if (value === void 0) {
+        return [];
+      }
+      const short = /^"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})(?::([^"]{1,100}))?"/.exec(value);
+      const module2 = /\bmodule\s*=\s*"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})"/.exec(value);
+      const group = /\bgroup\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
+      const name = /\bname\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
+      const version = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
+      if (short) {
+        return [{ name: `${short[1]}:${short[2]}`, version: short[3] ?? "" }];
+      }
+      if (module2) {
+        return [{ name: `${module2[1]}:${module2[2]}`, version }];
+      }
+      return group !== void 0 && name !== void 0 ? [{ name: `${group}:${name}`, version }] : [];
+    }
+  },
+  {
     ecosystem: "Go",
     files: /(?:^|\/)go\.mod$/,
     // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
@@ -14690,6 +14738,9 @@ function declaredDependencies(path2, patch) {
   const removed = [];
   if (manifest === void 0) {
     return { added, removed };
+  }
+  if (manifest.parse !== void 0) {
+    return manifest.parse(patch);
   }
   let oldLine;
   let newLine = 0;
@@ -14778,6 +14829,66 @@ function tomlEntries(content) {
   }
   const version = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
   return [{ name, version }];
+}
+function mavenDependencies(patch) {
+  const added = [];
+  const removed = [];
+  for (const hunk of hunksOf(patch)) {
+    added.push(...dependencyBlocks(hunk, "+"));
+    removed.push(...dependencyBlocks(hunk, "-"));
+  }
+  return { added, removed };
+}
+function hunksOf(patch) {
+  const hunks = [];
+  let oldLine = 0;
+  let newLine = 0;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader3.exec(line);
+    if (header) {
+      oldLine = Number(header[1]);
+      newLine = Number(header[2]);
+      hunks.push([]);
+      continue;
+    }
+    const hunk = hunks[hunks.length - 1];
+    const kind = line[0];
+    if (hunk === void 0 || kind !== " " && kind !== "+" && kind !== "-") {
+      continue;
+    }
+    hunk.push({ kind, content: line.slice(1), oldLine, newLine });
+    if (kind !== "+") {
+      oldLine += 1;
+    }
+    if (kind !== "-") {
+      newLine += 1;
+    }
+  }
+  return hunks;
+}
+function dependencyBlocks(lines, side) {
+  const found = [];
+  let block = [];
+  for (const line of lines) {
+    const shown2 = line.kind === " " || line.kind === side;
+    if (shown2 && /<dependency\b[^>]{0,100}>/.test(line.content)) {
+      block = [];
+    }
+    block.push(line);
+    if (!shown2 || !/<\/dependency\s*>/.test(line.content)) {
+      continue;
+    }
+    const text = block.filter((entry) => entry.kind === " " || entry.kind === side).map((entry) => entry.content).join(" ");
+    const group = /<groupId>\s*([^<\s]{1,200})\s*<\/groupId>/.exec(text)?.[1];
+    const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
+    const changed = block.find((entry) => entry.kind !== " ");
+    if (group !== void 0 && artifact !== void 0 && changed !== void 0) {
+      const version = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
+      found.push({ name: `${group}:${artifact}`, version, line: side === "+" ? changed.newLine : changed.oldLine });
+    }
+    block = [];
+  }
+  return found;
 }
 
 // src/security/popular-packages.ts
@@ -15493,6 +15604,69 @@ var popularPackages = {
     "Scrutor",
     "Mapster",
     "OpenTelemetry"
+  ],
+  // `group:artifact`, as Maven and Gradle name them.
+  Maven: [
+    "org.springframework:spring-core",
+    "org.springframework:spring-context",
+    "org.springframework:spring-web",
+    "org.springframework:spring-webmvc",
+    "org.springframework.boot:spring-boot-starter",
+    "org.springframework.boot:spring-boot-starter-web",
+    "org.springframework.boot:spring-boot-starter-test",
+    "org.springframework.boot:spring-boot-starter-data-jpa",
+    "org.springframework.boot:spring-boot-starter-security",
+    "com.fasterxml.jackson.core:jackson-databind",
+    "com.fasterxml.jackson.core:jackson-core",
+    "com.fasterxml.jackson.core:jackson-annotations",
+    "com.google.guava:guava",
+    "org.apache.commons:commons-lang3",
+    "org.apache.commons:commons-collections4",
+    "commons-io:commons-io",
+    "commons-codec:commons-codec",
+    "org.slf4j:slf4j-api",
+    "ch.qos.logback:logback-classic",
+    "org.apache.logging.log4j:log4j-core",
+    "org.apache.logging.log4j:log4j-api",
+    "junit:junit",
+    "org.junit.jupiter:junit-jupiter",
+    "org.junit.jupiter:junit-jupiter-api",
+    "org.junit.jupiter:junit-jupiter-engine",
+    "org.mockito:mockito-core",
+    "org.assertj:assertj-core",
+    "org.projectlombok:lombok",
+    "com.google.code.gson:gson",
+    "org.apache.httpcomponents:httpclient",
+    "com.squareup.okhttp3:okhttp",
+    "com.squareup.retrofit2:retrofit",
+    "org.hibernate:hibernate-core",
+    "org.hibernate.orm:hibernate-core",
+    "mysql:mysql-connector-java",
+    "com.mysql:mysql-connector-j",
+    "org.postgresql:postgresql",
+    "com.h2database:h2",
+    "org.jetbrains.kotlin:kotlin-stdlib",
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+    "io.netty:netty-all",
+    "io.reactivex.rxjava3:rxjava",
+    "com.google.dagger:dagger",
+    "javax.servlet:javax.servlet-api",
+    "jakarta.servlet:jakarta.servlet-api",
+    "org.yaml:snakeyaml",
+    "io.micrometer:micrometer-core",
+    "org.apache.kafka:kafka-clients",
+    "software.amazon.awssdk:s3",
+    "com.amazonaws:aws-java-sdk-s3",
+    "org.apache.poi:poi",
+    "org.apache.poi:poi-ooxml",
+    "com.google.protobuf:protobuf-java",
+    "io.grpc:grpc-netty",
+    "androidx.appcompat:appcompat",
+    "androidx.core:core-ktx",
+    "com.google.android.material:material",
+    "org.testng:testng",
+    "org.hamcrest:hamcrest",
+    "org.springdoc:springdoc-openapi-starter-webmvc-ui"
   ]
 };
 
@@ -15621,12 +15795,13 @@ function describeProblem(change) {
     if (before !== void 0 && after !== void 0 && compareVersions(after, before) < 0) {
       return { line: change.line, kind: "older", text: `${name} from ${from} to ${to}, an older version` };
     }
-    if (!compiledInput.test(change.file) && !isOpenEnded(from) && isOpenEnded(to)) {
+    if (!compiledInput.test(change.file) && !isOpenEnded(from, change.ecosystem) && isOpenEnded(to, change.ecosystem)) {
       return { line: change.line, kind: "open", text: `${name} from ${from} to ${shown(to)}, which accepts any future release` };
     }
     return void 0;
   }
-  if ((change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim())) {
+  const wildcard = (change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim()) || change.ecosystem === "Maven" && to !== "" && isOpenEnded(to, change.ecosystem);
+  if (wildcard) {
     return { line: change.line, kind: "open", text: `${name} at ${shown(to)}, which accepts any release` };
   }
   return void 0;
@@ -15634,8 +15809,14 @@ function describeProblem(change) {
 function shown(version) {
   return version === "" ? "no version" : version;
 }
-function isOpenEnded(version) {
+function isOpenEnded(version, ecosystem) {
   const spec = version.trim();
+  if (spec === "" && ecosystem === "Maven") {
+    return false;
+  }
+  if (/^(?:\+|latest\.\w{1,20}|release)$/i.test(spec) || /^[[(][^,\])]{0,50},\s*\)$/.test(spec)) {
+    return true;
+  }
   if (/^(?:\*|x|latest|next|)$/i.test(spec)) {
     return true;
   }
@@ -15668,9 +15849,10 @@ var lockfileNames = [
   [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
   [/(?:^|\/)go\.mod$/, ["go.sum"]],
   [/(?:^|\/)composer\.json$/, ["composer.lock"]],
-  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]]
+  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]],
+  [/(?:^|\/)build\.gradle(?:\.kts)?$/, ["gradle.lockfile"]]
 ];
-var ownDirectoryOnly = /\.(?:cs|fs|vb)proj$/i;
+var ownDirectoryOnly = /\.(?:cs|fs|vb)proj$|(?:^|\/)build\.gradle(?:\.kts)?$/i;
 function lockfilesFor(manifestPath) {
   return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
 }
@@ -17373,7 +17555,7 @@ function renderDependencyChanges(changes) {
   const rows = [];
   let length = 0;
   for (const change of changes.slice(0, maxDependencyRows)) {
-    const what = change.from === void 0 ? `added${version(change.to)}` : change.to === void 0 ? `removed${version(change.from)}` : `${cell(change.from || "any")} to ${cell(change.to || "any")}`;
+    const what = change.from === void 0 ? `added${version(change.to)}` : change.to === void 0 ? `removed${version(change.from)}` : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
     const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
     if (length + row.length > maxDependencyLength) {
       break;
@@ -17385,6 +17567,9 @@ function renderDependencyChanges(changes) {
   const table = rows.length === 0 ? [] : ["| File | Package | Change |", "| --- | --- | --- |", ...rows];
   const more = hidden === 0 ? [] : [`${hidden} ${rows.length === 0 ? "" : "more "}dependency change(s) are not shown.`];
   return ["### Dependency Changes", "", ...table, ...table.length > 0 && more.length > 0 ? [""] : [], ...more, ""];
+}
+function unversioned(change) {
+  return change.ecosystem === "Maven" ? "managed" : "any";
 }
 var maxSuppressedShown = 50;
 var maxSuppressedLength = 1e4;
