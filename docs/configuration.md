@@ -79,6 +79,8 @@ rules:
       - "github"
   destructiveMigration:
     enabled: true
+  privilegedContainers:
+    enabled: true
   credentialFiles:
     enabled: true
   lockfileSources:
@@ -277,6 +279,25 @@ The `destructive-migration` rule checks added lines in database migrations: file
 Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
 
 Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. A function or method defined after a rollback, at the same indentation or less, is not part of it. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, `--` and `/* */` comments in SQL files, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
+
+## Privileged Containers
+
+### `rules.privilegedContainers.enabled`
+
+The `privileged-container` rule reads added lines in Kubernetes manifests, Helm values, Compose files, and `docker run` commands in scripts and workflows:
+
+| Reported | Severity | Examples |
+| --- | --- | --- |
+| Runs a privileged container | High | `privileged: true`, `docker run --privileged` |
+| Adds the `SYS_ADMIN` or `ALL` capability | High | `- SYS_ADMIN` under `add:` or `cap_add:`, `cap_add: [SYS_ADMIN]`, `--cap-add=ALL` |
+| Mounts the Docker socket | High | `- /var/run/docker.sock:/var/run/docker.sock`, `hostPath` `path: /var/run/docker.sock`, `-v /var/run/docker.sock:...` |
+| Shares the host's network, process, or IPC namespace | Warning | `hostNetwork: true`, `hostPID: true`, `network_mode: host`, `--pid=host` |
+| Allows privilege escalation | Warning | `allowPrivilegeEscalation: true` |
+| Runs as root | Warning | `runAsUser: 0`, `runAsNonRoot: false` |
+
+Anything that escapes a privileged container, or reaches the Docker socket, controls the host and every other container on it.
+
+Hardened settings are not reported: `privileged: false`, `drop: [ALL]` and `ALL` under `drop:` or `cap_drop:`, and other capabilities such as `NET_BIND_SERVICE`. A client setting such as `DOCKER_HOST: unix:///var/run/docker.sock` is not a mount and is not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A Helm template that sets a value from `{{ .Values... }}` is checked where the value is set, such as `values.yaml`.
 
 ## Credential Files
 
