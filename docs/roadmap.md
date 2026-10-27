@@ -36,13 +36,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Per-path `overrides` of rule severity (0.15.0).
 - Opt-in `reviewComments` that post line findings as pull request review comments, updated in place and marked resolved instead of deleted, and prompt-injection fixtures with instructions in base64, Markdown and HTML comments, a file name, a suppression reason, and Unicode tag characters (0.16.0).
 - Findings grouped by area in the review, with a count for each area, and the area in the JSON and SARIF output (0.17.0).
-- New findings marked since the previous review, with a count of findings no longer reported, from a hashed record kept in the review comment.
+- New findings marked since the previous review, with a count of findings no longer reported, from a hashed record kept in the review comment (0.18.0).
+- A reviewer checklist with a question for each rule that reported a finding, and `comment.checklist` for questions of the repository's own.
 
 ## Near Term
 
-### Tailor the reviewer checklist to the findings
+### Link each finding to its rule's documentation
 
-The Suggested Review Checklist is the same four questions on every pull request. Picking questions from the areas the review found, such as asking about rotation when a secret was added or about rollback when a migration drops a column, would make it worth reading.
+Findings name what was found and what to do, but not where the rule and its options are described. A link from each finding to its section in `docs/configuration.md` would answer "why was this flagged, and how do I tune it" without a search.
 
 ## Mid Term
 

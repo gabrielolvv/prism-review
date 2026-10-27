@@ -2,6 +2,17 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- The Suggested Review Checklist asks one question for each rule that reported a finding the comment shows, most severe first and at most 8, such as whether an added credential was revoked or whether a migration can be rolled back while the previous release is still running. A review without such findings keeps the four general questions.
+- `comment.checklist` adds up to 10 questions of the repository's own to every review's checklist.
+
+### Changed
+
+- The checklist counts toward the comment's size limit, so long custom questions leave less room for findings instead of pushing the comment over GitHub's limit.
+
 ## 0.18.0 - 2026-10-27
 
 ### Added
