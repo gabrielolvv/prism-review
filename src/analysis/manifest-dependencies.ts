@@ -15,8 +15,16 @@ type Manifest = {
   entries: (content: string, section: string) => Entry[];
 };
 
-// How a dependency changed: `from` is missing for an added one, and `to` for a removed one.
-export type DependencyChange = { file: string; ecosystem: Ecosystem; name: string; from?: string; to?: string };
+// How a dependency changed: `from` is missing for an added one, and `to` for a removed one. `line`
+// is where the new version is declared, for added and changed dependencies.
+export type DependencyChange = {
+  file: string;
+  ecosystem: Ecosystem;
+  name: string;
+  from?: string;
+  to?: string;
+  line?: number;
+};
 
 const packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
 // npm keys whose values look like versions but are not dependencies, such as `engines.node`.
@@ -158,9 +166,16 @@ export function dependencyChanges(files: ChangedFile[]): DependencyChange[] {
     for (const [key, dependency] of after) {
       const previous = before.get(key);
       if (previous === undefined) {
-        changes.push({ file: file.path, ecosystem, name: dependency.name, to: dependency.version });
+        changes.push({ file: file.path, ecosystem, name: dependency.name, to: dependency.version, line: dependency.line });
       } else if (previous.version !== dependency.version) {
-        changes.push({ file: file.path, ecosystem, name: dependency.name, from: previous.version, to: dependency.version });
+        changes.push({
+          file: file.path,
+          ecosystem,
+          name: dependency.name,
+          from: previous.version,
+          to: dependency.version,
+          line: dependency.line
+        });
       }
     }
     for (const [key, dependency] of before) {

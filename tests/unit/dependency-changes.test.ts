@@ -74,7 +74,8 @@ export function testDependencyChangesAreListedInTheReview(): void {
     ecosystem: "npm",
     name: "lodash",
     from: "4.17.20",
-    to: "4.17.21"
+    to: "4.17.21",
+    line: 1
   });
   assert.deepEqual(JSON.parse(renderJson(analyzePullRequest([], defaultConfig))).dependencyChanges, []);
 }
