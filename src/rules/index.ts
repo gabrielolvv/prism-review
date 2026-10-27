@@ -19,6 +19,7 @@ import { sensitiveFilesRule } from "./sensitive-files.js";
 import { unpinnedActionRule } from "./unpinned-action.js";
 import { workflowRiskRule } from "./workflow-risk.js";
 import { skippedTestsRule } from "./skipped-tests.js";
+import { sqlInjectionRule } from "./sql-injection.js";
 import type { Rule } from "../analysis/rule.js";
 
 export const defaultRules: Rule[] = [
@@ -32,6 +33,7 @@ export const defaultRules: Rule[] = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  sqlInjectionRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,

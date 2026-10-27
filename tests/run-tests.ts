@@ -135,6 +135,11 @@ import {
   testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests,
   testDisabledSecurityCheckRuleCanBeDisabled
 } from "./unit/disabled-security-check.test.js";
+import {
+  testSqlInjectionRuleReportsSqlBuiltFromValues,
+  testSqlInjectionRuleIgnoresParameterizedQueries,
+  testSqlInjectionRuleCanBeDisabled
+} from "./unit/sql-injection.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -379,6 +384,9 @@ const tests: Array<[string, Test]> = [
   ["disabled-security-check rule reports each language", testDisabledSecurityCheckRuleReportsEachLanguage],
   ["disabled-security-check rule ignores safe code, docs, and tests", testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests],
   ["disabled-security-check rule can be disabled", testDisabledSecurityCheckRuleCanBeDisabled],
+  ["sql-injection rule reports SQL built from values", testSqlInjectionRuleReportsSqlBuiltFromValues],
+  ["sql-injection rule ignores parameterized queries", testSqlInjectionRuleIgnoresParameterizedQueries],
+  ["sql-injection rule can be disabled", testSqlInjectionRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

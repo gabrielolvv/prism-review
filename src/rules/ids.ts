@@ -11,6 +11,7 @@ export const ruleIds: readonly string[] = [
   "skipped-tests",
   "blanket-suppression",
   "risky-api",
+  "sql-injection",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
