@@ -5,7 +5,8 @@ const lockfileNames: Array<[RegExp, string[]]> = [
   [/(?:^|\/)pyproject\.toml$/i, ["poetry.lock", "uv.lock", "pdm.lock"]],
   [/(?:^|\/)Pipfile$/, ["Pipfile.lock"]],
   [/(?:^|\/)Gemfile$/, ["Gemfile.lock"]],
-  [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]]
+  [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
+  [/(?:^|\/)go\.mod$/, ["go.sum"]]
 ];
 
 export function lockfilesFor(manifestPath: string): string[] {

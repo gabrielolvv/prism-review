@@ -33,7 +33,8 @@ const cases: Array<[path: string, prefix: string, repeated: string]> = [
   ["pyproject.toml", "", '"a'],
   ["requirements.txt", "", "a"],
   ["package.json", '"', "a"],
-  ["Gemfile", "gem ", "a"]
+  ["Gemfile", "gem ", "a"],
+  ["go.mod", "require ", "a"]
 ];
 
 export function testRulePatternsStayLinearOnLongLines(): void {

@@ -202,6 +202,7 @@ import {
   testStaleLockfileAcceptsUpdatedOrMissingLockfiles,
   testStaleLockfileReportsManifestsWithoutTheirLockfile
 } from "./unit/stale-lockfile.test.js";
+import { testGoModulesAreReadFromGoMod, testGoModulesGoThroughTheDependencyRules } from "./unit/go-modules.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -508,6 +509,8 @@ const tests: Array<[string, Test]> = [
   ["stale lockfile reports manifests without their lockfile", testStaleLockfileReportsManifestsWithoutTheirLockfile],
   ["stale lockfile accepts updated or missing lockfiles", testStaleLockfileAcceptsUpdatedOrMissingLockfiles],
   ["findLockfiles lists only the directories it needs", testFindLockfilesListsOnlyTheDirectoriesItNeeds],
+  ["Go modules are read from go.mod", testGoModulesAreReadFromGoMod],
+  ["Go modules go through the dependency rules", testGoModulesGoThroughTheDependencyRules],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
