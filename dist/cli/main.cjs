@@ -13627,7 +13627,7 @@ var kinds = [
   {
     kind: "drops a column",
     destructive: true,
-    pattern: /\bdrop\s+column\b|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
+    pattern: /\bdrop\s+column\b|\balter\s+table\b.*\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -13651,6 +13651,7 @@ var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
 var commentLine = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
   id: "destructive-migration",
   description: "Flags migrations that drop tables or columns, delete every row, or rename or redefine columns.",
@@ -13663,7 +13664,7 @@ var destructiveMigrationRule = {
       if (file.patch === void 0 || !migrationPath.test(file.path) || !migrationFile.test(file.path) || rollbackFile.test(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = findChanges(file.patch);
+      const found = findChanges(file.path, file.patch);
       if (found.length === 0) {
         return [];
       }
@@ -13685,28 +13686,68 @@ var destructiveMigrationRule = {
     });
   }
 };
-function findChanges(patch) {
+function findChanges(path2, patch) {
   const found = [];
-  let inRollback = false;
+  const sql = /\.sql$/i.test(path2);
+  let rollbackIndent;
+  let inBlockComment = false;
   for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
     if (startsHunk) {
-      inRollback = rollbackStart.test(hunkContext ?? "");
+      rollbackIndent = rollbackStart.test(hunkContext ?? "") ? indentation(hunkContext ?? "") : void 0;
+      inBlockComment = false;
     }
+    const defined = definition.exec(content);
     if (rollbackStart.test(content)) {
-      inRollback = true;
-    } else if (forwardStart.test(content)) {
-      inRollback = false;
+      rollbackIndent = indentation(content);
+    } else if (forwardStart.test(content) || defined && rollbackIndent !== void 0 && (defined[1] ?? "").length <= rollbackIndent) {
+      rollbackIndent = void 0;
     }
-    if (!added || inRollback || commentLine.test(content)) {
+    let code = content;
+    if (sql) {
+      ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
+    }
+    if (!added || rollbackIndent !== void 0 || commentLine.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
-      if (pattern.test(content)) {
+      if (pattern.test(code)) {
         found.push({ line, kind });
       }
     }
   }
   return found;
+}
+function indentation(text) {
+  return /^\s*/.exec(text)?.[0].length ?? 0;
+}
+function stripSqlComments(content, inBlockComment) {
+  let code = "";
+  let rest = content;
+  while (rest.length > 0) {
+    if (inBlockComment) {
+      const end = rest.indexOf("*/");
+      if (end < 0) {
+        break;
+      }
+      inBlockComment = false;
+      rest = rest.slice(end + 2);
+      continue;
+    }
+    const lineComment = rest.indexOf("--");
+    const blockComment = rest.indexOf("/*");
+    if (lineComment >= 0 && (blockComment < 0 || lineComment < blockComment)) {
+      code += rest.slice(0, lineComment);
+      break;
+    }
+    if (blockComment < 0) {
+      code += rest;
+      break;
+    }
+    code += `${rest.slice(0, blockComment)} `;
+    inBlockComment = true;
+    rest = rest.slice(blockComment + 2);
+  }
+  return { code, inBlockComment };
 }
 
 // src/analysis/hidden-characters.ts
