@@ -15,6 +15,10 @@ Reviewed 2 changed file(s). Found 1 high-risk and 2 warning-level signal(s).
 
 ### Findings
 
+3 findings in 3 areas: Review Scope (1), Supply Chain (1), Tests (1).
+
+### Review Scope (1)
+
 #### High - Sensitive file changed
 
 This file touches an area that commonly affects security, deployment, data integrity, or access control.
@@ -23,11 +27,7 @@ File: `src/auth/session.ts`
 
 Recommendation: Ask for focused review from someone familiar with this area and verify rollback or mitigation steps.
 
-#### Warning - Source changed without tests
-
-Source files changed, but no test files were modified in this pull request.
-
-Recommendation: Add or update tests for the modified behavior, or explain why existing coverage is sufficient.
+### Supply Chain (1)
 
 #### Warning - Dependency definition changed
 
@@ -36,6 +36,14 @@ This file changes Node.js dependency metadata or lockfile state.
 File: `package.json`
 
 Recommendation: Verify package provenance, lockfile consistency, license impact, and whether the dependency is required at runtime.
+
+### Tests (1)
+
+#### Warning - Source changed without tests
+
+Source files changed, but no test files were modified in this pull request.
+
+Recommendation: Add or update tests for the modified behavior, or explain why existing coverage is sufficient.
 
 ### Suggested Review Checklist
 

@@ -26,6 +26,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Flags code that turns off TLS, token, or CSRF checks, and SQL built from values instead of parameters
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run, and writes the review to the job summary
+- Groups findings by area, such as secrets, supply chain, infrastructure, and code, with a count for each area
 - Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
 - Writes JSON and SARIF, so findings can go to GitHub code scanning
@@ -140,7 +141,7 @@ It reads `.prism-review.yml` from the current directory, or the file passed with
 git diff origin/main...HEAD | node path/to/prism-review/dist/cli/main.cjs analyze --diff - > /dev/null
 ```
 
-`--format json` prints the review as JSON for scripts, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
+`--format json` prints the review as JSON for scripts, with each finding's area, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
 
 Run `node dist/cli/main.cjs --help` for every option.
 
@@ -249,7 +250,7 @@ The severity column shows the defaults; `severity` in `.prism-review.yml` change
 
 ## Example Output
 
-Prism Review posts a pull request comment with a risk summary, findings, and a reviewer checklist. By default it updates that comment on every push; `comment.mode: append` posts a new one instead.
+Prism Review posts a pull request comment with a risk summary, findings, and a reviewer checklist. Findings from more than one area are grouped by area, most severe area first, with a count for each. By default it updates that comment on every push; `comment.mode: append` posts a new one instead.
 
 See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full example.
 
