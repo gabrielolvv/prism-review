@@ -47,6 +47,12 @@ const hunkHeader = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.{0,300})/;
 const goModule = "[A-Za-z0-9][A-Za-z0-9._~/-]{0,250}";
 const goRequireLine = new RegExp(`^\\s*require\\s+(${goModule})\\s+(v\\S{1,100})`);
 const goBlockEntry = new RegExp(`^\\s*(${goModule})\\s+(v\\S{1,100})`);
+const composerEntry = /^\s*"([a-z0-9][a-z0-9_.-]{0,100}\/[a-z0-9][a-z0-9_.-]{0,100})"\s*:\s*"([^"]{0,200})"/;
+const composerVersion = /^(?:[\^~<>=!]{0,2}\s?v?\d|\*$|dev-|@)/i;
+const nugetTag = /<\s*(?:PackageReference|PackageVersion|GlobalPackageReference)\b([^>]{0,500})/i;
+const nugetName = /\b(?:Include|Update)\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i;
+const nugetVersion = /\bVersion(?:Override)?\s*=\s*"([^"]{0,100})"/i;
+const packagesConfigTag = /<\s*package\b([^>]{0,500})/i;
 const goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 
 const manifests: Manifest[] = [
@@ -95,6 +101,35 @@ const manifests: Manifest[] = [
     entries(content) {
       const [matched, name = "", version = ""] = gemLine.exec(content) ?? [];
       return matched === undefined ? [] : [{ name, version }];
+    }
+  },
+  {
+    ecosystem: "Packagist",
+    files: /(?:^|\/)composer\.json$/,
+    // `"vendor/name": "^1.0"`; platform requirements such as `php` and `ext-json` have no vendor.
+    entries(content) {
+      const [matched, name = "", version = ""] = composerEntry.exec(content) ?? [];
+      return matched !== undefined && composerVersion.test(version) ? [{ name, version }] : [];
+    }
+  },
+  {
+    ecosystem: "NuGet",
+    files: /(?:^|\/)(?:[^/]+\.(?:cs|fs|vb)proj|Directory\.(?:Packages|Build)\.props)$/i,
+    // `<PackageReference Include="Name" Version="1.0" />`, on one line; a version given as a child
+    // element is read as none.
+    entries(content) {
+      const attributes = nugetTag.exec(content)?.[1];
+      const name = attributes === undefined ? undefined : nugetName.exec(attributes)?.[1];
+      return name === undefined ? [] : [{ name, version: nugetVersion.exec(attributes ?? "")?.[1] ?? "" }];
+    }
+  },
+  {
+    ecosystem: "NuGet",
+    files: /(?:^|\/)packages\.config$/i,
+    entries(content) {
+      const attributes = packagesConfigTag.exec(content)?.[1] ?? "";
+      const name = /\bid\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i.exec(attributes)?.[1];
+      return name === undefined ? [] : [{ name, version: /\bversion\s*=\s*"([^"]{0,100})"/i.exec(attributes)?.[1] ?? "" }];
     }
   },
   {

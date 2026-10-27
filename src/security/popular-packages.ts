@@ -1,6 +1,6 @@
 // Widely used packages per registry, which typosquatters imitate. The list only needs the names
 // worth imitating; a dependency named exactly like one of them is never reported.
-export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io" | "Go";
+export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io" | "Go" | "Packagist" | "NuGet";
 
 export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
   npm: [
@@ -95,5 +95,32 @@ export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
     "go.mongodb.org/mongo-driver", "github.com/json-iterator/go", "github.com/tidwall/gjson", "github.com/mitchellh/mapstructure",
     "github.com/hashicorp/go-multierror", "github.com/cenkalti/backoff", "github.com/fsnotify/fsnotify",
     "go.opentelemetry.io/otel", "github.com/golang/mock", "go.uber.org/mock", "github.com/google/go-github"
+  ],
+  Packagist: [
+    "laravel/framework", "laravel/sanctum", "laravel/tinker", "laravel/sail", "laravel/pint", "symfony/console",
+    "symfony/http-foundation", "symfony/http-kernel", "symfony/routing", "symfony/yaml", "symfony/process",
+    "symfony/finder", "symfony/var-dumper", "symfony/event-dispatcher", "symfony/mailer", "symfony/translation",
+    "symfony/framework-bundle", "guzzlehttp/guzzle", "guzzlehttp/psr7", "monolog/monolog", "phpunit/phpunit",
+    "doctrine/orm", "doctrine/dbal", "nesbot/carbon", "vlucas/phpdotenv", "league/flysystem", "ramsey/uuid",
+    "fakerphp/faker", "mockery/mockery", "phpstan/phpstan", "squizlabs/php_codesniffer", "friendsofphp/php-cs-fixer",
+    "twig/twig", "psr/log", "psr/http-message", "psr/container", "spatie/laravel-permission", "predis/predis",
+    "firebase/php-jwt", "phpmailer/phpmailer", "aws/aws-sdk-php", "intervention/image", "barryvdh/laravel-debugbar",
+    "nunomaduro/collision", "filp/whoops", "egulias/email-validator", "illuminate/support", "slim/slim",
+    "cakephp/cakephp", "yiisoft/yii2", "composer/composer", "league/oauth2-server", "stripe/stripe-php",
+    "google/apiclient", "sentry/sentry-laravel", "pestphp/pest"
+  ],
+  NuGet: [
+    "Newtonsoft.Json", "Serilog", "Serilog.AspNetCore", "Serilog.Sinks.Console", "Serilog.Sinks.File", "AutoMapper",
+    "Dapper", "FluentValidation", "MediatR", "Polly", "xunit", "xunit.runner.visualstudio", "NUnit", "NUnit3TestAdapter",
+    "Moq", "FluentAssertions", "Microsoft.NET.Test.Sdk", "coverlet.collector", "Swashbuckle.AspNetCore",
+    "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.SqlServer", "Microsoft.EntityFrameworkCore.Design",
+    "Microsoft.EntityFrameworkCore.Tools", "Npgsql", "Npgsql.EntityFrameworkCore.PostgreSQL",
+    "Pomelo.EntityFrameworkCore.MySql", "StackExchange.Redis", "RestSharp", "Microsoft.Extensions.DependencyInjection",
+    "Microsoft.Extensions.Logging", "Microsoft.Extensions.Configuration", "Microsoft.Extensions.Hosting",
+    "Microsoft.Extensions.Http", "Microsoft.AspNetCore.Authentication.JwtBearer", "System.IdentityModel.Tokens.Jwt",
+    "Azure.Identity", "Azure.Storage.Blobs", "AWSSDK.Core", "AWSSDK.S3", "AWSSDK.SQS", "AWSSDK.SNS", "Hangfire",
+    "Quartz", "NLog", "log4net", "CsvHelper", "Humanizer", "Bogus", "NSubstitute", "Castle.Core", "BenchmarkDotNet",
+    "MassTransit", "RabbitMQ.Client", "Grpc.Net.Client", "Google.Protobuf", "System.Text.Json",
+    "Microsoft.Data.SqlClient", "MongoDB.Driver", "NEST", "Refit", "Scrutor", "Mapster", "OpenTelemetry"
   ]
 };

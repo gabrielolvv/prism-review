@@ -34,7 +34,9 @@ const cases: Array<[path: string, prefix: string, repeated: string]> = [
   ["requirements.txt", "", "a"],
   ["package.json", '"', "a"],
   ["Gemfile", "gem ", "a"],
-  ["go.mod", "require ", "a"]
+  ["go.mod", "require ", "a"],
+  ["App.csproj", "<PackageReference ", "Include=\"a\" "],
+  ["composer.json", '"', "a/"]
 ];
 
 export function testRulePatternsStayLinearOnLongLines(): void {

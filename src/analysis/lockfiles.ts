@@ -6,8 +6,13 @@ const lockfileNames: Array<[RegExp, string[]]> = [
   [/(?:^|\/)Pipfile$/, ["Pipfile.lock"]],
   [/(?:^|\/)Gemfile$/, ["Gemfile.lock"]],
   [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
-  [/(?:^|\/)go\.mod$/, ["go.sum"]]
+  [/(?:^|\/)go\.mod$/, ["go.sum"]],
+  [/(?:^|\/)composer\.json$/, ["composer.lock"]],
+  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]]
 ];
+
+// NuGet keeps a lockfile next to each project, so one in a directory above belongs to another project.
+const ownDirectoryOnly = /\.(?:cs|fs|vb)proj$/i;
 
 export function lockfilesFor(manifestPath: string): string[] {
   return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
@@ -17,7 +22,8 @@ export function lockfilesFor(manifestPath: string): string[] {
 // workspace, the lockfile usually sits at the root rather than next to each package's manifest.
 export function lockfileDirectories(manifestPath: string): string[] {
   const parts = manifestPath.split("/").slice(0, -1);
-  return parts.map((_, index) => parts.slice(0, parts.length - index).join("/")).concat("");
+  const directories = parts.map((_, index) => parts.slice(0, parts.length - index).join("/")).concat("");
+  return ownDirectoryOnly.test(manifestPath) ? directories.slice(0, 1) : directories;
 }
 
 export function joinPath(directory: string, name: string): string {
