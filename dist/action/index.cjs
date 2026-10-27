@@ -13301,6 +13301,7 @@ var ruleIds = [
   "workflow-risk",
   "unpinned-action",
   "destructive-migration",
+  "privileged-container",
   "sensitive-files",
   "config-change",
   "lockfile-source",
@@ -13391,6 +13392,9 @@ var prismConfigSchema = external_exports.object({
       allowedOwners: external_exports.array(external_exports.string().min(1).max(100)).default(["actions", "github"])
     }).default({}),
     destructiveMigration: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    privilegedContainers: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     credentialFiles: external_exports.object({
@@ -13568,7 +13572,7 @@ var blanketSuppressionRule = {
         return [];
       }
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const kinds2 = [...new Set(found.map((match2) => match2.label))].join(", ");
+      const kinds3 = [...new Set(found.map((match2) => match2.label))].join(", ");
       return [
         {
           ruleId: "blanket-suppression",
@@ -13576,7 +13580,7 @@ var blanketSuppressionRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
-          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds2}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
+          message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds3}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
           recommendation: "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
         }
       ];
@@ -14317,6 +14321,103 @@ var oversizedPatchRule = {
   }
 };
 
+// src/rules/privileged-container.ts
+var kinds2 = [
+  {
+    label: "runs a privileged container",
+    high: true,
+    pattern: /\bprivileged["']?\s*:\s*["']?true\b|--privileged\b(?!=false)/i
+  },
+  {
+    label: "adds the SYS_ADMIN or ALL capability",
+    high: true,
+    pattern: /--cap-add[=\s]+["']?(?:CAP_)?(?:ALL|SYS_ADMIN)\b|\b(?:cap_add|add)\s*:\s*\[[^\]]*\b(?:CAP_)?(?:ALL|SYS_ADMIN)\b/
+  },
+  {
+    // A mount of the socket, not a client setting such as DOCKER_HOST=unix:///var/run/docker.sock.
+    label: "mounts the Docker socket",
+    high: true,
+    pattern: /(?:^\s*-\s*["']?|(?:-v|--volume)[=\s]+["']?|\b(?:source|src)=|\bpath:\s*["']?)\/(?:var\/)?run\/docker\.sock\b/
+  },
+  {
+    label: "shares the host's network, process, or IPC namespace",
+    high: false,
+    pattern: /\bhost(?:Network|PID|IPC)\s*:\s*true\b|^\s*(?:network_mode|pid|ipc)\s*:\s*["']?host\b|--(?:net|network|pid|ipc|uts)[=\s]+host\b/
+  },
+  { label: "allows privilege escalation", high: false, pattern: /\ballowPrivilegeEscalation\s*:\s*true\b/ },
+  { label: "runs as root", high: false, pattern: /\brunAsUser\s*:\s*0\b|\brunAsNonRoot\s*:\s*false\b/ }
+];
+var capabilityKind = kinds2[1];
+var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
+var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
+var commentLine3 = /^\s*#/;
+var documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var privilegedContainerRule = {
+  id: "privileged-container",
+  description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
+  run({ files, config }) {
+    if (!config.rules.privilegedContainers.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findSettings(file.patch);
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
+      const high = listed.some((kind) => kind.high);
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      const labels = listed.map((kind) => kind.label);
+      return [
+        {
+          ruleId: "privileged-container",
+          title: high ? "Privileged container added" : "Container isolation weakened",
+          severity: high ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels(labels)}.`,
+          recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
+        }
+      ];
+    });
+  }
+};
+function findSettings(patch) {
+  const found = [];
+  let listKey = "";
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      listKey = "";
+    }
+    if (commentLine3.test(content)) {
+      continue;
+    }
+    const key = mappingKey.exec(content)?.[1];
+    if (key !== void 0) {
+      listKey = key;
+    }
+    if (!added) {
+      continue;
+    }
+    for (const kind of kinds2) {
+      if (kind.pattern.test(content)) {
+        found.push({ line, kind });
+      }
+    }
+    if (capabilityItem.test(content) && (listKey === "add" || listKey === "cap_add")) {
+      found.push({ line, kind: capabilityKind });
+    }
+  }
+  return found;
+}
+function joinLabels(labels) {
+  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
+}
+
 // src/rules/remote-script.ts
 var downloader = String.raw`(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)`;
 var shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:python[23]?|node|perl|ruby)(?:\s+-)?\s*(?:$|[;&|)]))`;
@@ -14330,8 +14431,8 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]*\)\.)?${downloader}\b`, "i")
 ];
-var commentLine3 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine4 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation2 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -14342,7 +14443,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -14393,7 +14494,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine3.test(content)) {
+    if (commentLine4.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -14536,9 +14637,9 @@ var riskyApiRule = {
       if (found.length === 0) {
         return [];
       }
-      const kinds2 = [...new Set(found.map((match2) => match2.label))];
+      const kinds3 = [...new Set(found.map((match2) => match2.label))];
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const many = plural || kinds2.length > 1;
+      const many = plural || kinds3.length > 1;
       return [
         {
           ruleId: "risky-api",
@@ -14546,7 +14647,7 @@ var riskyApiRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
-          message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds2.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds3.join(", ")}.`,
           recommendation: "Check that no user or pull request input reaches these calls, and prefer a safer alternative such as JSON.parse, execFile with an argument list, yaml.safe_load, or textContent."
         }
       ];
@@ -14619,12 +14720,12 @@ function secretsIn(file, allowlist) {
   }
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
 }
-function describe(lines, kinds2) {
+function describe(lines, kinds3) {
   const { text, plural } = describeLines(lines);
-  if (!plural && kinds2.length === 1) {
-    return `${text} adds what looks like ${article(kinds2[0] ?? "")} ${kinds2[0]}. The value is redacted from this review.`;
+  if (!plural && kinds3.length === 1) {
+    return `${text} adds what looks like ${article(kinds3[0] ?? "")} ${kinds3[0]}. The value is redacted from this review.`;
   }
-  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds2.join(", ")}). The values are redacted from this review.`;
+  return `${text} ${plural ? "add" : "adds"} values that look like credentials (${kinds3.join(", ")}). The values are redacted from this review.`;
 }
 function article(kind) {
   return /^[AEIOU]/i.test(kind) ? "an" : "a";
@@ -15006,6 +15107,7 @@ var defaultRules = [
   workflowRiskRule,
   unpinnedActionRule,
   destructiveMigrationRule,
+  privilegedContainerRule,
   sensitiveFilesRule,
   configChangeRule,
   lockfileSourceRule,
