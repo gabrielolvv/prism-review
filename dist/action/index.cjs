@@ -13592,6 +13592,7 @@ var blanketSuppressionRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds3}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
           recommendation: "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."
         }
@@ -13858,6 +13859,7 @@ var destructiveMigrationRule = {
           severity: destructive ? "high" : "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry) => entry.kind).join(", ")}.`,
           recommendation: "Back up the affected data and deploy in steps: stop using the table or column in one release, then drop or rename it in a later one, so running code does not break. Check that the migration can be rolled back."
         }
@@ -14013,6 +14015,7 @@ var disabledSecurityCheckRule = {
           severity: high ? "high" : "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
@@ -14496,6 +14499,7 @@ var privilegedContainerRule = {
           severity: high ? "high" : "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
@@ -14580,6 +14584,7 @@ var publicExposureRule = {
           severity: "high",
           file: file.path,
           line: Math.min(...lines),
+          lines,
           message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels3(labels)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
@@ -14737,6 +14742,7 @@ var remoteScriptRule = {
           severity: insecure.length > 0 ? "high" : "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "run scripts" : "runs a script"} downloaded from ${sources} without checking ${plural ? "them" : "it"}${http}.`,
           recommendation: "Whoever controls the URL, or can intercept it, runs code here. Download the script to a file, check its checksum or signature, then run it, or install a pinned release from a package manager."
         }
@@ -14912,6 +14918,7 @@ var riskyApiRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds3.join(", ")}.`,
           recommendation: "Check that no user or pull request input reaches these calls, and prefer a safer alternative such as JSON.parse, execFile with an argument list, yaml.safe_load, or textContent."
         }
@@ -15338,6 +15345,7 @@ var skippedTestsRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
           message: [
             focused.length > 0 ? describeFocused(focused) : "",
             skipped.length > 0 ? describeSkipped(skipped) : ""
@@ -15409,6 +15417,7 @@ var sqlInjectionRule = {
           severity: "warning",
           file: file.path,
           line: Math.min(...lines),
+          lines,
           message: `${text} ${plural ? "build" : "builds"} SQL from values inserted into the query text, which allows SQL injection unless every value is escaped.`,
           recommendation: "Pass values as query parameters (?, $1, %s with a separate argument, or named parameters) and keep the SQL text constant. For identifiers such as column names, choose from a fixed list."
         }
@@ -15476,6 +15485,59 @@ function isAtLeast(severity, minimum) {
   return weights[severity] >= weights[minimum];
 }
 
+// src/analysis/suppressions.ts
+var marker = /prism-review-ignore\s+([\w-]+(?:\s*,\s*[\w-]+)*)\s*(?:--|:)\s*(.*?)\s*(?:\*\/|-->|%>|#>)?\s*$/;
+var maxReasonLength = 200;
+var standalone = /^\s*(?:#|\/\/|\/\*+|--|<!--|;|%|<%#|\{\/\*|'|REM\b)?\s*prism-review-ignore\b/i;
+function applySuppressions(files, findings, protectedRules) {
+  const markers = findMarkers(files);
+  const kept = [];
+  const suppressed = [];
+  for (const finding of findings) {
+    const reason = protectedRules.has(finding.ruleId) ? void 0 : reasonFor(finding, markers);
+    if (reason === void 0) {
+      kept.push(finding);
+    } else {
+      suppressed.push({ ...finding, suppressionReason: reason });
+    }
+  }
+  return { kept, suppressed };
+}
+function reasonFor(finding, markers) {
+  const lines = finding.lines ?? (finding.line === void 0 ? [] : [finding.line]);
+  const fileMarkers = finding.file === void 0 ? void 0 : markers.get(finding.file);
+  if (lines.length === 0 || fileMarkers === void 0) {
+    return void 0;
+  }
+  const reasons = lines.map((line) => fileMarkers.get(line)?.get(finding.ruleId));
+  return reasons.every((reason) => reason !== void 0) ? reasons[0] : void 0;
+}
+function findMarkers(files) {
+  const markers = /* @__PURE__ */ new Map();
+  for (const file of files) {
+    if (file.patch === void 0 || !file.patch.includes("prism-review-ignore")) {
+      continue;
+    }
+    const byLine = /* @__PURE__ */ new Map();
+    for (const { line, content } of patchLines(file.patch)) {
+      const match2 = marker.exec(content);
+      const reason = match2?.[2]?.trim().slice(0, maxReasonLength) ?? "";
+      if (match2 === null || !/\w/.test(reason)) {
+        continue;
+      }
+      for (const target of standalone.test(content) ? [line, line + 1] : [line]) {
+        const rules = byLine.get(target) ?? /* @__PURE__ */ new Map();
+        for (const ruleId of (match2[1] ?? "").split(",").map((id) => id.trim())) {
+          rules.set(ruleId, reason);
+        }
+        byLine.set(target, rules);
+      }
+    }
+    markers.set(file.path, byLine);
+  }
+  return markers;
+}
+
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
   const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
@@ -15484,13 +15546,16 @@ function analyzePullRequest(files, config, options = {}) {
   const reviewed = files.filter(
     (file) => !(isIgnored(file.path) && (file.previousPath === void 0 || isIgnored(file.previousPath)))
   );
-  const findings = rules.flatMap(
+  const all = rules.flatMap(
     (rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
   ).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
+  const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
+  const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
   return {
-    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
+    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
-    findings
+    findings,
+    suppressed
   };
 }
 function applySeverityOverride(finding, config) {
@@ -15500,13 +15565,12 @@ function applySeverityOverride(finding, config) {
   }
   return override === "off" ? [] : [{ ...finding, severity: override }];
 }
-function buildSummary(reviewedCount, ignoredCount, findings) {
+function buildSummary(reviewedCount, ignoredCount, findings, suppressedCount) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
   const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}.`;
-  if (findings.length === 0) {
-    return `${reviewed} No configured risk signals were detected.`;
-  }
-  return `${reviewed} Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
+  const found = findings.length === 0 ? "No configured risk signals were detected." : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
+  const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
+  return `${reviewed} ${found}${suppressed}`;
 }
 function calculateRiskLevel(files, findings, config) {
   if (findings.some((finding) => finding.severity === "high")) {
@@ -15703,6 +15767,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings),
     "",
+    ...renderSuppressed(result.suppressed ?? []),
     "### Suggested Review Checklist",
     "",
     "- Are tests covering the changed behavior?",
@@ -15730,6 +15795,20 @@ function renderFindings(findings) {
     );
   }
   return rendered.join("\n\n");
+}
+var maxSuppressedShown = 50;
+function renderSuppressed(suppressed) {
+  if (suppressed.length === 0) {
+    return [];
+  }
+  const lines = suppressed.slice(0, maxSuppressedShown).map((finding) => {
+    const where = finding.file === void 0 ? "" : ` on line ${finding.line ?? "?"} of ${codeSpan(finding.file)}`;
+    return `- ${codeSpan(finding.ruleId)}${where}: ${escapeText(finding.suppressionReason)}`;
+  });
+  if (suppressed.length > maxSuppressedShown) {
+    lines.push(`- ${suppressed.length - maxSuppressedShown} more suppressed finding(s) are not shown.`);
+  }
+  return ["### Suppressed Inline", "", ...lines, ""];
 }
 function renderFinding(finding) {
   const sections = [
