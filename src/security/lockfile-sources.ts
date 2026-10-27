@@ -29,7 +29,8 @@ const gitHosts = /^(?:github\.com|codeload\.github\.com|gitlab\.com|bitbucket\.o
 
 // A URL to classify, or a finding a reader recognizes by itself.
 type Entry = { url: string; extraIndex?: boolean; git?: boolean } | Omit<LockfileSource, "line">;
-type Reader = { files: RegExp; urls: (content: string) => Entry[] };
+// `section` is the current TOML table, such as `tool.poetry.source`, or Gemfile.lock section.
+type Reader = { files: RegExp; urls: (content: string, section: string) => Entry[] };
 
 const quotedUrl = (key: string) => new RegExp(`${key}["']?\\s*[:=]\\s*["']?([a-z][\\w+.-]*:\\/\\/[^\\s"'#,}]+)`, "i");
 const firstUrl = (pattern: RegExp) => (content: string) => {
@@ -46,6 +47,32 @@ const readers: Reader[] = [
   },
   { files: /(?:^|\/)poetry\.lock$/i, urls: firstUrl(quotedUrl("url")) },
   { files: /(?:^|\/)Pipfile(?:\.lock)?$/i, urls: firstUrl(quotedUrl("url")) },
+  {
+    files: /(?:^|\/)pyproject\.toml$/i,
+    urls: (content, section) => {
+      const entries: Entry[] = [];
+      // PEP 508 direct references, such as `"toolkit @ https://..."` in a dependency list.
+      const direct = /["']\s*[\w.-]+(?:\[[^\]]*\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
+      if (direct) {
+        entries.push({ url: direct[1] ?? "" });
+      }
+      const index = /^\s*(index-url|extra-index-url)\s*=\s*\[?\s*["']([^"']+)["']/i.exec(content);
+      if (index) {
+        entries.push({ url: index[2] ?? "", extraIndex: /extra/i.test(index[1] ?? "") });
+      }
+      // Poetry, uv, and PDM declare indexes as tables with a `url`; other tables' `url` keys are not sources.
+      const sourceUrl = /^\s*url\s*=\s*["']([^"']+)["']/i.exec(content);
+      if (sourceUrl && /^tool\.(?:poetry\.source|uv\.index|pdm\.source)$/i.test(section)) {
+        entries.push({ url: sourceUrl[1] ?? "" });
+      }
+      // Inline tables such as `shared = { git = "..." }` in uv sources and Poetry dependencies.
+      const inline = /\{[^}]*?\b(git|url)\s*=\s*"([^"]+)"/i.exec(content);
+      if (inline) {
+        entries.push({ url: inline[2] ?? "", git: inline[1]?.toLowerCase() === "git" });
+      }
+      return entries;
+    }
+  },
   {
     // `source = { registry = "..." }`, `sdist = { url = "..." }`, and `source = { git = "..." }`.
     files: /(?:^|\/)uv\.lock$/i,
@@ -101,25 +128,21 @@ export function findLockfileSources(path: string, patch: string, allowedSources:
     return [];
   }
   const allowed = [...defaultAllowedSources, ...allowedSources].flatMap((source) => parseUrl(source) ?? []);
-  const gemfile = /Gemfile\.lock$/i.test(path);
   let section = "";
   const found: LockfileSource[] = [];
 
   for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
-    // Gemfile.lock sections start at the first column; git shows the current one after `@@`.
-    if (gemfile) {
-      if (startsHunk) {
-        section = /^[A-Z]+$/.exec(hunkContext?.trim() ?? "")?.[0] ?? "";
-      }
-      if (/^[A-Z]+$/.test(content)) {
-        section = content;
-      }
+    // Gemfile.lock sections start at the first column, so git shows the current one after `@@`.
+    // TOML table headers start with `[`, which git does not show, so a hunk starts with none.
+    if (startsHunk) {
+      section = sectionName(hunkContext ?? "") ?? "";
     }
+    section = sectionName(content) ?? section;
     if (!added) {
       continue;
     }
 
-    for (const entry of reader.urls(content)) {
+    for (const entry of reader.urls(content, section)) {
       const source =
         "kind" in entry
           ? entry
@@ -133,6 +156,10 @@ export function findLockfileSources(path: string, patch: string, allowedSources:
   }
 
   return found;
+}
+
+function sectionName(content: string): string | undefined {
+  return /^([A-Z]+)$|^\s*\[\[?\s*([^\]\s]+)\s*\]\]?\s*(?:#.*)?$/.exec(content.trimEnd())?.slice(1).find(Boolean);
 }
 
 function classify(raw: string, allowed: URL[], gitSection: boolean): Omit<LockfileSource, "line"> | undefined {
