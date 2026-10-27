@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Maven and Gradle in the dependency checks: the Dependency Changes table, `lookalike-dependency`, `risky-dependency-version`, and `stale-lockfile` read `<dependency>` blocks in `pom.xml` across lines, `"group:artifact:version"` strings and `group:`/`name:`/`version:` maps in `build.gradle` and `build.gradle.kts`, and `[libraries]` in `libs.versions.toml`. Dependencies are named `group:artifact`. `+`, `latest.release`, `LATEST`, `RELEASE`, and ranges such as `[1.0,)` are open versions, a version left to a BOM or parent POM shows as `managed` and is not reported, `gradle.lockfile` is the lockfile for a build script in its own directory, and the bundled list of popular packages has the most used Maven artifacts.
+
 ## 0.29.0 - 2026-10-27
 
 ### Added

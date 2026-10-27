@@ -204,8 +204,11 @@ The `lookalike-dependency` rule reads the dependencies added in manifests and re
 | Packagist | `composer.json` | `"vendor/name": "version"` entries; platform requirements such as `php` and `ext-json` are not packages |
 | NuGet | `*.csproj`, `*.fsproj`, `*.vbproj`, `Directory.Packages.props`, `Directory.Build.props` | `<PackageReference>`, `<PackageVersion>`, and `<GlobalPackageReference>` on one line; a version given as a child element reads as none |
 | NuGet | `packages.config` | `<package id="..." version="..." />` |
+| Maven | `pom.xml` | `<dependency>` blocks, read across lines; a dependency changed by any line of its block, such as its `<version>`, counts as changed |
+| Maven | `build.gradle`, `build.gradle.kts` | `"group:artifact:version"` strings after a configuration such as `implementation`, `api`, `testImplementation`, `kapt`, or `classpath`, also inside `platform(...)`, and `group:`, `name:`, `version:` maps |
+| Maven | `libs.versions.toml` | `[libraries]` entries given as `"group:artifact:version"`, or with `module` or `group` and `name`; a `version.ref` reads as no version |
 
-Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Go module paths are compared without their major version suffix, so `github.com/go-chi/chi/v5` and `gopkg.in/yaml.v3` are the same projects as without `/v5` and `.v3`. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
+Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Go module paths are compared without their major version suffix, so `github.com/go-chi/chi/v5` and `gopkg.in/yaml.v3` are the same projects as without `/v5` and `.v3`. Maven dependencies are named `group:artifact`, such as `com.google.guava:guava`. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
 
 ### `rules.lookalikeDependencies.allowed`
 
@@ -220,7 +223,7 @@ Dependency names that are the intended packages, though they look like popular o
 The `risky-dependency-version` rule reads the same dependency changes as the Dependency Changes table and reports a warning for two kinds of change:
 
 - **An older version.** The first version number in the requirement goes down, such as `lodash` from `4.17.21` to `4.17.20`, or `requests` from `>=2.31` to `>=2.0`. Only the parts both versions give are compared, so Cargo's `1` after `1.0.193` is not older. Versions that are URLs, Git or local sources, or npm aliases are not compared.
-- **A version left open.** A bounded requirement becomes one with no upper bound: no version, `*`, `x`, `latest`, `next`, or only lower bounds such as `>=2.0`. A caret or tilde range, such as `^4.17.21`, Cargo's `1.2`, or RubyGems' `~> 7.1`, is bounded and not reported. A new npm or Cargo dependency added as `*` or `latest` is reported too; new PyPI and RubyGems dependencies without a version are not, since those manifests often leave versions to a lockfile. pip-compile inputs, `requirements*.in`, are skipped for open versions, because they are loose on purpose.
+- **A version left open.** A bounded requirement becomes one with no upper bound: no version, `*`, `x`, `latest`, `next`, or only lower bounds such as `>=2.0`. A caret or tilde range, such as `^4.17.21`, Cargo's `1.2`, or RubyGems' `~> 7.1`, is bounded and not reported. A new npm or Cargo dependency added as `*` or `latest` is reported too; new PyPI and RubyGems dependencies without a version are not, since those manifests often leave versions to a lockfile. pip-compile inputs, `requirements*.in`, are skipped for open versions, because they are loose on purpose. For Maven and Gradle, `+`, `latest.release`, `LATEST`, `RELEASE`, and ranges with no upper bound, such as `[1.0,)`, are open, and reported for new dependencies too; a dependency with no version is not, since a BOM or parent POM manages it, and the Dependency Changes table shows its version as `managed`.
 
 ### `rules.riskyDependencyVersions.enabled`
 
@@ -240,6 +243,7 @@ The `stale-lockfile` rule reports a warning when a manifest's dependencies chang
 | `go.mod` | `go.sum` |
 | `composer.json` | `composer.lock` |
 | `*.csproj`, `*.fsproj`, `*.vbproj` | `packages.lock.json`, in the project's own directory only, since each project has its own |
+| `build.gradle`, `build.gradle.kts` | `gradle.lockfile`, in the project's own directory only |
 
 - The rule only reports a manifest whose repository uses a lockfile: one of its lockfiles must exist on the base commit, in the manifest's directory or a directory above it, as at the root of a workspace. The nearest one counts. The action lists those directories through the contents API, at most 20 per run and only when a manifest's dependencies change; the CLI looks in the working tree.
 - Any change to one of the lockfiles in that directory, including adding a new one, counts as an update. Removing a manifest is not reported.
@@ -579,7 +583,7 @@ Questions of your own, added at the end of the Suggested Review Checklist on eve
 
 ### `comment.dependencyChanges`
 
-When `true`, the default, the comment lists the dependencies the pull request adds, removes, or moves to another version, in a Dependency Changes table after the findings, such as `lodash` from `4.17.20` to `4.17.21`. It reads the same manifests as `lookalike-dependency`: `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, `Cargo.toml`, `go.mod`, `composer.json`, and NuGet project files, not lockfiles, whose transitive changes would bury the direct ones.
+When `true`, the default, the comment lists the dependencies the pull request adds, removes, or moves to another version, in a Dependency Changes table after the findings, such as `lodash` from `4.17.20` to `4.17.21`. It reads the same manifests as `lookalike-dependency`: `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, `Cargo.toml`, `go.mod`, `composer.json`, NuGet project files, `pom.xml`, Gradle build scripts, and `libs.versions.toml`, not lockfiles, whose transitive changes would bury the direct ones.
 
 - A dependency removed and added back with the same version, as when lines are reordered, is not listed. PyPI names compare as PyPI does, so `Django` and `django` are one package.
 - Versions are shown as written in the manifest. A dependency without one, such as `requests` in a requirements file or a Git dependency in `Cargo.toml`, shows none.
