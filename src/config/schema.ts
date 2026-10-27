@@ -196,6 +196,8 @@ export const prismConfigSchema = z.object({
     })
     .default({}),
   ignorePaths: z.array(z.string()).default([]),
+  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
+  ignoreGenerated: z.boolean().default(true),
   severity: severityMap.default({}),
   // Severity for findings in matching files, applied after `severity`; later entries win.
   overrides: z

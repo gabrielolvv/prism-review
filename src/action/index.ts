@@ -9,7 +9,7 @@ import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { syncLineComments, type LineCommentOptions } from "../github/line-comments.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { loadBaseCodeOwners } from "../github/load-code-owners.js";
-import type { CodeOwners } from "../analysis/code-owners.js";
+import { loadBaseGitAttributes } from "../github/load-git-attributes.js";
 import { findReviewComment, publishReviewComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
@@ -46,19 +46,26 @@ async function run(): Promise<void> {
   }
 
   const config = baseConfig ?? defaultConfig;
+  const baseSha = readBaseSha(pullRequest);
   const files = prepareChangedFiles(
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
     config
   );
+  const generated = config.ignoreGenerated
+    ? await loadOptional(".gitattributes, so generated files are reviewed", () =>
+        loadBaseGitAttributes(client, owner, repo, baseSha)
+      )
+    : undefined;
   const result = analyzePullRequest(files, config, {
     configPath: inputs.configPath,
-    expectedFileCount: pullRequest.changed_files
+    expectedFileCount: pullRequest.changed_files,
+    isGenerated: generated?.isGenerated
   });
   // Read before rendering, so the review can mark what changed since the previous one. A dry run
   // makes no comment API calls, so it does not compare.
   const previous = inputs.dryRun ? undefined : await findReviewComment(client, owner, repo, pullRequest.number);
   const codeOwners = config.comment.codeOwners
-    ? await loadCodeOwners(client, owner, repo, readBaseSha(pullRequest))
+    ? await loadOptional("CODEOWNERS, so owners are not shown", () => loadBaseCodeOwners(client, owner, repo, baseSha))
     : undefined;
   const body = renderMarkdown(result, {
     includeLowSeverity: config.comment.includeLowSeverity,
@@ -110,18 +117,14 @@ async function run(): Promise<void> {
   }
 }
 
-// Owners only add to the review, so a CODEOWNERS file that cannot be read is skipped with a warning.
-async function loadCodeOwners(
-  client: GitHubClient,
-  owner: string,
-  repo: string,
-  baseSha: string
-): Promise<CodeOwners | undefined> {
+// CODEOWNERS and .gitattributes only refine the review, so one that cannot be read is skipped with
+// a warning that says what is lost.
+async function loadOptional<T>(what: string, load: () => Promise<T | undefined>): Promise<T | undefined> {
   try {
-    return await loadBaseCodeOwners(client, owner, repo, baseSha);
+    return await load();
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    console.log(`::warning title=Prism Review::Could not read CODEOWNERS, so owners are not shown: ${escapeCommand(reason)}`);
+    console.log(`::warning title=Prism Review::Could not read ${what}: ${escapeCommand(reason)}`);
     return undefined;
   }
 }
