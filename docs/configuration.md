@@ -72,6 +72,8 @@ rules:
     enabled: true
   destructiveMigration:
     enabled: true
+  credentialFiles:
+    enabled: true
 
 security:
   maxPatchBytes: 200000
@@ -216,6 +218,32 @@ The `destructive-migration` rule checks added lines in database migrations: file
 Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
 
 Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. A function or method defined after a rollback, at the same indentation or less, is not part of it. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, `--` and `/* */` comments in SQL files, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
+
+## Credential Files
+
+### `rules.credentialFiles.enabled`
+
+The `credential-file` rule reports a high-risk finding for files that should not be in a repository. `secret-in-diff` only recognizes a few token formats, so this rule looks at what kind of file it is.
+
+These are reported whenever they are added, changed, or renamed:
+
+| File | Examples |
+| --- | --- |
+| Private key | `id_rsa`, `id_ed25519`, `*.ppk`, `privkey.pem`, `key.pem`, `server-key.pem` |
+| Key file | `*.key`, such as Rails' `config/master.key`. Keynote files share the extension, so a `.key` file only counts when GitHub sends a text patch for it. |
+| Key store | `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `*.bks` |
+| Terraform state | `*.tfstate`, `*.tfstate.backup`, which store resource secrets in plain text |
+| Credentials file | `.git-credentials`, `.netrc`, `.pgpass`, `.htpasswd`, `.aws/credentials`, `.docker/config.json`, `.kube/config`, `kubeconfig` |
+| Cloud service account key | `service-account*.json`, `client_secret*.json` |
+
+Environment and package manager files are often committed on purpose, so they are only reported, with line numbers, when an added line holds a credential:
+
+- In `.env`, `.env.production`, or `prod.env`, a variable whose name ends with a secret word, such as `JWT_SECRET`, `DB_PASSWORD`, `GITHUB_TOKEN`, `STRIPE_SECRET_KEY`, or `SECRET_KEY_BASE`, or any URL with a password in it, such as `postgres://app:hunter2@db/app`. Names that only contain the word, such as `MAX_TOKENS` or `PASSWORD_MIN_LENGTH`, do not count.
+- In `.npmrc`, `.yarnrc.yml`, or `.pypirc`, an `_authToken`, `_auth`, `_password`, `npmAuthToken`, or `password` value.
+
+Values are read before redaction. These are not reported: empty values, references such as `${NPM_TOKEN}`, placeholders such as `<your password>` or `changeme`, local development defaults such as `postgres` or `password`, URLs pointing at `localhost`, variables with a public prefix (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `EXPO_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_`), and comment lines.
+
+Example files (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `example.env`), public keys (`id_ed25519.pub`, `public-key.pem`), certificates, deleted files, and files under `test/`, `tests/`, `testdata/`, `fixtures/`, `__tests__/`, `__mocks__/`, or `spec/` are not reported. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
 
 ## Hidden Unicode
 
