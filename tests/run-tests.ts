@@ -186,7 +186,11 @@ import {
   testPlanLineCommentsKeepsResolvedCommentsQuietAndCapsTheCount,
   testRenderLineCommentEscapesFindingText
 } from "./unit/line-comments.test.js";
-import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
+import {
+  testConfigurationDocsNameEveryRule,
+  testEveryRuleLinksToItsDocumentation,
+  testReadmeListsEveryRule
+} from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
   testRiskyApiRuleCoversAliasesAndShellForms,
@@ -465,6 +469,7 @@ const tests: Array<[string, Test]> = [
   ["render line comment escapes finding text", testRenderLineCommentEscapesFindingText],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
+  ["every rule links to its documentation", testEveryRuleLinksToItsDocumentation],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
   ["risky-api rule reports a single call", testRiskyApiRuleReportsASingleCall],
   ["risky-api rule ignores lookalike calls", testRiskyApiRuleIgnoresLookalikes],

@@ -88,7 +88,9 @@ export function testRenderLineCommentEscapesFindingText(): void {
       "",
       "Values \\[here\\](https://evil.example) \\#\\# Approved",
       "",
-      "Recommendation: Use \\`params\\`."
+      "Recommendation: Use \\`params\\`.",
+      "",
+      "Rule: [`sql-injection`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#sql-injection)"
     ].join("\n")
   );
 }

@@ -121,6 +121,18 @@ export function testRenderMarkdownEscapesFindingText(): void {
     /^Avoid \\\*emphasis\\\* and \\\[links\\\]\(https:\/\/example\.com\) \\#\\# or headings\.$/m
   );
   assert.match(markdown, /^Recommendation: Keep \\`code\\` and \\\| pipes \\\| literal\.$/m);
+  // A rule without documentation is still named, since an inline suppression needs its id.
+  assert.match(markdown, /^Recommendation: .+\n\nRule: `custom`$/m);
+
+  const known = renderMarkdown({
+    summary: "Reviewed 1 changed file(s).",
+    riskLevel: "medium",
+    findings: [{ ruleId: "risky-api", title: "Risky API", severity: "warning", file: "a.py", message: "Check it." }]
+  });
+  assert.match(
+    known,
+    /^File: `a\.py`\n\nRule: \[`risky-api`\]\(https:\/\/github\.com\/gabrielolvv\/prism-review\/blob\/master\/docs\/configuration\.md#risky-apis\)$/m
+  );
 }
 
 function resultWithInfoFinding(): ReviewResult {
