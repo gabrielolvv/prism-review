@@ -26,6 +26,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0",
     "minimatch": "^10.0.1",
     "yaml": "^2.8.0",
     "zod": "^3.25.76"

@@ -31,21 +31,11 @@ export function analyzePullRequest(
     existingLockfiles
   } = options;
   const changedPaths = new Set(files.flatMap((file) => [file.path, ...(file.previousPath === undefined ? [] : [file.previousPath])]));
-  // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
-  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
-  const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
   const pathOverrides = config.overrides.map((override) => ({
     matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
     severity: override.severity
   }));
-  // A file moved into an ignored directory is still reviewed, so a rename cannot hide a change.
-  const leftOut = (file: ChangedFile, excluded: (path: string) => boolean) =>
-    excluded(file.path) && (file.previousPath === undefined || excluded(file.previousPath));
-  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
-  const generated = new Set(
-    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path) => isIgnored(path) || isGenerated(path)))
-  );
-  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
+  const { reviewed, ignoredByConfig, generated } = partitionFiles(files, config, isGenerated);
   const all = rules
     .flatMap((rule) =>
       rule.run({
@@ -70,6 +60,34 @@ export function analyzePullRequest(
     suppressed,
     ...nonEmpty("dependencyChanges", dependencyChanges(reviewed))
   };
+}
+
+export type FilePartition = {
+  reviewed: ChangedFile[];
+  ignoredByConfig: Set<ChangedFile>;
+  generated: Set<ChangedFile>;
+};
+
+// Splits the files into the ones the rules review and the ones `ignorePaths` or .gitattributes
+// leave out.
+export function partitionFiles(
+  files: ChangedFile[],
+  config: PrismConfig,
+  isGenerated: (path: string) => boolean = () => false
+): FilePartition {
+  // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
+  const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
+  const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
+  // A file moved into an ignored directory is still reviewed, so a rename cannot hide a change.
+  const leftOut = (file: ChangedFile, excluded: (path: string) => boolean) =>
+    excluded(file.path) && (file.previousPath === undefined || excluded(file.previousPath));
+  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
+  const generated = new Set(
+    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path) => isIgnored(path) || isGenerated(path)))
+  );
+  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
+
+  return { reviewed, ignoredByConfig, generated };
 }
 
 function nonEmpty<Key extends string, Value>(key: Key, values: Value[]): { [K in Key]?: Value[] } {

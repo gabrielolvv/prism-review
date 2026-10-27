@@ -6,6 +6,8 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import {
+  fakeAiBaseSha,
+  fakeAiFailureBaseSha,
   fakeAnnotationsBaseSha,
   fakeAppendBaseSha,
   fakeBaseSha,
@@ -589,6 +591,52 @@ const scenarios: Array<[string, () => void]> = [
       assert.match(body, /^#### Warning - Lockfile not updated$/m);
       assert.match(body, /This file changes dependencies \(axios added\), but package-lock\.json, which pins/);
       assert.match(body, /^\| `package\.json` \| `axios` \| added `\^1\.6\.0` \|$/m);
+    }
+  ],
+  [
+    "the AI summary is added when it is enabled and given a key",
+    () => {
+      const run = runAction({ "INPUT_AI-API-KEY": "sk-test-key" }, { pull_request: { number: 27, base: { sha: fakeAiBaseSha } } });
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /^::add-mask::sk-test-key$/m);
+
+      const sent = run.requests.filter((request) => request.path.startsWith("/v1/messages"));
+      assert.equal(sent.length, 1);
+      assert.match(sent[0]?.url ?? "", /^https:\/\/api\.anthropic\.com\/v1\/messages/);
+      const request = sent[0]?.body as { model?: string; messages?: Array<{ content: string }> } | undefined;
+      assert.equal(request?.model, "claude-opus-5-5");
+      assert.match(request?.messages?.[0]?.content ?? "", /\+export const refundLimit = 500;/);
+
+      const posted = run.requests.find((entry) => entry.method === "POST" && entry.path === "/repos/acme/widgets/issues/27/comments");
+      const body = String(posted?.body?.body);
+      assert.match(body, /^### AI Summary$/m);
+      assert.match(body, /^Raises the refund limit; cc `@acme\/finance`\.$/m);
+      assert.match(body, /^- `src\/billing\/refund\.ts`: No test covers the new limit\.$/m);
+    }
+  ],
+  [
+    "without a key, the review says why it has no AI summary",
+    () => {
+      const run = runAction({}, { pull_request: { number: 27, base: { sha: fakeAiBaseSha } } });
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /::notice title=Prism Review::ai\.enabled is set, but the ai-api-key input is empty/);
+      assert.ok(!run.requests.some((request) => request.path.startsWith("/v1/messages")));
+
+      const posted = run.requests.find((entry) => entry.method === "POST" && entry.path === "/repos/acme/widgets/issues/27/comments");
+      assert.doesNotMatch(String(posted?.body?.body), /AI Summary/);
+    }
+  ],
+  [
+    "a failed AI request leaves the summary out and still posts the review",
+    () => {
+      const run = runAction({ "INPUT_AI-API-KEY": "sk-test-key" }, { pull_request: { number: 27, base: { sha: fakeAiFailureBaseSha } } });
+      assert.equal(run.status, 0, run.stderr);
+      assert.match(run.stdout, /::warning title=Prism Review::The review has no AI summary: 400 /);
+
+      const posted = run.requests.find((entry) => entry.method === "POST" && entry.path === "/repos/acme/widgets/issues/27/comments");
+      const body = String(posted?.body?.body);
+      assert.match(body, /^## Prism Review$/m);
+      assert.doesNotMatch(body, /AI Summary/);
     }
   ],
   [

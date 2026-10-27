@@ -1,3 +1,4 @@
+import type { AiSummary } from "../ai/summary.js";
 import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/finding.js";
 import type { DependencyChange } from "../analysis/manifest-dependencies.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
@@ -21,6 +22,8 @@ export type RenderOptions = {
   ownersOf?: (path: string) => readonly string[];
   // Lists the dependency changes; on unless set to false.
   dependencyChanges?: boolean;
+  // An advisory summary from a language model, shown after the rule-based summary.
+  aiSummary?: AiSummary;
 };
 
 export function renderMarkdown(
@@ -32,6 +35,7 @@ export function renderMarkdown(
     : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
   const dependencies = options.dependencyChanges === false ? [] : renderDependencyChanges(result.dependencyChanges ?? []);
+  const aiSummary = options.aiSummary === undefined ? [] : renderAiSummary(options.aiSummary);
   const comparison = options.previous === undefined ? undefined : compareWithPrevious(findings, options.previous);
   const changes = comparison === undefined ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
@@ -43,7 +47,8 @@ export function renderMarkdown(
     ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
   ];
   // Everything else that can grow comes out of the findings' share of the size limit.
-  const budget = maxFindingsLength - [...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
+  const budget =
+    maxFindingsLength - [...aiSummary, ...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
 
   return [
     PRISM_COMMENT_MARKER,
@@ -56,6 +61,7 @@ export function renderMarkdown(
     "",
     result.summary,
     "",
+    ...aiSummary,
     "### Findings",
     "",
     ...changes,
@@ -72,6 +78,44 @@ export function renderMarkdown(
     ...checklist,
     ...state
   ].join("\n");
+}
+
+// The model read text the pull request author wrote, so its reply is shown like pull request text:
+// escaped, on one line per item, and with nothing that renders as a link or notifies anyone.
+function renderAiSummary(summary: AiSummary): string[] {
+  const partial =
+    summary.filesNotSent === 0
+      ? []
+      : [`${summary.filesNotSent} changed file(s) were sent by name only, over \`ai.maxInputCharacters\`, so this summary covers part of the change.`, ""];
+
+  return [
+    "### AI Summary",
+    "",
+    `> Advisory: written by ${codeSpan(summary.model)} from the redacted diff. It does not change the risk level, the findings, or the check, and can be wrong.`,
+    "",
+    advisoryText(summary.overview),
+    "",
+    ...summary.concerns.map(
+      (entry) => `- ${entry.file === undefined ? "" : `${codeSpan(entry.file)}: `}${advisoryText(entry.concern)}`
+    ),
+    ...(summary.concerns.length > 0 ? [""] : []),
+    ...partial
+  ];
+}
+
+// Mentions, issue and pull request references, and URLs go in code spans, where GitHub neither
+// links nor notifies; the rest is escaped so it cannot add Markdown or HTML.
+const linkable = /@[\w-]{1,100}(?:\/[\w-]{1,100})?|(?:[\w.-]{1,100}\/[\w.-]{1,100})?#\d{1,10}\b|\bGH-\d{1,10}\b|\b(?:https?:\/\/|www\.)\S{1,2000}/gi;
+
+function advisoryText(text: string): string {
+  let rendered = "";
+  let last = 0;
+  for (const match of text.matchAll(linkable)) {
+    rendered += escapeText(showHiddenCharacters(text.slice(last, match.index))) + codeSpan(match[0]);
+    last = match.index + match[0].length;
+  }
+
+  return rendered + escapeText(showHiddenCharacters(text.slice(last)));
 }
 
 function renderChanges({ newCount, noLongerReported }: Comparison): string {

@@ -1,4 +1,14 @@
 import {
+  testAiSummaryCannotChangeTheReview,
+  testAiSummaryIsOffByDefault,
+  testAnthropicProviderAsksForStructuredOutput,
+  testAnthropicProviderRejectsRefusalsAndCutOffReplies,
+  testFailedSummaryIsReportedInsteadOfThrown,
+  testSummaryReplyIsValidatedAndGrounded,
+  testSummaryRequestSendsOnlyTheRedactedReviewedDiff,
+  testSummaryRequestStaysWithinTheCharacterBudget
+} from "./unit/ai-summary.test.js";
+import {
   testPaginateFollowsPagesUntilShortBatch,
   testPaginateStopsAtPageLimit,
   testRequestFailsWithStatus,
@@ -525,6 +535,14 @@ const tests: Array<[string, Test]> = [
   ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
   ["Gradle dependencies are read", testGradleDependenciesAreRead],
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
+  ["the AI summary is off by default", testAiSummaryIsOffByDefault],
+  ["the AI summary request sends only the redacted reviewed diff", testSummaryRequestSendsOnlyTheRedactedReviewedDiff],
+  ["the AI summary request stays within the character budget", testSummaryRequestStaysWithinTheCharacterBudget],
+  ["the AI summary reply is validated and grounded in the diff", testSummaryReplyIsValidatedAndGrounded],
+  ["a failed AI summary is reported instead of thrown", testFailedSummaryIsReportedInsteadOfThrown],
+  ["the Anthropic provider asks for structured output", testAnthropicProviderAsksForStructuredOutput],
+  ["the Anthropic provider rejects refusals and cut-off replies", testAnthropicProviderRejectsRefusalsAndCutOffReplies],
+  ["the AI summary cannot change the review", testAiSummaryCannotChangeTheReview],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

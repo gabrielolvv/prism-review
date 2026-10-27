@@ -17,6 +17,10 @@ inputs:
     description: "Workspace-relative path to also write the review to as SARIF, for github/codeql-action/upload-sarif. Empty by default, which writes nothing."
     required: false
     default: ""
+  ai-api-key:
+    description: "API key for the provider named in the configuration's ai section, such as secrets.ANTHROPIC_API_KEY. Used only when ai.enabled is true; the redacted diff is then sent to the provider. Empty by default."
+    required: false
+    default: ""
 outputs:
   risk-level:
     description: "Overall risk level of the review: low, medium, or high."
