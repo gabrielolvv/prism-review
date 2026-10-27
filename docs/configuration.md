@@ -232,14 +232,14 @@ Only added lines are checked, and lines that define a function or method with on
 
 The `remote-script` rule reports added lines that download a script and run it in the same command, so nothing checks what was downloaded:
 
-- `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, PowerShell's `irm ... | iex`, and pipes into `python`, `node`, `perl`, or `ruby` with no arguments or `-`. With `-m`, `-c`, or `-e` they read the download as data, as in `curl ... | python3 -m json.tool`, which is not reported.
+- `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `... | sudo env A=1 bash`, PowerShell's `irm ... | iex`, and pipes into `python`, `node`, `perl`, or `ruby` with no arguments or `-`. With `-m`, `-c`, or `-e` they read the download as data, as in `curl ... | python3 -m json.tool`, which is not reported.
 - `bash <(curl ...)` and `source <(curl ...)`
 - `sh -c "$(curl ...)"` and `eval "$(curl ...)"`
 - `iex (iwr ...)` and `iex ((New-Object Net.WebClient).DownloadString(...))`
 
 Whoever controls the URL, or can intercept the download, runs code in the build, the image, or the developer's machine. The finding is a warning that names each host, or says the URL comes from a variable, and it is high when a line downloads over plain `http://`.
 
-Downloading to a file and checking a checksum before running it is not reported, and neither are downloads piped into other programs such as `jq` or `tar`, commands inside single-quoted strings, and comment lines. Documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, because installation guides show these commands on purpose. Lines continued with a trailing `\`, as long Dockerfile `RUN` commands are written, are read as one command, which is reported on its first added line; a command the pull request does not touch is not reported.
+Downloading to a file and checking a checksum before running it is not reported, and neither are downloads piped into other programs such as `jq` or `tar`, commands inside single-quoted strings, and comment lines. Documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, because installation guides show these commands on purpose. Lines continued with a trailing `\`, as long Dockerfile `RUN` commands are written, are read as one command, which is reported on its first added line. Comment lines never continue a command, and comments inside a continued command are skipped, as Docker does; a command the pull request does not touch is not reported.
 
 ## Workflow Risk
 
