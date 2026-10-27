@@ -9,6 +9,7 @@ export const fakeAnnotationsBaseSha = "00112233445566778899aabbccddeeff00112233"
 export const fakeFailOnHighBaseSha = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
 export const fakeReviewCommentsBaseSha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
 export const fakeComparisonBaseSha = "2323232323232323232323232323232323232323";
+export const fakeLockfileBaseSha = "2525252525252525252525252525252525252525";
 export const fakeHeadSha = "9999999999999999999999999999999999999999";
 export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
@@ -123,6 +124,22 @@ const routes: Record<string, (body: unknown) => unknown> = {
       patch: "+export {};"
     }
   ],
+  // Pull request 25 adds a dependency without updating the lockfile that exists on its base.
+  "GET /repos/acme/widgets/pulls/25/files?per_page=100&page=1": () => [
+    {
+      filename: "package.json",
+      status: "modified",
+      additions: 1,
+      deletions: 0,
+      patch: '@@ -10,3 +10,4 @@\n   "dependencies": {\n+    "axios": "^1.6.0",\n     "yaml": "^2.8.0"'
+    }
+  ],
+  [`GET /repos/acme/widgets/contents?ref=${fakeLockfileBaseSha}`]: () => [
+    { name: "package-lock.json", type: "file" },
+    { name: "src", type: "dir" }
+  ],
+  "GET /repos/acme/widgets/issues/25/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/25/comments": () => ({ id: 40 }),
   // CODEOWNERS on pull request 23's base names the owners of the billing code.
   [`GET /repos/acme/widgets/contents/.github/CODEOWNERS?ref=${fakeComparisonBaseSha}`]: () =>
     fileContent("* @acme/maintainers\nsrc/billing/ @acme/payments\n"),

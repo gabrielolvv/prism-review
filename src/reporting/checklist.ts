@@ -11,6 +11,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
   "lockfile-source": "Do the packages from other sources come from places the team trusts?",
   "lookalike-dependency": "Is each flagged dependency the package that was meant, and not a lookalike of a popular one?",
+  "stale-lockfile": "Was the lockfile regenerated with the manifest, so the versions installed are the ones reviewed?",
   "risky-dependency-version":
     "Is each older or open-ended dependency version intended, and does a lockfile pin what is actually installed?",
   "unpinned-action": "Can the third-party actions be pinned to a full commit SHA?",

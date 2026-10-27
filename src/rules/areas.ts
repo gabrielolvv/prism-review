@@ -20,6 +20,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "lockfile-source": "supply-chain",
   "lookalike-dependency": "supply-chain",
   "risky-dependency-version": "supply-chain",
+  "stale-lockfile": "supply-chain",
   "unpinned-action": "supply-chain",
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
