@@ -13298,6 +13298,7 @@ var ruleIds = [
   "skipped-tests",
   "blanket-suppression",
   "risky-api",
+  "sql-injection",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
@@ -13383,6 +13384,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     disabledSecurityChecks: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    sqlInjection: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     hiddenUnicode: external_exports.object({
@@ -15353,6 +15357,86 @@ function describeSkipped(lines) {
   return plural ? `${text} skip tests, so they can stop running without failing.` : `${text} skips a test, so it can stop running without failing.`;
 }
 
+// src/rules/sql-injection.ts
+var sqlCall = /(?:^|[^\w$])(execute|executemany|executescript|query|raw|executeQuery|executeUpdate|addBatch|createQuery|createNativeQuery|prepareStatement|Query|QueryRow|QueryContext|QueryRowContext|Exec|ExecContext|FromSqlRaw|ExecuteSqlRaw|SqlCommand|find_by_sql|select_all|select_one|select_value|where|order|having|joins|mysqli_query|pg_query|read_sql|read_sql_query|\$queryRawUnsafe|\$executeRawUnsafe)\s*\(/;
+var sqlVariable = /\b\w*(?:sql|query|stmt|statement)\w*\s*(?::\s*[\w<>[\]]+\s*)?=(?!=)/i;
+var fragmentCall = /^(?:where|order|having|joins|find_by_sql|select_all|select_one|select_value)$/;
+var sqlKeyword = /\bselect\s.+?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
+var builtString = [
+  /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/,
+  // Python f-string, also inside text(...)
+  /["']\s*%\s*[\w(]/,
+  // Python "... %s" % value
+  /["']\.format\(/,
+  // Python and C# .format()
+  /`[^`]*\$\{/,
+  // JavaScript template literal
+  /["'`]\s*\+\s*[\w$(]|[\w)\]]\s*\+\s*["'`]/,
+  // concatenation
+  /\b(?:fmt\.Sprintf|String\.format|sprintf)\s*\(/,
+  // Go, Java, PHP
+  /"[^"]*#\{/
+  // Ruby interpolation
+];
+var languageStrings = [
+  [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
+  [/\.cs$/i, /\$@?"[^"]*\{/]
+];
+var commentLine6 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var sqlInjectionRule = {
+  id: "sql-injection",
+  description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
+  run({ files, config }) {
+    if (!config.rules.sqlInjection.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => pattern)];
+      const lines = findBuiltSql(file.patch, patterns2);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "sql-injection",
+          title: "SQL built from values",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...lines),
+          message: `${text} ${plural ? "build" : "builds"} SQL from values inserted into the query text, which allows SQL injection unless every value is escaped.`,
+          recommendation: "Pass values as query parameters (?, $1, %s with a separate argument, or named parameters) and keep the SQL text constant. For identifiers such as column names, choose from a fixed list."
+        }
+      ];
+    });
+  }
+};
+function findBuiltSql(patch, patterns2) {
+  const found = [];
+  let pendingCall;
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      pendingCall = void 0;
+    }
+    if (commentLine6.test(content)) {
+      continue;
+    }
+    const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
+    const target = call ? { name: call[1] ?? "", argument: content.slice(call.index + call[0].length) } : void 0;
+    const checked = target ?? (pendingCall === void 0 ? void 0 : { name: pendingCall, argument: content });
+    pendingCall = target !== void 0 && target.argument.trim() === "" ? target.name : void 0;
+    if (added && checked !== void 0 && checked.argument.trim() !== "" && patterns2.some((pattern) => pattern.test(checked.argument)) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /#\{/.test(checked.argument))) {
+      found.push(line);
+    }
+  }
+  return found;
+}
+
 // src/rules/index.ts
 var defaultRules = [
   incompleteReviewRule,
@@ -15365,6 +15449,7 @@ var defaultRules = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  sqlInjectionRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,
