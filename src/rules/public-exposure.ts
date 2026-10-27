@@ -169,7 +169,7 @@ function portsIn(lines: string[]): Array<[number, number]> | "all" | undefined {
 
   const values = [
     ...[...text.matchAll(/\b(?:port|Port|destination_port_range|DestinationPortRange)["']?\s*[=:]\s*["']?(\*|\d+(?:-\d+)?)/g)].map((match) => match[1] ?? ""),
-    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]*)\]/g)].flatMap((match) =>
+    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]{0,500})\]/g)].flatMap((match) =>
       (match[1] ?? "").split(",").map((value) => value.replace(/["'\s]/g, ""))
     )
   ].filter(Boolean);

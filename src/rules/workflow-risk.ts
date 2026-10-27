@@ -138,7 +138,7 @@ function findInjections(patch: string): Array<{ line: number; contexts: string[]
 function untrustedContexts(text: string): string[] {
   const contexts: string[] = [];
 
-  for (const [, expression = ""] of text.matchAll(/\$\{\{([\s\S]*?)\}\}/g)) {
+  for (const [, expression = ""] of text.matchAll(/\$\{\{([\s\S]{0,2000}?)\}\}/g)) {
     // `github.event['issue']["title"]` and `commits[0]` read the same values as the dot forms.
     const normalized = expression
       .replace(/\[\s*['"]([\w-]+)['"]\s*\]/g, ".$1")

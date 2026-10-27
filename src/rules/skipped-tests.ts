@@ -67,7 +67,7 @@ const languages: Language[] = [
   {
     // XCTest and Swift Testing.
     files: /\.swift$/,
-    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]*\.disabled\b/]]
+    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]{0,500}\.disabled\b/]]
   },
   {
     // PHPUnit and Pest.
@@ -77,7 +77,7 @@ const languages: Language[] = [
       // Pest chains `->skip()` on a test call; Laravel's query and collection `skip(10)` do not count.
       [
         "skipped",
-        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]*->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
+        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]{0,2000}->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
       ]
     ]
   }

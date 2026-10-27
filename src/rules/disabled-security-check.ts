@@ -31,12 +31,12 @@ const tls: Check = {
     word("Noop", "HostnameVerifier"),
     word("ALLOW_ALL", "_HOSTNAME_VERIFIER"),
     word("TrustAll", "Strategy"),
-    /\bServerCertificate(?:Custom)?ValidationCallback\s*\+?=\s*[^;]*=>\s*true\b/,
+    /\bServerCertificate(?:Custom)?ValidationCallback\s*\+?=\s*[^;]{0,300}=>\s*true\b/,
     word("DangerousAcceptAny", "ServerCertificateValidator"),
     /\bCURLOPT_SSL_VERIFY(?:PEER|HOST)\b\s*(?:=>|,)\s*(?:false|0)\b|['"]verify['"]\s*=>\s*false\b/,
     // `curl -k`, `curl -fsSLk`, `curl --insecure`
-    /\bcurl\b[^|;&\n]*\s(?:-[a-zA-Z]*k[a-zA-Z]*|--insecure)(?=\s|$)/,
-    /\bwget\s[^|;&\n]*--no-check-certificate\b/,
+    /\bcurl\b[^|;&\n]{0,2000}\s(?:-[a-zA-Z]*k[a-zA-Z]*|--insecure)(?=\s|$)/,
+    /\bwget\s[^|;&\n]{0,2000}--no-check-certificate\b/,
     /\bhttp\.sslVerify\b["']?\s*[=\s]\s*["']?false\b|\bGIT_SSL_NO_VERIFY\b["']?\s*[:=]\s*["']?(?:1|true)\b/,
     /\binsecure-skip-tls-verify["']?\s*:\s*["']?true\b/,
     new RegExp(`${insecureKubeFlag}(?:=true)?(?=\\s|$)`)

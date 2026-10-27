@@ -38,7 +38,7 @@ const languages: Language[] = [
       ["pickle", /\b(?:c?pickle|marshal|shelve)\.loads?\s*\(/],
       [
         "yaml.load",
-        /\byaml\.(?:load(?:_all)?\s*\((?!.*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
+        /\byaml\.(?:load(?:_all)?\s*\((?!.{0,500}\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
       ],
       ["shell=True", /\bshell\s*=\s*True\b/],
       ["os.system", /\bos\.(?:system|popen)\s*\(/]
@@ -108,7 +108,7 @@ const languages: Language[] = [
     calls: [
       [
         "shell command",
-        /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+        /\bexec\.Command(?:Context)?\s*\((?:[^,"]{0,200},\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
       ],
       ["template.HTML", /\btemplate\.HTML\s*\(/]
     ]

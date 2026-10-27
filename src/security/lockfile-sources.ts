@@ -52,7 +52,7 @@ const readers: Reader[] = [
     urls: (content, section) => {
       const entries: Entry[] = [];
       // PEP 508 direct references, such as `"toolkit @ https://..."` in a dependency list.
-      const direct = /["']\s*[\w.-]+(?:\[[^\]]*\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
+      const direct = /["']\s*[\w.-]+(?:\[[^\]]{0,200}\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
       if (direct) {
         entries.push({ url: direct[1] ?? "" });
       }
@@ -66,7 +66,7 @@ const readers: Reader[] = [
         entries.push({ url: sourceUrl[1] ?? "" });
       }
       // Inline tables such as `shared = { git = "..." }` in uv sources and Poetry dependencies.
-      const inline = /\{[^}]*?\b(git|url)\s*=\s*"([^"]+)"/i.exec(content);
+      const inline = /\{[^{}]{0,300}?\b(git|url)\s*=\s*"([^"]{1,500})"/i.exec(content);
       if (inline) {
         entries.push({ url: inline[2] ?? "", git: inline[1]?.toLowerCase() === "git" });
       }
