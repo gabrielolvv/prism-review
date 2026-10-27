@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { codeOwnersPaths, parseCodeOwners, type CodeOwners } from "../analysis/code-owners.js";
 import { gitAttributesPath, parseGitAttributes } from "../analysis/git-attributes.js";
+import { findLockfiles } from "../github/load-lockfiles.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { loadConfig } from "../config/load-config.js";
 import { defaultConfigPath } from "../config/schema.js";
@@ -72,7 +73,19 @@ async function main(): Promise<void> {
   const generated = config.ignoreGenerated && isFile(gitAttributesPath)
     ? parseGitAttributes(readFileSync(gitAttributesPath, "utf8"))
     : undefined;
-  const result = analyzePullRequest(files, config, { configPath, isGenerated: generated?.isGenerated });
+  // The working tree stands in for the base commit: a lockfile here was there before this change.
+  const existingLockfiles = config.rules.staleLockfiles.enabled
+    ? await findLockfiles(files, async (directory) =>
+        readdirSync(directory === "" ? "." : directory, { withFileTypes: true }).flatMap((entry) =>
+          entry.isFile() ? [entry.name] : []
+        )
+      ).catch(() => undefined)
+    : undefined;
+  const result = analyzePullRequest(files, config, {
+    configPath,
+    isGenerated: generated?.isGenerated,
+    existingLockfiles
+  });
   const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : undefined;
   process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
 

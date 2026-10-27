@@ -12,6 +12,7 @@ import {
   fakeComparisonBaseSha,
   fakeFailOnHighBaseSha,
   fakeLeakedToken,
+  fakeLockfileBaseSha,
   fakeHeadSha,
   fakeReviewCommentsBaseSha
 } from "../support/fake-github-api.js";
@@ -571,6 +572,23 @@ const scenarios: Array<[string, () => void]> = [
       const branding = parseYaml(readFileSync("action.yml", "utf8")).branding as { icon: string; color: string };
       assert.ok(["white", "black", "yellow", "blue", "green", "orange", "red", "purple", "gray-dark"].includes(branding.color));
       assert.equal(branding.icon, "shield");
+    }
+  ],
+  [
+    "a dependency change without its lockfile is reported",
+    () => {
+      const run = runAction({}, { pull_request: { number: 25, base: { sha: fakeLockfileBaseSha } } });
+      assert.equal(run.status, 0, run.stderr);
+
+      // Only the manifest's directory, the root here, is listed.
+      const listings = run.requests.filter((request) => request.path.startsWith("/repos/acme/widgets/contents?"));
+      assert.deepEqual(listings.map((request) => request.path), [`/repos/acme/widgets/contents?ref=${fakeLockfileBaseSha}`]);
+
+      const posted = run.requests.find((request) => request.method === "POST" && request.path === "/repos/acme/widgets/issues/25/comments");
+      const body = String(posted?.body?.body);
+      assert.match(body, /^#### Warning - Lockfile not updated$/m);
+      assert.match(body, /This file changes dependencies \(axios added\), but package-lock\.json, which pins/);
+      assert.match(body, /^\| `package\.json` \| `axios` \| added `\^1\.6\.0` \|$/m);
     }
   ],
   [

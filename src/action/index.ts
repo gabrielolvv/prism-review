@@ -10,6 +10,7 @@ import { syncLineComments, type LineCommentOptions } from "../github/line-commen
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { loadBaseCodeOwners } from "../github/load-code-owners.js";
 import { loadBaseGitAttributes } from "../github/load-git-attributes.js";
+import { findBaseLockfiles } from "../github/load-lockfiles.js";
 import { findReviewComment, publishReviewComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
@@ -56,10 +57,16 @@ async function run(): Promise<void> {
         loadBaseGitAttributes(client, owner, repo, baseSha)
       )
     : undefined;
+  const existingLockfiles = config.rules.staleLockfiles.enabled
+    ? await loadOptional("the base commit's lockfiles, so stale lockfiles are not checked", () =>
+        findBaseLockfiles(client, owner, repo, baseSha, files)
+      )
+    : undefined;
   const result = analyzePullRequest(files, config, {
     configPath: inputs.configPath,
     expectedFileCount: pullRequest.changed_files,
-    isGenerated: generated?.isGenerated
+    isGenerated: generated?.isGenerated,
+    existingLockfiles
   });
   // Read before rendering, so the review can mark what changed since the previous one. A dry run
   // makes no comment API calls, so it does not compare.

@@ -11,6 +11,7 @@ import { largeDiffRule } from "./large-diff.js";
 import { lockfileSourceRule } from "./lockfile-source.js";
 import { lookalikeDependencyRule } from "./lookalike-dependency.js";
 import { riskyDependencyVersionRule } from "./risky-dependency-version.js";
+import { staleLockfileRule } from "./stale-lockfile.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
 import { privilegedContainerRule } from "./privileged-container.js";
@@ -49,6 +50,7 @@ export const defaultRules: Rule[] = [
   lockfileSourceRule,
   lookalikeDependencyRule,
   riskyDependencyVersionRule,
+  staleLockfileRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];

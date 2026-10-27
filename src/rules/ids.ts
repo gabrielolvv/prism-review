@@ -24,6 +24,7 @@ export const ruleIds: readonly string[] = [
   "lockfile-source",
   "lookalike-dependency",
   "risky-dependency-version",
+  "stale-lockfile",
   "dependency-risk",
   "oversized-patch"
 ];

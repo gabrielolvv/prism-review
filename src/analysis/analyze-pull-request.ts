@@ -14,6 +14,8 @@ export type AnalyzeOptions = {
   expectedFileCount?: number;
   // Files marked `linguist-generated` or `linguist-vendored`, which are left out like `ignorePaths`.
   isGenerated?: (path: string) => boolean;
+  // Lockfiles that exist on the base commit, for `stale-lockfile`.
+  existingLockfiles?: ReadonlySet<string>;
 };
 
 export function analyzePullRequest(
@@ -21,7 +23,14 @@ export function analyzePullRequest(
   config: PrismConfig,
   options: AnalyzeOptions = {}
 ): ReviewResult {
-  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount, isGenerated = () => false } = options;
+  const {
+    rules = defaultRules,
+    configPath = defaultConfigPath,
+    expectedFileCount,
+    isGenerated = () => false,
+    existingLockfiles
+  } = options;
+  const changedPaths = new Set(files.flatMap((file) => [file.path, ...(file.previousPath === undefined ? [] : [file.previousPath])]));
   // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
@@ -39,7 +48,14 @@ export function analyzePullRequest(
   const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
   const all = rules
     .flatMap((rule) =>
-      rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
+      rule.run({
+        files: rule.seesIgnoredFiles ? files : reviewed,
+        config,
+        configPath,
+        expectedFileCount,
+        changedPaths,
+        ...(existingLockfiles === undefined ? {} : { existingLockfiles })
+      })
     )
     .flatMap((finding) => applySeverityOverride(finding, config, pathOverrides))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
