@@ -112,6 +112,9 @@ annotations:
 check:
   failOn: "never"
 
+ai:
+  enabled: false
+
 ignorePaths: []
 ignoreGenerated: true
 
@@ -671,6 +674,59 @@ When `true`, `info` findings are posted too.
 ### `reviewComments.maxComments`
 
 The most comments one run posts, from 1 to 100, 25 by default. Findings are taken most severe first, and the rest stay in the review comment.
+
+## AI Summary
+
+When enabled, the review adds an AI Summary section after the rule-based summary: a few sentences on what the pull request changes and up to five things a reviewer should check that the findings do not cover, written by a language model from the redacted diff. It is off by default, because it sends the diff to the model provider's API.
+
+```yaml
+ai:
+  enabled: true
+  provider: "anthropic"
+  model: "claude-opus-5-5"
+  maxInputCharacters: 100000
+  timeoutSeconds: 120
+```
+
+The API key goes in the `ai-api-key` input, from a repository secret:
+
+```yaml
+      - uses: gabrielolvv/prism-review@v0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ai-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+What is sent:
+
+- Only the files the rules review. Files left out by `ignorePaths` or marked generated or vendored in `.gitattributes` are not sent.
+- Their patches after redaction, so detected credentials are sent as `[REDACTED]`, and after `security.maxPatchBytes`, so oversized files are sent by name only. Hidden characters, such as Unicode tag characters, are sent as visible `\u{...}` escapes.
+- The severity, rule id, title, and location of each finding, so the summary can cover what the rules did not.
+- Nothing else: no files outside the diff, no CODEOWNERS, no token.
+
+What it can change is only its own section. The risk level, the findings, the step outputs, `check.failOn`, and the record the next review compares with come from the rules alone. The pull request's text is quoted to the model as data, between tags it cannot guess, with an instruction to report requests aimed at a reviewer or an AI instead of following them. The reply must match a JSON schema; a concern about a file the model was not shown is dropped, overlong text is shortened, and the text is escaped like pull request text, with mentions, issue references, and URLs in code spans, so it can neither add Markdown nor notify anyone.
+
+When the key is empty, as for pull requests from forks, which get no secrets, the run logs a notice. When the request fails or times out, the model declines, or the reply does not match the schema, the run logs a warning. Either way, the review is published without the section and the job's result is unchanged. The CLI does not write AI summaries.
+
+### `ai.enabled`
+
+`true` adds the summary when the `ai-api-key` input is set. Like the rest of the configuration, it is read from the base commit, so a pull request cannot turn it on or change the model it uses.
+
+### `ai.provider`
+
+`anthropic`, the only provider so far. The summary uses the Messages API with structured output. For models that support it, a declined request is retried server-side on the model the API recommends for that kind of refusal.
+
+### `ai.model`
+
+The model name, `claude-opus-5-5` by default.
+
+### `ai.maxInputCharacters`
+
+The most diff text to send, 100000 characters by default, from 1000 to 500000. Files are added in order while they fit; the others are sent by name only, and the section says how many, since the summary then covers part of the change.
+
+### `ai.timeoutSeconds`
+
+How long one request may take, 120 seconds by default, from 10 to 600. A request that fails with a timeout, a rate limit, or a server error is retried twice.
 
 ## Ignore Paths
 

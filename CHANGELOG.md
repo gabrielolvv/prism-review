@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- An optional AI Summary section, off by default. With `ai.enabled: true` and the new `ai-api-key` input, the review sends the redacted diff of the reviewed files and the findings to a language model, `claude-opus-5-5` by default, and shows a short overview and up to five concerns for the reviewer. The reply must match a JSON schema, concerns about files the model was not shown are dropped, and the text is escaped with mentions, references, and URLs in code spans. The summary cannot change the risk level, the findings, or the check, and a missing key or failed request leaves it out with a log line. `ai.maxInputCharacters` and `ai.timeoutSeconds` bound the request.
+
 ## 0.30.0 - 2026-10-27
 
 ### Added
