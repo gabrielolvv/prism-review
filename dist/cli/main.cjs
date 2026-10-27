@@ -13314,6 +13314,13 @@ var ruleIds = [
 
 // src/config/schema.ts
 var knownRuleIds = new Set(ruleIds);
+var severityMap = external_exports.record(external_exports.enum(["off", "info", "warning", "high"])).superRefine((overrides, context) => {
+  for (const id of Object.keys(overrides)) {
+    if (!knownRuleIds.has(id)) {
+      context.addIssue({ code: external_exports.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
+    }
+  }
+});
 var prismConfigSchema = external_exports.object({
   risk: external_exports.object({
     largeDiff: external_exports.object({
@@ -13431,15 +13438,14 @@ var prismConfigSchema = external_exports.object({
     includeLowSeverity: external_exports.boolean().default(false)
   }).default({}),
   ignorePaths: external_exports.array(external_exports.string()).default([]),
-  // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
-  // cannot silently leave a rule at its default.
-  severity: external_exports.record(external_exports.enum(["off", "info", "warning", "high"])).default({}).superRefine((overrides, context) => {
-    for (const id of Object.keys(overrides)) {
-      if (!knownRuleIds.has(id)) {
-        context.addIssue({ code: external_exports.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
-      }
-    }
-  }),
+  severity: severityMap.default({}),
+  // Severity for findings in matching files, applied after `severity`; later entries win.
+  overrides: external_exports.array(
+    external_exports.object({
+      paths: external_exports.array(external_exports.string().min(1).max(500)).min(1),
+      severity: severityMap
+    })
+  ).default([]),
   check: external_exports.object({
     failOn: external_exports.enum(["never", "warning", "high"]).default("never")
   }).default({}),
@@ -15540,12 +15546,16 @@ function analyzePullRequest(files, config, options = {}) {
   const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
+  const pathOverrides = config.overrides.map((override) => ({
+    matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
+    severity: override.severity
+  }));
   const reviewed = files.filter(
     (file) => !(isIgnored(file.path) && (file.previousPath === void 0 || isIgnored(file.previousPath)))
   );
   const all = rules.flatMap(
     (rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
-  ).flatMap((finding) => applySeverityOverride(finding, config)).sort((left, right) => compareSeverity(left.severity, right.severity));
+  ).flatMap((finding) => applySeverityOverride(finding, config, pathOverrides)).sort((left, right) => compareSeverity(left.severity, right.severity));
   const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
   const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
   return {
@@ -15555,8 +15565,16 @@ function analyzePullRequest(files, config, options = {}) {
     suppressed
   };
 }
-function applySeverityOverride(finding, config) {
-  const override = config.severity[finding.ruleId];
+function applySeverityOverride(finding, config, pathOverrides) {
+  let override = config.severity[finding.ruleId];
+  const file = finding.file;
+  if (file !== void 0) {
+    for (const entry of pathOverrides) {
+      if (entry.severity[finding.ruleId] !== void 0 && entry.matchers.some((matcher) => matcher.match(file))) {
+        override = entry.severity[finding.ruleId];
+      }
+    }
+  }
   if (override === void 0) {
     return [finding];
   }
