@@ -9,6 +9,10 @@ All notable changes to Prism Review are documented in this file.
 - `lockfile-source` rule reports, as high, lockfile entries and registry settings that download packages from a host outside the allowed registries or over plain HTTP, and warns about Git dependencies and pip `--extra-index-url`. It reads npm, yarn, pnpm, pip, Poetry, Pipfile, Cargo, and Bundler lockfiles and `.npmrc`, `.yarnrc.yml`, and `pip.conf`, before the size limit, and `rules.lockfileSources.allowedSources` adds private registries.
 - `credential-file` rule reports, as high, committed private keys, key stores, Terraform state, and credential files such as `.git-credentials`, `.aws/credentials`, and `kubeconfig`, and secrets added to `.env`, `.npmrc`, `.yarnrc.yml`, and `.pypirc` files. Environment files are only reported for variables whose name ends with a secret word or URLs with a password, so public, placeholder, and local development values pass. `rules.credentialFiles.enabled` turns it off.
 
+### Fixed
+
+- `dependency-risk` only reported manifests at the repository root, because its default globs such as `package.json` have no `/`. Globs without a `/` in `rules.dependencyRisk.manifests` and `rules.sensitiveFiles.patterns` now match the file name in any directory, as in `.gitignore`, so `packages/ui/package.json` and `services/api/requirements.txt` are reported.
+
 ## 0.8.0 - 2026-10-27
 
 ### Added

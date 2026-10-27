@@ -109,6 +109,8 @@ The `sensitive-files` rule reports a high-risk finding for each changed file tha
 
 The path is split into words on `/`, `.`, `-`, `_`, and camelCase, and a word counts when it contains a sensitive word, so `src/errors/Unauthorized.ts`, `pkg/jwtauth/`, `src/accesstoken.ts`, and `db/migrations/` are reported. A short list of words that only look related is left out: `author` and its forms (but not `authorize`), `tokenize`, `parole`, and `secretary`. That keeps `docs/rule-authoring.md`, `AUTHORS`, and `src/tokenizer.ts` from being reported.
 
+A glob without a `/`, such as `*.tf`, matches the file name in any directory, as in `.gitignore`. A glob with a `/` matches the whole path from the repository root.
+
 ### `rules.sensitiveFiles.enabled`
 
 Set to `false` to turn the rule off, including the built-in words.
@@ -117,7 +119,7 @@ Set to `false` to turn the rule off, including the built-in words.
 
 ### `rules.dependencyRisk.manifests`
 
-The `dependency-risk` rule warns for each changed file that matches one of these globs, so dependency changes get a supply-chain review; `lockfile-source` checks where the packages in lockfiles come from. The defaults cover Node.js, Python, Go, and Rust manifests and lockfiles, and the message names the ecosystem. `rules.dependencyRisk.enabled: false` turns the rule off.
+The `dependency-risk` rule warns for each changed file that matches one of these globs, so dependency changes get a supply-chain review; `lockfile-source` checks where the packages in lockfiles come from. A glob without a `/`, such as the default `package.json`, matches the file name in any directory, so manifests in monorepo packages are covered. The defaults cover Node.js, Python, Go, and Rust manifests and lockfiles, and the message names the ecosystem. `rules.dependencyRisk.enabled: false` turns the rule off.
 
 ## Lockfile Sources
 
