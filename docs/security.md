@@ -114,6 +114,10 @@ The long-token pattern also matches harmless values such as 40-character commit 
 - GitHub can answer `404` instead of `403` when a token cannot read a private resource, so a token without `contents: read` may fall back to the defaults. The log line `No <path> on the base branch` makes this visible.
 - Allowlist patterns are regular expressions supplied by the repository. A pathological pattern can slow the run down; the job timeout is the backstop.
 
+## Prompt Injection
+
+Prism Review does not read patch content as instructions, and the comment never quotes it: it shows rule messages, file paths in code spans, line numbers, and suppression reasons, all escaped. Two fixtures check this. `fixtures/diffs/prompt-injection.diff` holds plain-text instructions and a forged review header. `fixtures/diffs/prompt-injection-encoded.diff` holds instructions in base64, in Markdown and HTML comments, and in a file name. The tests add a suppression marker whose reason claims approval and instructions hidden in Unicode tag characters, and check that the risk level and findings do not change and that none of the injected text reaches the comment, the JSON, or the SARIF report, except the file name inside a code span.
+
 ## Future Hardening
 
-- Add prompt injection fixtures before AI review.
+- Extend the prompt-injection tests to any AI output before an AI layer ships.

@@ -264,6 +264,7 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 
 ## Roadmap
 
+- Post line findings as pull request review comments, as an opt-in alternative to annotations
 - Add optional, provider-neutral AI review summaries
 - Add GitHub App mode with queue-based processing and organization-level analytics
 

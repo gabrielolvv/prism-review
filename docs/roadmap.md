@@ -24,18 +24,29 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Ruby, Java, Kotlin, PHP, C#, and Swift patterns for `risky-api`, `blanket-suppression`, and `skipped-tests`.
 - `analyze --diff -` in the CLI, for reviewing local changes before pushing.
 - `hidden-unicode` rule for bidirectional controls and invisible characters, and a prompt-injection fixture with a test that the review ignores it.
+- `severity` overrides, the job summary and step outputs, read-only fork tokens that warn instead of failing, a comment size cap, and `ignorePaths` (0.7.0).
+- `workflow-risk`, `destructive-migration`, and `incomplete-review` rules (0.8.0).
+- `credential-file` and `lockfile-source` rules, and manifest globs that match in every directory (0.9.0).
+- `remote-script` and `unpinned-action` rules, and `pyproject.toml` package sources (0.10.0).
+- `privileged-container` and `public-exposure` rules (0.11.0).
+- `disabled-security-check` and `sql-injection` rules (0.12.0).
+- Inline suppressions with a required reason, listed in the review (0.13.0).
+- JSON and SARIF output, and a `sarif-file` input for code scanning (0.14.0).
+- Linear-time rule patterns, with a test against crafted long lines (0.14.1).
+- Per-path `overrides` of rule severity (0.15.0).
+- Prompt-injection fixtures with instructions in base64, Markdown and HTML comments, a file name, a suppression reason, and Unicode tag characters, with tests that none of them changes the review or reaches its output.
 
 ## Near Term
 
-### Add more prompt-injection fixtures
+### Post line findings as review comments
 
-`fixtures/diffs/prompt-injection.diff` covers plain-text instructions and a forged review header. Fixtures with instructions hidden in tag characters, in base64, and in file names should exist before an AI layer reads any patch content.
+Annotations and code scanning show line findings on the changed lines, but some teams use neither. An opt-in mode could post them as pull request review comments, updated in place like the summary comment.
 
 ## Mid Term
 
 ### Add optional AI review summaries
 
-Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets.
+Add provider interfaces, prompt construction, schema validation, and graceful fallback. AI output must remain advisory and grounded in redacted diff snippets. The prompt-injection fixtures are in place and should be extended to check the AI output too, before it ships.
 
 ## Later
 
