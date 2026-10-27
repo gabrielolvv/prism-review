@@ -1,5 +1,7 @@
 import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/finding.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
+import { compareSeverity, type Severity } from "../analysis/severity.js";
+import { areaOf, areas } from "../rules/areas.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 
@@ -48,21 +50,27 @@ export function renderMarkdown(
 // important ones are the ones shown.
 const maxFindingsLength = 55_000;
 
-function renderFindings(findings: ReviewResult["findings"], budget: number): string {
-  const rendered: string[] = [];
+// The overview line and area headings, taken from the budget before the findings.
+const groupingReserve = 1_000;
+
+function renderFindings(findings: Finding[], budget: number): string {
+  // Findings from one area are listed as they are; from several, they are grouped by area.
+  const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
+  const shown: Array<{ finding: Finding; block: string }> = [];
   let length = 0;
 
   for (const finding of findings) {
     const block = renderFinding(finding);
-    if (length + block.length > budget) {
+    if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
 
-    rendered.push(block);
+    shown.push({ finding, block });
     length += block.length + 2;
   }
 
-  const hidden = findings.length - rendered.length;
+  const rendered = grouped ? renderGroups(findings, shown) : shown.map(({ block }) => block);
+  const hidden = findings.length - shown.length;
   if (hidden > 0) {
     rendered.push(
       `${hidden} more finding(s) are not shown here to keep the comment within GitHub's size limit. Enable annotations or run the CLI to see every finding.`
@@ -70,6 +78,34 @@ function renderFindings(findings: ReviewResult["findings"], budget: number): str
   }
 
   return rendered.join("\n\n");
+}
+
+// The most severe area comes first, and areas with the same top severity keep their usual order.
+// Counts include findings left out for size, so the overview stays complete.
+function renderGroups(findings: Finding[], shown: Array<{ finding: Finding; block: string }>): string[] {
+  const groups = areas
+    .map((area) => ({
+      area,
+      all: findings.filter((finding) => areaOf(finding.ruleId) === area.id),
+      blocks: shown.filter(({ finding }) => areaOf(finding.ruleId) === area.id).map(({ block }) => block)
+    }))
+    .filter((group) => group.all.length > 0)
+    .sort((left, right) => compareSeverity(topSeverity(left.all), topSeverity(right.all)));
+
+  const overview = groups.map(({ area, all }) => `${area.title} (${all.length})`).join(", ");
+  return [
+    `${findings.length} findings in ${groups.length} areas: ${overview}.`,
+    ...groups
+      .filter((group) => group.blocks.length > 0)
+      .map(({ area, all, blocks }) => {
+        const count = blocks.length === all.length ? `${all.length}` : `${blocks.length} of ${all.length} shown`;
+        return [`### ${area.title} (${count})`, ...blocks].join("\n\n");
+      })
+  ];
+}
+
+function topSeverity(findings: Finding[]): Severity {
+  return findings.map((finding) => finding.severity).sort(compareSeverity)[0] ?? "info";
 }
 
 // Suppressed findings stay visible, so a reviewer can check each reason. They share the comment's
@@ -100,7 +136,7 @@ function renderSuppressed(suppressed: SuppressedFinding[]): string[] {
   return ["### Suppressed Inline", "", ...lines, ""];
 }
 
-function renderFinding(finding: ReviewResult["findings"][number]): string {
+function renderFinding(finding: Finding): string {
   const sections = [
     `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
     "",

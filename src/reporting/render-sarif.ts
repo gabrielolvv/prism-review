@@ -1,5 +1,6 @@
 import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/finding.js";
 import type { Severity } from "../analysis/severity.js";
+import { areaOf } from "../rules/areas.js";
 
 export type SarifRule = { id: string; description: string };
 
@@ -28,7 +29,9 @@ export function renderSarif(result: ReviewResult, rules: SarifRule[]): string {
                 id: rule.id,
                 name: rule.id,
                 shortDescription: { text: rule.description },
-                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md"
+                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md",
+                // Code scanning lets alerts be filtered by tag.
+                properties: { tags: [areaOf(rule.id)] }
               }))
             }
           },
