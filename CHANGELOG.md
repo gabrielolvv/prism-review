@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Each finding in the comment and each review comment on a line ends with a `Rule:` line: the rule's id, which is what an inline suppression names, linked to the rule's section in `docs/configuration.md`. The SARIF report links each rule to its section instead of the top of the document.
+- `docs/configuration.md` has sections for `large-diff` and `missing-tests`, so every rule has one. A test checks that each rule's link points at a heading that exists.
+
 ## 0.19.1 - 2026-10-27
 
 ### Added

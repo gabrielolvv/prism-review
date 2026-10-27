@@ -33,6 +33,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
 - Writes JSON and SARIF, so findings can go to GitHub code scanning
 - Lets a comment with a reason acknowledge a finding on its line, and lists every acknowledgment in the review
+- Links each finding to its rule's documentation, so a reviewer can see why it was flagged and how to tune it
 - Sets rule severity for the whole repository or for chosen paths
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
 - Ignores generated or vendored paths for noise rules, while secret, hidden Unicode, and configuration checks still read every file

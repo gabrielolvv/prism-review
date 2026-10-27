@@ -27,6 +27,8 @@ File: `src/auth/session.ts`
 
 Recommendation: Ask for focused review from someone familiar with this area and verify rollback or mitigation steps.
 
+Rule: [`sensitive-files`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#sensitive-files)
+
 ### Supply Chain (1)
 
 #### Warning - Dependency definition changed
@@ -37,6 +39,8 @@ File: `package.json`
 
 Recommendation: Verify package provenance, lockfile consistency, license impact, and whether the dependency is required at runtime.
 
+Rule: [`dependency-risk`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#dependency-risk)
+
 ### Tests (1)
 
 #### Warning - Source changed without tests
@@ -44,6 +48,8 @@ Recommendation: Verify package provenance, lockfile consistency, license impact,
 Source files changed, but no test files were modified in this pull request.
 
 Recommendation: Add or update tests for the modified behavior, or explain why existing coverage is sufficient.
+
+Rule: [`missing-tests`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#missing-tests)
 
 ### Suggested Review Checklist
 

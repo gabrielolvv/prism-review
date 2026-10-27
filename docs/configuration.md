@@ -117,6 +117,22 @@ severity: {}
 
 Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
 
+## Large Diff
+
+### `risk.largeDiff.maxFiles` and `risk.largeDiff.maxChangedLines`
+
+The `large-diff` rule reports a warning when a pull request changes more than `maxFiles` files, 25 by default, or more than `maxChangedLines` added and deleted lines, 800 by default. Files matched by `ignorePaths` are not counted. The same thresholds raise the risk level to medium. `severity: { large-diff: off }` turns the rule and that size check off.
+
+## Missing Tests
+
+### `rules.missingTests.sourceGlobs` and `rules.missingTests.testGlobs`
+
+The `missing-tests` rule reports a warning when a file matched by `sourceGlobs` changed and no file matched by `testGlobs` did. `sourceGlobs` defaults to `src/**/*.{ts,tsx,js,jsx}`; add globs for the other source directories and languages of your repository, such as `app/**/*.py`. The default `testGlobs` cover the usual test file names of the languages Prism Review reads, shown in the example above. Other rules use `testGlobs` too, to skip test files. Files matched by `ignorePaths` are not counted.
+
+### `rules.missingTests.enabled`
+
+`false` turns the rule off.
+
 ## Sensitive Files
 
 ### `rules.sensitiveFiles.patterns`
@@ -478,6 +494,10 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 ### `comment.includeLowSeverity`
 
 When `true`, `info` findings such as `oversized-patch` are rendered in the comment. They are hidden by default to keep the comment focused on warnings and high-risk findings.
+
+### Rule Links
+
+Each finding in the comment, and each review comment on a line, ends with a `Rule:` line that names the rule's id, the one an inline suppression names, linked to the rule's section in this document. The SARIF report links each rule to the same section. A finding from a rule without a section, such as a custom rule, shows its id without a link.
 
 ### `comment.checklist`
 
