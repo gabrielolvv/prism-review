@@ -13605,12 +13605,13 @@ var registryFile = /(?:^|\/)(?:\.npmrc|\.yarnrc(?:\.yml)?|\.pypirc)$/i;
 var testDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests__|__mocks__|spec)\//i;
 var commentLine = /^\s*[#;]/;
 var assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
-var secretName = /(?:secret|passw(?:or)?d|[_.-]pass|pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
+var secretName = /(?:secret|passw(?:or)?d|[_.-]pass|[_.-]pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
 var publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
-var urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@([^\s:/?#]+)/i;
+var urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@(\[[^\]\s]*\]|[^\s:/?#]+)/i;
 var localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
 var registryToken = /(?:_authToken|_auth|_password|npmAuthToken|npmAuthIdent)\s*[=:]\s*(.*)$|^\s*password\s*[=:]\s*(.*)$/i;
 var placeholder = /^(?:|\$\{?[\w:-]*\}?|<[^>]*>|x+|\*+|\.{3}|change[_-]?me|replace[_-]?me|your[\w-]*|placeholder|example|todo|tbd|none|null|true|false|\d)$/i;
+var filePath = /^(?:~|\.{1,2})?\/[\w.-]+(?:\/[\w.-]+)+$|^(?:~\/|\.{0,2}\/)?[\w.-]+(?:\/[\w.-]+)*\.(?:json|pem|key|p12|pfx|jks|crt)$/i;
 var localDefault = /^(?:password|passw0rd|pass|secret|postgres|mysql|root|admin|guest|dev|development|test|local|default|123456)$/i;
 function credentialFileKind(path2) {
   if (testDirectory.test(path2)) {
@@ -13650,7 +13651,7 @@ function registrySecret(content) {
   return match2 !== null && !isPlaceholder(cleanValue(match2[1] ?? match2[2] ?? ""));
 }
 function isPlaceholder(value) {
-  return placeholder.test(value) || localDefault.test(value);
+  return placeholder.test(value) || localDefault.test(value) || filePath.test(value);
 }
 function cleanValue(raw) {
   const value = raw.trim();
