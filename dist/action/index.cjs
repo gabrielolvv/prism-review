@@ -14345,7 +14345,7 @@ var remoteScriptRule = {
       if (file.patch === void 0 || documentation.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = addedLines(file.patch).flatMap(({ line, content }) => {
+      const found = commands(file.patch).flatMap(({ line, content }) => {
         if (commentLine3.test(content) || !patterns.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
@@ -14378,6 +14378,33 @@ var remoteScriptRule = {
     });
   }
 };
+function commands(patch) {
+  const result = [];
+  let parts = [];
+  let firstAdded;
+  const flush = () => {
+    if (firstAdded !== void 0) {
+      result.push({ line: firstAdded, content: parts.join(" ") });
+    }
+    parts = [];
+    firstAdded = void 0;
+  };
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      flush();
+    }
+    const continues = /\\\s*$/.test(content);
+    parts.push(continues ? content.replace(/\\\s*$/, "") : content);
+    if (added && firstAdded === void 0) {
+      firstAdded = line;
+    }
+    if (!continues) {
+      flush();
+    }
+  }
+  flush();
+  return result;
+}
 function describeInsecure(lines) {
   const { text, plural } = describeLines(lines);
   return `${text.charAt(0).toLowerCase()}${text.slice(1)} ${plural ? "download" : "downloads"}`;
@@ -15320,7 +15347,7 @@ async function createComment(client, owner, repo, issueNumber, body) {
 }
 
 // src/reporting/render-annotations.ts
-var commands = {
+var commands2 = {
   high: "error",
   warning: "warning",
   info: "notice"
@@ -15337,7 +15364,7 @@ function renderAnnotation(finding) {
   const message = finding.recommendation ? `${finding.message}
 
 Recommendation: ${finding.recommendation}` : finding.message;
-  return `::${commands[finding.severity]} ${properties.join(",")}::${escapeData(message)}`;
+  return `::${commands2[finding.severity]} ${properties.join(",")}::${escapeData(message)}`;
 }
 function escapeData(value) {
   return value.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
