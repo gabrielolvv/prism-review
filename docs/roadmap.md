@@ -44,13 +44,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` left out like `ignorePaths` (0.22.0).
 - `review-control-change` rule for changes to CODEOWNERS and to the files `.gitattributes` marks generated or vendored (0.23.0).
 - `lookalike-dependency` rule for added dependencies one character away from a popular npm, PyPI, RubyGems, or crates.io package, from a bundled list (0.24.0).
-- A Dependency Changes table of the packages a pull request adds, removes, or moves to another version, also in the JSON output.
+- A Dependency Changes table of the packages a pull request adds, removes, or moves to another version, also in the JSON output (0.25.0).
+- `risky-dependency-version` rule for dependencies moved to an older version or left open to any future release.
 
 ## Near Term
 
-### Flag downgrades and loosened version pins
+### Flag manifest changes without a lockfile update
 
-The dependency changes now say what moved from which version to which. Two of those moves deserve a warning of their own: a dependency moved to an older version, which can bring back fixed vulnerabilities, and an exact pin loosened to a range, `*`, or `latest`, which lets an unreviewed release in on the next install.
+A pull request that adds or upgrades a dependency in `package.json` but leaves `package-lock.json` untouched installs whatever the registry serves when CI or a teammate next runs `npm install`, not the version that was reviewed. Checking, through the contents API, whether the manifest's directory on the base commit has a lockfile, and reporting dependency changes that do not update it, would catch that drift.
 
 ## Mid Term
 
