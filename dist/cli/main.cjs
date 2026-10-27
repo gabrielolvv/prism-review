@@ -13309,6 +13309,7 @@ var ruleIds = [
   "config-change",
   "review-control-change",
   "lockfile-source",
+  "lookalike-dependency",
   "dependency-risk",
   "oversized-patch"
 ];
@@ -13419,6 +13420,11 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     credentialFiles: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    lookalikeDependencies: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      // Dependency names known to be the intended packages, though they look like popular ones.
+      allowed: external_exports.array(external_exports.string().min(1).max(214)).max(500).default([])
     }).default({}),
     lockfileSources: external_exports.object({
       enabled: external_exports.boolean().default(true),
@@ -14540,6 +14546,677 @@ function joinParts(parts) {
   return parts.length > 1 ? `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}` : parts[0] ?? "";
 }
 
+// src/security/popular-packages.ts
+var popularPackages = {
+  npm: [
+    "react",
+    "react-dom",
+    "react-router",
+    "react-router-dom",
+    "react-redux",
+    "redux",
+    "redux-thunk",
+    "vue",
+    "vue-router",
+    "vuex",
+    "pinia",
+    "svelte",
+    "next",
+    "nuxt",
+    "preact",
+    "jquery",
+    "lodash",
+    "underscore",
+    "ramda",
+    "axios",
+    "request",
+    "node-fetch",
+    "superagent",
+    "express",
+    "koa",
+    "fastify",
+    "body-parser",
+    "cors",
+    "helmet",
+    "morgan",
+    "cookie-parser",
+    "express-session",
+    "passport",
+    "jsonwebtoken",
+    "bcrypt",
+    "bcryptjs",
+    "dotenv",
+    "uuid",
+    "nanoid",
+    "moment",
+    "dayjs",
+    "date-fns",
+    "luxon",
+    "chalk",
+    "commander",
+    "yargs",
+    "inquirer",
+    "debug",
+    "semver",
+    "glob",
+    "minimatch",
+    "rimraf",
+    "mkdirp",
+    "fs-extra",
+    "chokidar",
+    "async",
+    "bluebird",
+    "rxjs",
+    "socket.io",
+    "socket.io-client",
+    "mongoose",
+    "mongodb",
+    "mysql",
+    "mysql2",
+    "sequelize",
+    "typeorm",
+    "prisma",
+    "knex",
+    "redis",
+    "ioredis",
+    "graphql",
+    "typescript",
+    "ts-node",
+    "tslib",
+    "webpack",
+    "webpack-cli",
+    "webpack-dev-server",
+    "babel-loader",
+    "vite",
+    "rollup",
+    "esbuild",
+    "parcel",
+    "eslint",
+    "prettier",
+    "jest",
+    "mocha",
+    "chai",
+    "sinon",
+    "jasmine",
+    "karma",
+    "cypress",
+    "puppeteer",
+    "playwright",
+    "supertest",
+    "nodemon",
+    "concurrently",
+    "cross-env",
+    "husky",
+    "lint-staged",
+    "classnames",
+    "prop-types",
+    "styled-components",
+    "tailwindcss",
+    "postcss",
+    "autoprefixer",
+    "sass",
+    "less",
+    "bootstrap",
+    "three",
+    "chart.js",
+    "marked",
+    "highlight.js",
+    "cheerio",
+    "jsdom",
+    "xml2js",
+    "yaml",
+    "js-yaml",
+    "ajv",
+    "joi",
+    "yup",
+    "zod",
+    "validator",
+    "colors",
+    "winston",
+    "pino",
+    "handlebars",
+    "mustache",
+    "nodemailer",
+    "multer",
+    "sharp",
+    "jimp",
+    "canvas",
+    "aws-sdk",
+    "firebase",
+    "stripe",
+    "twilio",
+    "electron",
+    "core-js",
+    "regenerator-runtime",
+    "immer",
+    "immutable",
+    "mobx",
+    "zustand",
+    "formik",
+    "crypto-js",
+    "node-forge",
+    "ethers",
+    "web3",
+    "archiver",
+    "adm-zip",
+    "form-data",
+    "mime",
+    "mime-types",
+    "iconv-lite",
+    "string-width",
+    "strip-ansi",
+    "ansi-regex",
+    "kleur",
+    "picocolors",
+    "execa",
+    "cross-spawn",
+    "shelljs",
+    "compression",
+    "serve-static",
+    "http-proxy",
+    "cookie",
+    "lru-cache",
+    "uglify-js",
+    "terser",
+    "cssnano",
+    "css-loader",
+    "style-loader",
+    "file-loader",
+    "ts-loader",
+    "html-webpack-plugin",
+    "lerna",
+    "gulp",
+    "grunt",
+    "browserify",
+    "vitest",
+    "nock",
+    "msw",
+    "underscore.string",
+    "qrcode",
+    "pdfkit",
+    "puppeteer-core",
+    "discord.js",
+    "openai",
+    "cuid"
+  ],
+  PyPI: [
+    "requests",
+    "urllib3",
+    "certifi",
+    "idna",
+    "charset-normalizer",
+    "chardet",
+    "numpy",
+    "pandas",
+    "scipy",
+    "matplotlib",
+    "seaborn",
+    "scikit-learn",
+    "tensorflow",
+    "torch",
+    "torchvision",
+    "keras",
+    "django",
+    "djangorestframework",
+    "flask",
+    "fastapi",
+    "starlette",
+    "uvicorn",
+    "gunicorn",
+    "celery",
+    "redis",
+    "sqlalchemy",
+    "psycopg2",
+    "psycopg2-binary",
+    "pymysql",
+    "pymongo",
+    "mysqlclient",
+    "boto3",
+    "botocore",
+    "s3transfer",
+    "awscli",
+    "setuptools",
+    "wheel",
+    "pip",
+    "six",
+    "python-dateutil",
+    "pytz",
+    "pyyaml",
+    "jinja2",
+    "markupsafe",
+    "click",
+    "attrs",
+    "packaging",
+    "pyparsing",
+    "cryptography",
+    "pyopenssl",
+    "cffi",
+    "pycparser",
+    "jmespath",
+    "rsa",
+    "pyasn1",
+    "protobuf",
+    "grpcio",
+    "typing-extensions",
+    "pydantic",
+    "aiohttp",
+    "httpx",
+    "beautifulsoup4",
+    "lxml",
+    "pillow",
+    "opencv-python",
+    "selenium",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "mock",
+    "coverage",
+    "tox",
+    "black",
+    "flake8",
+    "pylint",
+    "mypy",
+    "isort",
+    "ruff",
+    "colorama",
+    "tqdm",
+    "rich",
+    "docutils",
+    "sphinx",
+    "jsonschema",
+    "simplejson",
+    "ujson",
+    "orjson",
+    "werkzeug",
+    "itsdangerous",
+    "paramiko",
+    "fabric",
+    "ansible",
+    "docker",
+    "kubernetes",
+    "openai",
+    "transformers",
+    "nltk",
+    "spacy",
+    "scrapy",
+    "twisted",
+    "tornado",
+    "gevent",
+    "greenlet",
+    "websocket-client",
+    "websockets",
+    "pyjwt",
+    "oauthlib",
+    "requests-oauthlib",
+    "python-dotenv",
+    "tabulate",
+    "toml",
+    "tomli",
+    "filelock",
+    "virtualenv",
+    "platformdirs",
+    "wrapt",
+    "decorator",
+    "more-itertools",
+    "networkx",
+    "sympy",
+    "openpyxl",
+    "xlsxwriter",
+    "pyarrow",
+    "dask",
+    "numba",
+    "plotly",
+    "streamlit",
+    "langchain",
+    "marshmallow",
+    "alembic",
+    "peewee",
+    "arrow",
+    "pendulum",
+    "pyzmq",
+    "ipython",
+    "jupyter",
+    "notebook",
+    "psutil",
+    "pywin32",
+    "pycryptodome",
+    "bcrypt",
+    "passlib",
+    "argon2-cffi",
+    "pyserial",
+    "pygments",
+    "termcolor",
+    "loguru",
+    "httplib2",
+    "google-auth",
+    "google-api-python-client",
+    "azure-core",
+    "pymssql",
+    "elasticsearch",
+    "scapy",
+    "attr"
+  ],
+  RubyGems: [
+    "rails",
+    "rake",
+    "rack",
+    "bundler",
+    "nokogiri",
+    "json",
+    "activesupport",
+    "activerecord",
+    "actionpack",
+    "railties",
+    "puma",
+    "unicorn",
+    "sinatra",
+    "devise",
+    "rspec",
+    "rspec-rails",
+    "minitest",
+    "rubocop",
+    "capybara",
+    "sidekiq",
+    "redis",
+    "mysql2",
+    "sqlite3",
+    "faraday",
+    "httparty",
+    "rest-client",
+    "jwt",
+    "bcrypt",
+    "byebug",
+    "thor",
+    "sass",
+    "sprockets",
+    "webpacker",
+    "kaminari",
+    "pundit",
+    "cancancan",
+    "omniauth",
+    "carrierwave",
+    "shrine",
+    "factory_bot",
+    "faker",
+    "simplecov",
+    "dotenv",
+    "figaro",
+    "multi_json",
+    "i18n",
+    "tzinfo",
+    "concurrent-ruby",
+    "mime-types",
+    "rack-test",
+    "rack-cors",
+    "grape",
+    "hanami",
+    "sequel",
+    "mongoid",
+    "resque",
+    "whenever",
+    "capistrano",
+    "foreman",
+    "sentry-ruby",
+    "newrelic_rpm",
+    "haml",
+    "slim",
+    "erubi",
+    "builder",
+    "mail",
+    "letter_opener",
+    "aws-sdk",
+    "stripe",
+    "graphql",
+    "dry-validation",
+    "sorbet",
+    "bootsnap",
+    "listen",
+    "spring",
+    "turbolinks",
+    "jbuilder"
+  ],
+  "crates.io": [
+    "serde",
+    "serde_json",
+    "serde_derive",
+    "serde_yaml",
+    "tokio",
+    "futures",
+    "async-trait",
+    "rand",
+    "regex",
+    "clap",
+    "anyhow",
+    "thiserror",
+    "log",
+    "env_logger",
+    "tracing",
+    "tracing-subscriber",
+    "chrono",
+    "time",
+    "uuid",
+    "lazy_static",
+    "once_cell",
+    "reqwest",
+    "hyper",
+    "axum",
+    "actix-web",
+    "warp",
+    "rocket",
+    "tonic",
+    "prost",
+    "bytes",
+    "itertools",
+    "rayon",
+    "crossbeam",
+    "parking_lot",
+    "libc",
+    "winapi",
+    "windows",
+    "syn",
+    "quote",
+    "proc-macro2",
+    "bitflags",
+    "byteorder",
+    "base64",
+    "sha2",
+    "ring",
+    "rustls",
+    "openssl",
+    "url",
+    "http",
+    "mime",
+    "toml",
+    "bincode",
+    "csv",
+    "diesel",
+    "sqlx",
+    "rusqlite",
+    "redis",
+    "structopt",
+    "indicatif",
+    "colored",
+    "termcolor",
+    "dirs",
+    "tempfile",
+    "walkdir",
+    "glob",
+    "num-traits",
+    "smallvec",
+    "arrayvec",
+    "hashbrown",
+    "indexmap",
+    "criterion",
+    "proptest",
+    "mockall",
+    "wasm-bindgen",
+    "js-sys",
+    "web-sys",
+    "image",
+    "nalgebra",
+    "ndarray",
+    "semver",
+    "flate2",
+    "zip",
+    "dashmap",
+    "memchr",
+    "aho-corasick",
+    "nom",
+    "pest"
+  ]
+};
+
+// src/rules/lookalike-dependency.ts
+var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
+var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm"]);
+var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
+var npmEntry = new RegExp(`^\\s*"(${packageName})"\\s*:\\s*"([^"]{0,200})"`);
+var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*(?:[<>=!~;@#]|$)`);
+var quotedRequirement = new RegExp(`"(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*(?:[<>=!~]=|[<>]|===)`, "g");
+var tomlKey = new RegExp(`^\\s*"?(${packageName})"?\\s*=`);
+var gemLine = new RegExp(`^\\s*(?:gem|\\w{1,50}\\.add_(?:runtime_|development_)?dependency)\\s*\\(?\\s*["'](${packageName})["']`);
+var manifests = [
+  {
+    ecosystem: "npm",
+    files: /(?:^|\/)package\.json$/,
+    names(content) {
+      const match2 = npmEntry.exec(content);
+      const [, name = "", version = ""] = match2 ?? [];
+      return match2 !== null && !npmFields.has(name) && npmVersion.test(version) ? [name] : [];
+    }
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$/i,
+    // `name`, `name[extra]`, or `name>=1.0`; options and URLs are not package names.
+    names: (content) => optionalName(requirementLine.exec(content)?.[1])
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)pyproject\.toml$/i,
+    names(content, section) {
+      const requirements = [...content.matchAll(quotedRequirement)].map((match2) => match2[1] ?? "");
+      if (/^tool\.poetry\.(?:dependencies|dev-dependencies|group\.[^.]+\.dependencies)$/.test(section)) {
+        const key = tomlKey.exec(content)?.[1];
+        return [...requirements, ...optionalName(key === "python" ? void 0 : key)];
+      }
+      return requirements;
+    }
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)Pipfile$/,
+    names: (content, section) => /^(?:packages|dev-packages)$/.test(section) ? optionalName(tomlKey.exec(content)?.[1]) : []
+  },
+  {
+    ecosystem: "RubyGems",
+    files: /(?:^|\/)(?:Gemfile|[^/]+\.gemspec)$/,
+    names: (content) => optionalName(gemLine.exec(content)?.[1])
+  },
+  {
+    ecosystem: "crates.io",
+    files: /(?:^|\/)Cargo\.toml$/,
+    names(content, section) {
+      return /(?:^|\.)(?:dev-|build-)?dependencies$/.test(section) ? optionalName(tomlKey.exec(content)?.[1]) : [];
+    }
+  }
+];
+var lookalikeDependencyRule = {
+  id: "lookalike-dependency",
+  description: "Flags added dependencies named one character away from a popular package.",
+  run({ files, config }) {
+    const ruleConfig = config.rules.lookalikeDependencies;
+    if (!ruleConfig.enabled) {
+      return [];
+    }
+    const allowed = new Set(ruleConfig.allowed.map((name) => name.toLowerCase()));
+    return files.flatMap((file) => {
+      const manifest = manifests.find((candidate) => candidate.files.test(file.path));
+      if (manifest === void 0 || file.patch === void 0 || isTestDataPath(file.path)) {
+        return [];
+      }
+      const found = findLookalikes(manifest, file.patch, allowed);
+      if (found.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      const pairs = found.slice(0, 3).map((match2) => `${match2.name} (like ${match2.popular})`).join(", ");
+      const more = found.length > 3 ? ` and ${found.length - 3} more` : "";
+      return [
+        {
+          ruleId: "lookalike-dependency",
+          title: "Dependency named like a popular package",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
+          message: `${text} ${plural ? "add" : "adds"} ${pairs}${more}: ${found.length > 1 ? "names" : "a name"} one character away from a popular ${manifest.ecosystem} package, a common way to slip in a malicious one.`,
+          recommendation: "Check that each name is the package that was meant. If it is, add it to rules.lookalikeDependencies.allowed."
+        }
+      ];
+    });
+  }
+};
+function findLookalikes(manifest, patch, allowed) {
+  const popular = popularPackages[manifest.ecosystem];
+  const normalized = new Map(popular.map((name) => [normalize(name, manifest.ecosystem), name]));
+  const lookalikes = [];
+  let section = "";
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      section = "";
+    }
+    section = /^\s*\[\[?([^\]]{1,200})\]\]?\s*(?:#.*)?$/.exec(content)?.[1]?.trim() ?? section;
+    if (!added) {
+      continue;
+    }
+    for (const name of manifest.names(content, section)) {
+      const key = normalize(name, manifest.ecosystem);
+      if (key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
+        continue;
+      }
+      for (const [candidate, original] of normalized) {
+        if (candidate.length >= 4 && oneEditApart(key, candidate)) {
+          lookalikes.push({ line, name, popular: original });
+          break;
+        }
+      }
+    }
+  }
+  return lookalikes;
+}
+function optionalName(name) {
+  return name === void 0 ? [] : [name];
+}
+function normalize(name, ecosystem) {
+  const lower = name.toLowerCase();
+  return ecosystem === "PyPI" ? lower.replace(/[-_.]+/g, "-") : lower;
+}
+function oneEditApart(left, right) {
+  if (left === right || Math.abs(left.length - right.length) > 1) {
+    return false;
+  }
+  if (left.length === right.length) {
+    const differences = [];
+    for (let index2 = 0; index2 < left.length && differences.length <= 2; index2 += 1) {
+      if (left[index2] !== right[index2]) {
+        differences.push(index2);
+      }
+    }
+    if (differences.length === 1) {
+      return true;
+    }
+    const [first = 0, second = 0] = differences;
+    return differences.length === 2 && second === first + 1 && left[first] === right[second] && left[second] === right[first];
+  }
+  const [shorter, longer] = left.length < right.length ? [left, right] : [right, left];
+  let index = 0;
+  while (index < shorter.length && shorter[index] === longer[index]) {
+    index += 1;
+  }
+  return shorter.slice(index) === longer.slice(index + 1);
+}
+
 // src/rules/missing-tests.ts
 var missingTestsRule = {
   id: "missing-tests",
@@ -15615,6 +16292,7 @@ var defaultRules = [
   configChangeRule,
   reviewControlChangeRule,
   lockfileSourceRule,
+  lookalikeDependencyRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];
@@ -15860,6 +16538,7 @@ var ruleAreas = {
   "credential-file": "secrets",
   "dependency-risk": "supply-chain",
   "lockfile-source": "supply-chain",
+  "lookalike-dependency": "supply-chain",
   "unpinned-action": "supply-chain",
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
@@ -15924,6 +16603,7 @@ var ruleQuestions = {
   "credential-file": "Do the committed credential files belong in the repository, or in a secret store?",
   "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
   "lockfile-source": "Do the packages from other sources come from places the team trusts?",
+  "lookalike-dependency": "Is each flagged dependency the package that was meant, and not a lookalike of a popular one?",
   "unpinned-action": "Can the third-party actions be pinned to a full commit SHA?",
   "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
   "remote-script": "Is each downloaded script checked against a known checksum or signature before it runs?",
@@ -15990,6 +16670,7 @@ var ruleSections = {
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",
   "lockfile-source": "Lockfile Sources",
+  "lookalike-dependency": "Lookalike Dependencies",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
 };
