@@ -14575,6 +14575,12 @@ var hunkHeader3 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.{0,300})/;
 var goModule = "[A-Za-z0-9][A-Za-z0-9._~/-]{0,250}";
 var goRequireLine = new RegExp(`^\\s*require\\s+(${goModule})\\s+(v\\S{1,100})`);
 var goBlockEntry = new RegExp(`^\\s*(${goModule})\\s+(v\\S{1,100})`);
+var composerEntry = /^\s*"([a-z0-9][a-z0-9_.-]{0,100}\/[a-z0-9][a-z0-9_.-]{0,100})"\s*:\s*"([^"]{0,200})"/;
+var composerVersion = /^(?:[\^~<>=!]{0,2}\s?v?\d|\*$|dev-|@)/i;
+var nugetTag = /<\s*(?:PackageReference|PackageVersion|GlobalPackageReference)\b([^>]{0,500})/i;
+var nugetName = /\b(?:Include|Update)\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i;
+var nugetVersion = /\bVersion(?:Override)?\s*=\s*"([^"]{0,100})"/i;
+var packagesConfigTag = /<\s*package\b([^>]{0,500})/i;
 var goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 var manifests = [
   {
@@ -14619,6 +14625,35 @@ var manifests = [
     entries(content) {
       const [matched, name = "", version = ""] = gemLine.exec(content) ?? [];
       return matched === void 0 ? [] : [{ name, version }];
+    }
+  },
+  {
+    ecosystem: "Packagist",
+    files: /(?:^|\/)composer\.json$/,
+    // `"vendor/name": "^1.0"`; platform requirements such as `php` and `ext-json` have no vendor.
+    entries(content) {
+      const [matched, name = "", version = ""] = composerEntry.exec(content) ?? [];
+      return matched !== void 0 && composerVersion.test(version) ? [{ name, version }] : [];
+    }
+  },
+  {
+    ecosystem: "NuGet",
+    files: /(?:^|\/)(?:[^/]+\.(?:cs|fs|vb)proj|Directory\.(?:Packages|Build)\.props)$/i,
+    // `<PackageReference Include="Name" Version="1.0" />`, on one line; a version given as a child
+    // element is read as none.
+    entries(content) {
+      const attributes = nugetTag.exec(content)?.[1];
+      const name = attributes === void 0 ? void 0 : nugetName.exec(attributes)?.[1];
+      return name === void 0 ? [] : [{ name, version: nugetVersion.exec(attributes ?? "")?.[1] ?? "" }];
+    }
+  },
+  {
+    ecosystem: "NuGet",
+    files: /(?:^|\/)packages\.config$/i,
+    entries(content) {
+      const attributes = packagesConfigTag.exec(content)?.[1] ?? "";
+      const name = /\bid\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i.exec(attributes)?.[1];
+      return name === void 0 ? [] : [{ name, version: /\bversion\s*=\s*"([^"]{0,100})"/i.exec(attributes)?.[1] ?? "" }];
     }
   },
   {
@@ -15331,6 +15366,129 @@ var popularPackages = {
     "github.com/golang/mock",
     "go.uber.org/mock",
     "github.com/google/go-github"
+  ],
+  Packagist: [
+    "laravel/framework",
+    "laravel/sanctum",
+    "laravel/tinker",
+    "laravel/sail",
+    "laravel/pint",
+    "symfony/console",
+    "symfony/http-foundation",
+    "symfony/http-kernel",
+    "symfony/routing",
+    "symfony/yaml",
+    "symfony/process",
+    "symfony/finder",
+    "symfony/var-dumper",
+    "symfony/event-dispatcher",
+    "symfony/mailer",
+    "symfony/translation",
+    "symfony/framework-bundle",
+    "guzzlehttp/guzzle",
+    "guzzlehttp/psr7",
+    "monolog/monolog",
+    "phpunit/phpunit",
+    "doctrine/orm",
+    "doctrine/dbal",
+    "nesbot/carbon",
+    "vlucas/phpdotenv",
+    "league/flysystem",
+    "ramsey/uuid",
+    "fakerphp/faker",
+    "mockery/mockery",
+    "phpstan/phpstan",
+    "squizlabs/php_codesniffer",
+    "friendsofphp/php-cs-fixer",
+    "twig/twig",
+    "psr/log",
+    "psr/http-message",
+    "psr/container",
+    "spatie/laravel-permission",
+    "predis/predis",
+    "firebase/php-jwt",
+    "phpmailer/phpmailer",
+    "aws/aws-sdk-php",
+    "intervention/image",
+    "barryvdh/laravel-debugbar",
+    "nunomaduro/collision",
+    "filp/whoops",
+    "egulias/email-validator",
+    "illuminate/support",
+    "slim/slim",
+    "cakephp/cakephp",
+    "yiisoft/yii2",
+    "composer/composer",
+    "league/oauth2-server",
+    "stripe/stripe-php",
+    "google/apiclient",
+    "sentry/sentry-laravel",
+    "pestphp/pest"
+  ],
+  NuGet: [
+    "Newtonsoft.Json",
+    "Serilog",
+    "Serilog.AspNetCore",
+    "Serilog.Sinks.Console",
+    "Serilog.Sinks.File",
+    "AutoMapper",
+    "Dapper",
+    "FluentValidation",
+    "MediatR",
+    "Polly",
+    "xunit",
+    "xunit.runner.visualstudio",
+    "NUnit",
+    "NUnit3TestAdapter",
+    "Moq",
+    "FluentAssertions",
+    "Microsoft.NET.Test.Sdk",
+    "coverlet.collector",
+    "Swashbuckle.AspNetCore",
+    "Microsoft.EntityFrameworkCore",
+    "Microsoft.EntityFrameworkCore.SqlServer",
+    "Microsoft.EntityFrameworkCore.Design",
+    "Microsoft.EntityFrameworkCore.Tools",
+    "Npgsql",
+    "Npgsql.EntityFrameworkCore.PostgreSQL",
+    "Pomelo.EntityFrameworkCore.MySql",
+    "StackExchange.Redis",
+    "RestSharp",
+    "Microsoft.Extensions.DependencyInjection",
+    "Microsoft.Extensions.Logging",
+    "Microsoft.Extensions.Configuration",
+    "Microsoft.Extensions.Hosting",
+    "Microsoft.Extensions.Http",
+    "Microsoft.AspNetCore.Authentication.JwtBearer",
+    "System.IdentityModel.Tokens.Jwt",
+    "Azure.Identity",
+    "Azure.Storage.Blobs",
+    "AWSSDK.Core",
+    "AWSSDK.S3",
+    "AWSSDK.SQS",
+    "AWSSDK.SNS",
+    "Hangfire",
+    "Quartz",
+    "NLog",
+    "log4net",
+    "CsvHelper",
+    "Humanizer",
+    "Bogus",
+    "NSubstitute",
+    "Castle.Core",
+    "BenchmarkDotNet",
+    "MassTransit",
+    "RabbitMQ.Client",
+    "Grpc.Net.Client",
+    "Google.Protobuf",
+    "System.Text.Json",
+    "Microsoft.Data.SqlClient",
+    "MongoDB.Driver",
+    "NEST",
+    "Refit",
+    "Scrutor",
+    "Mapster",
+    "OpenTelemetry"
   ]
 };
 
@@ -15504,14 +15662,18 @@ var lockfileNames = [
   [/(?:^|\/)Pipfile$/, ["Pipfile.lock"]],
   [/(?:^|\/)Gemfile$/, ["Gemfile.lock"]],
   [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
-  [/(?:^|\/)go\.mod$/, ["go.sum"]]
+  [/(?:^|\/)go\.mod$/, ["go.sum"]],
+  [/(?:^|\/)composer\.json$/, ["composer.lock"]],
+  [/(?:^|\/)[^/]+\.(?:cs|fs|vb)proj$/i, ["packages.lock.json"]]
 ];
+var ownDirectoryOnly = /\.(?:cs|fs|vb)proj$/i;
 function lockfilesFor(manifestPath) {
   return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
 }
 function lockfileDirectories(manifestPath) {
   const parts = manifestPath.split("/").slice(0, -1);
-  return parts.map((_, index) => parts.slice(0, parts.length - index).join("/")).concat("");
+  const directories = parts.map((_, index) => parts.slice(0, parts.length - index).join("/")).concat("");
+  return ownDirectoryOnly.test(manifestPath) ? directories.slice(0, 1) : directories;
 }
 function joinPath(directory, name) {
   return directory === "" ? name : `${directory}/${name}`;
