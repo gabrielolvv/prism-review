@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Composer and NuGet in the dependency checks: the Dependency Changes table, `lookalike-dependency`, `risky-dependency-version`, and `stale-lockfile` read `vendor/name` entries in `composer.json`, `<PackageReference>`, `<PackageVersion>`, and `<GlobalPackageReference>` in `*.csproj`, `*.fsproj`, `*.vbproj`, and `Directory.*.props`, and `<package>` in `packages.config`. `composer.lock` and the project's own `packages.lock.json` are the lockfiles, and the bundled list of popular packages has the most used Packagist and NuGet packages.
+
 ## 0.28.0 - 2026-10-27
 
 ### Added

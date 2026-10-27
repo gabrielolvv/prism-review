@@ -47,13 +47,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - A Dependency Changes table of the packages a pull request adds, removes, or moves to another version, also in the JSON output (0.25.0).
 - `risky-dependency-version` rule for dependencies moved to an older version or left open to any future release (0.26.0).
 - `stale-lockfile` rule for manifests whose dependencies change while their lockfile, on the base commit, is not updated (0.27.0).
-- Go modules in the dependency checks, read from `go.mod` with `go.sum` as the lockfile.
+- Go modules in the dependency checks, read from `go.mod` with `go.sum` as the lockfile (0.28.0).
+- Composer and NuGet manifests in the dependency checks, with `composer.lock` and per-project `packages.lock.json`.
 
 ## Near Term
 
-### Read Composer and NuGet manifests in the dependency checks
+### Read Maven and Gradle builds in the dependency checks
 
-PHP's `composer.json`, with `composer.lock`, and .NET project files, with their `<PackageReference>` items and `packages.lock.json`, are the remaining common package managers without a reader. Adding them would bring PHP and .NET projects into the Dependency Changes table and the dependency rules.
+Java and Kotlin projects declare dependencies in `pom.xml`, where group, artifact, and version sit on separate lines, and in Gradle build scripts, which are code. Reading `<dependency>` blocks and the common `implementation("group:artifact:version")` forms would bring JVM projects into the Dependency Changes table and the dependency rules.
 
 ## Mid Term
 
