@@ -211,6 +211,17 @@ Dependency names that are the intended packages, though they look like popular o
 
 `false` turns the rule off.
 
+## Risky Dependency Versions
+
+The `risky-dependency-version` rule reads the same dependency changes as the Dependency Changes table and reports a warning for two kinds of change:
+
+- **An older version.** The first version number in the requirement goes down, such as `lodash` from `4.17.21` to `4.17.20`, or `requests` from `>=2.31` to `>=2.0`. Only the parts both versions give are compared, so Cargo's `1` after `1.0.193` is not older. Versions that are URLs, Git or local sources, or npm aliases are not compared.
+- **A version left open.** A bounded requirement becomes one with no upper bound: no version, `*`, `x`, `latest`, `next`, or only lower bounds such as `>=2.0`. A caret or tilde range, such as `^4.17.21`, Cargo's `1.2`, or RubyGems' `~> 7.1`, is bounded and not reported. A new npm or Cargo dependency added as `*` or `latest` is reported too; new PyPI and RubyGems dependencies without a version are not, since those manifests often leave versions to a lockfile. pip-compile inputs, `requirements*.in`, are skipped for open versions, because they are loose on purpose.
+
+### `rules.riskyDependencyVersions.enabled`
+
+`false` turns the rule off.
+
 ## Skipped Tests
 
 ### `rules.skippedTests.enabled`

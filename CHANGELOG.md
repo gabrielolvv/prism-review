@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `risky-dependency-version` rule, a warning for dependencies moved to an older version, such as `lodash` from `4.17.21` to `4.17.20` or `requests` from `>=2.31` to `>=2.0`, and for versions changed to accept any future release: no version, `*`, `latest`, or only lower bounds. Caret, tilde, and `~>` ranges are bounded and not reported, only the version parts both sides give are compared, URLs and Git sources are not compared, and pip-compile `.in` files are skipped for open versions. New npm and Cargo dependencies added as `*` or `latest` are reported too.
+- Each dependency change in the JSON output has the `line` of its new version.
+
 ## 0.25.0 - 2026-10-27
 
 ### Added
