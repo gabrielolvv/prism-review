@@ -1,4 +1,8 @@
 import {
+  testScopedNpmPackagesAreDependencyChanges,
+  testScopedNpmPackagesGoThroughTheDependencyRules
+} from "./unit/scoped-packages.test.js";
+import {
   testAiSummaryCannotChangeTheReview,
   testAiSummaryIsOffByDefault,
   testAnthropicProviderAsksForStructuredOutput,
@@ -535,6 +539,8 @@ const tests: Array<[string, Test]> = [
   ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
   ["Gradle dependencies are read", testGradleDependenciesAreRead],
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
+  ["scoped npm packages are dependency changes", testScopedNpmPackagesAreDependencyChanges],
+  ["scoped npm packages go through the dependency rules", testScopedNpmPackagesGoThroughTheDependencyRules],
   ["the AI summary is off by default", testAiSummaryIsOffByDefault],
   ["the AI summary request sends only the redacted reviewed diff", testSummaryRequestSendsOnlyTheRedactedReviewedDiff],
   ["the AI summary request stays within the character budget", testSummaryRequestStaysWithinTheCharacterBudget],

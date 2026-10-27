@@ -56,7 +56,8 @@ function findLookalikes(
 
   for (const { name, line } of added) {
     const key = normalizePackageName(name, ecosystem);
-    if (key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
+    // Scoped npm names, such as `@types/node`, are not compared: the bundled list holds unscoped names.
+    if (key.startsWith("@") || key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
       continue;
     }
     for (const [candidate, original] of normalized) {
