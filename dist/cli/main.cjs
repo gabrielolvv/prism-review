@@ -13435,7 +13435,9 @@ var prismConfigSchema = external_exports.object({
   }).default({}),
   comment: external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
-    includeLowSeverity: external_exports.boolean().default(false)
+    includeLowSeverity: external_exports.boolean().default(false),
+    // The repository's own questions, added to every review's checklist.
+    checklist: external_exports.array(external_exports.string().trim().min(1).max(300)).max(10).default([])
   }).default({}),
   ignorePaths: external_exports.array(external_exports.string()).default([]),
   severity: severityMap.default({}),
@@ -15720,6 +15722,53 @@ function plainFinding(finding) {
   };
 }
 
+// src/reporting/checklist.ts
+var ruleQuestions = {
+  "secret-in-diff": "Has each credential added here been revoked and replaced? Removing it in a later commit leaves it in the Git history.",
+  "credential-file": "Do the committed credential files belong in the repository, or in a secret store?",
+  "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
+  "lockfile-source": "Do the packages from other sources come from places the team trusts?",
+  "unpinned-action": "Can the third-party actions be pinned to a full commit SHA?",
+  "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
+  "remote-script": "Is each downloaded script checked against a known checksum or signature before it runs?",
+  "privileged-container": "Does each container need the privileges it is given?",
+  "public-exposure": "Is everything opened to the internet meant to be public?",
+  "destructive-migration": "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
+  "sql-injection": "Is every value in the flagged queries passed as a parameter?",
+  "risky-api": "Can input from users, files, or the network reach the flagged calls?",
+  "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
+  "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
+  "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
+  "missing-tests": "Are tests covering the changed behavior?",
+  "skipped-tests": "Will the focused or skipped tests be restored before merging?",
+  "incomplete-review": "Who reviews the files that Prism Review could not see?",
+  "large-diff": "Could this pull request be split into smaller ones?",
+  "oversized-patch": "Has someone read the files too large for Prism Review to inspect?",
+  "sensitive-files": "Are security-sensitive changes reviewed by the right owner?",
+  "config-change": "Has someone who owns the review configuration approved the change to it?"
+};
+var defaultQuestions = [
+  "Are tests covering the changed behavior?",
+  "Are security-sensitive changes reviewed by the right owner?",
+  "Are deployment, migration, or rollback risks understood?",
+  "Are new dependencies necessary and trusted?"
+];
+var maxQuestions = 8;
+function checklistQuestions(findings, extra = []) {
+  const areaIndex = (finding) => areas.findIndex((area) => area.id === areaOf(finding.ruleId));
+  const ordered = [...findings].sort(
+    (left, right) => compareSeverity(left.severity, right.severity) || areaIndex(left) - areaIndex(right)
+  );
+  const asked = /* @__PURE__ */ new Set();
+  for (const finding of ordered) {
+    const question = Object.hasOwn(ruleQuestions, finding.ruleId) ? ruleQuestions[finding.ruleId] : void 0;
+    if (question !== void 0 && asked.size < maxQuestions) {
+      asked.add(question);
+    }
+  }
+  return [...asked.size > 0 ? asked : defaultQuestions, ...extra];
+}
+
 // src/reporting/review-state.ts
 var import_node_crypto = require("node:crypto");
 var STATE_MARKER = "prism-review-state";
@@ -15777,7 +15826,8 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
   const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
-  const budget = maxFindingsLength - [...suppressed, ...changes, ...state].join("\n").length;
+  const checklist = checklistQuestions(findings, options.checklist).map((question) => `- ${escapeText(question)}`);
+  const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -15797,10 +15847,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     ...suppressed,
     "### Suggested Review Checklist",
     "",
-    "- Are tests covering the changed behavior?",
-    "- Are security-sensitive changes reviewed by the right owner?",
-    "- Are deployment, migration, or rollback risks understood?",
-    "- Are new dependencies necessary and trusted?",
+    ...checklist,
     ...state
   ].join("\n");
 }
