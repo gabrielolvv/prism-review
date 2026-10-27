@@ -112,6 +112,7 @@ check:
   failOn: "never"
 
 ignorePaths: []
+ignoreGenerated: true
 
 severity: {}
 ```
@@ -601,6 +602,22 @@ ignorePaths:
 Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `blanket-suppression`, `risky-api`, `sensitive-files`, `dependency-risk`, and `oversized-patch`, and out of the risk level's size check. The summary says how many files were ignored.
 
 `secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs match dotfiles and dot directories, so `dist/**` covers `dist/.cache/` and `**/*.yml` covers `.github/`. A renamed file is only ignored when its old path is ignored too, so moving `src/auth/session.ts` into `vendor/` is still reviewed.
+
+### `ignoreGenerated`
+
+When `true`, the default, files that the repository's `.gitattributes` marks `linguist-generated` or `linguist-vendored`, the attributes GitHub uses to collapse such files in diffs, are left out the same way as `ignorePaths`, so they need not be listed twice:
+
+```gitattributes
+dist/** linguist-generated
+third_party/** linguist-vendored
+```
+
+The summary counts them apart from `ignorePaths`. The action reads `.gitattributes` from the base commit, so a pull request cannot mark its own files as generated; the CLI reads it from the current directory. Only the root `.gitattributes` is read.
+
+- Patterns follow gitattributes: one without a slash matches at any depth, one with a slash is anchored at the root, and a directory pattern does not reach the files in it, so `dist/` matches nothing and `dist/**` is needed.
+- For each attribute, the last matching line wins. `-linguist-generated`, `!linguist-generated`, and `linguist-generated=false` clear it, so `third_party/ours/** -linguist-vendored` brings a directory back into the review.
+- The rules that `ignorePaths` cannot hide still read these files, and a renamed file is only left out when its old path is too.
+- A `.gitattributes` that cannot be read logs a warning, and the review goes on with every file. `false` turns this off and skips reading the file.
 
 ## Inline Suppressions
 

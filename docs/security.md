@@ -34,6 +34,8 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 `ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
 
+Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` are left out the same way, with the same exceptions, and that file is read from the base commit too. A pull request that marks source files as generated only affects later pull requests, after it is merged.
+
 The `severity` setting, and the per-path `overrides`, can lower or turn off any rule, the security rules included. That is a deliberate choice for maintainers, and the pull request that makes it is reviewed with the previous configuration, where `config-change` reports it as high risk.
 
 ## Inline Suppressions
