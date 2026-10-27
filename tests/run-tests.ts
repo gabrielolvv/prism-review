@@ -97,6 +97,16 @@ import {
   testCredentialFileRuleReadsValuesBeforeRedaction,
   testCredentialFileRuleCanBeDisabled
 } from "./unit/credential-file.test.js";
+import {
+  testLockfileSourceRuleReportsEachEcosystem,
+  testLockfileSourceRuleReadsEverySupportedFile,
+  testLockfileSourceRuleAllowsRegistriesAndLocalPackages,
+  testLockfileSourceRuleTellsGemfileGitSectionsApart,
+  testLockfileSourceRuleUsesAllowedSources,
+  testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction,
+  testLockfileSourceRuleCanBeDisabled,
+  testLockfileSourceRuleSeesIgnoredLockfiles
+} from "./unit/lockfile-source.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -313,6 +323,14 @@ const tests: Array<[string, Test]> = [
   ["credential-file rule skips deletions and sees ignored paths", testCredentialFileRuleSkipsDeletionsAndSeesIgnoredPaths],
   ["credential-file rule reads values before redaction", testCredentialFileRuleReadsValuesBeforeRedaction],
   ["credential-file rule can be disabled", testCredentialFileRuleCanBeDisabled],
+  ["lockfile-source rule reports each ecosystem", testLockfileSourceRuleReportsEachEcosystem],
+  ["lockfile-source rule reads every supported file", testLockfileSourceRuleReadsEverySupportedFile],
+  ["lockfile-source rule allows registries and local packages", testLockfileSourceRuleAllowsRegistriesAndLocalPackages],
+  ["lockfile-source rule tells Gemfile Git sections apart", testLockfileSourceRuleTellsGemfileGitSectionsApart],
+  ["lockfile-source rule uses allowed sources", testLockfileSourceRuleUsesAllowedSources],
+  ["lockfile-source rule reads patches before the size limit and redaction", testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction],
+  ["lockfile-source rule can be disabled", testLockfileSourceRuleCanBeDisabled],
+  ["lockfile-source rule sees ignored lockfiles", testLockfileSourceRuleSeesIgnoredLockfiles],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

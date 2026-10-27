@@ -14,6 +14,7 @@ export const ruleIds: readonly string[] = [
   "destructive-migration",
   "sensitive-files",
   "config-change",
+  "lockfile-source",
   "dependency-risk",
   "oversized-patch"
 ];

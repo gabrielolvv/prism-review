@@ -1,4 +1,5 @@
 import { addedLines } from "../analysis/added-lines.js";
+import { isTestDataPath } from "../analysis/repository-path.js";
 
 // Files that hold credentials by their nature, whatever their content.
 const wholeFileKinds: Array<[string, RegExp]> = [
@@ -19,8 +20,6 @@ const environmentFile = /(?:^|\/)(?:\.env(?:\.[^/]+)?|[^/]+\.env)$/i;
 const exampleFile = /(?:^|[./])(?:example|sample|template|tmpl|tpl|dist|defaults?|schema)(?:[./]|$)/i;
 const registryFile = /(?:^|\/)(?:\.npmrc|\.yarnrc(?:\.yml)?|\.pypirc)$/i;
 
-// Fixtures and test data hold fake keys on purpose.
-const testDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests__|__mocks__|spec)\//i;
 
 const commentLine = /^\s*[#;]/;
 const assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
@@ -53,7 +52,7 @@ export type CredentialFileKind = {
 
 // Undefined means the file is not a credential file.
 export function credentialFileKind(path: string): CredentialFileKind | undefined {
-  if (testDirectory.test(path)) {
+  if (isTestDataPath(path)) {
     return undefined;
   }
   if (environmentFile.test(path)) {

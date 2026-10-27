@@ -6,6 +6,7 @@ import { destructiveMigrationRule } from "./destructive-migration.js";
 import { hiddenUnicodeRule } from "./hidden-unicode.js";
 import { incompleteReviewRule } from "./incomplete-review.js";
 import { largeDiffRule } from "./large-diff.js";
+import { lockfileSourceRule } from "./lockfile-source.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -29,6 +30,7 @@ export const defaultRules: Rule[] = [
   destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,
+  lockfileSourceRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];
