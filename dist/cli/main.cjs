@@ -13297,6 +13297,7 @@ var ruleIds = [
   "skipped-tests",
   "blanket-suppression",
   "risky-api",
+  "remote-script",
   "workflow-risk",
   "destructive-migration",
   "sensitive-files",
@@ -13372,6 +13373,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     riskyApis: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    remoteScripts: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     hiddenUnicode: external_exports.object({
@@ -13473,9 +13477,9 @@ function patchLines(patch) {
 function addedLines(patch) {
   return patchLines(patch).filter((line) => line.added).map(({ line, content }) => ({ line, content }));
 }
-function matchAddedLines(patch, patterns, ignoreLine) {
+function matchAddedLines(patch, patterns2, ignoreLine) {
   return addedLines(patch).flatMap(
-    ({ line, content }) => ignoreLine?.test(content) ? [] : patterns.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
+    ({ line, content }) => ignoreLine?.test(content) ? [] : patterns2.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
   );
 }
 
@@ -14303,6 +14307,75 @@ var oversizedPatchRule = {
   }
 };
 
+// src/rules/remote-script.ts
+var downloader = String.raw`(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)`;
+var shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:python[23]?|node|perl|ruby)(?:\s+-)?\s*(?:$|[;&|)]))`;
+var patterns = [
+  // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `irm ... | iex`
+  new RegExp(String.raw`\b${downloader}\b[^|;&\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?${shell}`, "i"),
+  // `bash <(curl ...)`, `source <(curl ...)`
+  /(?:^|[\s;&|(])(?:source|\.|(?:ba|z|k)?sh)\s+(?:-s\s+)?<\(\s*(?:curl|wget)\b/i,
+  // `sh -c "$(curl ...)"`, `eval "$(curl ...)"`
+  /\b(?:eval|(?:ba|z|k)?sh\s+-c)\s+["']?\$\(\s*(?:curl|wget)\b/i,
+  // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
+  new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]*\)\.)?${downloader}\b`, "i")
+];
+var commentLine3 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
+var remoteScriptRule = {
+  id: "remote-script",
+  description: "Flags commands that download a script and run it without checking it, such as curl | sh.",
+  run({ files, config }) {
+    if (!config.rules.remoteScripts.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = addedLines(file.patch).flatMap(({ line, content }) => {
+        if (commentLine3.test(content) || !patterns.some((pattern) => pattern.test(unquoted(content)))) {
+          return [];
+        }
+        const url = firstUrl2.exec(content);
+        return [{ line, host: url?.[2]?.toLowerCase(), insecure: url?.[1]?.toLowerCase() === "http" }];
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      const hosts = [...new Set(found.flatMap((match2) => match2.host ?? []))];
+      const sources = [
+        ...hosts.slice(0, 3),
+        ...hosts.length > 3 ? ["..."] : [],
+        ...found.some((match2) => match2.host === void 0) ? ["a URL in a variable"] : []
+      ].join(", ");
+      const insecure = found.filter((match2) => match2.insecure).map((match2) => match2.line);
+      const http = insecure.length > 0 ? `, and ${describeInsecure(insecure)} over plain HTTP` : "";
+      return [
+        {
+          ruleId: "remote-script",
+          title: "Downloaded script runs unchecked",
+          severity: insecure.length > 0 ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: `${text} ${plural ? "run scripts" : "runs a script"} downloaded from ${sources} without checking ${plural ? "them" : "it"}${http}.`,
+          recommendation: "Whoever controls the URL, or can intercept it, runs code here. Download the script to a file, check its checksum or signature, then run it, or install a pinned release from a package manager."
+        }
+      ];
+    });
+  }
+};
+function describeInsecure(lines) {
+  const { text, plural } = describeLines(lines);
+  return `${text.charAt(0).toLowerCase()}${text.slice(1)} ${plural ? "download" : "downloads"}`;
+}
+function unquoted(content) {
+  return content.replace(/'[^']*'/g, "''").replace(/"[^"$]*"/g, '""');
+}
+
 // src/rules/risky-api.ts
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages2 = [
@@ -14817,6 +14890,7 @@ var defaultRules = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  remoteScriptRule,
   workflowRiskRule,
   destructiveMigrationRule,
   sensitiveFilesRule,
