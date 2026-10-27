@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `overrides` sets rule severity for findings in matching files only, such as `risky-api: off` under `legacy/**`. The top-level `severity` applies first, then each matching entry in order. Findings without a file are not affected, and unknown rule ids fail configuration loading.
+
 ## 0.14.1 - 2026-10-27
 
 ### Fixed

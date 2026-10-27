@@ -550,6 +550,27 @@ severity:
 
 The new severity applies everywhere a severity matters: the comment, the risk level, annotations, the step outputs, and `check.failOn`. `large-diff: off` also turns off the file and line count check that raises the risk level to medium. `info` findings are hidden from the comment unless `comment.includeLowSeverity` is set. An unknown rule id or severity fails configuration loading, so a typo cannot leave a rule at its default unnoticed. The configuration comes from the base commit, so a pull request cannot lower the severity of the rules that review it. Lowering or turning off `secret-in-diff`, `hidden-unicode`, or `config-change` is allowed, but the pull request that does it is reviewed with the old configuration and reported by `config-change` as high risk.
 
+## Path Overrides
+
+### `overrides`
+
+Changes the severity of rules for findings in some files only, such as an old directory or development scripts:
+
+```yaml
+overrides:
+  - paths: ["legacy/**", "scripts/dev/**"]
+    severity:
+      risky-api: "off"
+      sql-injection: info
+  - paths: ["services/payments/**"]
+    severity:
+      missing-tests: high
+```
+
+Each entry has `paths`, a list of globs matched against the file a finding points to, the same way as `ignorePaths`, and `severity`, a map like the top-level `severity`. The top-level `severity` applies first; then every entry whose globs match the file applies in order, so a later entry wins. Findings without a file, such as `large-diff` and `incomplete-review`, are not affected. An unknown rule id or an empty `paths` list fails configuration loading.
+
+Unlike `ignorePaths`, an override only changes the rules it names, so the other rules keep reviewing the files. Like `severity`, it comes from the base commit, so a pull request cannot add exceptions for itself.
+
 ## Check
 
 ### `check.failOn`

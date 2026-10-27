@@ -176,6 +176,11 @@ annotations:
 
 ignorePaths:
   - "dist/**"
+
+overrides:
+  - paths: ["legacy/**"]
+    severity:
+      risky-api: "off"
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.
