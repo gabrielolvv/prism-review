@@ -64,7 +64,10 @@ export function testRenderMarkdownKeepsHostilePathsInert(): void {
       "## Prism Review",
       "### Summary",
       "### Findings",
-      ...result.findings.map((finding) => `#### ${finding.severity === "high" ? "High" : "Warning"} - ${finding.title}`),
+      "### Review Scope (4)",
+      ...Array.from({ length: 4 }, () => "#### High - Sensitive file changed"),
+      "### Tests (1)",
+      "#### Warning - Source changed without tests",
       "### Suggested Review Checklist"
     ]
   );

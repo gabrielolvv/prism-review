@@ -151,6 +151,12 @@ import {
   testRenderJsonKeepsEveryField,
   testRenderSarifMapsFindingsForCodeScanning
 } from "./unit/output-formats.test.js";
+import {
+  testEveryRuleHasAnArea,
+  testRenderMarkdownGroupsFindingsByArea,
+  testRenderMarkdownListsOneAreaWithoutGroups,
+  testRenderMarkdownCountsFindingsLeftOutOfGroups
+} from "./unit/finding-areas.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -419,6 +425,10 @@ const tests: Array<[string, Test]> = [
   ["inline suppression shares the comment size limit", testInlineSuppressionSharesTheCommentSizeLimit],
   ["render JSON keeps every field", testRenderJsonKeepsEveryField],
   ["render SARIF maps findings for code scanning", testRenderSarifMapsFindingsForCodeScanning],
+  ["every rule has an area", testEveryRuleHasAnArea],
+  ["render markdown groups findings by area", testRenderMarkdownGroupsFindingsByArea],
+  ["render markdown lists one area without groups", testRenderMarkdownListsOneAreaWithoutGroups],
+  ["render markdown counts findings left out of groups", testRenderMarkdownCountsFindingsLeftOutOfGroups],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

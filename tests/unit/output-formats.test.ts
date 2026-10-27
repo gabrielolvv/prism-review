@@ -41,6 +41,7 @@ export function testRenderJsonKeepsEveryField(): void {
   assert.deepEqual(json.counts, { high: 1, warning: 1, info: 1, suppressed: 1 });
   assert.deepEqual(json.findings[0], {
     ruleId: "sql-injection",
+    area: "code",
     severity: "high",
     title: "SQL built from values",
     message: "Lines 4, 9 build SQL from values.",
@@ -50,6 +51,7 @@ export function testRenderJsonKeepsEveryField(): void {
     lines: [4, 9]
   });
   assert.equal(json.findings[1].file, undefined);
+  assert.equal(json.findings[1].area, "review-scope");
   assert.deepEqual(json.suppressed.map((finding: { ruleId: string; reason: string }) => [finding.ruleId, finding.reason]), [
     ["remote-script", "pinned by checksum"]
   ]);
@@ -65,6 +67,11 @@ export function testRenderSarifMapsFindingsForCodeScanning(): void {
     run.tool.driver.rules.map((rule: { id: string }) => rule.id),
     defaultRules.map((rule) => rule.id)
   );
+  const tags = new Map(
+    run.tool.driver.rules.map((rule: { id: string; properties: { tags: string[] } }) => [rule.id, rule.properties.tags])
+  );
+  assert.deepEqual(tags.get("secret-in-diff"), ["secrets"]);
+  assert.deepEqual(tags.get("unpinned-action"), ["supply-chain"]);
 
   // Findings without a file, such as large-diff, cannot be placed for code scanning.
   assert.deepEqual(

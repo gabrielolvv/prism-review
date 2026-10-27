@@ -1,4 +1,5 @@
 import { countBySeverity, type Finding, type ReviewResult } from "../analysis/finding.js";
+import { areaOf } from "../rules/areas.js";
 
 // The review as JSON, for scripts and other tools. Field names are stable.
 export function renderJson(result: ReviewResult): string {
@@ -25,6 +26,7 @@ export function renderJson(result: ReviewResult): string {
 function plainFinding(finding: Finding) {
   return {
     ruleId: finding.ruleId,
+    area: areaOf(finding.ruleId),
     severity: finding.severity,
     title: finding.title,
     message: finding.message,
