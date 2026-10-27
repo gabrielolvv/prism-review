@@ -1,11 +1,14 @@
 // Preloaded with `node --import` so the bundled action talks to an in-memory GitHub API.
 // Every request is reported on stderr as a `[fake-github]` JSON line for the smoke test to inspect.
 
+import { renderState } from "../../src/reporting/review-state.js";
+
 export const fakeBaseSha = "0123456789abcdef0123456789abcdef01234567";
 export const fakeAppendBaseSha = "fedcba9876543210fedcba9876543210fedcba98";
 export const fakeAnnotationsBaseSha = "00112233445566778899aabbccddeeff00112233";
 export const fakeFailOnHighBaseSha = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
 export const fakeReviewCommentsBaseSha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+export const fakeComparisonBaseSha = "2323232323232323232323232323232323232323";
 export const fakeHeadSha = "9999999999999999999999999999999999999999";
 export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
@@ -120,6 +123,26 @@ const routes: Record<string, (body: unknown) => unknown> = {
       patch: "+export {};"
     }
   ],
+  // Pull request 23's review comment recorded one finding that is still reported and one that is not.
+  "GET /repos/acme/widgets/pulls/23/files?per_page=100&page=1": () => [
+    { filename: "src/billing/charge.ts", status: "modified", additions: 1, deletions: 0, patch: "+export {};" }
+  ],
+  "GET /repos/acme/widgets/issues/23/comments?per_page=100&page=1": () => [
+    {
+      id: 30,
+      user: { login: "github-actions[bot]", type: "Bot" },
+      body: [
+        marker,
+        "",
+        "previous review",
+        renderState([
+          { ruleId: "missing-tests", title: "Source changed without tests", severity: "warning", message: "" },
+          { ruleId: "secret-in-diff", title: "Secret added", severity: "high", file: "src/config.ts", message: "" }
+        ])
+      ].join("\n")
+    }
+  ],
+  "PATCH /repos/acme/widgets/issues/comments/30": () => ({ id: 30 }),
   "GET /repos/acme/widgets/issues/7/comments?per_page=100&page=1": () => [
     { id: 5, user: { login: "github-actions[bot]", type: "Bot" }, body: `${marker}\n\nprevious review` },
     { id: 6, user: { login: "octocat", type: "User" }, body: `${marker}\n\nnot a real review` }
