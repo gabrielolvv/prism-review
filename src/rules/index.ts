@@ -1,5 +1,6 @@
 import { blanketSuppressionRule } from "./blanket-suppression.js";
 import { configChangeRule } from "./config-change.js";
+import { reviewControlChangeRule } from "./review-control-change.js";
 import { credentialFileRule } from "./credential-file.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
@@ -42,6 +43,7 @@ export const defaultRules: Rule[] = [
   publicExposureRule,
   sensitiveFilesRule,
   configChangeRule,
+  reviewControlChangeRule,
   lockfileSourceRule,
   dependencyRiskRule,
   oversizedPatchRule

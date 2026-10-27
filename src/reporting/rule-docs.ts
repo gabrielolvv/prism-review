@@ -22,6 +22,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-exposure": "Public Exposure",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
+  "review-control-change": "Review Control Changes",
   "lockfile-source": "Lockfile Sources",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
