@@ -132,9 +132,11 @@ The `lockfile-source` rule reads the download URLs that added lines put in lockf
 | A URL on a host that is not an allowed registry | High, with the host named |
 | A URL over plain `http://` | High |
 | A Git dependency: `git+https://`, `git+ssh://`, a GitHub, GitLab, or Bitbucket tarball, or a `GIT` section in `Gemfile.lock` | Warning |
+| A pip `--trusted-host`, which turns off TLS verification for that host | High |
+| A go.mod `replace` that points a module at a different module, such as `golang.org/x/crypto => github.com/someone/crypto` | Warning, with the module named |
 | A pip `--extra-index-url`, which lets a public package with the same name as a private one win | Warning |
 
-It reads `resolved` and `resolution` in `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` (v1 and berry), and `pnpm-lock.yaml`; `url` in `poetry.lock` and `Pipfile.lock`; `source` in `Cargo.lock`; `remote` in `Gemfile.lock`; index options and direct URLs in `requirements*.txt` and `requirements/*.in`; `registry` in `.npmrc`; `npmRegistryServer` in `.yarnrc.yml`; and `index-url` in `pip.conf`.
+It reads `resolved` and `resolution` in `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` (v1 and berry), and `pnpm-lock.yaml`; `url` in `poetry.lock`, `Pipfile`, and `Pipfile.lock`; `registry`, `url`, and `git` in `uv.lock`; `replace` directives in `go.mod`; `source` in `Cargo.lock`; `remote` in `Gemfile.lock`; index options, `--trusted-host`, and direct URLs in `requirements*.txt` and `requirements/*.in`; `registry` in `.npmrc`; `npmRegistryServer` in `.yarnrc.yml`; and `index-url` and `trusted-host` in `pip.conf`. npm lockfile v1 keeps Git and tarball URLs in `version`, which is read too. Package sources in `pyproject.toml` are not read yet.
 
 The public registries are always allowed: `https://registry.npmjs.org/`, `https://registry.yarnpkg.com/`, `https://pypi.org/`, `https://files.pythonhosted.org/`, `https://rubygems.org/`, `https://index.crates.io/`, `https://static.crates.io/`, and `https://github.com/rust-lang/crates.io-index`. Add private registries as URL prefixes:
 
@@ -148,7 +150,7 @@ rules:
 
 A URL is allowed when its scheme and host match and its path continues the prefix at a `/`, so `https://artifactory.acme.example/api/npm-evil/` does not match the second entry. Entries must be http or https URLs.
 
-Local packages (`file:`, workspaces), registry versions without a URL, and comments are not reported, and neither are lockfiles under test or fixture directories. Like `secret-in-diff`, the rule reads patches before the size limit and redaction, since lockfile diffs are often large and URLs can carry credentials; only the host is shown. It also checks lockfiles matched by `ignorePaths`. `rules.lockfileSources.enabled: false` turns it off.
+Local packages (`file:`, workspaces, a go.mod `replace` with a local path or the same module path), registry versions without a URL, and comments are not reported, and neither are lockfiles under test or fixture directories. Like `secret-in-diff`, the rule reads patches before the size limit and redaction, since lockfile diffs are often large and URLs can carry credentials; only the host, or the module path of a go.mod `replace`, is shown. It also checks lockfiles matched by `ignorePaths`. `rules.lockfileSources.enabled: false` turns it off.
 
 ## Skipped Tests
 

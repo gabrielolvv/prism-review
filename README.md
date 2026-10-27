@@ -181,7 +181,7 @@ flowchart TD
 | `skipped-tests` | Warning | Flags tests that a PR focuses with `.only` or disables with a skip marker. |
 | `blanket-suppression` | Warning | Flags lint and type check suppressions that name no rule. |
 | `risky-api` | Warning | Flags added calls that run code, start a shell, deserialize data, or write raw HTML. |
-| `lockfile-source` | High or Warning | Flags lockfile entries and registry settings that download packages from hosts outside the allowed registries or over plain HTTP, and warns about Git sources and extra pip indexes. |
+| `lockfile-source` | High or Warning | Flags lockfile entries and registry settings that download packages from hosts outside the allowed registries, over plain HTTP, or without TLS verification, and warns about Git sources, go.mod replaces, and extra pip indexes. |
 | `dependency-risk` | Warning | Flags dependency manifest and lockfile changes for supply-chain review. |
 | `oversized-patch` | Info | Reports files whose patch exceeded the size limit and was not fully inspected. |
 
