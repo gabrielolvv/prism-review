@@ -13442,6 +13442,8 @@ var prismConfigSchema = external_exports.object({
     codeOwners: external_exports.boolean().default(true)
   }).default({}),
   ignorePaths: external_exports.array(external_exports.string()).default([]),
+  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
+  ignoreGenerated: external_exports.boolean().default(true),
   severity: severityMap.default({}),
   // Severity for findings in matching files, applied after `severity`; later entries win.
   overrides: external_exports.array(
@@ -15553,23 +15555,26 @@ function findMarkers(files) {
 
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
-  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
+  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount, isGenerated = () => false } = options;
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
   const pathOverrides = config.overrides.map((override) => ({
     matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
     severity: override.severity
   }));
-  const reviewed = files.filter(
-    (file) => !(isIgnored(file.path) && (file.previousPath === void 0 || isIgnored(file.previousPath)))
+  const leftOut = (file, excluded) => excluded(file.path) && (file.previousPath === void 0 || excluded(file.previousPath));
+  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
+  const generated = new Set(
+    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path2) => isIgnored(path2) || isGenerated(path2)))
   );
+  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
   const all = rules.flatMap(
     (rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
   ).flatMap((finding) => applySeverityOverride(finding, config, pathOverrides)).sort((left, right) => compareSeverity(left.severity, right.severity));
   const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
   const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
   return {
-    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings, suppressed.length),
+    summary: buildSummary(reviewed.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings,
     suppressed
@@ -15590,9 +15595,10 @@ function applySeverityOverride(finding, config, pathOverrides) {
   }
   return override === "off" ? [] : [{ ...finding, severity: override }];
 }
-function buildSummary(reviewedCount, ignoredCount, findings, suppressedCount) {
+function buildSummary(reviewedCount, ignoredCount, generatedCount, findings, suppressedCount) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
-  const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}.`;
+  const generated = generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
+  const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found = findings.length === 0 ? "No configured risk signals were detected." : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
   const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
   return `${reviewed} ${found}${suppressed}`;
@@ -15658,6 +15664,60 @@ function patternGlobs(pattern) {
     return [`${glob}/**`];
   }
   return glob.split("/").pop() === "*" ? [glob] : [glob, `${glob}/**`];
+}
+
+// src/analysis/git-attributes.ts
+var gitAttributesPath = ".gitattributes";
+var maxRules2 = 5e3;
+var maxPatternLength2 = 500;
+function parseGitAttributes(text) {
+  const rules = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === "" || /^(?:#|\[attr\]|")/.test(line) || rules.length >= maxRules2) {
+      continue;
+    }
+    const [pattern = "", ...attributes] = line.split(/\s+/);
+    if (pattern.length > maxPatternLength2 || pattern.startsWith("!") || pattern.endsWith("/")) {
+      continue;
+    }
+    const rule = { matcher: new Minimatch(patternGlob(pattern), { dot: true }) };
+    for (const attribute of attributes) {
+      const state = attributeState(attribute);
+      if (state?.name === "linguist-generated") {
+        rule.generated = state.set;
+      } else if (state?.name === "linguist-vendored") {
+        rule.vendored = state.set;
+      }
+    }
+    if (rule.generated !== void 0 || rule.vendored !== void 0) {
+      rules.push(rule);
+    }
+  }
+  return {
+    isGenerated(path2) {
+      let generated = false;
+      let vendored = false;
+      for (const rule of rules) {
+        if (rule.matcher.match(path2)) {
+          generated = rule.generated ?? generated;
+          vendored = rule.vendored ?? vendored;
+        }
+      }
+      return generated || vendored;
+    }
+  };
+}
+function patternGlob(pattern) {
+  return pattern.includes("/") ? pattern.replace(/^\/+/, "") : `**/${pattern}`;
+}
+function attributeState(attribute) {
+  const match2 = /^([-!]?)([\w.-]+)(?:=(.*))?$/.exec(attribute);
+  if (match2 === null) {
+    return void 0;
+  }
+  const [, prefix = "", name = "", value] = match2;
+  return { name, set: prefix === "" && value !== "false" && value !== "0" };
 }
 
 // src/analysis/check-outcome.ts
@@ -16358,7 +16418,8 @@ async function main() {
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig((0, import_node_path.resolve)(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
-  const result = analyzePullRequest(files, config, { configPath });
+  const generated = config.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs2.readFileSync)(gitAttributesPath, "utf8")) : void 0;
+  const result = analyzePullRequest(files, config, { configPath, isGenerated: generated?.isGenerated });
   const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : void 0;
   process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}
 `);
@@ -16370,8 +16431,11 @@ async function main() {
   }
 }
 function readLocalCodeOwners() {
-  const path2 = codeOwnersPaths.find((candidate) => (0, import_node_fs2.existsSync)(candidate) && (0, import_node_fs2.statSync)(candidate).isFile());
+  const path2 = codeOwnersPaths.find(isFile);
   return path2 === void 0 ? void 0 : parseCodeOwners((0, import_node_fs2.readFileSync)(path2, "utf8"));
+}
+function isFile(path2) {
+  return (0, import_node_fs2.existsSync)(path2) && (0, import_node_fs2.statSync)(path2).isFile();
 }
 function render(result, format, options) {
   if (format === "json") {
