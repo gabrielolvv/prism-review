@@ -2,7 +2,7 @@
 
 All notable changes to Prism Review are documented in this file.
 
-## Unreleased
+## 0.32.0 - 2026-10-27
 
 ### Fixed
 
