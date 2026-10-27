@@ -29,3 +29,6 @@ outputs:
 runs:
   using: "node24"
   main: "dist/action/index.cjs"
+branding:
+  icon: "shield"
+  color: "purple"
