@@ -126,6 +126,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .default({}),
+      publicExposure: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .default({}),
       credentialFiles: z
         .object({
           enabled: z.boolean().default(true)
