@@ -209,7 +209,8 @@ import {
 import {
   testDefaultRules,
   testDependencyRiskRule,
-  testSensitiveFilesRuleMatchesKeywordsAsWords
+  testSensitiveFilesRuleMatchesKeywordsAsWords,
+  testPatternsWithoutASlashMatchAtAnyDepth
 } from "./unit/rules.test.js";
 import {
   testFindAddedSecretsDetectsPgpPrivateKeys,
@@ -331,6 +332,7 @@ const tests: Array<[string, Test]> = [
   ["lockfile-source rule reads patches before the size limit and redaction", testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction],
   ["lockfile-source rule can be disabled", testLockfileSourceRuleCanBeDisabled],
   ["lockfile-source rule sees ignored lockfiles", testLockfileSourceRuleSeesIgnoredLockfiles],
+  ["patterns without a slash match at any depth", testPatternsWithoutASlashMatchAtAnyDepth],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

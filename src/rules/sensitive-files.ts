@@ -33,7 +33,8 @@ export const sensitiveFilesRule: Rule = {
     return files
       .filter(
         (file) =>
-          ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern)) ||
+          // A pattern without a slash matches the file name in any directory, as in .gitignore.
+          ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true })) ||
           hasSensitiveWord(file.path)
       )
       .map((file) => ({
