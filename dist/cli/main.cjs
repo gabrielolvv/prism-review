@@ -15648,6 +15648,44 @@ function invalidConfig(source, details) {
   return new Error(`Invalid Prism Review configuration in ${source}: ${details}`);
 }
 
+// src/rules/areas.ts
+var areas = [
+  { id: "secrets", title: "Secrets" },
+  { id: "supply-chain", title: "Supply Chain" },
+  { id: "infrastructure", title: "Infrastructure" },
+  { id: "code", title: "Code" },
+  { id: "tests", title: "Tests" },
+  { id: "review-scope", title: "Review Scope" },
+  { id: "other", title: "Other" }
+];
+var ruleAreas = {
+  "secret-in-diff": "secrets",
+  "credential-file": "secrets",
+  "dependency-risk": "supply-chain",
+  "lockfile-source": "supply-chain",
+  "unpinned-action": "supply-chain",
+  "workflow-risk": "supply-chain",
+  "remote-script": "supply-chain",
+  "privileged-container": "infrastructure",
+  "public-exposure": "infrastructure",
+  "destructive-migration": "infrastructure",
+  "sql-injection": "code",
+  "risky-api": "code",
+  "disabled-security-check": "code",
+  "hidden-unicode": "code",
+  "blanket-suppression": "code",
+  "missing-tests": "tests",
+  "skipped-tests": "tests",
+  "incomplete-review": "review-scope",
+  "large-diff": "review-scope",
+  "oversized-patch": "review-scope",
+  "sensitive-files": "review-scope",
+  "config-change": "review-scope"
+};
+function areaOf(ruleId) {
+  return Object.hasOwn(ruleAreas, ruleId) ? ruleAreas[ruleId] ?? "other" : "other";
+}
+
 // src/reporting/render-json.ts
 function renderJson(result) {
   const suppressed = result.suppressed ?? [];
@@ -15671,6 +15709,7 @@ function renderJson(result) {
 function plainFinding(finding) {
   return {
     ruleId: finding.ruleId,
+    area: areaOf(finding.ruleId),
     severity: finding.severity,
     title: finding.title,
     message: finding.message,
@@ -15711,24 +15750,45 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
   ].join("\n");
 }
 var maxFindingsLength = 55e3;
+var groupingReserve = 1e3;
 function renderFindings(findings, budget) {
-  const rendered = [];
+  const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
+  const shown = [];
   let length = 0;
   for (const finding of findings) {
     const block = renderFinding(finding);
-    if (length + block.length > budget) {
+    if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
-    rendered.push(block);
+    shown.push({ finding, block });
     length += block.length + 2;
   }
-  const hidden = findings.length - rendered.length;
+  const rendered = grouped ? renderGroups(findings, shown) : shown.map(({ block }) => block);
+  const hidden = findings.length - shown.length;
   if (hidden > 0) {
     rendered.push(
       `${hidden} more finding(s) are not shown here to keep the comment within GitHub's size limit. Enable annotations or run the CLI to see every finding.`
     );
   }
   return rendered.join("\n\n");
+}
+function renderGroups(findings, shown) {
+  const groups = areas.map((area) => ({
+    area,
+    all: findings.filter((finding) => areaOf(finding.ruleId) === area.id),
+    blocks: shown.filter(({ finding }) => areaOf(finding.ruleId) === area.id).map(({ block }) => block)
+  })).filter((group) => group.all.length > 0).sort((left, right) => compareSeverity(topSeverity(left.all), topSeverity(right.all)));
+  const overview = groups.map(({ area, all }) => `${area.title} (${all.length})`).join(", ");
+  return [
+    `${findings.length} findings in ${groups.length} areas: ${overview}.`,
+    ...groups.filter((group) => group.blocks.length > 0).map(({ area, all, blocks }) => {
+      const count = blocks.length === all.length ? `${all.length}` : `${blocks.length} of ${all.length} shown`;
+      return [`### ${area.title} (${count})`, ...blocks].join("\n\n");
+    })
+  ];
+}
+function topSeverity(findings) {
+  return findings.map((finding) => finding.severity).sort(compareSeverity)[0] ?? "info";
 }
 var maxSuppressedShown = 50;
 var maxSuppressedLength = 1e4;
@@ -15810,7 +15870,9 @@ function renderSarif(result, rules) {
                 id: rule.id,
                 name: rule.id,
                 shortDescription: { text: rule.description },
-                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md"
+                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md",
+                // Code scanning lets alerts be filtered by tag.
+                properties: { tags: [areaOf(rule.id)] }
               }))
             }
           },
