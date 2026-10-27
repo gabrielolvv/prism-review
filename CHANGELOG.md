@@ -2,6 +2,17 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- The review comment groups findings by area (Secrets, Supply Chain, Infrastructure, Code, Tests, and Review Scope) when they come from more than one, with a line that counts them per area. The most severe area comes first. When the comment reaches its size limit, the counts still include every finding and each area heading says how many are shown.
+- Each finding in the JSON output has an `area` field, and each rule in the SARIF report carries its area as a tag.
+
+### Changed
+
+- `docs/sample-review-comment.md` shows the grouped layout.
+
 ## 0.16.0 - 2026-10-27
 
 ### Added

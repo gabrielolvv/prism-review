@@ -478,6 +478,21 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 
 When `true`, `info` findings such as `oversized-patch` are rendered in the comment. They are hidden by default to keep the comment focused on warnings and high-risk findings.
 
+### Finding Areas
+
+When the findings in a comment come from more than one area, the comment opens the findings with a line that counts them per area, then lists each area under its own heading. The area with the most severe finding comes first, and areas with the same top severity follow the order of the table. Within an area, findings stay in severity order. Findings from a single area are listed without area headings.
+
+| Area | Rules |
+| --- | --- |
+| Secrets | `secret-in-diff`, `credential-file` |
+| Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
+| Infrastructure | `privileged-container`, `public-exposure`, `destructive-migration` |
+| Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
+| Tests | `missing-tests`, `skipped-tests` |
+| Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change` |
+
+When the comment reaches its size limit, the most severe findings are kept, the counts still include every finding, and an area heading such as `Code (12 of 30 shown)` says how many are left out. Each finding in the JSON output has an `area` field with the area's id, such as `supply-chain`, and each rule in the SARIF report carries its area as a tag, which code scanning can filter on.
+
 ## Annotations
 
 ### `annotations.enabled`

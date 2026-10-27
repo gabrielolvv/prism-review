@@ -34,14 +34,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - JSON and SARIF output, and a `sarif-file` input for code scanning (0.14.0).
 - Linear-time rule patterns, with a test against crafted long lines (0.14.1).
 - Per-path `overrides` of rule severity (0.15.0).
-- Opt-in `reviewComments` that post line findings as pull request review comments, updated in place and marked resolved instead of deleted.
-- Prompt-injection fixtures with instructions in base64, Markdown and HTML comments, a file name, a suppression reason, and Unicode tag characters, with tests that none of them changes the review or reaches its output.
+- Opt-in `reviewComments` that post line findings as pull request review comments, updated in place and marked resolved instead of deleted, and prompt-injection fixtures with instructions in base64, Markdown and HTML comments, a file name, a suppression reason, and Unicode tag characters (0.16.0).
+- Findings grouped by area in the review, with a count for each area, and the area in the JSON and SARIF output.
 
 ## Near Term
 
-### Group findings by area in the review
+### Mark findings that are new since the previous run
 
-Large reviews list many findings in severity order. Grouping them by area, such as secrets, supply chain, infrastructure, and code, with counts per group, would make long reviews easier to scan.
+On a pull request that gets several pushes, the review comment is rewritten each time, so a reviewer cannot tell which findings the latest push introduced. Comparing with the findings of the previous run, kept in the comment itself, would let the review mark new findings and list the ones that were fixed.
 
 ## Mid Term
 
