@@ -193,6 +193,10 @@ import {
   testDependencyChangesAreListedInTheReview,
   testDependencyChangesShareTheCommentSizeLimit
 } from "./unit/dependency-changes.test.js";
+import {
+  testRiskyDependencyVersionLeavesBoundedChangesAlone,
+  testRiskyDependencyVersionReportsOlderAndOpenVersions
+} from "./unit/risky-dependency-version.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -494,6 +498,8 @@ const tests: Array<[string, Test]> = [
   ["dependency changes across manifests", testDependencyChangesAcrossManifests],
   ["dependency changes are listed in the review", testDependencyChangesAreListedInTheReview],
   ["dependency changes share the comment size limit", testDependencyChangesShareTheCommentSizeLimit],
+  ["risky dependency version reports older and open versions", testRiskyDependencyVersionReportsOlderAndOpenVersions],
+  ["risky dependency version leaves bounded changes alone", testRiskyDependencyVersionLeavesBoundedChangesAlone],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

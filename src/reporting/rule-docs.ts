@@ -25,6 +25,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "review-control-change": "Review Control Changes",
   "lockfile-source": "Lockfile Sources",
   "lookalike-dependency": "Lookalike Dependencies",
+  "risky-dependency-version": "Risky Dependency Versions",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
 };

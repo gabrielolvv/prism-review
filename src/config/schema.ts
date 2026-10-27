@@ -156,6 +156,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .default({}),
+      riskyDependencyVersions: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .default({}),
       lookalikeDependencies: z
         .object({
           enabled: z.boolean().default(true),
