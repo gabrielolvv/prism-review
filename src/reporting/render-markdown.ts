@@ -16,6 +16,8 @@ export type RenderOptions = {
   recordState?: boolean;
   // Questions added to the checklist on every review.
   checklist?: readonly string[];
+  // The code owners of a file, from the repository's CODEOWNERS.
+  ownersOf?: (path: string) => readonly string[];
 };
 
 export function renderMarkdown(
@@ -29,7 +31,13 @@ export function renderMarkdown(
   const comparison = options.previous === undefined ? undefined : compareWithPrevious(findings, options.previous);
   const changes = comparison === undefined ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
-  const checklist = checklistQuestions(findings, options.checklist).map((question) => `- ${escapeText(question)}`);
+  const owners = (finding: Finding) =>
+    finding.file === undefined || options.ownersOf === undefined ? [] : options.ownersOf(finding.file);
+  const checklist = [
+    ...checklistQuestions(findings).map((question) => `- ${escapeText(question)}`),
+    ...renderOwnersQuestion(findings.flatMap(owners)),
+    ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
+  ];
   // Everything else that can grow comes out of the findings' share of the size limit.
   const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
 
@@ -49,7 +57,9 @@ export function renderMarkdown(
     ...changes,
     findings.length === 0
       ? "No warning or high-risk findings were detected."
-      : renderFindings(findings, budget, comparison?.isNew ?? (() => false)),
+      : renderFindings(findings, budget, (finding) =>
+          renderFinding(finding, comparison?.isNew(finding) ?? false, owners(finding))
+        ),
     "",
     ...suppressed,
     "### Suggested Review Checklist",
@@ -77,14 +87,14 @@ const maxFindingsLength = 55_000;
 // The overview line and area headings, taken from the budget before the findings.
 const groupingReserve = 1_000;
 
-function renderFindings(findings: Finding[], budget: number, isNew: (finding: Finding) => boolean): string {
+function renderFindings(findings: Finding[], budget: number, render: (finding: Finding) => string): string {
   // Findings from one area are listed as they are; from several, they are grouped by area.
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
   const shown: Array<{ finding: Finding; block: string }> = [];
   let length = 0;
 
   for (const finding of findings) {
-    const block = renderFinding(finding, isNew(finding));
+    const block = render(finding);
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
@@ -160,7 +170,7 @@ function renderSuppressed(suppressed: SuppressedFinding[]): string[] {
   return ["### Suppressed Inline", "", ...lines, ""];
 }
 
-function renderFinding(finding: Finding, isNew: boolean): string {
+function renderFinding(finding: Finding, isNew: boolean, owners: readonly string[]): string {
   const sections = [
     `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}${isNew ? " (new)" : ""}`,
     "",
@@ -172,12 +182,29 @@ function renderFinding(finding: Finding, isNew: boolean): string {
     sections.push("", `File: ${codeSpan(finding.file)}${line}`);
   }
 
+  if (owners.length > 0) {
+    sections.push("", `Owners: ${listOwners(owners)}`);
+  }
+
   if (finding.recommendation) {
     sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
 
   sections.push("", renderRule(finding.ruleId));
   return sections.join("\n");
+}
+
+// Owners are shown in code spans, where GitHub does not turn @mentions into notifications.
+const maxOwnersShown = 5;
+
+function listOwners(owners: readonly string[]): string {
+  const unique = [...new Set(owners)];
+  const shown = unique.slice(0, maxOwnersShown).map(codeSpan).join(", ");
+  return unique.length > maxOwnersShown ? `${shown} and ${unique.length - maxOwnersShown} more` : shown;
+}
+
+function renderOwnersQuestion(owners: readonly string[]): string[] {
+  return owners.length === 0 ? [] : [`- Have the code owners of the flagged files, ${listOwners(owners)}, reviewed the change?`];
 }
 
 // The rule id is what an inline suppression names, and the link explains the rule and its options.

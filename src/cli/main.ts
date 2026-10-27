@@ -1,6 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
+import { codeOwnersPaths, parseCodeOwners, type CodeOwners } from "../analysis/code-owners.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { loadConfig } from "../config/load-config.js";
 import { defaultConfigPath } from "../config/schema.js";
@@ -68,13 +69,20 @@ async function main(): Promise<void> {
   const config = loadConfig(resolve(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
-  process.stdout.write(`${render(result, options.format, config.comment)}\n`);
+  const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : undefined;
+  process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
 
   const failing = failingFindings(result, config.check.failOn);
   if (failing.length > 0) {
     process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
     process.exitCode = 1;
   }
+}
+
+// The CODEOWNERS file in the current directory, found the way GitHub looks for it.
+function readLocalCodeOwners(): CodeOwners | undefined {
+  const path = codeOwnersPaths.find((candidate) => existsSync(candidate) && statSync(candidate).isFile());
+  return path === undefined ? undefined : parseCodeOwners(readFileSync(path, "utf8"));
 }
 
 function render(result: ReviewResult, format: Format, options: RenderOptions): string {

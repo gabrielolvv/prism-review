@@ -123,6 +123,11 @@ const routes: Record<string, (body: unknown) => unknown> = {
       patch: "+export {};"
     }
   ],
+  // CODEOWNERS on pull request 23's base names the owners of the billing code.
+  [`GET /repos/acme/widgets/contents/.github/CODEOWNERS?ref=${fakeComparisonBaseSha}`]: () =>
+    fileContent("* @acme/maintainers\nsrc/billing/ @acme/payments\n"),
+  // On the append base, the CODEOWNERS path is a directory, which cannot be read.
+  [`GET /repos/acme/widgets/contents/.github/CODEOWNERS?ref=${fakeAppendBaseSha}`]: () => [{ type: "file", name: "README" }],
   // Pull request 23's review comment recorded one finding that is still reported and one that is not.
   "GET /repos/acme/widgets/pulls/23/files?per_page=100&page=1": () => [
     { filename: "src/billing/charge.ts", status: "modified", additions: 1, deletions: 0, patch: "+export {};" }

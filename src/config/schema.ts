@@ -190,7 +190,9 @@ export const prismConfigSchema = z.object({
       mode: z.enum(["upsert", "append"]).default("upsert"),
       includeLowSeverity: z.boolean().default(false),
       // The repository's own questions, added to every review's checklist.
-      checklist: z.array(z.string().trim().min(1).max(300)).max(10).default([])
+      checklist: z.array(z.string().trim().min(1).max(300)).max(10).default([]),
+      // Names the CODEOWNERS owners of each flagged file.
+      codeOwners: z.boolean().default(true)
     })
     .default({}),
   ignorePaths: z.array(z.string()).default([]),
