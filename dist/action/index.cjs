@@ -13437,7 +13437,9 @@ var prismConfigSchema = external_exports.object({
     mode: external_exports.enum(["upsert", "append"]).default("upsert"),
     includeLowSeverity: external_exports.boolean().default(false),
     // The repository's own questions, added to every review's checklist.
-    checklist: external_exports.array(external_exports.string().trim().min(1).max(300)).max(10).default([])
+    checklist: external_exports.array(external_exports.string().trim().min(1).max(300)).max(10).default([]),
+    // Names the CODEOWNERS owners of each flagged file.
+    codeOwners: external_exports.boolean().default(true)
   }).default({}),
   ignorePaths: external_exports.array(external_exports.string()).default([]),
   severity: severityMap.default({}),
@@ -15918,7 +15920,12 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
   const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
-  const checklist = checklistQuestions(findings, options.checklist).map((question) => `- ${escapeText(question)}`);
+  const owners = (finding) => finding.file === void 0 || options.ownersOf === void 0 ? [] : options.ownersOf(finding.file);
+  const checklist = [
+    ...checklistQuestions(findings).map((question) => `- ${escapeText(question)}`),
+    ...renderOwnersQuestion(findings.flatMap(owners)),
+    ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
+  ];
   const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
@@ -15934,7 +15941,11 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "### Findings",
     "",
     ...changes,
-    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, budget, comparison?.isNew ?? (() => false)),
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(
+      findings,
+      budget,
+      (finding) => renderFinding(finding, comparison?.isNew(finding) ?? false, owners(finding))
+    ),
     "",
     ...suppressed,
     "### Suggested Review Checklist",
@@ -15953,12 +15964,12 @@ function renderChanges({ newCount, noLongerReported }) {
 }
 var maxFindingsLength = 55e3;
 var groupingReserve = 1e3;
-function renderFindings(findings, budget, isNew) {
+function renderFindings(findings, budget, render) {
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
   const shown = [];
   let length = 0;
   for (const finding of findings) {
-    const block = renderFinding(finding, isNew(finding));
+    const block = render(finding);
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
@@ -16014,7 +16025,7 @@ function renderSuppressed(suppressed) {
   }
   return ["### Suppressed Inline", "", ...lines, ""];
 }
-function renderFinding(finding, isNew) {
+function renderFinding(finding, isNew, owners) {
   const sections = [
     `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}${isNew ? " (new)" : ""}`,
     "",
@@ -16024,11 +16035,23 @@ function renderFinding(finding, isNew) {
     const line = finding.line === void 0 ? "" : `, line ${finding.line}`;
     sections.push("", `File: ${codeSpan(finding.file)}${line}`);
   }
+  if (owners.length > 0) {
+    sections.push("", `Owners: ${listOwners(owners)}`);
+  }
   if (finding.recommendation) {
     sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
   sections.push("", renderRule(finding.ruleId));
   return sections.join("\n");
+}
+var maxOwnersShown = 5;
+function listOwners(owners) {
+  const unique2 = [...new Set(owners)];
+  const shown = unique2.slice(0, maxOwnersShown).map(codeSpan).join(", ");
+  return unique2.length > maxOwnersShown ? `${shown} and ${unique2.length - maxOwnersShown} more` : shown;
+}
+function renderOwnersQuestion(owners) {
+  return owners.length === 0 ? [] : [`- Have the code owners of the flagged files, ${listOwners(owners)}, reviewed the change?`];
 }
 function renderRule(ruleId) {
   const url = ruleDocsUrl(ruleId);
@@ -16197,6 +16220,67 @@ async function loadBaseBranchConfig(client, owner, repo, configPath, baseSha) {
     return void 0;
   }
   return parseConfig(raw, `${configPath} at ${baseSha.slice(0, 7)}`);
+}
+
+// src/analysis/code-owners.ts
+var codeOwnersPaths = [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"];
+var maxRules = 5e3;
+var maxPatternLength = 500;
+var ownerToken = /^(?:@[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\/[A-Za-z0-9._-]{1,100})?|[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63})$/;
+function parseCodeOwners(text) {
+  const rules = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/(?:^|\s)#.*$/, "").trim();
+    if (line === "" || rules.length >= maxRules) {
+      continue;
+    }
+    const [pattern = "", ...tokens] = line.split(/\s+/);
+    if (pattern.length > maxPatternLength || pattern.startsWith("!") || /[[\]]/.test(pattern)) {
+      continue;
+    }
+    const globs = patternGlobs(pattern);
+    if (globs.length > 0) {
+      rules.push({ globs, owners: tokens.filter((token2) => ownerToken.test(token2)) });
+    }
+  }
+  return {
+    ownersOf(path2) {
+      for (let index = rules.length - 1; index >= 0; index -= 1) {
+        const rule = rules[index];
+        if (rule?.globs.some((glob) => minimatch(path2, glob, { dot: true }))) {
+          return rule.owners;
+        }
+      }
+      return [];
+    }
+  };
+}
+function patternGlobs(pattern) {
+  const directoryOnly = pattern.endsWith("/");
+  let glob = pattern.replace(/\/+$/, "");
+  const anchored = glob.includes("/");
+  glob = glob.replace(/^\/+/, "");
+  if (glob === "") {
+    return [];
+  }
+  if (!anchored) {
+    glob = `**/${glob}`;
+  }
+  if (directoryOnly) {
+    return [`${glob}/**`];
+  }
+  return glob.split("/").pop() === "*" ? [glob] : [glob, `${glob}/**`];
+}
+
+// src/github/load-code-owners.ts
+async function loadBaseCodeOwners(client, owner, repo, baseSha) {
+  for (const path2 of codeOwnersPaths) {
+    const text = await fetchRepositoryFile(client, owner, repo, path2, baseSha);
+    if (text !== void 0) {
+      return parseCodeOwners(text);
+    }
+  }
+  return void 0;
 }
 
 // src/github/publish-comment.ts
@@ -16497,9 +16581,11 @@ async function run() {
     expectedFileCount: pullRequest.changed_files
   });
   const previous = inputs.dryRun ? void 0 : await findReviewComment(client, owner, repo, pullRequest.number);
+  const codeOwners = config.comment.codeOwners ? await loadCodeOwners(client, owner, repo, readBaseSha(pullRequest)) : void 0;
   const body = renderMarkdown(result, {
     includeLowSeverity: config.comment.includeLowSeverity,
     checklist: config.comment.checklist,
+    ownersOf: codeOwners?.ownersOf,
     previous: previous === void 0 ? void 0 : readState(previous.body),
     recordState: true
   });
@@ -16535,6 +16621,18 @@ async function run() {
     console.error(describeFailure(failing, config.check.failOn));
     process.exitCode = 1;
   }
+}
+async function loadCodeOwners(client, owner, repo, baseSha) {
+  try {
+    return await loadBaseCodeOwners(client, owner, repo, baseSha);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.log(`::warning title=Prism Review::Could not read CODEOWNERS, so owners are not shown: ${escapeCommand(reason)}`);
+    return void 0;
+  }
+}
+function escapeCommand(text) {
+  return text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
 }
 async function publishLineComments(client, owner, repo, pullRequest, findings, options) {
   const headSha = pullRequest.head?.sha;
