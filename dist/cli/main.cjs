@@ -13565,7 +13565,7 @@ var languages = [
       ["Psalm", /@psalm-suppress\s+all\b/i]
     ]
   },
-  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]] }
+  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]{0,500}\b(?:warnings|clippy::all)\b[^)]{0,500}\)\]/]] }
 ];
 var blanketSuppressionRule = {
   id: "blanket-suppression",
@@ -13803,7 +13803,7 @@ var kinds = [
   {
     kind: "drops a column",
     destructive: true,
-    pattern: /\bdrop\s+column\b|\balter\s+table\b.*\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
+    pattern: /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -13947,12 +13947,12 @@ var tls = {
     word("Noop", "HostnameVerifier"),
     word("ALLOW_ALL", "_HOSTNAME_VERIFIER"),
     word("TrustAll", "Strategy"),
-    /\bServerCertificate(?:Custom)?ValidationCallback\s*\+?=\s*[^;]*=>\s*true\b/,
+    /\bServerCertificate(?:Custom)?ValidationCallback\s*\+?=\s*[^;]{0,300}=>\s*true\b/,
     word("DangerousAcceptAny", "ServerCertificateValidator"),
     /\bCURLOPT_SSL_VERIFY(?:PEER|HOST)\b\s*(?:=>|,)\s*(?:false|0)\b|['"]verify['"]\s*=>\s*false\b/,
     // `curl -k`, `curl -fsSLk`, `curl --insecure`
-    /\bcurl\b[^|;&\n]*\s(?:-[a-zA-Z]*k[a-zA-Z]*|--insecure)(?=\s|$)/,
-    /\bwget\s[^|;&\n]*--no-check-certificate\b/,
+    /\bcurl\b[^|;&\n]{0,2000}\s(?:-[a-zA-Z]*k[a-zA-Z]*|--insecure)(?=\s|$)/,
+    /\bwget\s[^|;&\n]{0,2000}--no-check-certificate\b/,
     /\bhttp\.sslVerify\b["']?\s*[=\s]\s*["']?false\b|\bGIT_SSL_NO_VERIFY\b["']?\s*[:=]\s*["']?(?:1|true)\b/,
     /\binsecure-skip-tls-verify["']?\s*:\s*["']?true\b/,
     new RegExp(`${insecureKubeFlag}(?:=true)?(?=\\s|$)`)
@@ -14216,7 +14216,7 @@ var readers = [
     files: /(?:^|\/)pyproject\.toml$/i,
     urls: (content, section) => {
       const entries = [];
-      const direct = /["']\s*[\w.-]+(?:\[[^\]]*\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
+      const direct = /["']\s*[\w.-]+(?:\[[^\]]{0,200}\])?\s*@\s*((?:git\+)?[a-z][\w+.-]*:\/\/[^"'\s;]+)/i.exec(content);
       if (direct) {
         entries.push({ url: direct[1] ?? "" });
       }
@@ -14228,7 +14228,7 @@ var readers = [
       if (sourceUrl && /^tool\.(?:poetry\.source|uv\.index|pdm\.source)$/i.test(section)) {
         entries.push({ url: sourceUrl[1] ?? "" });
       }
-      const inline = /\{[^}]*?\b(git|url)\s*=\s*"([^"]+)"/i.exec(content);
+      const inline = /\{[^{}]{0,300}?\b(git|url)\s*=\s*"([^"]{1,500})"/i.exec(content);
       if (inline) {
         entries.push({ url: inline[2] ?? "", git: inline[1]?.toLowerCase() === "git" });
       }
@@ -14447,7 +14447,7 @@ var kinds2 = [
   {
     label: "adds the SYS_ADMIN or ALL capability",
     high: true,
-    pattern: /--cap-add[=\s]+["']?(?:CAP_)?(?:ALL|SYS_ADMIN)\b|\b(?:cap_add|add)\s*:\s*\[[^\]]*\b(?:CAP_)?(?:ALL|SYS_ADMIN)\b/
+    pattern: /--cap-add[=\s]+["']?(?:CAP_)?(?:ALL|SYS_ADMIN)\b|\b(?:cap_add|add)\s*:\s*\[[^\]]{0,500}\b(?:CAP_)?(?:ALL|SYS_ADMIN)\b/
   },
   {
     // A mount of the socket, not a client setting such as DOCKER_HOST=unix:///var/run/docker.sock.
@@ -14665,7 +14665,7 @@ function portsIn(lines) {
   froms.forEach((from, index) => ranges.push([from, tos[index] ?? from]));
   const values = [
     ...[...text.matchAll(/\b(?:port|Port|destination_port_range|DestinationPortRange)["']?\s*[=:]\s*["']?(\*|\d+(?:-\d+)?)/g)].map((match2) => match2[1] ?? ""),
-    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]*)\]/g)].flatMap(
+    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]{0,500})\]/g)].flatMap(
       (match2) => (match2[1] ?? "").split(",").map((value) => value.replace(/["'\s]/g, ""))
     )
   ].filter(Boolean);
@@ -14689,13 +14689,13 @@ var downloader = String.raw`(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMe
 var shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:python[23]?|node|perl|ruby)(?:\s+-)?\s*(?:$|[;&|)]))`;
 var patterns = [
   // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `... | sudo env A=1 bash`, `irm ... | iex`
-  new RegExp(String.raw`\b${downloader}\b[^|;&\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
+  new RegExp(String.raw`\b${downloader}\b[^|;&\n]{0,2000}\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
   // `bash <(curl ...)`, `source <(curl ...)`
   /(?:^|[\s;&|(])(?:source|\.|(?:ba|z|k)?sh)\s+(?:-s\s+)?<\(\s*(?:curl|wget)\b/i,
   // `sh -c "$(curl ...)"`, `eval "$(curl ...)"`
   /\b(?:eval|(?:ba|z|k)?sh\s+-c)\s+["']?\$\(\s*(?:curl|wget)\b/i,
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
-  new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]*\)\.)?${downloader}\b`, "i")
+  new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
 var commentLine5 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation3 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -14811,7 +14811,7 @@ var languages2 = [
       ["pickle", /\b(?:c?pickle|marshal|shelve)\.loads?\s*\(/],
       [
         "yaml.load",
-        /\byaml\.(?:load(?:_all)?\s*\((?!.*\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
+        /\byaml\.(?:load(?:_all)?\s*\((?!.{0,500}\b(?:Safe|CSafe|Base)Loader\b)|unsafe_load(?:_all)?\s*\()/
       ],
       ["shell=True", /\bshell\s*=\s*True\b/],
       ["os.system", /\bos\.(?:system|popen)\s*\(/]
@@ -14881,7 +14881,7 @@ var languages2 = [
     calls: [
       [
         "shell command",
-        /\bexec\.Command(?:Context)?\s*\((?:[^,"]*,\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
+        /\bexec\.Command(?:Context)?\s*\((?:[^,"]{0,200},\s*)?"(?:[^"]*\/)?(?:sh|bash|zsh|dash|ksh|cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)"\s*,\s*"(?:-[a-zA-Z]*c|\/[cC]|-Command)"/
       ],
       ["template.HTML", /\btemplate\.HTML\s*\(/]
     ]
@@ -15229,7 +15229,7 @@ function findInjections(patch) {
 }
 function untrustedContexts(text) {
   const contexts = [];
-  for (const [, expression = ""] of text.matchAll(/\$\{\{([\s\S]*?)\}\}/g)) {
+  for (const [, expression = ""] of text.matchAll(/\$\{\{([\s\S]{0,2000}?)\}\}/g)) {
     const normalized = expression.replace(/\[\s*['"]([\w-]+)['"]\s*\]/g, ".$1").replace(/\[\s*\d+\s*\]/g, ".*");
     for (const [path2] of normalized.matchAll(/\bgithub(?:\.[\w*-]+)*/g)) {
       if (isUntrusted(path2.split("."))) {
@@ -15299,7 +15299,7 @@ var languages3 = [
   {
     // XCTest and Swift Testing.
     files: /\.swift$/,
-    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]*\.disabled\b/]]
+    markers: [["skipped", /\bthrow\s+XCTSkip\s*\(|\bXCTSkip(?:If|Unless)\s*\(|@Test\s*\([^)]{0,500}\.disabled\b/]]
   },
   {
     // PHPUnit and Pest.
@@ -15309,7 +15309,7 @@ var languages3 = [
       // Pest chains `->skip()` on a test call; Laravel's query and collection `skip(10)` do not count.
       [
         "skipped",
-        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]*->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
+        /\$this->markTest(?:Skipped|Incomplete)\s*\(|\}\)\s*->skip\s*\(|\b(?:it|test|describe)\s*\([^;]{0,2000}->skip\s*\(|^\s*->skip\s*\(\s*(?:\)|["'])/
       ]
     ]
   }
@@ -15365,7 +15365,7 @@ function describeSkipped(lines) {
 var sqlCall = /(?:^|[^\w$])(execute|executemany|executescript|query|raw|executeQuery|executeUpdate|addBatch|createQuery|createNativeQuery|prepareStatement|Query|QueryRow|QueryContext|QueryRowContext|Exec|ExecContext|FromSqlRaw|ExecuteSqlRaw|SqlCommand|find_by_sql|select_all|select_one|select_value|where|order|having|joins|mysqli_query|pg_query|read_sql|read_sql_query|\$queryRawUnsafe|\$executeRawUnsafe)\s*\(/;
 var sqlVariable = /\b\w*(?:sql|query|stmt|statement)\w*\s*(?::\s*[\w<>[\]]+\s*)?=(?!=)/i;
 var fragmentCall = /^(?:where|order|having|joins|find_by_sql|select_all|select_one|select_value)$/;
-var sqlKeyword = /\bselect\s.+?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
+var sqlKeyword = /\bselect\s.{1,500}?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
 var builtString = [
   /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/,
   // Python f-string, also inside text(...)
@@ -15482,7 +15482,8 @@ function isAtLeast(severity, minimum) {
 }
 
 // src/analysis/suppressions.ts
-var marker = /prism-review-ignore\s+([\w-]+(?:\s*,\s*[\w-]+)*)\s*(?:--|:)\s*(.*?)\s*(?:\*\/|-->|%>|#>)?\s*$/;
+var marker = /prism-review-ignore\s+([\w-]+(?:\s*,\s*[\w-]+)*)\s*(?:--|:)(.*)$/;
+var closer = /(?:\*\/|-->|%>|#>)\s*$/;
 var maxReasonLength = 200;
 var standalone = /^\s*(?:#|\/\/|\/\*+|--|<!--|;|%|<%#|\{\/\*|'|REM\b)?\s*prism-review-ignore\b/i;
 function applySuppressions(files, findings, protectedRules) {
@@ -15517,7 +15518,7 @@ function findMarkers(files) {
     const byLine = /* @__PURE__ */ new Map();
     for (const { line, content } of patchLines(file.patch)) {
       const match2 = marker.exec(content);
-      const reason = match2?.[2]?.trim().slice(0, maxReasonLength) ?? "";
+      const reason = (match2?.[2] ?? "").trim().replace(closer, "").trim().slice(0, maxReasonLength);
       if (match2 === null || !/\w/.test(reason)) {
         continue;
       }
