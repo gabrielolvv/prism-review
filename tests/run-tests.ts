@@ -157,6 +157,14 @@ import {
   testRenderMarkdownListsOneAreaWithoutGroups,
   testRenderMarkdownCountsFindingsLeftOutOfGroups
 } from "./unit/finding-areas.test.js";
+import {
+  testReviewStateRoundTripsAndIgnoresLineNumbers,
+  testReviewStateKeepsFileNamesOut,
+  testReviewStateRejectsAnythingMalformed,
+  testReviewStateGivesUpPastItsLimit,
+  testRenderMarkdownMarksNewFindings,
+  testRenderMarkdownLeavesRoomForTheRecord
+} from "./unit/review-state.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -429,6 +437,12 @@ const tests: Array<[string, Test]> = [
   ["render markdown groups findings by area", testRenderMarkdownGroupsFindingsByArea],
   ["render markdown lists one area without groups", testRenderMarkdownListsOneAreaWithoutGroups],
   ["render markdown counts findings left out of groups", testRenderMarkdownCountsFindingsLeftOutOfGroups],
+  ["review state round-trips and ignores line numbers", testReviewStateRoundTripsAndIgnoresLineNumbers],
+  ["review state keeps file names out", testReviewStateKeepsFileNamesOut],
+  ["review state rejects anything malformed", testReviewStateRejectsAnythingMalformed],
+  ["review state gives up past its limit", testReviewStateGivesUpPastItsLimit],
+  ["render markdown marks new findings", testRenderMarkdownMarksNewFindings],
+  ["render markdown leaves room for the review state", testRenderMarkdownLeavesRoomForTheRecord],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

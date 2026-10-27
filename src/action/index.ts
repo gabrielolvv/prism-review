@@ -8,9 +8,10 @@ import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl, type GitHubCli
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { syncLineComments, type LineCommentOptions } from "../github/line-comments.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
-import { publishPullRequestComment } from "../github/publish-comment.js";
+import { findReviewComment, publishReviewComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
+import { readState } from "../reporting/review-state.js";
 import { renderSarif } from "../reporting/render-sarif.js";
 import { defaultRules } from "../rules/index.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
@@ -51,7 +52,14 @@ async function run(): Promise<void> {
     configPath: inputs.configPath,
     expectedFileCount: pullRequest.changed_files
   });
-  const body = renderMarkdown(result, config.comment);
+  // Read before rendering, so the review can mark what changed since the previous one. A dry run
+  // makes no comment API calls, so it does not compare.
+  const previous = inputs.dryRun ? undefined : await findReviewComment(client, owner, repo, pullRequest.number);
+  const body = renderMarkdown(result, {
+    includeLowSeverity: config.comment.includeLowSeverity,
+    previous: previous === undefined ? undefined : readState(previous.body),
+    recordState: true
+  });
 
   if (config.annotations.enabled) {
     for (const annotation of renderAnnotations(result, config.annotations)) {
@@ -69,14 +77,7 @@ async function run(): Promise<void> {
     printUntrusted(body);
   } else {
     try {
-      await publishPullRequestComment(
-        client,
-        owner,
-        repo,
-        pullRequest.number,
-        body,
-        config.comment.mode
-      );
+      await publishReviewComment(client, owner, repo, pullRequest.number, body, config.comment.mode, previous);
       if (config.reviewComments.enabled) {
         await publishLineComments(client, owner, repo, pullRequest, result.findings, config.reviewComments);
       }

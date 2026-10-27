@@ -2,11 +2,16 @@ import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/findi
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 import { compareSeverity, type Severity } from "../analysis/severity.js";
 import { areaOf, areas } from "../rules/areas.js";
+import { compareWithPrevious, renderState, type Comparison, type PreviousFindings } from "./review-state.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 
 export type RenderOptions = {
   includeLowSeverity: boolean;
+  // The findings an earlier review comment recorded, to mark what is new since then.
+  previous?: PreviousFindings;
+  // Records the findings in the comment, for the next run to compare with.
+  recordState?: boolean;
 };
 
 export function renderMarkdown(
@@ -17,6 +22,10 @@ export function renderMarkdown(
     ? result.findings
     : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
+  const comparison = options.previous === undefined ? undefined : compareWithPrevious(findings, options.previous);
+  const changes = comparison === undefined ? [] : [renderChanges(comparison), ""];
+  const state = options.recordState ? ["", renderState(findings)] : [];
+  const budget = maxFindingsLength - [...suppressed, ...changes, ...state].join("\n").length;
 
   return [
     PRISM_COMMENT_MARKER,
@@ -31,9 +40,10 @@ export function renderMarkdown(
     "",
     "### Findings",
     "",
+    ...changes,
     findings.length === 0
       ? "No warning or high-risk findings were detected."
-      : renderFindings(findings, maxFindingsLength - suppressed.join("\n").length),
+      : renderFindings(findings, budget, comparison?.isNew ?? (() => false)),
     "",
     ...suppressed,
     "### Suggested Review Checklist",
@@ -41,8 +51,19 @@ export function renderMarkdown(
     "- Are tests covering the changed behavior?",
     "- Are security-sensitive changes reviewed by the right owner?",
     "- Are deployment, migration, or rollback risks understood?",
-    "- Are new dependencies necessary and trusted?"
+    "- Are new dependencies necessary and trusted?",
+    ...state
   ].join("\n");
+}
+
+function renderChanges({ newCount, noLongerReported }: Comparison): string {
+  const resolved = noLongerReported.reduce((total, [, count]) => total + count, 0);
+  if (newCount === 0 && resolved === 0) {
+    return "No findings were added or resolved since the previous review.";
+  }
+
+  const rules = noLongerReported.map(([ruleId, count]) => `${codeSpan(ruleId)} (${count})`).join(", ");
+  return `Since the previous review: ${newCount} new finding(s), ${resolved} no longer reported${resolved > 0 ? ` (${rules})` : ""}.`;
 }
 
 // GitHub rejects comments over 65536 characters, and the job summary is capped too, so the list
@@ -53,14 +74,14 @@ const maxFindingsLength = 55_000;
 // The overview line and area headings, taken from the budget before the findings.
 const groupingReserve = 1_000;
 
-function renderFindings(findings: Finding[], budget: number): string {
+function renderFindings(findings: Finding[], budget: number, isNew: (finding: Finding) => boolean): string {
   // Findings from one area are listed as they are; from several, they are grouped by area.
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
   const shown: Array<{ finding: Finding; block: string }> = [];
   let length = 0;
 
   for (const finding of findings) {
-    const block = renderFinding(finding);
+    const block = renderFinding(finding, isNew(finding));
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
@@ -136,9 +157,9 @@ function renderSuppressed(suppressed: SuppressedFinding[]): string[] {
   return ["### Suppressed Inline", "", ...lines, ""];
 }
 
-function renderFinding(finding: Finding): string {
+function renderFinding(finding: Finding, isNew: boolean): string {
   const sections = [
-    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
+    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}${isNew ? " (new)" : ""}`,
     "",
     escapeText(finding.message)
   ];

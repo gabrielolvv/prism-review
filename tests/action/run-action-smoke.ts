@@ -8,6 +8,7 @@ import {
   fakeAnnotationsBaseSha,
   fakeAppendBaseSha,
   fakeBaseSha,
+  fakeComparisonBaseSha,
   fakeFailOnHighBaseSha,
   fakeLeakedToken,
   fakeHeadSha,
@@ -494,6 +495,21 @@ const scenarios: Array<[string, () => void]> = [
       assert.ok(!run.requests.some((request) => request.method === "DELETE"));
       assert.match(run.stdout, /Review comments: 1 posted, 0 updated, 1 marked resolved\./);
       assert.match(run.stdout, /::warning title=Prism Review::1 line finding\(s\) are outside the diff/);
+    }
+  ],
+  [
+    "the review marks findings that are new since the previous review",
+    () => {
+      const run = runAction({}, { pull_request: { number: 23, base: { sha: fakeComparisonBaseSha } } });
+      assert.equal(run.status, 0, run.stderr);
+
+      const update = run.requests.find((request) => request.method === "PATCH" && request.path === "/repos/acme/widgets/issues/comments/30");
+      const body = update?.body?.body ?? "";
+      assert.match(body, /^Since the previous review: 1 new finding\(s\), 1 no longer reported \(`secret-in-diff` \(1\)\)\.$/m);
+      assert.match(body, /^#### High - Sensitive file changed \(new\)$/m);
+      assert.match(body, /^#### Warning - Source changed without tests$/m);
+      // The comment records this run's findings for the next one.
+      assert.match(body, /\n<!-- prism-review-state v1 sensitive-files:[0-9a-f]{12} missing-tests:[0-9a-f]{12} -->$/);
     }
   ],
   [
