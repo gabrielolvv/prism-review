@@ -4,7 +4,9 @@ import type { Finding, SuppressedFinding } from "./finding.js";
 
 // `prism-review-ignore rule-id[, rule-id] -- reason` in a comment after the code, or alone on the line above.
 // The reason is required, so every suppression says why it is safe.
-const marker = /prism-review-ignore\s+([\w-]+(?:\s*,\s*[\w-]+)*)\s*(?:--|:)\s*(.*?)\s*(?:\*\/|-->|%>|#>)?\s*$/;
+const marker = /prism-review-ignore\s+([\w-]+(?:\s*,\s*[\w-]+)*)\s*(?:--|:)(.*)$/;
+// A comment closer after the reason, such as `*/` or `-->`, is not part of it.
+const closer = /(?:\*\/|-->|%>|#>)\s*$/;
 const maxReasonLength = 200;
 // A marker alone on a comment line covers the line below; one after code covers only its own line.
 const standalone = /^\s*(?:#|\/\/|\/\*+|--|<!--|;|%|<%#|\{\/\*|'|REM\b)?\s*prism-review-ignore\b/i;
@@ -55,7 +57,7 @@ function findMarkers(files: ChangedFile[]): Markers {
     const byLine = new Map<number, Map<string, string>>();
     for (const { line, content } of patchLines(file.patch)) {
       const match = marker.exec(content);
-      const reason = match?.[2]?.trim().slice(0, maxReasonLength) ?? "";
+      const reason = (match?.[2] ?? "").trim().replace(closer, "").trim().slice(0, maxReasonLength);
       if (match === null || !/\w/.test(reason)) {
         continue;
       }

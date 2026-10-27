@@ -11,13 +11,13 @@ const shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:pyth
 // Each pattern runs downloaded content without saving it, so nothing can check it first.
 const patterns = [
   // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `... | sudo env A=1 bash`, `irm ... | iex`
-  new RegExp(String.raw`\b${downloader}\b[^|;&\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
+  new RegExp(String.raw`\b${downloader}\b[^|;&\n]{0,2000}\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
   // `bash <(curl ...)`, `source <(curl ...)`
   /(?:^|[\s;&|(])(?:source|\.|(?:ba|z|k)?sh)\s+(?:-s\s+)?<\(\s*(?:curl|wget)\b/i,
   // `sh -c "$(curl ...)"`, `eval "$(curl ...)"`
   /\b(?:eval|(?:ba|z|k)?sh\s+-c)\s+["']?\$\(\s*(?:curl|wget)\b/i,
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
-  new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]*\)\.)?${downloader}\b`, "i")
+  new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
 
 const commentLine = /^\s*(?:#|\/\/|REM\b|::)/i;

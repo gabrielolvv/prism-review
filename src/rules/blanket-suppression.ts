@@ -57,7 +57,7 @@ const languages: Language[] = [
       ["Psalm", /@psalm-suppress\s+all\b/i]
     ]
   },
-  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]*\b(?:warnings|clippy::all)\b[^)]*\)\]/]] }
+  { files: /\.rs$/, markers: [["Rust lints", /#!?\[allow\([^)]{0,500}\b(?:warnings|clippy::all)\b[^)]{0,500}\)\]/]] }
 ];
 
 export const blanketSuppressionRule: Rule = {

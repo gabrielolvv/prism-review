@@ -13,7 +13,7 @@ const sqlVariable = /\b\w*(?:sql|query|stmt|statement)\w*\s*(?::\s*[\w<>[\]]+\s*
 const fragmentCall = /^(?:where|order|having|joins|find_by_sql|select_all|select_one|select_value)$/;
 // SQL structure rather than single words, so English text such as "email from {sender}" does not count.
 const sqlKeyword =
-  /\bselect\s.+?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
+  /\bselect\s.{1,500}?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
 
 // Values inserted into the query text rather than passed as parameters.
 const builtString = [

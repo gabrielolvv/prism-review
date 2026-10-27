@@ -19,7 +19,7 @@ const kinds: Kind[] = [
   {
     label: "adds the SYS_ADMIN or ALL capability",
     high: true,
-    pattern: /--cap-add[=\s]+["']?(?:CAP_)?(?:ALL|SYS_ADMIN)\b|\b(?:cap_add|add)\s*:\s*\[[^\]]*\b(?:CAP_)?(?:ALL|SYS_ADMIN)\b/
+    pattern: /--cap-add[=\s]+["']?(?:CAP_)?(?:ALL|SYS_ADMIN)\b|\b(?:cap_add|add)\s*:\s*\[[^\]]{0,500}\b(?:CAP_)?(?:ALL|SYS_ADMIN)\b/
   },
   {
     // A mount of the socket, not a client setting such as DOCKER_HOST=unix:///var/run/docker.sock.
