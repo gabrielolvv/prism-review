@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- The comment lists the dependencies the pull request adds, removes, or moves to another version in a Dependency Changes table, read from `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, and `Cargo.toml`. Reordered lines are not changes, the table shows at most 30 rows within a size budget of its own, and `comment.dependencyChanges: false` leaves it out. The JSON output lists every change under `dependencyChanges`.
+
+### Changed
+
+- `lookalike-dependency` reads manifests through the same parser as the table.
+
 ## 0.24.0 - 2026-10-27
 
 ### Added

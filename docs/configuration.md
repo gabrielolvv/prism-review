@@ -103,6 +103,7 @@ comment:
   includeLowSeverity: false
   checklist: []
   codeOwners: true
+  dependencyChanges: true
 
 annotations:
   enabled: false
@@ -536,6 +537,16 @@ Each finding in the comment, and each review comment on a line, ends with a `Rul
 ### `comment.checklist`
 
 Questions of your own, added at the end of the Suggested Review Checklist on every review, such as `Is the CHANGELOG updated?`. Up to 10, each up to 300 characters; they are shown as plain text, like finding text.
+
+### `comment.dependencyChanges`
+
+When `true`, the default, the comment lists the dependencies the pull request adds, removes, or moves to another version, in a Dependency Changes table after the findings, such as `lodash` from `4.17.20` to `4.17.21`. It reads the same manifests as `lookalike-dependency`: `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, and `Cargo.toml`, not lockfiles, whose transitive changes would bury the direct ones.
+
+- A dependency removed and added back with the same version, as when lines are reordered, is not listed. PyPI names compare as PyPI does, so `Django` and `django` are one package.
+- Versions are shown as written in the manifest. A dependency without one, such as `requests` in a requirements file or a Git dependency in `Cargo.toml`, shows none.
+- Manifests in test data and fixture directories, and files left out by `ignorePaths` or `.gitattributes`, are not listed. A TOML table must be visible in the diff for its entries to be read.
+- The table shows at most 30 changes and has its own size budget within the comment, and says how many are left out. The JSON output lists every change under `dependencyChanges`.
+- `false` leaves the table out of the comment; the JSON output still has it.
 
 ### `comment.codeOwners`
 

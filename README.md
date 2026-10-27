@@ -30,6 +30,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Marks the findings that are new since the previous review on the pull request, and counts the ones no longer reported
 - Ends with a reviewer checklist that asks about the findings, such as whether an added credential was revoked, plus questions of your own
 - Names the CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone
+- Lists the dependencies a pull request adds, removes, or upgrades, per manifest
 - Flags changes to CODEOWNERS and to the files `.gitattributes` marks generated, which change how later pull requests are reviewed
 - Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
@@ -148,7 +149,7 @@ It reads `.prism-review.yml` from the current directory, or the file passed with
 git diff origin/main...HEAD | node path/to/prism-review/dist/cli/main.cjs analyze --diff - > /dev/null
 ```
 
-`--format json` prints the review as JSON for scripts, with each finding's area, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
+`--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
 
 Run `node dist/cli/main.cjs --help` for every option.
 
@@ -187,6 +188,7 @@ comment:
   checklist:
     - "Is the CHANGELOG updated?"
   codeOwners: true
+  dependencyChanges: true
 
 annotations:
   enabled: true
