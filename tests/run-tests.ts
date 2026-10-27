@@ -207,6 +207,11 @@ import {
   testComposerAndNuGetGoThroughTheDependencyRules,
   testComposerAndNuGetManifestsAreRead
 } from "./unit/composer-nuget.test.js";
+import {
+  testGradleDependenciesAreRead,
+  testMavenAndGradleGoThroughTheDependencyRules,
+  testMavenDependenciesAreReadAcrossLines
+} from "./unit/maven-gradle.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -517,6 +522,9 @@ const tests: Array<[string, Test]> = [
   ["Go modules go through the dependency rules", testGoModulesGoThroughTheDependencyRules],
   ["Composer and NuGet manifests are read", testComposerAndNuGetManifestsAreRead],
   ["Composer and NuGet go through the dependency rules", testComposerAndNuGetGoThroughTheDependencyRules],
+  ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
+  ["Gradle dependencies are read", testGradleDependenciesAreRead],
+  ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

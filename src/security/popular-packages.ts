@@ -1,6 +1,6 @@
 // Widely used packages per registry, which typosquatters imitate. The list only needs the names
 // worth imitating; a dependency named exactly like one of them is never reported.
-export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io" | "Go" | "Packagist" | "NuGet";
+export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io" | "Go" | "Packagist" | "NuGet" | "Maven";
 
 export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
   npm: [
@@ -122,5 +122,29 @@ export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
     "Quartz", "NLog", "log4net", "CsvHelper", "Humanizer", "Bogus", "NSubstitute", "Castle.Core", "BenchmarkDotNet",
     "MassTransit", "RabbitMQ.Client", "Grpc.Net.Client", "Google.Protobuf", "System.Text.Json",
     "Microsoft.Data.SqlClient", "MongoDB.Driver", "NEST", "Refit", "Scrutor", "Mapster", "OpenTelemetry"
+  ],
+  // `group:artifact`, as Maven and Gradle name them.
+  Maven: [
+    "org.springframework:spring-core", "org.springframework:spring-context", "org.springframework:spring-web",
+    "org.springframework:spring-webmvc", "org.springframework.boot:spring-boot-starter",
+    "org.springframework.boot:spring-boot-starter-web", "org.springframework.boot:spring-boot-starter-test",
+    "org.springframework.boot:spring-boot-starter-data-jpa", "org.springframework.boot:spring-boot-starter-security",
+    "com.fasterxml.jackson.core:jackson-databind", "com.fasterxml.jackson.core:jackson-core",
+    "com.fasterxml.jackson.core:jackson-annotations", "com.google.guava:guava", "org.apache.commons:commons-lang3",
+    "org.apache.commons:commons-collections4", "commons-io:commons-io", "commons-codec:commons-codec",
+    "org.slf4j:slf4j-api", "ch.qos.logback:logback-classic", "org.apache.logging.log4j:log4j-core",
+    "org.apache.logging.log4j:log4j-api", "junit:junit", "org.junit.jupiter:junit-jupiter",
+    "org.junit.jupiter:junit-jupiter-api", "org.junit.jupiter:junit-jupiter-engine", "org.mockito:mockito-core",
+    "org.assertj:assertj-core", "org.projectlombok:lombok", "com.google.code.gson:gson",
+    "org.apache.httpcomponents:httpclient", "com.squareup.okhttp3:okhttp", "com.squareup.retrofit2:retrofit",
+    "org.hibernate:hibernate-core", "org.hibernate.orm:hibernate-core", "mysql:mysql-connector-java",
+    "com.mysql:mysql-connector-j", "org.postgresql:postgresql", "com.h2database:h2", "org.jetbrains.kotlin:kotlin-stdlib",
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core", "io.netty:netty-all", "io.reactivex.rxjava3:rxjava",
+    "com.google.dagger:dagger", "javax.servlet:javax.servlet-api", "jakarta.servlet:jakarta.servlet-api",
+    "org.yaml:snakeyaml", "io.micrometer:micrometer-core", "org.apache.kafka:kafka-clients", "software.amazon.awssdk:s3",
+    "com.amazonaws:aws-java-sdk-s3", "org.apache.poi:poi", "org.apache.poi:poi-ooxml", "com.google.protobuf:protobuf-java",
+    "io.grpc:grpc-netty", "androidx.appcompat:appcompat", "androidx.core:core-ktx",
+    "com.google.android.material:material", "org.testng:testng", "org.hamcrest:hamcrest",
+    "org.springdoc:springdoc-openapi-starter-webmvc-ui"
   ]
 };

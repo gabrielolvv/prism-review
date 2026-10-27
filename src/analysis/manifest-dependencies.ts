@@ -15,6 +15,9 @@ type Manifest = {
   entries: (content: string, section: string) => Entry[];
   // The section a line opens or closes, if any; TOML table headers by default.
   section?: (content: string) => string | undefined;
+  // Reads the whole patch instead of line by line, for formats that spread one dependency over
+  // several lines.
+  parse?: (patch: string) => { added: DeclaredDependency[]; removed: DeclaredDependency[] };
 };
 
 // How a dependency changed: `from` is missing for an added one, and `to` for a removed one. `line`
@@ -53,6 +56,15 @@ const nugetTag = /<\s*(?:PackageReference|PackageVersion|GlobalPackageReference)
 const nugetName = /\b(?:Include|Update)\s*=\s*"([A-Za-z0-9_.-]{1,200})"/i;
 const nugetVersion = /\bVersion(?:Override)?\s*=\s*"([^"]{0,100})"/i;
 const packagesConfigTag = /<\s*package\b([^>]{0,500})/i;
+const gradleConfiguration =
+  "(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testCompileOnly|testRuntimeOnly|androidTestImplementation|debugImplementation|releaseImplementation|annotationProcessor|kapt|ksp|classpath|compile|testCompile|runtime)";
+const gradleCoordinate = new RegExp(
+  `^\\s*${gradleConfiguration}\\s*\\(?\\s*(?:(?:platform|enforcedPlatform)\\s*\\(\\s*)?["']([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})(?::([^"'@\\s]{1,100}))?(?:@\\w{1,20})?["']`
+);
+const gradleMap = new RegExp(
+  `^\\s*${gradleConfiguration}\\s*\\(?\\s*group\\s*[:=]\\s*["']([A-Za-z0-9_.-]{1,200})["']\\s*,\\s*name\\s*[:=]\\s*["']([A-Za-z0-9_.-]{1,200})["'](?:\\s*,\\s*version\\s*[:=]\\s*["']([^"']{1,100})["'])?`
+);
+const catalogEntry = /^\s*[A-Za-z0-9_.-]{1,100}\s*=\s*(.{1,400})$/;
 const goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 
 const manifests: Manifest[] = [
@@ -133,6 +145,46 @@ const manifests: Manifest[] = [
     }
   },
   {
+    ecosystem: "Maven",
+    files: /(?:^|\/)pom\.xml$/,
+    entries: () => [],
+    parse: mavenDependencies
+  },
+  {
+    ecosystem: "Maven",
+    files: /(?:^|\/)build\.gradle(?:\.kts)?$/,
+    // `implementation("group:artifact:1.0")`, `implementation 'group:artifact:1.0'`, `platform(...)`,
+    // and `implementation group: 'g', name: 'a', version: '1.0'`.
+    entries(content) {
+      const [matched, group = "", artifact = "", version = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
+      return matched === undefined ? [] : [{ name: `${group}:${artifact}`, version }];
+    }
+  },
+  {
+    ecosystem: "Maven",
+    files: /(?:^|\/)libs\.versions\.toml$/,
+    // `[libraries]` entries: `"group:artifact:1.0"`, or a table with `module` or `group` and `name`,
+    // and a `version`; a `version.ref` names a `[versions]` entry and reads as no version.
+    entries(content, section) {
+      const value = section === "libraries" ? catalogEntry.exec(content)?.[1] : undefined;
+      if (value === undefined) {
+        return [];
+      }
+      const short = /^"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})(?::([^"]{1,100}))?"/.exec(value);
+      const module = /\bmodule\s*=\s*"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})"/.exec(value);
+      const group = /\bgroup\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
+      const name = /\bname\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
+      const version = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
+      if (short) {
+        return [{ name: `${short[1]}:${short[2]}`, version: short[3] ?? "" }];
+      }
+      if (module) {
+        return [{ name: `${module[1]}:${module[2]}`, version }];
+      }
+      return group !== undefined && name !== undefined ? [{ name: `${group}:${name}`, version }] : [];
+    }
+  },
+  {
     ecosystem: "Go",
     files: /(?:^|\/)go\.mod$/,
     // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
@@ -167,6 +219,9 @@ export function declaredDependencies(path: string, patch: string): { added: Decl
   const removed: DeclaredDependency[] = [];
   if (manifest === undefined) {
     return { added, removed };
+  }
+  if (manifest.parse !== undefined) {
+    return manifest.parse(patch);
   }
 
   let oldLine: number | undefined;
@@ -271,4 +326,80 @@ function tomlEntries(content: string): Entry[] {
   }
   const version = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
   return [{ name, version }];
+}
+
+type HunkLine = { kind: " " | "+" | "-"; content: string; oldLine: number; newLine: number };
+
+// In a pom.xml, a `<dependency>` spreads its group, artifact, and version over several lines, and a
+// version bump changes only one of them. Each hunk is read as its old and its new text, and a block
+// counts as removed or added only when one of its lines changed, so unchanged dependencies in the
+// context are not reported. A block cut off by the start of a hunk is read from what is shown.
+function mavenDependencies(patch: string): { added: DeclaredDependency[]; removed: DeclaredDependency[] } {
+  const added: DeclaredDependency[] = [];
+  const removed: DeclaredDependency[] = [];
+
+  for (const hunk of hunksOf(patch)) {
+    added.push(...dependencyBlocks(hunk, "+"));
+    removed.push(...dependencyBlocks(hunk, "-"));
+  }
+  return { added, removed };
+}
+
+function hunksOf(patch: string): HunkLine[][] {
+  const hunks: HunkLine[][] = [];
+  let oldLine = 0;
+  let newLine = 0;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader.exec(line);
+    if (header) {
+      oldLine = Number(header[1]);
+      newLine = Number(header[2]);
+      hunks.push([]);
+      continue;
+    }
+    const hunk = hunks[hunks.length - 1];
+    const kind = line[0];
+    if (hunk === undefined || (kind !== " " && kind !== "+" && kind !== "-")) {
+      continue;
+    }
+    hunk.push({ kind, content: line.slice(1), oldLine, newLine });
+    if (kind !== "+") {
+      oldLine += 1;
+    }
+    if (kind !== "-") {
+      newLine += 1;
+    }
+  }
+  return hunks;
+}
+
+// The `side` text is the context with that side's lines. A block counts as changed when any line in
+// it changed on either side, so a removed `<version>` line still marks the block in the new text.
+function dependencyBlocks(lines: HunkLine[], side: "+" | "-"): DeclaredDependency[] {
+  const found: DeclaredDependency[] = [];
+  let block: HunkLine[] = [];
+  for (const line of lines) {
+    const shown = line.kind === " " || line.kind === side;
+    if (shown && /<dependency\b[^>]{0,100}>/.test(line.content)) {
+      block = [];
+    }
+    block.push(line);
+    if (!shown || !/<\/dependency\s*>/.test(line.content)) {
+      continue;
+    }
+
+    const text = block
+      .filter((entry) => entry.kind === " " || entry.kind === side)
+      .map((entry) => entry.content)
+      .join(" ");
+    const group = /<groupId>\s*([^<\s]{1,200})\s*<\/groupId>/.exec(text)?.[1];
+    const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
+    const changed = block.find((entry) => entry.kind !== " ");
+    if (group !== undefined && artifact !== undefined && changed !== undefined) {
+      const version = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
+      found.push({ name: `${group}:${artifact}`, version, line: side === "+" ? changed.newLine : changed.oldLine });
+    }
+    block = [];
+  }
+  return found;
 }
