@@ -130,6 +130,11 @@ import {
   testPublicExposureRuleAllowsPublicWebAndPrivateRanges,
   testPublicExposureRuleCanBeDisabled
 } from "./unit/public-exposure.test.js";
+import {
+  testDisabledSecurityCheckRuleReportsEachLanguage,
+  testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests,
+  testDisabledSecurityCheckRuleCanBeDisabled
+} from "./unit/disabled-security-check.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -371,6 +376,9 @@ const tests: Array<[string, Test]> = [
   ["public-exposure rule reports open ports and public storage", testPublicExposureRuleReportsOpenPortsAndPublicStorage],
   ["public-exposure rule allows public web and private ranges", testPublicExposureRuleAllowsPublicWebAndPrivateRanges],
   ["public-exposure rule can be disabled", testPublicExposureRuleCanBeDisabled],
+  ["disabled-security-check rule reports each language", testDisabledSecurityCheckRuleReportsEachLanguage],
+  ["disabled-security-check rule ignores safe code, docs, and tests", testDisabledSecurityCheckRuleIgnoresSafeCodeDocsAndTests],
+  ["disabled-security-check rule can be disabled", testDisabledSecurityCheckRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

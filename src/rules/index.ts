@@ -3,6 +3,7 @@ import { configChangeRule } from "./config-change.js";
 import { credentialFileRule } from "./credential-file.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
+import { disabledSecurityCheckRule } from "./disabled-security-check.js";
 import { hiddenUnicodeRule } from "./hidden-unicode.js";
 import { incompleteReviewRule } from "./incomplete-review.js";
 import { largeDiffRule } from "./large-diff.js";
@@ -24,6 +25,7 @@ export const defaultRules: Rule[] = [
   incompleteReviewRule,
   secretInDiffRule,
   credentialFileRule,
+  disabledSecurityCheckRule,
   hiddenUnicodeRule,
   largeDiffRule,
   missingTestsRule,
