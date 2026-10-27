@@ -18,7 +18,7 @@ const kinds: Array<{ kind: Kind; destructive: boolean; pattern: RegExp }> = [
     kind: "drops a column",
     destructive: true,
     pattern:
-      /\bdrop\s+column\b|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
+      /\bdrop\s+column\b|\balter\s+table\b.*\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -52,6 +52,9 @@ const rollbackStart =
 const forwardStart =
   /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
 const commentLine = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+// Any other function or method ends a rollback that started at the same or a deeper indentation.
+const definition =
+  /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 
 export const destructiveMigrationRule: Rule = {
   id: "destructive-migration",
@@ -74,7 +77,7 @@ export const destructiveMigrationRule: Rule = {
         return [];
       }
 
-      const found = findChanges(file.patch);
+      const found = findChanges(file.path, file.patch);
       if (found.length === 0) {
         return [];
       }
@@ -100,30 +103,79 @@ export const destructiveMigrationRule: Rule = {
   }
 };
 
-function findChanges(patch: string): Array<{ line: number; kind: Kind }> {
+function findChanges(path: string, patch: string): Array<{ line: number; kind: Kind }> {
   const found: Array<{ line: number; kind: Kind }> = [];
-  let inRollback = false;
+  const sql = /\.sql$/i.test(path);
+  let rollbackIndent: number | undefined;
+  let inBlockComment = false;
 
   for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
     // Git names the enclosing function after `@@`, which tells where a hunk starts.
     if (startsHunk) {
-      inRollback = rollbackStart.test(hunkContext ?? "");
+      rollbackIndent = rollbackStart.test(hunkContext ?? "") ? indentation(hunkContext ?? "") : undefined;
+      inBlockComment = false;
     }
+    const defined = definition.exec(content);
     if (rollbackStart.test(content)) {
-      inRollback = true;
-    } else if (forwardStart.test(content)) {
-      inRollback = false;
+      rollbackIndent = indentation(content);
+    } else if (
+      forwardStart.test(content) ||
+      (defined && rollbackIndent !== undefined && (defined[1] ?? "").length <= rollbackIndent)
+    ) {
+      rollbackIndent = undefined;
     }
 
-    if (!added || inRollback || commentLine.test(content)) {
+    let code = content;
+    if (sql) {
+      ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
+    }
+    if (!added || rollbackIndent !== undefined || commentLine.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
-      if (pattern.test(content)) {
+      if (pattern.test(code)) {
         found.push({ line, kind });
       }
     }
   }
 
   return found;
+}
+
+function indentation(text: string): number {
+  return /^\s*/.exec(text)?.[0].length ?? 0;
+}
+
+// Drops `--` and `/* */` comments, carrying an open block comment to the next line.
+function stripSqlComments(content: string, inBlockComment: boolean): { code: string; inBlockComment: boolean } {
+  let code = "";
+  let rest = content;
+
+  while (rest.length > 0) {
+    if (inBlockComment) {
+      const end = rest.indexOf("*/");
+      if (end < 0) {
+        break;
+      }
+      inBlockComment = false;
+      rest = rest.slice(end + 2);
+      continue;
+    }
+
+    const lineComment = rest.indexOf("--");
+    const blockComment = rest.indexOf("/*");
+    if (lineComment >= 0 && (blockComment < 0 || lineComment < blockComment)) {
+      code += rest.slice(0, lineComment);
+      break;
+    }
+    if (blockComment < 0) {
+      code += rest;
+      break;
+    }
+    code += `${rest.slice(0, blockComment)} `;
+    inBlockComment = true;
+    rest = rest.slice(blockComment + 2);
+  }
+
+  return { code, inBlockComment };
 }
