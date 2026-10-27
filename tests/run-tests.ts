@@ -84,7 +84,9 @@ import {
   testDestructiveMigrationRuleIgnoresRollbackSections,
   testDestructiveMigrationRuleUsesTheHunkHeaderForContext,
   testDestructiveMigrationRuleIgnoresSafeChangesAndOtherFiles,
-  testDestructiveMigrationRuleCanBeDisabled
+  testDestructiveMigrationRuleCanBeDisabled,
+  testDestructiveMigrationRuleReadsMySqlDropsAndCodeAfterARollback,
+  testDestructiveMigrationRuleSkipsSqlComments
 } from "./unit/destructive-migration.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
@@ -293,6 +295,8 @@ const tests: Array<[string, Test]> = [
   ["destructive-migration rule uses the hunk header for context", testDestructiveMigrationRuleUsesTheHunkHeaderForContext],
   ["destructive-migration rule ignores safe changes and other files", testDestructiveMigrationRuleIgnoresSafeChangesAndOtherFiles],
   ["destructive-migration rule can be disabled", testDestructiveMigrationRuleCanBeDisabled],
+  ["destructive-migration rule reads MySQL drops and code after a rollback", testDestructiveMigrationRuleReadsMySqlDropsAndCodeAfterARollback],
+  ["destructive-migration rule skips SQL comments", testDestructiveMigrationRuleSkipsSqlComments],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

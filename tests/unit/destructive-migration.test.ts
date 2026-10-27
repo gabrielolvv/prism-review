@@ -180,6 +180,51 @@ export function testDestructiveMigrationRuleIgnoresSafeChangesAndOtherFiles(): v
   assert.deepEqual(findings, []);
 }
 
+export function testDestructiveMigrationRuleReadsMySqlDropsAndCodeAfterARollback(): void {
+  const findings = migrationFindings([
+    file("db/migrations/20261027_mysql.sql", [
+      "ALTER TABLE users DROP nickname;",
+      "ALTER TABLE users DROP INDEX ix_email, DROP FOREIGN KEY fk_org, DROP PRIMARY KEY;",
+      "ALTER TABLE users ALTER COLUMN role DROP DEFAULT;"
+    ]),
+    // A function after the rollback is not part of it.
+    file("alembic/versions/ghi789_helper.py", [
+      "def downgrade():",
+      "    pass",
+      "",
+      "def _drop_legacy():",
+      "    op.drop_table('legacy')"
+    ])
+  ]);
+
+  assert.deepEqual(
+    findings.map((finding) => [finding.file, finding.line]).sort(),
+    [
+      ["alembic/versions/ghi789_helper.py", 5],
+      ["db/migrations/20261027_mysql.sql", 1]
+    ]
+  );
+}
+
+export function testDestructiveMigrationRuleSkipsSqlComments(): void {
+  const findings = migrationFindings([
+    file("db/migrations/20261027_comments.sql", [
+      "CREATE TABLE orders_v2 (id bigint); -- later: DROP TABLE orders;",
+      "/* Cleanup, after the backfill:",
+      "DROP TABLE orders;",
+      "*/ SELECT 1;",
+      "/* inline */ CREATE INDEX ix ON orders_v2 (id);"
+    ])
+  ]);
+
+  assert.deepEqual(findings, []);
+
+  const [after] = migrationFindings([
+    file("db/migrations/20261027_after.sql", ["/* note */ DROP TABLE orders; -- gone"])
+  ]);
+  assert.equal(after?.line, 1);
+}
+
 export function testDestructiveMigrationRuleCanBeDisabled(): void {
   const config = prismConfigSchema.parse({ rules: { destructiveMigration: { enabled: false } } });
   const files = [file("db/migrate/1_drop.rb", ["drop_table :orders"])];
