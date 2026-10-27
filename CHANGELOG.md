@@ -6,6 +6,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
+- `public-exposure` rule reports, as high, Terraform, CloudFormation, and Kubernetes changes that open SSH, RDP, database, cache, search, or container API ports, or every port, to `0.0.0.0/0` or `::/0`, and that make storage buckets or databases public or grant `allUsers` access. Public web ports, private ranges, outbound rules, and deny rules are not reported. `rules.publicExposure.enabled` turns it off.
 - `privileged-container` rule reports, as high, privileged containers, Docker socket mounts, and added `SYS_ADMIN` or `ALL` capabilities in Kubernetes manifests, Helm values, Compose files, and `docker run` commands, and warns about host namespaces, `allowPrivilegeEscalation: true`, and running as root. Dropped capabilities and client settings such as `DOCKER_HOST` are not reported. `rules.privilegedContainers.enabled` turns it off.
 
 ## 0.10.0 - 2026-10-27
