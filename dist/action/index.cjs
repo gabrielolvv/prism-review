@@ -13928,6 +13928,8 @@ function stripSqlComments(content, inBlockComment) {
 // src/rules/disabled-security-check.ts
 var word = (...parts) => new RegExp(`(?:^|[^\\w@-])${parts.join("")}\\b`);
 var insecureKubeFlag = ["--insecure", "-skip-tls-verify"].join("");
+var pythonVerifyOff = /(?:[(,]\s*|^\s*|\b\w*session\.)verify\s*=\s*False\b(?!\s*[^\s,)#])/;
+var localUrl = /\bhttps?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])\b/;
 var tls = {
   label: "TLS certificate verification",
   high: true,
@@ -13935,7 +13937,7 @@ var tls = {
     /\brejectUnauthorized\s*:\s*false\b/,
     /\bNODE_TLS_REJECT_UNAUTHORIZED\b["']?\s*[:=]\s*["']?0\b/,
     /\bstrict-ssl\b["']?\s*[=:\s]\s*["']?false\b/,
-    /\bverify\s*=\s*False\b/,
+    pythonVerifyOff,
     /\bssl\._create_unverified_context\b|\bcheck_hostname\s*=\s*False\b|\bPYTHONHTTPSVERIFY\b["']?\s*[:=]\s*["']?0\b/,
     word("CERT", "_NONE"),
     word("VERIFY", "_NONE"),
@@ -14015,8 +14017,13 @@ var disabledSecurityCheckRule = {
   }
 };
 function checksIn(content) {
-  const matched = checks.filter((check) => check.patterns.some((pattern) => pattern.test(content)));
-  return matched.includes(tls) && /\bjwt\b/i.test(content) && /\bverify\s*=\s*False\b/.test(content) ? [...new Set(matched.map((check) => check === tls ? token : check))] : matched;
+  const matched = checks.filter(
+    (check) => check.patterns.some((pattern) => pattern.test(content)) && !(check === tls && isLocalDownload(content))
+  );
+  return matched.includes(tls) && /\bjwt\b/i.test(content) && pythonVerifyOff.test(content) ? [...new Set(matched.map((check) => check === tls ? token : check))] : matched;
+}
+function isLocalDownload(content) {
+  return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
 function joinLabels(labels) {
   return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
