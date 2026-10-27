@@ -493,6 +493,14 @@ When the findings in a comment come from more than one area, the comment opens t
 
 When the comment reaches its size limit, the most severe findings are kept, the counts still include every finding, and an area heading such as `Code (12 of 30 shown)` says how many are left out. Each finding in the JSON output has an `area` field with the area's id, such as `supply-chain`, and each rule in the SARIF report carries its area as a tag, which code scanning can filter on.
 
+### Changes Since the Previous Review
+
+The review comment ends with a hidden record of the findings it reports. On the next run, the action reads that record from the newest review comment, marks each finding that was not in it with `(new)` after its title, and opens the findings with a line such as ``Since the previous review: 2 new finding(s), 1 no longer reported (`sql-injection` (1)).`` This works in both comment modes.
+
+- A finding is matched by its rule, file, and title, so the same finding on another line after a push is not new. Two findings that match the same earlier one count it once.
+- The first review on a pull request, a comment from a version before 0.18.0, and a comment that reported more than 400 findings have no usable record, so nothing is marked. A dry run does not read comments, so it does not compare either.
+- Only findings the comment shows count: with `comment.includeLowSeverity: false`, `info` findings are neither recorded nor compared. Inline-suppressed findings are not reported, so a finding that is suppressed after a run counts as no longer reported.
+
 ## Annotations
 
 ### `annotations.enabled`

@@ -60,6 +60,10 @@ A lockfile records the URL each package is downloaded from, and an install runs 
 
 With `reviewComments.enabled`, line findings are also posted as review comments. Their text is escaped like the review comment's, and only bot comments that start with the `prism-review-line` marker are ever edited, so pasting the marker into a human comment does not let a run rewrite it. Comments are marked resolved rather than deleted, so a run never removes a discussion.
 
+## Review Comparison
+
+The record of findings that the review comment ends with holds rule ids and 12-character hashes of each finding's file and title, never a file name, so pull request content cannot reach it. It is read only from the newest bot comment that starts with the review marker, and only from that comment's last line: file names quoted earlier in the comment can spell out a record, but their newlines are escaped, so none can be the last line. A record with any malformed entry is ignored as a whole. The comparison only adds `(new)` marks and a count of findings no longer reported; it never changes which findings are reported, the risk level, or the check outcome.
+
 ## SARIF Reports
 
 The SARIF report holds the same text as the comment: rule ids, file paths, line numbers, messages, and suppression reasons, never a secret's value. Uploading it to code scanning needs `security-events: write` and a checkout so code scanning can match results to files; the checkout is only read, and Prism Review itself still reads the pull request through the API.
