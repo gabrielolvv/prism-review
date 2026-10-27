@@ -197,7 +197,7 @@ The `lookalike-dependency` rule reads the dependencies added in manifests and re
 
 | Registry | Files | Read from |
 | --- | --- | --- |
-| npm | `package.json` | `"name": "version"` entries whose value looks like a version, tag, or source, outside `version` and `engines` |
+| npm | `package.json` | `"name": "version"` entries whose value looks like a version, tag, or source, outside `version` and `engines`, including scoped names such as `@types/node` |
 | PyPI | `requirements*.txt`, `requirements/*.in` | each requirement line |
 | PyPI | `pyproject.toml` | quoted requirements with a version specifier, such as `"requests>=2.31"`, and Poetry dependency tables |
 | PyPI | `Pipfile` | `[packages]` and `[dev-packages]` |
@@ -211,7 +211,7 @@ The `lookalike-dependency` rule reads the dependencies added in manifests and re
 | Maven | `build.gradle`, `build.gradle.kts` | `"group:artifact:version"` strings after a configuration such as `implementation`, `api`, `testImplementation`, `kapt`, or `classpath`, also inside `platform(...)`, and `group:`, `name:`, `version:` maps |
 | Maven | `libs.versions.toml` | `[libraries]` entries given as `"group:artifact:version"`, or with `module` or `group` and `name`; a `version.ref` reads as no version |
 
-Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Go module paths are compared without their major version suffix, so `github.com/go-chi/chi/v5` and `gopkg.in/yaml.v3` are the same projects as without `/v5` and `.v3`. Maven dependencies are named `group:artifact`, such as `com.google.guava:guava`. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
+Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. Scoped packages are still read for the Dependency Changes table and the other dependency rules. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Go module paths are compared without their major version suffix, so `github.com/go-chi/chi/v5` and `gopkg.in/yaml.v3` are the same projects as without `/v5` and `.v3`. Maven dependencies are named `group:artifact`, such as `com.google.guava:guava`. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
 
 ### `rules.lookalikeDependencies.allowed`
 
