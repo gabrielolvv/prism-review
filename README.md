@@ -27,6 +27,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run, and writes the review to the job summary
 - Groups findings by area, such as secrets, supply chain, infrastructure, and code, with a count for each area
+- Marks the findings that are new since the previous review on the pull request, and counts the ones no longer reported
 - Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
 - Writes JSON and SARIF, so findings can go to GitHub code scanning
@@ -250,7 +251,7 @@ The severity column shows the defaults; `severity` in `.prism-review.yml` change
 
 ## Example Output
 
-Prism Review posts a pull request comment with a risk summary, findings, and a reviewer checklist. Findings from more than one area are grouped by area, most severe area first, with a count for each. By default it updates that comment on every push; `comment.mode: append` posts a new one instead.
+Prism Review posts a pull request comment with a risk summary, findings, and a reviewer checklist. Findings from more than one area are grouped by area, most severe area first, with a count for each. From the second run on, findings that are new since the previous review are marked `(new)`, and the comment says how many are no longer reported. By default it updates that comment on every push; `comment.mode: append` posts a new one instead.
 
 See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full example.
 

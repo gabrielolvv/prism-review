@@ -35,13 +35,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Linear-time rule patterns, with a test against crafted long lines (0.14.1).
 - Per-path `overrides` of rule severity (0.15.0).
 - Opt-in `reviewComments` that post line findings as pull request review comments, updated in place and marked resolved instead of deleted, and prompt-injection fixtures with instructions in base64, Markdown and HTML comments, a file name, a suppression reason, and Unicode tag characters (0.16.0).
-- Findings grouped by area in the review, with a count for each area, and the area in the JSON and SARIF output.
+- Findings grouped by area in the review, with a count for each area, and the area in the JSON and SARIF output (0.17.0).
+- New findings marked since the previous review, with a count of findings no longer reported, from a hashed record kept in the review comment.
 
 ## Near Term
 
-### Mark findings that are new since the previous run
+### Tailor the reviewer checklist to the findings
 
-On a pull request that gets several pushes, the review comment is rewritten each time, so a reviewer cannot tell which findings the latest push introduced. Comparing with the findings of the previous run, kept in the comment itself, would let the review mark new findings and list the ones that were fixed.
+The Suggested Review Checklist is the same four questions on every pull request. Picking questions from the areas the review found, such as asking about rotation when a secret was added or about rollback when a migration drops a column, would make it worth reading.
 
 ## Mid Term
 

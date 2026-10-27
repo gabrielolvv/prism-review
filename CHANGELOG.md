@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- The review comment marks each finding that is new since the previous review with `(new)`, and opens the findings with a line that counts new findings and the ones no longer reported, by rule. The comment ends with a hidden record of its findings, as rule ids and hashes of each finding's file and title, which the next run reads from the newest review comment's last line. The same finding on another line is not new. A first review, a dry run, a comment from an older version, or a record of more than 400 findings marks nothing.
+
+### Changed
+
+- The action reads the existing review comment before rendering the review, so in `append` mode it also lists comments once per run.
+
 ## 0.17.0 - 2026-10-27
 
 ### Added
