@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `review-control-change` rule, a warning for changes to `.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS`, and for added or removed `.gitattributes` lines that set `linguist-generated` or `linguist-vendored`. Both files are read from the base branch, so these changes decide how later pull requests are reviewed. Like `config-change`, the rule reads files matched by `ignorePaths` and cannot be suppressed inline. Other `.gitattributes` changes, such as `eol`, are not reported, and a patch too large to read is reported anyway.
+
 ## 0.22.0 - 2026-10-27
 
 ### Added

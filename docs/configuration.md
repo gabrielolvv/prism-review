@@ -453,6 +453,15 @@ Removed and unchanged lines are not reported. Patches over `security.maxPatchByt
 
 The value never appears in the finding, the comment, or the annotation. Values matched by `security.redaction.allowlist` are neither redacted nor reported, which is how to keep a known test value from being flagged.
 
+## Review Control Changes
+
+The `review-control-change` rule always runs, and reports a warning when a pull request changes one of the files that decide how later pull requests are reviewed:
+
+- `.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS`, added, edited, removed, or renamed. CODEOWNERS decides whose review GitHub requires for each path, and Prism Review names those owners in the review.
+- A `.gitattributes` file, at any depth, whose added or removed lines set `linguist-generated` or `linguist-vendored`. GitHub collapses those files in diffs, and with `ignoreGenerated` Prism Review leaves them out of its noise rules. Other attributes, such as `eol` or `diff`, are not reported. When the patch is too large to read, the change is reported anyway.
+
+Both files are read from the base branch, by GitHub and by Prism Review, so the change applies to the pull requests after this one. Like `config-change`, this rule reads files matched by `ignorePaths` and cannot be suppressed inline. To make these changes high risk, set `severity: { review-control-change: high }`.
+
 ## Rules Without Options
 
 - `incomplete-review` always runs in the action. GitHub lists at most 3000 files for a pull request, so when the API returned all 3000 and the event says the pull request changes more, it reports a high-risk finding with the number of files that were not reviewed. With `check.failOn: high`, such a pull request cannot pass the gate unreviewed. A shorter list is complete: the count in the event can be out of date after a push, so it is not compared then. The CLI reviews the whole diff it is given, so it never reports this.
@@ -527,7 +536,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Infrastructure | `privileged-container`, `public-exposure`, `destructive-migration` |
 | Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
-| Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change` |
+| Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
 
 When the comment reaches its size limit, the most severe findings are kept, the counts still include every finding, and an area heading such as `Code (12 of 30 shown)` says how many are left out. Each finding in the JSON output has an `area` field with the area's id, such as `supply-chain`, and each rule in the SARIF report carries its area as a tag, which code scanning can filter on.
 
@@ -601,7 +610,7 @@ ignorePaths:
 
 Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `blanket-suppression`, `risky-api`, `sensitive-files`, `dependency-risk`, and `oversized-patch`, and out of the risk level's size check. The summary says how many files were ignored.
 
-`secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs match dotfiles and dot directories, so `dist/**` covers `dist/.cache/` and `**/*.yml` covers `.github/`. A renamed file is only ignored when its old path is ignored too, so moving `src/auth/session.ts` into `vendor/` is still reviewed.
+`secret-in-diff`, `hidden-unicode`, `config-change`, and `review-control-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs match dotfiles and dot directories, so `dist/**` covers `dist/.cache/` and `**/*.yml` covers `.github/`. A renamed file is only ignored when its old path is ignored too, so moving `src/auth/session.ts` into `vendor/` is still reviewed.
 
 ### `ignoreGenerated`
 
@@ -637,7 +646,7 @@ curl -fsSL https://get.example.dev/install.sh | sh
 - A finding that covers several lines, such as "Lines 4, 9", is only suppressed when every one of them is covered.
 - Suppressed findings leave the findings list, the risk level, annotations, outputs, and `check.failOn`. The review lists each one under "Suppressed Inline" with its rule, file, line, and reason, and the summary says how many there were, so a reviewer can check every reason. Up to 50 are listed, within the comment's size limit, and the rest are counted.
 - Findings without a line, such as `missing-tests` or `sensitive-files`, cannot be suppressed inline; use `severity` or `ignorePaths` for them.
-- The rules that `ignorePaths` cannot hide cannot be suppressed inline either, because a pull request could otherwise hide its own problem: `incomplete-review`, `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, and `config-change`.
+- The rules that `ignorePaths` cannot hide cannot be suppressed inline either, because a pull request could otherwise hide its own problem: `incomplete-review`, `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, `config-change`, and `review-control-change`.
 
 ## Severity
 
