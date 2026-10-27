@@ -531,7 +531,7 @@ curl -fsSL https://get.example.dev/install.sh | sh
 - The marker is `prism-review-ignore`, one or more rule ids separated by commas, then `--` or `:` and a reason. A marker without a reason is ignored.
 - After code, it covers its own line. Alone on a comment line, it covers that line and the next one.
 - A finding that covers several lines, such as "Lines 4, 9", is only suppressed when every one of them is covered.
-- Suppressed findings leave the findings list, the risk level, annotations, outputs, and `check.failOn`. The review lists each one under "Suppressed Inline" with its rule, file, line, and reason, and the summary says how many there were, so a reviewer can check every reason.
+- Suppressed findings leave the findings list, the risk level, annotations, outputs, and `check.failOn`. The review lists each one under "Suppressed Inline" with its rule, file, line, and reason, and the summary says how many there were, so a reviewer can check every reason. Up to 50 are listed, within the comment's size limit, and the rest are counted.
 - Findings without a line, such as `missing-tests` or `sensitive-files`, cannot be suppressed inline; use `severity` or `ignorePaths` for them.
 - The rules that `ignorePaths` cannot hide cannot be suppressed inline either, because a pull request could otherwise hide its own problem: `incomplete-review`, `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, and `config-change`.
 
