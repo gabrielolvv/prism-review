@@ -51,6 +51,12 @@ Recommendation: Add or update tests for the modified behavior, or explain why ex
 
 Rule: [`missing-tests`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#missing-tests)
 
+### Dependency Changes
+
+| File | Package | Change |
+| --- | --- | --- |
+| `package.json` | `left-pad` | added `^1.3.0` |
+
 ### Suggested Review Checklist
 
 - Are security-sensitive changes reviewed by the right owner?
