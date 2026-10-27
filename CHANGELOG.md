@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `disabled-security-check` rule reports, as high, code that turns off TLS certificate verification or token signature and expiry checks, in JavaScript, Python, Go, Java, C#, PHP, Ruby, shell, and Kubernetes configuration, and warns when CSRF protection is turned off in Spring, Django, Flask, or Rails. Documentation and tests are skipped. `rules.disabledSecurityChecks.enabled` turns it off.
+
 ## 0.11.0 - 2026-10-27
 
 ### Added
