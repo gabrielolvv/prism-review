@@ -200,8 +200,9 @@ The `lookalike-dependency` rule reads the dependencies added in manifests and re
 | PyPI | `Pipfile` | `[packages]` and `[dev-packages]` |
 | RubyGems | `Gemfile`, `*.gemspec` | `gem "name"` and `add_dependency "name"` |
 | crates.io | `Cargo.toml` | dependency tables, including `[dev-dependencies]` and `[workspace.dependencies]` |
+| Go | `go.mod` | `require` lines and `require ( ... )` blocks, not `replace` or `exclude` |
 
-Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
+Names of 3 characters or less, scoped npm packages such as `@acme/utils`, and names exactly like a popular package are not reported. PyPI names are compared the way PyPI does, ignoring case and treating `-`, `_`, and `.` alike. Go module paths are compared without their major version suffix, so `github.com/go-chi/chi/v5` and `gopkg.in/yaml.v3` are the same projects as without `/v5` and `.v3`. Only added lines are read, and a TOML table must be visible in the diff for its entries to be read. Test data and fixture directories are skipped. The rule complements `dependency-risk`, which reports every manifest change, and `lockfile-source`, which checks where packages are downloaded from.
 
 ### `rules.lookalikeDependencies.allowed`
 
@@ -233,6 +234,7 @@ The `stale-lockfile` rule reports a warning when a manifest's dependencies chang
 | `Pipfile` | `Pipfile.lock` |
 | `Gemfile` | `Gemfile.lock` |
 | `Cargo.toml` | `Cargo.lock` |
+| `go.mod` | `go.sum` |
 
 - The rule only reports a manifest whose repository uses a lockfile: one of its lockfiles must exist on the base commit, in the manifest's directory or a directory above it, as at the root of a workspace. The nearest one counts. The action lists those directories through the contents API, at most 20 per run and only when a manifest's dependencies change; the CLI looks in the working tree.
 - Any change to one of the lockfiles in that directory, including adding a new one, counts as an update. Removing a manifest is not reported.
@@ -572,7 +574,7 @@ Questions of your own, added at the end of the Suggested Review Checklist on eve
 
 ### `comment.dependencyChanges`
 
-When `true`, the default, the comment lists the dependencies the pull request adds, removes, or moves to another version, in a Dependency Changes table after the findings, such as `lodash` from `4.17.20` to `4.17.21`. It reads the same manifests as `lookalike-dependency`: `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, and `Cargo.toml`, not lockfiles, whose transitive changes would bury the direct ones.
+When `true`, the default, the comment lists the dependencies the pull request adds, removes, or moves to another version, in a Dependency Changes table after the findings, such as `lodash` from `4.17.20` to `4.17.21`. It reads the same manifests as `lookalike-dependency`: `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, `Cargo.toml`, and `go.mod`, not lockfiles, whose transitive changes would bury the direct ones.
 
 - A dependency removed and added back with the same version, as when lines are reordered, is not listed. PyPI names compare as PyPI does, so `Django` and `django` are one package.
 - Versions are shown as written in the manifest. A dependency without one, such as `requests` in a requirements file or a Git dependency in `Cargo.toml`, shows none.
