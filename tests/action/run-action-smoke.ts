@@ -148,6 +148,9 @@ const scenarios: Array<[string, () => void]> = [
       assert.equal(writes.length, 1);
       assert.equal(writes[0]?.method, "POST");
       assert.equal(writes[0]?.path, "/repos/acme/widgets/issues/7/comments");
+      // A CODEOWNERS path that is not a file only costs the owners.
+      assert.match(run.stdout, /::warning title=Prism Review::Could not read CODEOWNERS, so owners are not shown: \.github\/CODEOWNERS is not a file/);
+      assert.doesNotMatch(String(writes[0]?.body?.body), /Owners:/);
     }
   ],
   [
@@ -438,6 +441,23 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI names owners from the local CODEOWNERS file",
+    () => {
+      const path = join(workDir, "CODEOWNERS");
+      writeFileSync(path, "src/auth/ @acme/security\n");
+      try {
+        const run = runCli(["analyze", "--diff", "-"], riskyDiff);
+        assert.equal(run.status, 0, run.stderr);
+        assert.match(run.stdout, /^File: `src\/auth\/session\.ts`\n\nOwners: `@acme\/security`$/m);
+
+        const off = runCli(["analyze", "--diff", "-", "--config", writeConfig("no-owners.yml", "comment:\n  codeOwners: false\n")], riskyDiff);
+        assert.doesNotMatch(off.stdout, /Owners:/);
+      } finally {
+        rmSync(path);
+      }
+    }
+  ],
+  [
     "the CLI prints JSON and SARIF and keeps the gate",
     () => {
       const config = writeConfig("formats.yml", "check:\n  failOn: high\n");
@@ -508,6 +528,9 @@ const scenarios: Array<[string, () => void]> = [
       const body = update?.body?.body ?? "";
       assert.match(body, /^Since the previous review: 1 new finding\(s\), 1 no longer reported \(`secret-in-diff` \(1\)\)\.$/m);
       assert.match(body, /^#### High - Sensitive file changed \(new\)$/m);
+      // The owners come from CODEOWNERS on the base commit, in code spans so nobody is notified.
+      assert.match(body, /^File: `src\/billing\/charge\.ts`\n\nOwners: `@acme\/payments`$/m);
+      assert.match(body, /^- Have the code owners of the flagged files, `@acme\/payments`, reviewed the change\?$/m);
       assert.match(body, /^#### Warning - Source changed without tests$/m);
       // The comment records this run's findings for the next one.
       assert.match(body, /\n<!-- prism-review-state v1 sensitive-files:[0-9a-f]{12} missing-tests:[0-9a-f]{12} -->$/);

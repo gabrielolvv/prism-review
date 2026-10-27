@@ -8,6 +8,8 @@ import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl, type GitHubCli
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { syncLineComments, type LineCommentOptions } from "../github/line-comments.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
+import { loadBaseCodeOwners } from "../github/load-code-owners.js";
+import type { CodeOwners } from "../analysis/code-owners.js";
 import { findReviewComment, publishReviewComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
@@ -55,9 +57,13 @@ async function run(): Promise<void> {
   // Read before rendering, so the review can mark what changed since the previous one. A dry run
   // makes no comment API calls, so it does not compare.
   const previous = inputs.dryRun ? undefined : await findReviewComment(client, owner, repo, pullRequest.number);
+  const codeOwners = config.comment.codeOwners
+    ? await loadCodeOwners(client, owner, repo, readBaseSha(pullRequest))
+    : undefined;
   const body = renderMarkdown(result, {
     includeLowSeverity: config.comment.includeLowSeverity,
     checklist: config.comment.checklist,
+    ownersOf: codeOwners?.ownersOf,
     previous: previous === undefined ? undefined : readState(previous.body),
     recordState: true
   });
@@ -102,6 +108,27 @@ async function run(): Promise<void> {
     console.error(describeFailure(failing, config.check.failOn));
     process.exitCode = 1;
   }
+}
+
+// Owners only add to the review, so a CODEOWNERS file that cannot be read is skipped with a warning.
+async function loadCodeOwners(
+  client: GitHubClient,
+  owner: string,
+  repo: string,
+  baseSha: string
+): Promise<CodeOwners | undefined> {
+  try {
+    return await loadBaseCodeOwners(client, owner, repo, baseSha);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.log(`::warning title=Prism Review::Could not read CODEOWNERS, so owners are not shown: ${escapeCommand(reason)}`);
+    return undefined;
+  }
+}
+
+// Workflow command text ends at a newline, and `%` starts an escape.
+function escapeCommand(text: string): string {
+  return text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
 }
 
 async function publishLineComments(

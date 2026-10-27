@@ -172,6 +172,11 @@ import {
   testChecklistAddsTheRepositoryQuestions,
   testChecklistSharesTheCommentSizeLimit
 } from "./unit/checklist.test.js";
+import {
+  testCodeOwnersFollowGitHubPatterns,
+  testCodeOwnersSkipLinesGitHubCannotRead,
+  testRenderMarkdownNamesOwnersWithoutMentioningThem
+} from "./unit/code-owners.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -459,6 +464,9 @@ const tests: Array<[string, Test]> = [
   ["checklist falls back to general questions", testChecklistFallsBackToGeneralQuestions],
   ["checklist adds the repository's questions", testChecklistAddsTheRepositoryQuestions],
   ["checklist shares the comment size limit", testChecklistSharesTheCommentSizeLimit],
+  ["code owners follow GitHub's patterns", testCodeOwnersFollowGitHubPatterns],
+  ["code owners skip lines GitHub cannot read", testCodeOwnersSkipLinesGitHubCannotRead],
+  ["render markdown names owners without mentioning them", testRenderMarkdownNamesOwnersWithoutMentioningThem],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
