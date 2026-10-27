@@ -13,6 +13,7 @@ import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
 import { secretInDiffRule } from "./secret-in-diff.js";
 import { sensitiveFilesRule } from "./sensitive-files.js";
+import { unpinnedActionRule } from "./unpinned-action.js";
 import { workflowRiskRule } from "./workflow-risk.js";
 import { skippedTestsRule } from "./skipped-tests.js";
 import type { Rule } from "../analysis/rule.js";
@@ -29,6 +30,7 @@ export const defaultRules: Rule[] = [
   riskyApiRule,
   remoteScriptRule,
   workflowRiskRule,
+  unpinnedActionRule,
   destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,

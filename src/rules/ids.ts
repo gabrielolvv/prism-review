@@ -12,6 +12,7 @@ export const ruleIds: readonly string[] = [
   "risky-api",
   "remote-script",
   "workflow-risk",
+  "unpinned-action",
   "destructive-migration",
   "sensitive-files",
   "config-change",

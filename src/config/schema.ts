@@ -109,6 +109,13 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .default({}),
+      unpinnedActions: z
+        .object({
+          enabled: z.boolean().default(true),
+          // Owners whose actions may be used by tag, compared without case. GitHub's own by default.
+          allowedOwners: z.array(z.string().min(1).max(100)).default(["actions", "github"])
+        })
+        .default({}),
       destructiveMigration: z
         .object({
           enabled: z.boolean().default(true)
