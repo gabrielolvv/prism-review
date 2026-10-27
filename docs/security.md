@@ -56,6 +56,10 @@ GitHub lists at most 3000 files for a pull request. When the list reaches that l
 
 A lockfile records the URL each package is downloaded from, and an install runs the package's scripts. A pull request can change that URL for a familiar package name, and the change hides in a diff few people read. `lockfile-source` reports URLs outside the allowed registries or over plain HTTP as high risk, and Git sources and extra pip indexes as warnings. It reads patches before the size limit, so a large lockfile update is still checked, and it shows only the host, never a URL that may carry credentials. GitHub sends no patch at all for the largest diffs, so such a lockfile is only covered by `dependency-risk`; the CLI reads the full `git diff` and can check it.
 
+## Review Comments
+
+With `reviewComments.enabled`, line findings are also posted as review comments. Their text is escaped like the review comment's, and only bot comments that start with the `prism-review-line` marker are ever edited, so pasting the marker into a human comment does not let a run rewrite it. Comments are marked resolved rather than deleted, so a run never removes a discussion.
+
 ## SARIF Reports
 
 The SARIF report holds the same text as the comment: rule ids, file paths, line numbers, messages, and suppression reasons, never a secret's value. Uploading it to code scanning needs `security-events: write` and a checkout so code scanning can match results to files; the checkout is only read, and Prism Review itself still reads the pull request through the API.

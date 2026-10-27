@@ -6,6 +6,7 @@ All notable changes to Prism Review are documented in this file.
 
 ### Added
 
+- `reviewComments` posts each line finding as a pull request review comment on its line, opt-in with `reviewComments.enabled`. Comments are updated in place on later runs and edited to say a finding is no longer reported instead of being deleted. Lines GitHub does not accept are skipped with a warning, and `maxComments`, 25 by default, caps how many one run posts.
 - Prompt-injection fixtures and tests for instructions in base64, Markdown and HTML comments, a file name, a suppression reason that claims approval, and Unicode tag characters. None of them changes the review, and none of the injected text reaches the comment, the JSON, or the SARIF report, except a file name inside a code span.
 
 ### Changed
