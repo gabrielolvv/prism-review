@@ -13752,7 +13752,7 @@ var dependencyRiskRule = {
     if (!ruleConfig.enabled) {
       return [];
     }
-    return files.filter((file) => ruleConfig.manifests.some((pattern) => minimatch(file.path, pattern))).map((file) => {
+    return files.filter((file) => ruleConfig.manifests.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))).map((file) => {
       const ecosystem = detectEcosystem(file.path);
       return {
         ruleId: "dependency-risk",
@@ -14499,7 +14499,10 @@ var sensitiveFilesRule = {
       return [];
     }
     return files.filter(
-      (file) => ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern)) || hasSensitiveWord(file.path)
+      (file) => (
+        // A pattern without a slash matches the file name in any directory, as in .gitignore.
+        ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true })) || hasSensitiveWord(file.path)
+      )
     ).map((file) => ({
       ruleId: "sensitive-files",
       title: "Sensitive file changed",
