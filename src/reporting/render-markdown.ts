@@ -3,6 +3,7 @@ import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 import { compareSeverity, type Severity } from "../analysis/severity.js";
 import { areaOf, areas } from "../rules/areas.js";
 import { checklistQuestions } from "./checklist.js";
+import { ruleDocsUrl } from "./rule-docs.js";
 import { compareWithPrevious, renderState, type Comparison, type PreviousFindings } from "./review-state.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
@@ -175,7 +176,14 @@ function renderFinding(finding: Finding, isNew: boolean): string {
     sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
 
+  sections.push("", renderRule(finding.ruleId));
   return sections.join("\n");
+}
+
+// The rule id is what an inline suppression names, and the link explains the rule and its options.
+function renderRule(ruleId: string): string {
+  const url = ruleDocsUrl(ruleId);
+  return `Rule: ${url === undefined ? codeSpan(ruleId) : `[${codeSpan(ruleId)}](${url})`}`;
 }
 
 export const LINE_COMMENT_MARKER = "prism-review-line";
@@ -187,7 +195,9 @@ export function renderLineComment(finding: Finding): string {
     `**${capitalize(finding.severity)}** - ${escapeText(finding.title)}`,
     "",
     escapeText(finding.message),
-    ...(finding.recommendation ? ["", `Recommendation: ${escapeText(finding.recommendation)}`] : [])
+    ...(finding.recommendation ? ["", `Recommendation: ${escapeText(finding.recommendation)}`] : []),
+    "",
+    renderRule(finding.ruleId)
   ].join("\n");
 }
 
