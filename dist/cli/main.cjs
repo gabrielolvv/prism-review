@@ -14571,7 +14571,11 @@ var gemLine = new RegExp(
   `^\\s*(?:gem|\\w{1,50}\\.add_(?:runtime_|development_)?dependency)\\s*\\(?\\s*["'](${packageName})["'](?:\\s*,\\s*["']([^"']{1,100})["'])?`
 );
 var tableHeader = /^\s*\[\[?([^\]]{1,200})\]\]?\s*(?:#.*)?$/;
-var hunkHeader3 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+var hunkHeader3 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.{0,300})/;
+var goModule = "[A-Za-z0-9][A-Za-z0-9._~/-]{0,250}";
+var goRequireLine = new RegExp(`^\\s*require\\s+(${goModule})\\s+(v\\S{1,100})`);
+var goBlockEntry = new RegExp(`^\\s*(${goModule})\\s+(v\\S{1,100})`);
+var goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 var manifests = [
   {
     ecosystem: "npm",
@@ -14618,6 +14622,17 @@ var manifests = [
     }
   },
   {
+    ecosystem: "Go",
+    files: /(?:^|\/)go\.mod$/,
+    // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
+    // blocks name modules too, but not dependencies.
+    entries(content, section) {
+      const [matched, name = "", version = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
+      return matched === void 0 ? [] : [{ name, version }];
+    },
+    section: (content) => goBlockStart.exec(content)?.[1] ?? (/^\s*\)\s*$/.test(content) ? "" : void 0)
+  },
+  {
     ecosystem: "crates.io",
     files: /(?:^|\/)Cargo\.toml$/,
     // `[dependencies]`, `[dev-dependencies]`, `[workspace.dependencies]`, `[target.'cfg(..)'.dependencies]`.
@@ -14639,20 +14654,21 @@ function declaredDependencies(path2, patch) {
   }
   let oldLine;
   let newLine = 0;
+  const sectionOf = manifest.section ?? ((content) => tableHeader.exec(content)?.[1]?.trim());
   let section = "";
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader3.exec(line);
     if (header) {
       oldLine = Number(header[1]);
       newLine = Number(header[2]);
-      section = "";
+      section = sectionOf(header[3] ?? "") ?? "";
       continue;
     }
     if (oldLine === void 0 || line.startsWith("\\")) {
       continue;
     }
     const content = line.slice(1);
-    section = tableHeader.exec(content)?.[1]?.trim() ?? section;
+    section = sectionOf(content) ?? section;
     if (line.startsWith("+")) {
       added.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: newLine })));
       newLine += 1;
@@ -14711,7 +14727,10 @@ function byName(dependencies, ecosystem) {
 }
 function normalizePackageName(name, ecosystem) {
   const lower = name.toLowerCase();
-  return ecosystem === "PyPI" ? lower.replace(/[-_.]+/g, "-") : lower;
+  if (ecosystem === "PyPI") {
+    return lower.replace(/[-_.]+/g, "-");
+  }
+  return ecosystem === "Go" ? lower.replace(/\/v\d+$/, "").replace(/^(gopkg\.in\/.+)\.v\d+$/, "$1") : lower;
 }
 function tomlEntries(content) {
   const [matched, name = "", value = ""] = tomlEntry.exec(content) ?? [];
@@ -15239,6 +15258,79 @@ var popularPackages = {
     "aho-corasick",
     "nom",
     "pest"
+  ],
+  // Without their major version suffix, as they are compared.
+  Go: [
+    "github.com/gin-gonic/gin",
+    "github.com/gorilla/mux",
+    "github.com/gorilla/websocket",
+    "github.com/stretchr/testify",
+    "github.com/stretchr/objx",
+    "github.com/sirupsen/logrus",
+    "go.uber.org/zap",
+    "go.uber.org/fx",
+    "github.com/spf13/cobra",
+    "github.com/spf13/viper",
+    "github.com/spf13/pflag",
+    "github.com/pkg/errors",
+    "github.com/google/uuid",
+    "github.com/google/go-cmp",
+    "github.com/golang/protobuf",
+    "google.golang.org/grpc",
+    "google.golang.org/protobuf",
+    "golang.org/x/net",
+    "golang.org/x/crypto",
+    "golang.org/x/sync",
+    "golang.org/x/sys",
+    "golang.org/x/text",
+    "golang.org/x/oauth2",
+    "golang.org/x/exp",
+    "golang.org/x/mod",
+    "golang.org/x/term",
+    "golang.org/x/time",
+    "golang.org/x/tools",
+    "golang.org/x/image",
+    "github.com/go-redis/redis",
+    "github.com/redis/go-redis",
+    "github.com/lib/pq",
+    "github.com/jackc/pgx",
+    "github.com/go-sql-driver/mysql",
+    "github.com/mattn/go-sqlite3",
+    "gorm.io/gorm",
+    "gorm.io/driver/postgres",
+    "github.com/labstack/echo",
+    "github.com/gofiber/fiber",
+    "github.com/go-chi/chi",
+    "github.com/valyala/fasthttp",
+    "github.com/prometheus/client_golang",
+    "github.com/aws/aws-sdk-go",
+    "github.com/aws/aws-sdk-go-v2",
+    "k8s.io/client-go",
+    "k8s.io/apimachinery",
+    "k8s.io/api",
+    "github.com/golang-jwt/jwt",
+    "github.com/dgrijalva/jwt-go",
+    "github.com/joho/godotenv",
+    "github.com/rs/zerolog",
+    "github.com/urfave/cli",
+    "github.com/docker/docker",
+    "gopkg.in/yaml.v2",
+    "gopkg.in/yaml.v3",
+    "github.com/burntsushi/toml",
+    "github.com/davecgh/go-spew",
+    "github.com/onsi/ginkgo",
+    "github.com/onsi/gomega",
+    "go.mongodb.org/mongo-driver",
+    "github.com/json-iterator/go",
+    "github.com/tidwall/gjson",
+    "github.com/mitchellh/mapstructure",
+    "github.com/hashicorp/go-multierror",
+    "github.com/cenkalti/backoff",
+    "github.com/fsnotify/fsnotify",
+    "go.opentelemetry.io/otel",
+    "github.com/golang/mock",
+    "go.uber.org/mock",
+    "github.com/google/go-github"
   ]
 };
 
@@ -15411,7 +15503,8 @@ var lockfileNames = [
   [/(?:^|\/)pyproject\.toml$/i, ["poetry.lock", "uv.lock", "pdm.lock"]],
   [/(?:^|\/)Pipfile$/, ["Pipfile.lock"]],
   [/(?:^|\/)Gemfile$/, ["Gemfile.lock"]],
-  [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]]
+  [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]],
+  [/(?:^|\/)go\.mod$/, ["go.sum"]]
 ];
 function lockfilesFor(manifestPath) {
   return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
