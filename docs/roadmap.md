@@ -41,13 +41,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Marketplace branding, and GitHub releases created from pushed version tags (0.19.1).
 - A link from each finding to its rule's section in `docs/configuration.md`, which now covers every rule (0.20.0).
 - The CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone (0.21.0).
-- Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` left out like `ignorePaths`.
+- Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` left out like `ignorePaths` (0.22.0).
+- `review-control-change` rule for changes to CODEOWNERS and to the files `.gitattributes` marks generated or vendored.
 
 ## Near Term
 
-### Flag changes to the files that shape the review
+### Flag dependencies named like popular packages
 
-`config-change` reports a change to the configuration, but CODEOWNERS and `.gitattributes` now shape the review too: a pull request that marks `src/**` as generated, or removes an owner, changes how every later pull request is reviewed. Reporting changes to those attributes and owners, the way `config-change` does, would keep that from passing as a routine edit.
+`dependency-risk` says a manifest changed, but not whether a new dependency is the one the author meant. A name one edit away from a popular package, such as `reqeusts` or `expresss`, is a common way to slip in a malicious package. Comparing added dependency names with a bundled list of the most used packages per ecosystem would catch that without any network call.
 
 ## Mid Term
 

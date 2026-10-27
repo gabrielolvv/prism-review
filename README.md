@@ -30,6 +30,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Marks the findings that are new since the previous review on the pull request, and counts the ones no longer reported
 - Ends with a reviewer checklist that asks about the findings, such as whether an added credential was revoked, plus questions of your own
 - Names the CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone
+- Flags changes to CODEOWNERS and to the files `.gitattributes` marks generated, which change how later pull requests are reviewed
 - Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
 - Writes JSON and SARIF, so findings can go to GitHub code scanning
@@ -245,6 +246,7 @@ flowchart TD
 | `public-exposure` | High | Flags Terraform, CloudFormation, and Kubernetes changes that open SSH, RDP, database, or other sensitive ports to `0.0.0.0/0`, or make buckets and databases public. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
 | `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
+| `review-control-change` | Warning | Flags changes to CODEOWNERS, and to the lines of `.gitattributes` that mark files `linguist-generated` or `linguist-vendored`, which change how later pull requests are reviewed. |
 | `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |
 | `missing-tests` | Warning | Flags source changes without test changes. |
 | `skipped-tests` | Warning | Flags tests that a PR focuses with `.only` or disables with a skip marker. |
