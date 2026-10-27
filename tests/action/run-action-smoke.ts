@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { parse as parseYaml } from "yaml";
 import {
   fakeAnnotationsBaseSha,
   fakeAppendBaseSha,
@@ -510,6 +511,31 @@ const scenarios: Array<[string, () => void]> = [
       assert.match(body, /^#### Warning - Source changed without tests$/m);
       // The comment records this run's findings for the next one.
       assert.match(body, /\n<!-- prism-review-state v1 sensitive-files:[0-9a-f]{12} missing-tests:[0-9a-f]{12} -->$/);
+    }
+  ],
+  [
+    "release notes come from the changelog, and the action has Marketplace branding",
+    () => {
+      const notes = (version: string) =>
+        spawnSync(process.execPath, [resolve("scripts/release-notes.mjs"), version], { encoding: "utf8" });
+
+      // Every version in the changelog has notes, so its release can be created.
+      const versions = [...readFileSync("CHANGELOG.md", "utf8").matchAll(/^## (\d+\.\d+\.\d+)\b/gm)].map((match) => match[1] ?? "");
+      assert.ok(versions.length > 10);
+      for (const version of versions) {
+        const run = notes(`v${version}`);
+        assert.equal(run.status, 0, `${version}: ${run.stderr}`);
+        assert.match(run.stdout, /^### /, version);
+        assert.doesNotMatch(run.stdout, /^## /m, version);
+      }
+      assert.match(notes("0.14.1").stdout, /^### Fixed\n\n- Several rule patterns took time quadratic/);
+      assert.equal(notes("v9.9.9").status, 1);
+      assert.equal(notes("latest").status, 1);
+
+      // The values GitHub Marketplace accepts.
+      const branding = parseYaml(readFileSync("action.yml", "utf8")).branding as { icon: string; color: string };
+      assert.ok(["white", "black", "yellow", "blue", "green", "orange", "red", "purple", "gray-dark"].includes(branding.color));
+      assert.equal(branding.icon, "shield");
     }
   ],
   [
