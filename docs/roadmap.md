@@ -46,13 +46,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `lookalike-dependency` rule for added dependencies one character away from a popular npm, PyPI, RubyGems, or crates.io package, from a bundled list (0.24.0).
 - A Dependency Changes table of the packages a pull request adds, removes, or moves to another version, also in the JSON output (0.25.0).
 - `risky-dependency-version` rule for dependencies moved to an older version or left open to any future release (0.26.0).
-- `stale-lockfile` rule for manifests whose dependencies change while their lockfile, on the base commit, is not updated.
+- `stale-lockfile` rule for manifests whose dependencies change while their lockfile, on the base commit, is not updated (0.27.0).
+- Go modules in the dependency checks, read from `go.mod` with `go.sum` as the lockfile.
 
 ## Near Term
 
-### Read Go modules in the dependency checks
+### Read Composer and NuGet manifests in the dependency checks
 
-The Dependency Changes table, `lookalike-dependency`, `risky-dependency-version`, and `stale-lockfile` read npm, PyPI, RubyGems, and crates.io manifests, but not `go.mod`. Reading its `require` lines and blocks, with `go.sum` as the lockfile, would bring Go modules into the same checks.
+PHP's `composer.json`, with `composer.lock`, and .NET project files, with their `<PackageReference>` items and `packages.lock.json`, are the remaining common package managers without a reader. Adding them would bring PHP and .NET projects into the Dependency Changes table and the dependency rules.
 
 ## Mid Term
 

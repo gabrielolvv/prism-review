@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Go modules in the dependency checks: the Dependency Changes table, `lookalike-dependency`, `risky-dependency-version`, and `stale-lockfile` read `require` lines and `require ( ... )` blocks in `go.mod`, including hunks that start inside a block, and skip `replace` and `exclude` blocks. `go.sum` is the lockfile. Module paths are compared without their major version suffix, such as `/v5` or gopkg.in's `.v3`, and the bundled list of popular packages has the most used Go modules.
+
 ## 0.27.0 - 2026-10-27
 
 ### Added
