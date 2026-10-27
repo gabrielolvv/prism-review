@@ -1,4 +1,4 @@
-import type { ReviewResult } from "../analysis/finding.js";
+import type { ReviewResult, SuppressedFinding } from "../analysis/finding.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 
 export const PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
@@ -30,6 +30,7 @@ export function renderMarkdown(
     "",
     findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings),
     "",
+    ...renderSuppressed(result.suppressed ?? []),
     "### Suggested Review Checklist",
     "",
     "- Are tests covering the changed behavior?",
@@ -66,6 +67,25 @@ function renderFindings(findings: ReviewResult["findings"]): string {
   }
 
   return rendered.join("\n\n");
+}
+
+// Suppressed findings stay visible, so a reviewer can check each reason.
+const maxSuppressedShown = 50;
+
+function renderSuppressed(suppressed: SuppressedFinding[]): string[] {
+  if (suppressed.length === 0) {
+    return [];
+  }
+
+  const lines = suppressed.slice(0, maxSuppressedShown).map((finding) => {
+    const where = finding.file === undefined ? "" : ` on line ${finding.line ?? "?"} of ${codeSpan(finding.file)}`;
+    return `- ${codeSpan(finding.ruleId)}${where}: ${escapeText(finding.suppressionReason)}`;
+  });
+  if (suppressed.length > maxSuppressedShown) {
+    lines.push(`- ${suppressed.length - maxSuppressedShown} more suppressed finding(s) are not shown.`);
+  }
+
+  return ["### Suppressed Inline", "", ...lines, ""];
 }
 
 function renderFinding(finding: ReviewResult["findings"][number]): string {

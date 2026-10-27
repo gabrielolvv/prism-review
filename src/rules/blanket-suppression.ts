@@ -89,6 +89,7 @@ export const blanketSuppressionRule: Rule = {
           severity: "warning" as const,
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "turn" : "turns"} off lint or type checks without naming which ones (${kinds}), so new problems in ${plural ? "their" : "its"} scope go unreported.`,
           recommendation:
             "Name the specific rule being suppressed and add a short reason, or fix the underlying problem."

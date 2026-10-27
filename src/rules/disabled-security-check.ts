@@ -111,6 +111,7 @@ export const disabledSecurityCheckRule: Rule = {
           severity: high ? ("high" as const) : ("warning" as const),
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels)}.`,
           recommendation:
             "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."

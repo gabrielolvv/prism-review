@@ -94,6 +94,7 @@ export const destructiveMigrationRule: Rule = {
           severity: destructive ? ("high" as const) : ("warning" as const),
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry) => entry.kind).join(", ")}.`,
           recommendation:
             "Back up the affected data and deploy in steps: stop using the table or column in one release, then drop or rename it in a later one, so running code does not break. Check that the migration can be rolled back."

@@ -68,6 +68,7 @@ export const publicExposureRule: Rule = {
           severity: "high" as const,
           file: file.path,
           line: Math.min(...lines),
+          lines: lines,
           message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels(labels)}.`,
           recommendation:
             "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."

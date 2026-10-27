@@ -26,6 +26,7 @@ export function testSkippedTestsRuleReportsFocusAndSkipWithLines(): void {
     severity: "warning",
     file: "src/auth/login.test.ts",
     line: 2,
+    lines: [2, 3, 5],
     message:
       "Line 2 focuses a test, so the runner skips the other tests in scope. Lines 3, 5 skip tests, so they can stop running without failing.",
     recommendation:

@@ -80,6 +80,7 @@ export const privilegedContainerRule: Rule = {
           severity: high ? ("high" as const) : ("warning" as const),
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels(labels)}.`,
           recommendation:
             "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
