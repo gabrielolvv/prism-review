@@ -515,6 +515,26 @@ Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `b
 
 `secret-in-diff`, `hidden-unicode`, and `config-change` still read every file: a credential in vendored code is still exposed, and a path setting must not be able to hide a Trojan Source edit or a change to the review itself. Like the rest of the configuration, `ignorePaths` is read from the base commit, so a pull request cannot ignore its own files. Globs match dotfiles and dot directories, so `dist/**` covers `dist/.cache/` and `**/*.yml` covers `.github/`. A renamed file is only ignored when its old path is ignored too, so moving `src/auth/session.ts` into `vendor/` is still reviewed.
 
+## Inline Suppressions
+
+A comment can acknowledge one finding on one line, with the reason it is safe:
+
+```python
+cursor.execute(f"SELECT * FROM {REPORT_TABLE}")  # prism-review-ignore sql-injection -- REPORT_TABLE is a module constant
+```
+
+```sh
+# prism-review-ignore remote-script: the installer is checked against a pinned checksum in CI
+curl -fsSL https://get.example.dev/install.sh | sh
+```
+
+- The marker is `prism-review-ignore`, one or more rule ids separated by commas, then `--` or `:` and a reason. A marker without a reason is ignored.
+- After code, it covers its own line. Alone on a comment line, it covers that line and the next one.
+- A finding that covers several lines, such as "Lines 4, 9", is only suppressed when every one of them is covered.
+- Suppressed findings leave the findings list, the risk level, annotations, outputs, and `check.failOn`. The review lists each one under "Suppressed Inline" with its rule, file, line, and reason, and the summary says how many there were, so a reviewer can check every reason.
+- Findings without a line, such as `missing-tests` or `sensitive-files`, cannot be suppressed inline; use `severity` or `ignorePaths` for them.
+- The rules that `ignorePaths` cannot hide cannot be suppressed inline either, because a pull request could otherwise hide its own problem: `incomplete-review`, `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, and `config-change`.
+
 ## Severity
 
 ### `severity`

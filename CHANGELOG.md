@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Inline suppressions: a `prism-review-ignore rule-id -- reason` comment after the code, or alone on the line above, acknowledges a finding on that line. Suppressed findings leave the risk level and `check.failOn` and are listed with their reasons under "Suppressed Inline" in the review. A reason is required, every line of a finding must be covered, and the rules `ignorePaths` cannot hide, such as `secret-in-diff` and `credential-file`, cannot be suppressed.
+
 ## 0.12.0 - 2026-10-27
 
 ### Added

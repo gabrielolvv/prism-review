@@ -149,6 +149,16 @@ ignorePaths:
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.
 
+### Acknowledging a Finding
+
+When a finding is a false positive, acknowledge it in a comment with a reason, after the code or alone on the line above:
+
+```python
+cursor.execute(f"SELECT * FROM {REPORT_TABLE}")  # prism-review-ignore sql-injection -- REPORT_TABLE is a module constant
+```
+
+The finding moves to a "Suppressed Inline" list in the review, with its reason, and no longer counts toward the risk level or `check.failOn`. Security rules such as `secret-in-diff` and `credential-file` cannot be suppressed this way. See [`docs/configuration.md`](docs/configuration.md#inline-suppressions).
+
 ## Architecture
 
 ```mermaid

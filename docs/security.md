@@ -32,9 +32,13 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 ## Ignored Paths
 
-`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
+`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `unpinned-action`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
 
 The `severity` setting can lower or turn off any rule, the security rules included. That is a deliberate choice for maintainers, and the pull request that makes it is reviewed with the previous configuration, where `config-change` reports it as high risk.
+
+## Inline Suppressions
+
+A `prism-review-ignore` comment is written by the pull request it affects, so it is limited on purpose. It needs a reason, it only covers the lines it names, and it cannot suppress the rules `ignorePaths` cannot hide, which are the ones that guard secrets, workflows, dependencies, and the configuration. Every suppressed finding is still listed in the review with its reason, so a reviewer sees what was acknowledged and why.
 
 ## Pull Requests From Forks
 
