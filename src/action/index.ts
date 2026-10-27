@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { defaultConfig } from "../config/schema.js";
-import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl } from "../github/client.js";
+import type { Finding } from "../analysis/finding.js";
+import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl, type GitHubClient } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
+import { syncLineComments, type LineCommentOptions } from "../github/line-comments.js";
 import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
@@ -75,6 +77,9 @@ async function run(): Promise<void> {
         body,
         config.comment.mode
       );
+      if (config.reviewComments.enabled) {
+        await publishLineComments(client, owner, repo, pullRequest, result.findings, config.reviewComments);
+      }
     } catch (error) {
       // A pull request from a fork gets a read-only token, so the comment cannot be posted. That is
       // not the pull request's fault, and the review is still in the job summary. In the same
@@ -97,6 +102,36 @@ async function run(): Promise<void> {
   }
 }
 
+async function publishLineComments(
+  client: GitHubClient,
+  owner: string,
+  repo: string,
+  pullRequest: PullRequest,
+  findings: Finding[],
+  options: LineCommentOptions
+): Promise<void> {
+  const headSha = pullRequest.head?.sha;
+  if (headSha === undefined) {
+    console.log("::warning title=Prism Review::The event has no head commit, so no review comments were posted.");
+    return;
+  }
+
+  const outcome = await syncLineComments(client, owner, repo, pullRequest.number, headSha, findings, options);
+  console.log(
+    `Review comments: ${outcome.created} posted, ${outcome.updated} updated, ${outcome.resolved} marked resolved.`
+  );
+  if (outcome.rejected > 0) {
+    console.log(
+      `::warning title=Prism Review::${outcome.rejected} line finding(s) are outside the diff GitHub accepts comments on; they are in the review comment.`
+    );
+  }
+  if (outcome.skipped > 0) {
+    console.log(
+      `::notice title=Prism Review::${outcome.skipped} line finding(s) are over reviewComments.maxComments; they are in the review comment.`
+    );
+  }
+}
+
 // The body quotes pull request file names, which may contain newlines followed by workflow
 // commands. The runner ignores commands until it sees the unguessable token again.
 function printUntrusted(text: string): void {
@@ -113,6 +148,7 @@ type PullRequest = {
     sha?: string;
   };
   head?: {
+    sha?: string;
     repo?: {
       full_name?: string;
     } | null;

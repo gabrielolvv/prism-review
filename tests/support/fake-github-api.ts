@@ -5,6 +5,8 @@ export const fakeBaseSha = "0123456789abcdef0123456789abcdef01234567";
 export const fakeAppendBaseSha = "fedcba9876543210fedcba9876543210fedcba98";
 export const fakeAnnotationsBaseSha = "00112233445566778899aabbccddeeff00112233";
 export const fakeFailOnHighBaseSha = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
+export const fakeReviewCommentsBaseSha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+export const fakeHeadSha = "9999999999999999999999999999999999999999";
 export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
 const marker = "<!-- prism-review-comment -->";
@@ -29,6 +31,8 @@ const annotationsConfig = "annotations:\n  enabled: true\n";
 
 const failOnHighConfig = "check:\n  failOn: high\n";
 
+const reviewCommentsConfig = "reviewComments:\n  enabled: true\n";
+
 class ErrorResponse {
   constructor(
     readonly status: number,
@@ -37,6 +41,23 @@ class ErrorResponse {
 }
 
 const routes: Record<string, (body: unknown) => unknown> = {
+  [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeReviewCommentsBaseSha}`]: () =>
+    fileContent(reviewCommentsConfig),
+  "GET /repos/acme/widgets/pulls/21/files?per_page=100&page=1": () => [
+    { filename: "app/db.py", status: "added", additions: 1, deletions: 0, patch: '@@ -0,0 +1 @@\n+cursor.execute(f"SELECT * FROM t WHERE id = {x}")' },
+    { filename: "app/outside.py", status: "added", additions: 1, deletions: 0, patch: '@@ -0,0 +1 @@\n+cursor.execute(f"SELECT * FROM u WHERE id = {y}")' }
+  ],
+  "GET /repos/acme/widgets/issues/21/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/21/comments": () => ({ id: 20 }),
+  "GET /repos/acme/widgets/pulls/21/comments?per_page=100&page=1": () => [
+    { id: 77, path: "src/old.ts", line: 3, user: { type: "Bot" }, body: "<!-- prism-review-line risky-api -->\nold finding" }
+  ],
+  // GitHub rejects a comment on a line it does not count as part of the diff.
+  "POST /repos/acme/widgets/pulls/21/comments": (body) =>
+    (body as { path?: string }).path === "app/outside.py"
+      ? new ErrorResponse(422, { message: "Validation Failed", errors: ["line must be part of the diff"] })
+      : { id: 101 },
+  "PATCH /repos/acme/widgets/pulls/comments/77": () => ({ id: 77 }),
   "GET /repos/acme/widgets/pulls/13/files?per_page=100&page=1": () => [
     { filename: "src/auth/login.ts", status: "modified", additions: 1, deletions: 0, patch: "@@ -1 +1,2 @@\n x\n+y" }
   ],

@@ -212,6 +212,14 @@ export const prismConfigSchema = z.object({
       enabled: z.boolean().default(false),
       includeLowSeverity: z.boolean().default(false)
     })
+    .default({}),
+  // Line findings as pull request review comments on the changed lines.
+  reviewComments: z
+    .object({
+      enabled: z.boolean().default(false),
+      includeLowSeverity: z.boolean().default(false),
+      maxComments: z.number().int().min(1).max(100).default(25)
+    })
     .default({})
 });
 

@@ -160,6 +160,11 @@ import {
   testEncodedPromptInjectionDoesNotChangeTheReview,
   testTagCharacterInstructionsAreReportedAndNotEchoed
 } from "./unit/prompt-injection.test.js";
+import {
+  testPlanLineCommentsCreatesUpdatesAndResolves,
+  testPlanLineCommentsKeepsResolvedCommentsQuietAndCapsTheCount,
+  testRenderLineCommentEscapesFindingText
+} from "./unit/line-comments.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -419,6 +424,9 @@ const tests: Array<[string, Test]> = [
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
   ["encoded prompt injection does not change the review", testEncodedPromptInjectionDoesNotChangeTheReview],
   ["tag character instructions are reported and not echoed", testTagCharacterInstructionsAreReportedAndNotEchoed],
+  ["plan line comments creates, updates, and resolves", testPlanLineCommentsCreatesUpdatesAndResolves],
+  ["plan line comments keeps resolved comments quiet and caps the count", testPlanLineCommentsKeepsResolvedCommentsQuietAndCapsTheCount],
+  ["render line comment escapes finding text", testRenderLineCommentEscapesFindingText],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
