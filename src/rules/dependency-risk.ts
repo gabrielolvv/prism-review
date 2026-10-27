@@ -18,7 +18,8 @@ export const dependencyRiskRule: Rule = {
     }
 
     return files
-      .filter((file) => ruleConfig.manifests.some((pattern) => minimatch(file.path, pattern)))
+      // A pattern without a slash matches the file name in any directory, as in .gitignore.
+      .filter((file) => ruleConfig.manifests.some((pattern) => minimatch(file.path, pattern, { matchBase: true })))
       .map((file) => {
         const ecosystem = detectEcosystem(file.path);
 

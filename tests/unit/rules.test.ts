@@ -81,3 +81,29 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
 function changedFile(path: string): ChangedFile {
   return { path, status: "modified", additions: 1, deletions: 0 };
 }
+
+export function testPatternsWithoutASlashMatchAtAnyDepth(): void {
+  // As in .gitignore, `package.json` means a package.json in any directory, so monorepos are covered.
+  const config = prismConfigSchema.parse({ rules: { sensitiveFiles: { patterns: ["*.tf", "infra/**"] } } });
+  const files: ChangedFile[] = [
+    "package.json",
+    "packages/ui/package.json",
+    "services/api/requirements.txt",
+    "crates/core/Cargo.lock",
+    "modules/network/main.tf",
+    "docs/package.json.md"
+  ].map((path) => ({ path, status: "modified", additions: 1, deletions: 0 }));
+
+  const flagged = (ruleId: string) =>
+    analyzePullRequest(files, config)
+      .findings.filter((finding) => finding.ruleId === ruleId)
+      .map((finding) => finding.file);
+
+  assert.deepEqual(flagged("dependency-risk"), [
+    "package.json",
+    "packages/ui/package.json",
+    "services/api/requirements.txt",
+    "crates/core/Cargo.lock"
+  ]);
+  assert.deepEqual(flagged("sensitive-files"), ["modules/network/main.tf"]);
+}
