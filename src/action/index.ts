@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
+import { createAnthropicProvider } from "../ai/anthropic-provider.js";
+import { summarizePullRequest, type AiSummary } from "../ai/summary.js";
+import { analyzePullRequest, partitionFiles } from "../analysis/analyze-pull-request.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
-import { defaultConfig } from "../config/schema.js";
-import type { Finding } from "../analysis/finding.js";
+import { defaultConfig, type PrismConfig } from "../config/schema.js";
+import type { ChangedFile } from "../analysis/changed-file.js";
+import type { Finding, ReviewResult } from "../analysis/finding.js";
 import { createGitHubClient, GitHubApiError, resolveGitHubApiUrl, type GitHubClient } from "../github/client.js";
 import { fetchPullRequestFiles } from "../github/fetch-pull-request.js";
 import { syncLineComments, type LineCommentOptions } from "../github/line-comments.js";
@@ -68,6 +71,9 @@ async function run(): Promise<void> {
     isGenerated: generated?.isGenerated,
     existingLockfiles
   });
+  const aiSummary = config.ai.enabled
+    ? await summarize(files, generated?.isGenerated, result, config, inputs.aiApiKey)
+    : undefined;
   // Read before rendering, so the review can mark what changed since the previous one. A dry run
   // makes no comment API calls, so it does not compare.
   const previous = inputs.dryRun ? undefined : await findReviewComment(client, owner, repo, pullRequest.number);
@@ -80,7 +86,8 @@ async function run(): Promise<void> {
     ownersOf: codeOwners?.ownersOf,
     dependencyChanges: config.comment.dependencyChanges,
     previous: previous === undefined ? undefined : readState(previous.body),
-    recordState: true
+    recordState: true,
+    aiSummary
   });
 
   if (config.annotations.enabled) {
@@ -123,6 +130,44 @@ async function run(): Promise<void> {
     console.error(describeFailure(failing, config.check.failOn));
     process.exitCode = 1;
   }
+}
+
+// The summary only adds context, so a missing key or a failed request leaves it out with a log line
+// and the review is published as usual. Only the files the rules reviewed are sent.
+async function summarize(
+  files: ChangedFile[],
+  isGenerated: ((path: string) => boolean) | undefined,
+  result: ReviewResult,
+  config: PrismConfig,
+  apiKey: string | undefined
+): Promise<AiSummary | undefined> {
+  if (apiKey === undefined) {
+    console.log(
+      "::notice title=Prism Review::ai.enabled is set, but the ai-api-key input is empty, so the review has no AI summary. Pull requests from forks get no secrets."
+    );
+    return undefined;
+  }
+
+  console.log(`::add-mask::${apiKey}`);
+  const provider = createAnthropicProvider({
+    apiKey,
+    model: config.ai.model,
+    timeoutMs: config.ai.timeoutSeconds * 1000
+  });
+  const outcome = await summarizePullRequest(
+    {
+      files: partitionFiles(files, config, isGenerated).reviewed,
+      findings: result.findings,
+      maxInputCharacters: config.ai.maxInputCharacters
+    },
+    provider
+  );
+  if ("failure" in outcome) {
+    console.log(`::warning title=Prism Review::The review has no AI summary: ${escapeCommand(outcome.failure)}`);
+    return undefined;
+  }
+
+  return outcome.summary;
 }
 
 // CODEOWNERS and .gitattributes only refine the review, so one that cannot be read is skipped with

@@ -10,6 +10,8 @@ export const fakeFailOnHighBaseSha = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
 export const fakeReviewCommentsBaseSha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
 export const fakeComparisonBaseSha = "2323232323232323232323232323232323232323";
 export const fakeLockfileBaseSha = "2525252525252525252525252525252525252525";
+export const fakeAiBaseSha = "2727272727272727272727272727272727272727";
+export const fakeAiFailureBaseSha = "2828282828282828282828282828282828282828";
 export const fakeHeadSha = "9999999999999999999999999999999999999999";
 export const fakeLeakedToken = `ghp_${"Zx9".repeat(12)}`;
 
@@ -37,6 +39,10 @@ const failOnHighConfig = "check:\n  failOn: high\n";
 
 const reviewCommentsConfig = "reviewComments:\n  enabled: true\n";
 
+const aiConfig = "ai:\n  enabled: true\n";
+
+const aiFailureConfig = "ai:\n  enabled: true\n  model: claude-unknown\n";
+
 class ErrorResponse {
   constructor(
     readonly status: number,
@@ -45,6 +51,35 @@ class ErrorResponse {
 }
 
 const routes: Record<string, (body: unknown) => unknown> = {
+  // The model provider's Messages API, for the AI summary. An unknown model is rejected.
+  "POST /v1/messages?beta=true": (body) =>
+    (body as { model?: string }).model === "claude-unknown"
+      ? new ErrorResponse(400, { type: "error", error: { type: "invalid_request_error", message: "model: claude-unknown" } })
+      : {
+          id: "msg_fake",
+          type: "message",
+          role: "assistant",
+          model: (body as { model?: string }).model,
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                overview: "Raises the refund limit; cc @acme/finance.",
+                concerns: [{ file: "src/billing/refund.ts", concern: "No test covers the new limit." }]
+              })
+            }
+          ],
+          stop_reason: "end_turn",
+          stop_sequence: null,
+          usage: { input_tokens: 100, output_tokens: 40 }
+        },
+  [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAiBaseSha}`]: () => fileContent(aiConfig),
+  [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeAiFailureBaseSha}`]: () => fileContent(aiFailureConfig),
+  "GET /repos/acme/widgets/pulls/27/files?per_page=100&page=1": () => [
+    { filename: "src/billing/refund.ts", status: "modified", additions: 1, deletions: 1, patch: "@@ -1 +1 @@\n-export const refundLimit = 100;\n+export const refundLimit = 500;" }
+  ],
+  "GET /repos/acme/widgets/issues/27/comments?per_page=100&page=1": () => [],
+  "POST /repos/acme/widgets/issues/27/comments": () => ({ id: 50 }),
   [`GET /repos/acme/widgets/contents/.prism-review.yml?ref=${fakeReviewCommentsBaseSha}`]: () =>
     fileContent(reviewCommentsConfig),
   "GET /repos/acme/widgets/pulls/21/files?per_page=100&page=1": () => [
@@ -200,6 +235,8 @@ function fileContent(value: string) {
   return { type: "file", encoding: "base64", content: Buffer.from(value).toString("base64") };
 }
 
+const json = { "content-type": "application/json" };
+
 globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
   const url = String(input);
   // Serves github.com and Enterprise Server (`/api/v3`) URLs; `url` lets scenarios check which was used.
@@ -213,14 +250,14 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
 
   const route = routes[`${method} ${path}`];
   if (!route) {
-    return new Response('{"message":"Not Found"}', { status: 404 });
+    return new Response('{"message":"Not Found"}', { status: 404, headers: json });
   }
 
   // A route can answer with an error status by returning { status, body }.
   const result = route(body);
   if (result instanceof ErrorResponse) {
-    return new Response(JSON.stringify(result.body), { status: result.status });
+    return new Response(JSON.stringify(result.body), { status: result.status, headers: json });
   }
 
-  return new Response(JSON.stringify(result), { status: 200 });
+  return new Response(JSON.stringify(result), { status: 200, headers: json });
 }) as typeof fetch;

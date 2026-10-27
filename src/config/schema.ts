@@ -245,6 +245,18 @@ export const prismConfigSchema = z.object({
       includeLowSeverity: z.boolean().default(false),
       maxComments: z.number().int().min(1).max(100).default(25)
     })
+    .default({}),
+  // An advisory summary written by a language model from the redacted diff. Off unless enabled,
+  // and it needs the `ai-api-key` input, since it sends the diff to the provider's API.
+  ai: z
+    .object({
+      enabled: z.boolean().default(false),
+      provider: z.enum(["anthropic"]).default("anthropic"),
+      model: z.string().trim().regex(/^[\w.:@/-]{1,100}$/, "Must be a model name, such as claude-opus-5-5.").default("claude-opus-5-5"),
+      // The diff text sent, in characters; files past it are sent by name only.
+      maxInputCharacters: z.number().int().min(1_000).max(500_000).default(100_000),
+      timeoutSeconds: z.number().int().min(10).max(600).default(120)
+    })
     .default({})
 });
 

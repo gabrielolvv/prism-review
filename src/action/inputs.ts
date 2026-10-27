@@ -7,6 +7,8 @@ export type ActionInputs = {
   dryRun: boolean;
   // Workspace-relative path to write a SARIF report to, for upload-sarif.
   sarifFile?: string;
+  // The provider API key for `ai.enabled`; unset when the input is empty.
+  aiApiKey?: string;
 };
 
 export function readInputs(): ActionInputs {
@@ -16,7 +18,8 @@ export function readInputs(): ActionInputs {
     githubToken,
     configPath: readConfigPath(),
     dryRun: parseBooleanInput(getInput("dry-run") || "false"),
-    ...readSarifFile()
+    ...readSarifFile(),
+    ...(getInput("ai-api-key") ? { aiApiKey: getInput("ai-api-key") } : {})
   };
 }
 
