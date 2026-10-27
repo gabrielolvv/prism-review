@@ -188,6 +188,7 @@ flowchart TD
 | `blanket-suppression` | Warning | Flags lint and type check suppressions that name no rule. |
 | `risky-api` | Warning | Flags added calls that run code, start a shell, deserialize data, or write raw HTML. |
 | `lockfile-source` | High or Warning | Flags lockfile entries and registry settings that download packages from hosts outside the allowed registries, over plain HTTP, or without TLS verification, and warns about Git sources, go.mod replaces, and extra pip indexes. |
+| `sql-injection` | Warning | Flags SQL built by inserting values into the query text, with f-strings, template literals, `fmt.Sprintf`, concatenation, or interpolation, instead of query parameters. |
 | `remote-script` | Warning or High | Flags commands that download a script and run it unchecked, such as `curl ... \| sh` or `iex (iwr ...)`, in Dockerfiles, workflows, and scripts. High over plain HTTP. |
 | `dependency-risk` | Warning | Flags dependency manifest and lockfile changes for supply-chain review. |
 | `oversized-patch` | Info | Reports files whose patch exceeded the size limit and was not fully inspected. |

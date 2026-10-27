@@ -72,6 +72,8 @@ rules:
     enabled: true
   disabledSecurityChecks:
     enabled: true
+  sqlInjection:
+    enabled: true
   workflowRisk:
     enabled: true
   unpinnedActions:
@@ -247,6 +249,28 @@ The `disabled-security-check` rule reports added lines that turn off a check mea
 Without certificate verification, anyone on the network path can read and change the traffic. Without signature checks, anyone can forge a token. CSRF protection is often turned off on purpose for an API or a signed webhook, so it is a warning.
 
 A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
+
+## SQL Injection
+
+### `rules.sqlInjection.enabled`
+
+The `sql-injection` rule warns about added lines that build SQL by inserting values into the query text:
+
+| Language | Reported | Safe |
+| --- | --- | --- |
+| Python | `cursor.execute(f"... {x}")`, `"... %s" % x`, `"...".format(x)`, `pd.read_sql(f"...")`, `execute(text(f"..."))` | `cursor.execute("... %s", (x,))` |
+| JavaScript and TypeScript | `` pool.query(`... ${x}`) ``, `knex.raw("..." + x)`, `` $queryRawUnsafe(`...${x}`) `` | `pool.query("... $1", [x])`, Prisma's tagged `` $queryRaw`...${x}` `` |
+| Go | `db.QueryContext(ctx, fmt.Sprintf("...", x))` | `db.QueryContext(ctx, "... $1", x)` |
+| Java | `stmt.executeQuery("..." + id)`, `createNativeQuery("..." + x)` | `prepareStatement("... ?")` |
+| PHP | `$mysqli->query("... '$email'")`, `"..." . $x` | prepared statements |
+| C# | `FromSqlRaw($"... {name}")`, `new SqlCommand("..." + x)` | `FromSqlInterpolated`, parameters |
+| Ruby | `where("email = '#{email}'")`, `find_by_sql("... #{x}")` | `where("email = ?", email)`, `where(email: email)` |
+
+It also reports SQL built into a variable named like `sql`, `query`, `stmt`, or `statement`, such as `String sql = "SELECT ... " + id;`, since the variable is usually run on a later line.
+
+To keep text that only mentions SQL words out, the string has to look like SQL: `SELECT ... FROM`, `INSERT INTO`, `UPDATE ... SET`, `DELETE FROM`, `WHERE column =`, `ORDER BY`, `GROUP BY`, or `VALUES (`. ActiveRecord fragments such as `where("email = '#{email}'")` count without one. GraphQL queries and messages such as `` `email from ${sender}` `` are not reported, and neither are `exec` calls, which usually start a process and are covered by `risky-api`.
+
+The finding is a warning, because the inserted value may be a constant or already escaped. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## Remote Scripts
 
