@@ -28,7 +28,9 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "large-diff": "Could this pull request be split into smaller ones?",
   "oversized-patch": "Has someone read the files too large for Prism Review to inspect?",
   "sensitive-files": "Are security-sensitive changes reviewed by the right owner?",
-  "config-change": "Has someone who owns the review configuration approved the change to it?"
+  "config-change": "Has someone who owns the review configuration approved the change to it?",
+  "review-control-change":
+    "Did the current owners of the affected paths approve the change to CODEOWNERS or to the files marked generated or vendored?"
 };
 
 // For a review without findings, or with only findings from rules that have no question.

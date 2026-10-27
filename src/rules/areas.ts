@@ -35,7 +35,8 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "large-diff": "review-scope",
   "oversized-patch": "review-scope",
   "sensitive-files": "review-scope",
-  "config-change": "review-scope"
+  "config-change": "review-scope",
+  "review-control-change": "review-scope"
 };
 
 export function areaOf(ruleId: string): Area {

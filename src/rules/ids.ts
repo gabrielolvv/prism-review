@@ -20,6 +20,7 @@ export const ruleIds: readonly string[] = [
   "public-exposure",
   "sensitive-files",
   "config-change",
+  "review-control-change",
   "lockfile-source",
   "dependency-risk",
   "oversized-patch"
