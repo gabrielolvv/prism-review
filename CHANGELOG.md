@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `action.yml` has `branding`, a `shield` icon on `purple`, which GitHub Marketplace requires to list the action.
+- A Release workflow creates the GitHub release for each pushed version tag, with the tag's section of this changelog as its notes, after checking that the tag matches `package.json`. It can also be run by hand for tags pushed before it existed. `scripts/release-notes.mjs` prints the notes for any version.
+- `docs/releasing.md` describes how to prepare, tag, and publish a release, including the GitHub Marketplace listing.
+
 ## 0.19.0 - 2026-10-27
 
 ### Added
