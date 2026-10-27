@@ -178,6 +178,7 @@ flowchart TD
 | `unpinned-action` | Warning | Flags third-party actions, reusable workflows, and `docker://` images in workflows that are used by a tag or branch instead of a commit SHA or digest. |
 | `destructive-migration` | High or Warning | Flags migrations that drop tables or columns or delete every row, and warns about renamed or redefined columns. Rollback sections are skipped. |
 | `privileged-container` | High or Warning | Flags privileged containers, Docker socket mounts, and `SYS_ADMIN` capabilities in Kubernetes, Compose, and `docker run`, and warns about host namespaces, privilege escalation, and running as root. |
+| `public-exposure` | High | Flags Terraform, CloudFormation, and Kubernetes changes that open SSH, RDP, database, or other sensitive ports to `0.0.0.0/0`, or make buckets and databases public. |
 | `sensitive-files` | High | Flags auth, permissions, CI, migration, and deployment-sensitive files. |
 | `config-change` | High | Flags any change to the Prism Review configuration file, including adding, deleting, or renaming it. |
 | `large-diff` | Warning | Flags PRs that exceed file or line thresholds. |

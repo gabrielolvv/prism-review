@@ -81,6 +81,8 @@ rules:
     enabled: true
   privilegedContainers:
     enabled: true
+  publicExposure:
+    enabled: true
   credentialFiles:
     enabled: true
   lockfileSources:
@@ -298,6 +300,24 @@ The `privileged-container` rule reads added lines in Kubernetes manifests, Helm 
 Anything that escapes a privileged container, or reaches the Docker socket, controls the host and every other container on it.
 
 Hardened settings are not reported: `privileged: false`, `drop: [ALL]` and `ALL` under `drop:` or `cap_drop:`, and other capabilities such as `NET_BIND_SERVICE`. A client setting such as `DOCKER_HOST: unix:///var/run/docker.sock` is not a mount and is not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A Helm template that sets a value from `{{ .Values... }}` is checked where the value is set, such as `values.yaml`.
+
+## Public Exposure
+
+### `rules.publicExposure.enabled`
+
+The `public-exposure` rule reads added lines in Terraform (`.tf`, `.tf.json`, `.hcl`), CloudFormation (`.yaml`, `.yml`, `.json`), and Kubernetes files, and reports a high-risk finding for:
+
+| Reported | Examples |
+| --- | --- |
+| A sensitive port open to the internet | `0.0.0.0/0`, `::/0`, or Azure's `Internet` and `*` as the source of a rule for port 22, 23, 3389, 5900, 3306, 5432, 1433, 1521, 27017, 6379, 11211, 9200, 9300, 5601, 5984, 9042, 2375, 2376, 2379, 2380, or 10250 |
+| Every port open to the internet | `protocol = "-1"`, `IpProtocol: -1`, or `destination_port_range = "*"` with a source of `0.0.0.0/0` |
+| A public storage bucket | `acl = "public-read"`, `AccessControl: PublicRead`, an S3 public access block setting turned off, `allow_blob_public_access = true` |
+| A public database | `publicly_accessible = true`, `PubliclyAccessible: true` |
+| Access for everyone on Google Cloud | `allUsers` or `allAuthenticatedUsers` as a member |
+
+The ports come from the block the source range is in: an `ingress { }` block, a security group rule, or a YAML list item. When that block names no port, the rule looks at the blocks around it, so a Google Cloud firewall with `source_ranges` beside an `allow { ports = [...] }` block is read as one rule. Port ranges such as `5000-5500` count when they include a sensitive port.
+
+Public web ports such as 80 and 443, private ranges such as `10.0.0.0/8`, routes to `0.0.0.0/0` with no ports, `egress` blocks and outbound rules, and rules that deny traffic are not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A value set through a variable, such as `cidr_blocks = var.allowed_cidrs`, is only checked where the variable gets a literal value in a reviewed file.
 
 ## Credential Files
 
