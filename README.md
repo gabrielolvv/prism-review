@@ -128,6 +128,8 @@ npm run analyze:fixture
 
 `npm test` compiles into `build/`. `npm run bundle` regenerates the committed `dist/` bundles that GitHub executes, so run it before committing source changes.
 
+[`docs/releasing.md`](docs/releasing.md) describes how to cut a release: pushing a version tag creates its GitHub release with the notes from `CHANGELOG.md`.
+
 ## Reviewing Before You Push
 
 The CLI reviews any unified diff, so you can see the review before opening a pull request:
