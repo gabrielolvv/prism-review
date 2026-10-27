@@ -13446,7 +13446,9 @@ var prismConfigSchema = external_exports.object({
     // The repository's own questions, added to every review's checklist.
     checklist: external_exports.array(external_exports.string().trim().min(1).max(300)).max(10).default([]),
     // Names the CODEOWNERS owners of each flagged file.
-    codeOwners: external_exports.boolean().default(true)
+    codeOwners: external_exports.boolean().default(true),
+    // Lists the dependencies the pull request adds, removes, or moves to another version.
+    dependencyChanges: external_exports.boolean().default(true)
   }).default({}),
   ignorePaths: external_exports.array(external_exports.string()).default([]),
   // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
@@ -14546,6 +14548,165 @@ function joinParts(parts) {
   return parts.length > 1 ? `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}` : parts[0] ?? "";
 }
 
+// src/analysis/manifest-dependencies.ts
+var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
+var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm"]);
+var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
+var npmEntry = new RegExp(`^\\s*"(${packageName})"\\s*:\\s*"([^"]{0,200})"`);
+var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*([<>=!~][^;#]{0,100}|@[^;#]{0,200})?(?:[;#]|$)`);
+var quotedRequirement = new RegExp(
+  `"(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*((?:[<>=!~]=|[<>]|===)[^";]{0,100})`,
+  "g"
+);
+var tomlEntry = new RegExp(`^\\s*"?(${packageName})"?\\s*=\\s*(.{0,300})$`);
+var gemLine = new RegExp(
+  `^\\s*(?:gem|\\w{1,50}\\.add_(?:runtime_|development_)?dependency)\\s*\\(?\\s*["'](${packageName})["'](?:\\s*,\\s*["']([^"']{1,100})["'])?`
+);
+var tableHeader = /^\s*\[\[?([^\]]{1,200})\]\]?\s*(?:#.*)?$/;
+var hunkHeader3 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+var manifests = [
+  {
+    ecosystem: "npm",
+    files: /(?:^|\/)package\.json$/,
+    entries(content) {
+      const [matched, name = "", version = ""] = npmEntry.exec(content) ?? [];
+      return matched !== void 0 && !npmFields.has(name) && npmVersion.test(version) ? [{ name, version }] : [];
+    }
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$/i,
+    // `name`, `name[extra]`, `name>=1.0`, or `name @ url`; options and URLs are not package names.
+    entries(content) {
+      const [matched, name = "", version = ""] = requirementLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version.trim() }];
+    }
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)pyproject\.toml$/i,
+    entries(content, section) {
+      const requirements = [...content.matchAll(quotedRequirement)].map((match2) => ({
+        name: match2[1] ?? "",
+        version: (match2[2] ?? "").trim()
+      }));
+      if (/^tool\.poetry\.(?:dependencies|dev-dependencies|group\.[^.]+\.dependencies)$/.test(section)) {
+        return [...requirements, ...tomlEntries(content).filter((entry) => entry.name !== "python")];
+      }
+      return requirements;
+    }
+  },
+  {
+    ecosystem: "PyPI",
+    files: /(?:^|\/)Pipfile$/,
+    entries: (content, section) => /^(?:packages|dev-packages)$/.test(section) ? tomlEntries(content) : []
+  },
+  {
+    ecosystem: "RubyGems",
+    files: /(?:^|\/)(?:Gemfile|[^/]+\.gemspec)$/,
+    entries(content) {
+      const [matched, name = "", version = ""] = gemLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version }];
+    }
+  },
+  {
+    ecosystem: "crates.io",
+    files: /(?:^|\/)Cargo\.toml$/,
+    // `[dependencies]`, `[dev-dependencies]`, `[workspace.dependencies]`, `[target.'cfg(..)'.dependencies]`.
+    entries: (content, section) => /(?:^|\.)(?:dev-|build-)?dependencies$/.test(section) ? tomlEntries(content) : []
+  }
+];
+function manifestEcosystem(path2) {
+  return manifestFor(path2)?.ecosystem;
+}
+function manifestFor(path2) {
+  return isTestDataPath(path2) ? void 0 : manifests.find((manifest) => manifest.files.test(path2));
+}
+function declaredDependencies(path2, patch) {
+  const manifest = manifestFor(path2);
+  const added = [];
+  const removed = [];
+  if (manifest === void 0) {
+    return { added, removed };
+  }
+  let oldLine;
+  let newLine = 0;
+  let section = "";
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader3.exec(line);
+    if (header) {
+      oldLine = Number(header[1]);
+      newLine = Number(header[2]);
+      section = "";
+      continue;
+    }
+    if (oldLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    const content = line.slice(1);
+    section = tableHeader.exec(content)?.[1]?.trim() ?? section;
+    if (line.startsWith("+")) {
+      added.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: newLine })));
+      newLine += 1;
+    } else if (line.startsWith("-")) {
+      removed.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
+      oldLine += 1;
+    } else {
+      newLine += 1;
+      oldLine += 1;
+    }
+  }
+  return { added, removed };
+}
+function dependencyChanges(files) {
+  return files.flatMap((file) => {
+    const ecosystem = manifestEcosystem(file.path);
+    if (ecosystem === void 0 || file.patch === void 0) {
+      return [];
+    }
+    const { added, removed } = declaredDependencies(file.path, file.patch);
+    const before = byName(removed, ecosystem);
+    const after = byName(added, ecosystem);
+    const changes = [];
+    for (const [key, dependency] of after) {
+      const previous = before.get(key);
+      if (previous === void 0) {
+        changes.push({ file: file.path, ecosystem, name: dependency.name, to: dependency.version });
+      } else if (previous.version !== dependency.version) {
+        changes.push({ file: file.path, ecosystem, name: dependency.name, from: previous.version, to: dependency.version });
+      }
+    }
+    for (const [key, dependency] of before) {
+      if (!after.has(key)) {
+        changes.push({ file: file.path, ecosystem, name: dependency.name, from: dependency.version });
+      }
+    }
+    return changes;
+  });
+}
+function byName(dependencies, ecosystem) {
+  const map = /* @__PURE__ */ new Map();
+  for (const dependency of dependencies) {
+    const key = normalizePackageName(dependency.name, ecosystem);
+    if (!map.has(key)) {
+      map.set(key, dependency);
+    }
+  }
+  return map;
+}
+function normalizePackageName(name, ecosystem) {
+  const lower = name.toLowerCase();
+  return ecosystem === "PyPI" ? lower.replace(/[-_.]+/g, "-") : lower;
+}
+function tomlEntries(content) {
+  const [matched, name = "", value = ""] = tomlEntry.exec(content) ?? [];
+  if (matched === void 0) {
+    return [];
+  }
+  const version = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
+  return [{ name, version }];
+}
+
 // src/security/popular-packages.ts
 var popularPackages = {
   npm: [
@@ -15067,60 +15228,6 @@ var popularPackages = {
 };
 
 // src/rules/lookalike-dependency.ts
-var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
-var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm"]);
-var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
-var npmEntry = new RegExp(`^\\s*"(${packageName})"\\s*:\\s*"([^"]{0,200})"`);
-var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*(?:[<>=!~;@#]|$)`);
-var quotedRequirement = new RegExp(`"(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*(?:[<>=!~]=|[<>]|===)`, "g");
-var tomlKey = new RegExp(`^\\s*"?(${packageName})"?\\s*=`);
-var gemLine = new RegExp(`^\\s*(?:gem|\\w{1,50}\\.add_(?:runtime_|development_)?dependency)\\s*\\(?\\s*["'](${packageName})["']`);
-var manifests = [
-  {
-    ecosystem: "npm",
-    files: /(?:^|\/)package\.json$/,
-    names(content) {
-      const match2 = npmEntry.exec(content);
-      const [, name = "", version = ""] = match2 ?? [];
-      return match2 !== null && !npmFields.has(name) && npmVersion.test(version) ? [name] : [];
-    }
-  },
-  {
-    ecosystem: "PyPI",
-    files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$/i,
-    // `name`, `name[extra]`, or `name>=1.0`; options and URLs are not package names.
-    names: (content) => optionalName(requirementLine.exec(content)?.[1])
-  },
-  {
-    ecosystem: "PyPI",
-    files: /(?:^|\/)pyproject\.toml$/i,
-    names(content, section) {
-      const requirements = [...content.matchAll(quotedRequirement)].map((match2) => match2[1] ?? "");
-      if (/^tool\.poetry\.(?:dependencies|dev-dependencies|group\.[^.]+\.dependencies)$/.test(section)) {
-        const key = tomlKey.exec(content)?.[1];
-        return [...requirements, ...optionalName(key === "python" ? void 0 : key)];
-      }
-      return requirements;
-    }
-  },
-  {
-    ecosystem: "PyPI",
-    files: /(?:^|\/)Pipfile$/,
-    names: (content, section) => /^(?:packages|dev-packages)$/.test(section) ? optionalName(tomlKey.exec(content)?.[1]) : []
-  },
-  {
-    ecosystem: "RubyGems",
-    files: /(?:^|\/)(?:Gemfile|[^/]+\.gemspec)$/,
-    names: (content) => optionalName(gemLine.exec(content)?.[1])
-  },
-  {
-    ecosystem: "crates.io",
-    files: /(?:^|\/)Cargo\.toml$/,
-    names(content, section) {
-      return /(?:^|\.)(?:dev-|build-)?dependencies$/.test(section) ? optionalName(tomlKey.exec(content)?.[1]) : [];
-    }
-  }
-];
 var lookalikeDependencyRule = {
   id: "lookalike-dependency",
   description: "Flags added dependencies named one character away from a popular package.",
@@ -15131,11 +15238,11 @@ var lookalikeDependencyRule = {
     }
     const allowed = new Set(ruleConfig.allowed.map((name) => name.toLowerCase()));
     return files.flatMap((file) => {
-      const manifest = manifests.find((candidate) => candidate.files.test(file.path));
-      if (manifest === void 0 || file.patch === void 0 || isTestDataPath(file.path)) {
+      const ecosystem = manifestEcosystem(file.path);
+      if (ecosystem === void 0 || file.patch === void 0) {
         return [];
       }
-      const found = findLookalikes(manifest, file.patch, allowed);
+      const found = findLookalikes(ecosystem, declaredDependencies(file.path, file.patch).added, allowed);
       if (found.length === 0) {
         return [];
       }
@@ -15150,47 +15257,29 @@ var lookalikeDependencyRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "add" : "adds"} ${pairs}${more}: ${found.length > 1 ? "names" : "a name"} one character away from a popular ${manifest.ecosystem} package, a common way to slip in a malicious one.`,
+          message: `${text} ${plural ? "add" : "adds"} ${pairs}${more}: ${found.length > 1 ? "names" : "a name"} one character away from a popular ${ecosystem} package, a common way to slip in a malicious one.`,
           recommendation: "Check that each name is the package that was meant. If it is, add it to rules.lookalikeDependencies.allowed."
         }
       ];
     });
   }
 };
-function findLookalikes(manifest, patch, allowed) {
-  const popular = popularPackages[manifest.ecosystem];
-  const normalized = new Map(popular.map((name) => [normalize(name, manifest.ecosystem), name]));
+function findLookalikes(ecosystem, added, allowed) {
+  const normalized = new Map(popularPackages[ecosystem].map((name) => [normalizePackageName(name, ecosystem), name]));
   const lookalikes = [];
-  let section = "";
-  for (const { line, content, added, startsHunk } of patchLines(patch)) {
-    if (startsHunk) {
-      section = "";
-    }
-    section = /^\s*\[\[?([^\]]{1,200})\]\]?\s*(?:#.*)?$/.exec(content)?.[1]?.trim() ?? section;
-    if (!added) {
+  for (const { name, line } of added) {
+    const key = normalizePackageName(name, ecosystem);
+    if (key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
       continue;
     }
-    for (const name of manifest.names(content, section)) {
-      const key = normalize(name, manifest.ecosystem);
-      if (key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
-        continue;
-      }
-      for (const [candidate, original] of normalized) {
-        if (candidate.length >= 4 && oneEditApart(key, candidate)) {
-          lookalikes.push({ line, name, popular: original });
-          break;
-        }
+    for (const [candidate, original] of normalized) {
+      if (candidate.length >= 4 && oneEditApart(key, candidate)) {
+        lookalikes.push({ line, name, popular: original });
+        break;
       }
     }
   }
   return lookalikes;
-}
-function optionalName(name) {
-  return name === void 0 ? [] : [name];
-}
-function normalize(name, ecosystem) {
-  const lower = name.toLowerCase();
-  return ecosystem === "PyPI" ? lower.replace(/[-_.]+/g, "-") : lower;
 }
 function oneEditApart(left, right) {
   if (left === right || Math.abs(left.length - right.length) > 1) {
@@ -16388,8 +16477,12 @@ function analyzePullRequest(files, config, options = {}) {
     summary: buildSummary(reviewed.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings,
-    suppressed
+    suppressed,
+    ...nonEmpty("dependencyChanges", dependencyChanges(reviewed))
   };
+}
+function nonEmpty(key, values) {
+  return values.length > 0 ? { [key]: values } : {};
 }
 function applySeverityOverride(finding, config, pathOverrides) {
   let override = config.severity[finding.ruleId];
@@ -16577,7 +16670,8 @@ function renderJson(result) {
         suppressed: suppressed.length
       },
       findings: result.findings.map(plainFinding),
-      suppressed: suppressed.map((finding) => ({ ...plainFinding(finding), reason: finding.suppressionReason }))
+      suppressed: suppressed.map((finding) => ({ ...plainFinding(finding), reason: finding.suppressionReason })),
+      dependencyChanges: result.dependencyChanges ?? []
     },
     null,
     2
@@ -16736,6 +16830,7 @@ var PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const findings = options.includeLowSeverity ? result.findings : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
+  const dependencies = options.dependencyChanges === false ? [] : renderDependencyChanges(result.dependencyChanges ?? []);
   const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
   const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
@@ -16745,7 +16840,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     ...renderOwnersQuestion(findings.flatMap(owners)),
     ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
   ];
-  const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
+  const budget = maxFindingsLength - [...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -16766,6 +16861,7 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
       (finding) => renderFinding(finding, comparison?.isNew(finding) ?? false, owners(finding))
     ),
     "",
+    ...dependencies,
     ...suppressed,
     "### Suggested Review Checklist",
     "",
@@ -16821,6 +16917,30 @@ function renderGroups(findings, shown) {
 }
 function topSeverity(findings) {
   return findings.map((finding) => finding.severity).sort(compareSeverity)[0] ?? "info";
+}
+var maxDependencyRows = 30;
+var maxDependencyLength = 8e3;
+function renderDependencyChanges(changes) {
+  if (changes.length === 0) {
+    return [];
+  }
+  const cell = (value) => codeSpan(value).replace(/\|/g, "\\|");
+  const version = (value) => value === void 0 || value === "" ? "" : ` ${cell(value)}`;
+  const rows = [];
+  let length = 0;
+  for (const change of changes.slice(0, maxDependencyRows)) {
+    const what = change.from === void 0 ? `added${version(change.to)}` : change.to === void 0 ? `removed${version(change.from)}` : `${cell(change.from || "any")} to ${cell(change.to || "any")}`;
+    const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
+    if (length + row.length > maxDependencyLength) {
+      break;
+    }
+    rows.push(row);
+    length += row.length + 1;
+  }
+  const hidden = changes.length - rows.length;
+  const table = rows.length === 0 ? [] : ["| File | Package | Change |", "| --- | --- | --- |", ...rows];
+  const more = hidden === 0 ? [] : [`${hidden} ${rows.length === 0 ? "" : "more "}dependency change(s) are not shown.`];
+  return ["### Dependency Changes", "", ...table, ...table.length > 0 && more.length > 0 ? [""] : [], ...more, ""];
 }
 var maxSuppressedShown = 50;
 var maxSuppressedLength = 1e4;
