@@ -45,13 +45,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `review-control-change` rule for changes to CODEOWNERS and to the files `.gitattributes` marks generated or vendored (0.23.0).
 - `lookalike-dependency` rule for added dependencies one character away from a popular npm, PyPI, RubyGems, or crates.io package, from a bundled list (0.24.0).
 - A Dependency Changes table of the packages a pull request adds, removes, or moves to another version, also in the JSON output (0.25.0).
-- `risky-dependency-version` rule for dependencies moved to an older version or left open to any future release.
+- `risky-dependency-version` rule for dependencies moved to an older version or left open to any future release (0.26.0).
+- `stale-lockfile` rule for manifests whose dependencies change while their lockfile, on the base commit, is not updated.
 
 ## Near Term
 
-### Flag manifest changes without a lockfile update
+### Read Go modules in the dependency checks
 
-A pull request that adds or upgrades a dependency in `package.json` but leaves `package-lock.json` untouched installs whatever the registry serves when CI or a teammate next runs `npm install`, not the version that was reviewed. Checking, through the contents API, whether the manifest's directory on the base commit has a lockfile, and reporting dependency changes that do not update it, would catch that drift.
+The Dependency Changes table, `lookalike-dependency`, `risky-dependency-version`, and `stale-lockfile` read npm, PyPI, RubyGems, and crates.io manifests, but not `go.mod`. Reading its `require` lines and blocks, with `go.sum` as the lockfile, would bring Go modules into the same checks.
 
 ## Mid Term
 

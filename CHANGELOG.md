@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `stale-lockfile` rule, a warning for a manifest whose dependencies change while its lockfile, such as `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `uv.lock`, `Pipfile.lock`, `Gemfile.lock`, or `Cargo.lock`, is not part of the pull request. It only reports manifests whose repository has the lockfile on the base commit, in the manifest's directory or above, so repositories without lockfiles and workspaces with a root lockfile are handled. The action lists at most 20 directories through the contents API, only when dependencies change; the CLI looks in the working tree.
+
+### Changed
+
+- `docs/sample-review-comment.md` shows a `stale-lockfile` finding, since the fixture adds a dependency without updating `package-lock.json`.
+
 ## 0.26.0 - 2026-10-27
 
 ### Added
