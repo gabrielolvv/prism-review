@@ -29,6 +29,7 @@ The first version is intentionally deterministic. Optional AI review can be adde
 - Groups findings by area, such as secrets, supply chain, infrastructure, and code, with a count for each area
 - Marks the findings that are new since the previous review on the pull request, and counts the ones no longer reported
 - Ends with a reviewer checklist that asks about the findings, such as whether an added credential was revoked, plus questions of your own
+- Names the CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone
 - Exposes the risk level and finding counts as step outputs
 - Optionally annotates findings beside the changed files, with no extra permission, or posts them as review comments on the changed lines
 - Writes JSON and SARIF, so findings can go to GitHub code scanning
@@ -184,6 +185,7 @@ comment:
   includeLowSeverity: false
   checklist:
     - "Is the CHANGELOG updated?"
+  codeOwners: true
 
 annotations:
   enabled: true

@@ -102,6 +102,7 @@ comment:
   mode: "upsert"
   includeLowSeverity: false
   checklist: []
+  codeOwners: true
 
 annotations:
   enabled: false
@@ -502,6 +503,15 @@ Each finding in the comment, and each review comment on a line, ends with a `Rul
 ### `comment.checklist`
 
 Questions of your own, added at the end of the Suggested Review Checklist on every review, such as `Is the CHANGELOG updated?`. Up to 10, each up to 300 characters; they are shown as plain text, like finding text.
+
+### `comment.codeOwners`
+
+When `true`, the default, each finding that points to a file gets an `Owners:` line with the file's owners from the repository's CODEOWNERS file, and the checklist asks whether the owners of the flagged files reviewed the change. The action reads `.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS` from the base commit, the first one that exists, as GitHub does, so a pull request cannot change who is shown as the owner of its own files. The CLI reads the same paths from the current directory.
+
+- Patterns follow GitHub's rules: the last matching pattern wins, a pattern without owners leaves its files unowned, and lines GitHub cannot read, such as `!` negations and `[ ]` ranges, are skipped. Owners are `@user`, `@org/team`, or email addresses.
+- Owners are shown in code spans, where GitHub does not turn `@` mentions into notifications, so the review never pings anyone. A finding lists at most 5 owners, and the checklist question at most 5 across all findings, with a count of the rest.
+- A CODEOWNERS file that cannot be read, such as one too large for the contents API, logs a warning and the review goes on without owners. Without a CODEOWNERS file, nothing changes.
+- `false` turns this off and skips reading the file.
 
 The checklist starts with one question for each rule that reported a finding the comment shows, at most 8, ordered like the areas in the comment: most severe first, then by area, such as whether an added credential was revoked, or whether a migration can be rolled back while the previous release is still running. A review with no such findings asks four general questions about tests, ownership, rollout, and dependencies instead.
 

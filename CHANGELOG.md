@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Each finding that points to a file names the file's owners from CODEOWNERS on an `Owners:` line, and the checklist asks whether the owners of the flagged files reviewed the change. The action reads `.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS` from the base commit, as GitHub does; the CLI reads them from the current directory. Owners are shown in code spans, so nobody is notified. `comment.codeOwners: false` turns this off.
+- A CODEOWNERS file that cannot be read logs a warning, and the review goes on without owners.
+
 ## 0.20.0 - 2026-10-27
 
 ### Added
