@@ -183,6 +183,11 @@ import {
   testReviewControlChangeReportsCodeOwners,
   testReviewControlChangeReportsGeneratedMarkers
 } from "./unit/review-control-change.test.js";
+import {
+  testLookalikeDependencyRuleReportsTyposquats,
+  testLookalikeDependencyRuleSkipsKnownAndUnrelatedNames,
+  testOneEditApart
+} from "./unit/lookalike-dependency.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -478,6 +483,9 @@ const tests: Array<[string, Test]> = [
   ["review control change reports code owners", testReviewControlChangeReportsCodeOwners],
   ["review control change reports generated markers", testReviewControlChangeReportsGeneratedMarkers],
   ["review control change cannot be hidden", testReviewControlChangeCannotBeHidden],
+  ["lookalike dependency rule reports typosquats", testLookalikeDependencyRuleReportsTyposquats],
+  ["lookalike dependency rule skips known and unrelated names", testLookalikeDependencyRuleSkipsKnownAndUnrelatedNames],
+  ["names one edit apart", testOneEditApart],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

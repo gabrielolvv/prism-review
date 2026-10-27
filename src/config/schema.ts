@@ -156,6 +156,13 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .default({}),
+      lookalikeDependencies: z
+        .object({
+          enabled: z.boolean().default(true),
+          // Dependency names known to be the intended packages, though they look like popular ones.
+          allowed: z.array(z.string().min(1).max(214)).max(500).default([])
+        })
+        .default({}),
       lockfileSources: z
         .object({
           enabled: z.boolean().default(true),

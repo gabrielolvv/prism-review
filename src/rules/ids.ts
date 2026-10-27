@@ -22,6 +22,7 @@ export const ruleIds: readonly string[] = [
   "config-change",
   "review-control-change",
   "lockfile-source",
+  "lookalike-dependency",
   "dependency-risk",
   "oversized-patch"
 ];
