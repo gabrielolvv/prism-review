@@ -14570,7 +14570,7 @@ function joinParts(parts) {
 var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
 var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm"]);
 var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
-var npmEntry = new RegExp(`^\\s*"(${packageName})"\\s*:\\s*"([^"]{0,200})"`);
+var npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);
 var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*([<>=!~][^;#]{0,100}|@[^;#]{0,200})?(?:[;#]|$)`);
 var quotedRequirement = new RegExp(
   `"(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*((?:[<>=!~]=|[<>]|===)[^";]{0,100})`,
@@ -15718,7 +15718,7 @@ function findLookalikes(ecosystem, added, allowed) {
   const lookalikes = [];
   for (const { name, line } of added) {
     const key = normalizePackageName(name, ecosystem);
-    if (key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
+    if (key.startsWith("@") || key.length < 4 || normalized.has(key) || allowed.has(name.toLowerCase())) {
       continue;
     }
     for (const [candidate, original] of normalized) {
