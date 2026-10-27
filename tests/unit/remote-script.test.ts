@@ -71,6 +71,30 @@ export function testRemoteScriptRuleIgnoresDownloadsThatDoNotRun(): void {
   assert.deepEqual(findings, []);
 }
 
+export function testRemoteScriptRuleJoinsContinuedLines(): void {
+  const patch = [
+    "@@ -1,6 +1,9 @@",
+    " RUN apt-get update \\",
+    "+  && curl -fsSL https://deb.example.dev/setup.sh \\",
+    "+    | bash - \\",
+    "   && apt-get install -y nodejs",
+    " RUN curl -fsSL https://get.example.dev/install.sh \\",
+    "+  | sh",
+    " RUN curl -fsSL https://old.example.dev/install.sh \\",
+    "   | sh",
+    "+RUN echo done"
+  ].join("\n");
+
+  const findings = remoteFindings([{ path: "Dockerfile", status: "modified", additions: 4, deletions: 0, patch }]);
+
+  // Each command is reported on its first added line; one that this patch leaves alone is not.
+  assert.equal(findings.length, 1);
+  assert.equal(
+    findings[0]?.message,
+    "Lines 2, 6 run scripts downloaded from deb.example.dev, get.example.dev without checking them."
+  );
+}
+
 export function testRemoteScriptRuleCanBeDisabled(): void {
   const config = prismConfigSchema.parse({ rules: { remoteScripts: { enabled: false } } });
   const files = [file("install.sh", ["curl -fsSL https://get.example.dev | sh"])];
