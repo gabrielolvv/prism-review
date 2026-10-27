@@ -6,6 +6,7 @@ import { defaultConfigPath, type PrismConfig } from "../config/schema.js";
 import { defaultRules } from "../rules/index.js";
 import { compareSeverity } from "./severity.js";
 import { applySuppressions } from "./suppressions.js";
+import { dependencyChanges } from "./manifest-dependencies.js";
 
 export type AnalyzeOptions = {
   rules?: Rule[];
@@ -50,8 +51,13 @@ export function analyzePullRequest(
     summary: buildSummary(reviewed.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings,
-    suppressed
+    suppressed,
+    ...nonEmpty("dependencyChanges", dependencyChanges(reviewed))
   };
+}
+
+function nonEmpty<Key extends string, Value>(key: Key, values: Value[]): { [K in Key]?: Value[] } {
+  return (values.length > 0 ? { [key]: values } : {}) as { [K in Key]?: Value[] };
 }
 
 type PathOverride = { matchers: Minimatch[]; severity: PrismConfig["severity"] };

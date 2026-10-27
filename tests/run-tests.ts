@@ -188,6 +188,11 @@ import {
   testLookalikeDependencyRuleSkipsKnownAndUnrelatedNames,
   testOneEditApart
 } from "./unit/lookalike-dependency.test.js";
+import {
+  testDependencyChangesAcrossManifests,
+  testDependencyChangesAreListedInTheReview,
+  testDependencyChangesShareTheCommentSizeLimit
+} from "./unit/dependency-changes.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -486,6 +491,9 @@ const tests: Array<[string, Test]> = [
   ["lookalike dependency rule reports typosquats", testLookalikeDependencyRuleReportsTyposquats],
   ["lookalike dependency rule skips known and unrelated names", testLookalikeDependencyRuleSkipsKnownAndUnrelatedNames],
   ["names one edit apart", testOneEditApart],
+  ["dependency changes across manifests", testDependencyChangesAcrossManifests],
+  ["dependency changes are listed in the review", testDependencyChangesAreListedInTheReview],
+  ["dependency changes share the comment size limit", testDependencyChangesShareTheCommentSizeLimit],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

@@ -16,7 +16,8 @@ export function renderJson(result: ReviewResult): string {
         suppressed: suppressed.length
       },
       findings: result.findings.map(plainFinding),
-      suppressed: suppressed.map((finding) => ({ ...plainFinding(finding), reason: finding.suppressionReason }))
+      suppressed: suppressed.map((finding) => ({ ...plainFinding(finding), reason: finding.suppressionReason })),
+      dependencyChanges: result.dependencyChanges ?? []
     },
     null,
     2

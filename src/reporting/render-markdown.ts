@@ -1,4 +1,5 @@
 import type { Finding, ReviewResult, SuppressedFinding } from "../analysis/finding.js";
+import type { DependencyChange } from "../analysis/manifest-dependencies.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
 import { compareSeverity, type Severity } from "../analysis/severity.js";
 import { areaOf, areas } from "../rules/areas.js";
@@ -18,6 +19,8 @@ export type RenderOptions = {
   checklist?: readonly string[];
   // The code owners of a file, from the repository's CODEOWNERS.
   ownersOf?: (path: string) => readonly string[];
+  // Lists the dependency changes; on unless set to false.
+  dependencyChanges?: boolean;
 };
 
 export function renderMarkdown(
@@ -28,6 +31,7 @@ export function renderMarkdown(
     ? result.findings
     : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
+  const dependencies = options.dependencyChanges === false ? [] : renderDependencyChanges(result.dependencyChanges ?? []);
   const comparison = options.previous === undefined ? undefined : compareWithPrevious(findings, options.previous);
   const changes = comparison === undefined ? [] : [renderChanges(comparison), ""];
   const state = options.recordState ? ["", renderState(findings)] : [];
@@ -39,7 +43,7 @@ export function renderMarkdown(
     ...(options.checklist ?? []).map((question) => `- ${escapeText(question)}`)
   ];
   // Everything else that can grow comes out of the findings' share of the size limit.
-  const budget = maxFindingsLength - [...suppressed, ...changes, ...state, ...checklist].join("\n").length;
+  const budget = maxFindingsLength - [...suppressed, ...dependencies, ...changes, ...state, ...checklist].join("\n").length;
 
   return [
     PRISM_COMMENT_MARKER,
@@ -61,6 +65,7 @@ export function renderMarkdown(
           renderFinding(finding, comparison?.isNew(finding) ?? false, owners(finding))
         ),
     "",
+    ...dependencies,
     ...suppressed,
     "### Suggested Review Checklist",
     "",
@@ -140,6 +145,41 @@ function renderGroups(findings: Finding[], shown: Array<{ finding: Finding; bloc
 
 function topSeverity(findings: Finding[]): Severity {
   return findings.map((finding) => finding.severity).sort(compareSeverity)[0] ?? "info";
+}
+
+// The dependency changes as a table, so a reviewer sees them without reading every manifest diff.
+// Like the suppressed findings, the table has a size budget of its own within the comment's.
+const maxDependencyRows = 30;
+const maxDependencyLength = 8_000;
+
+function renderDependencyChanges(changes: DependencyChange[]): string[] {
+  if (changes.length === 0) {
+    return [];
+  }
+
+  const cell = (value: string) => codeSpan(value).replace(/\|/g, "\\|");
+  const version = (value: string | undefined) => (value === undefined || value === "" ? "" : ` ${cell(value)}`);
+  const rows: string[] = [];
+  let length = 0;
+  for (const change of changes.slice(0, maxDependencyRows)) {
+    const what =
+      change.from === undefined
+        ? `added${version(change.to)}`
+        : change.to === undefined
+          ? `removed${version(change.from)}`
+          : `${cell(change.from || "any")} to ${cell(change.to || "any")}`;
+    const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
+    if (length + row.length > maxDependencyLength) {
+      break;
+    }
+    rows.push(row);
+    length += row.length + 1;
+  }
+  const hidden = changes.length - rows.length;
+  const table = rows.length === 0 ? [] : ["| File | Package | Change |", "| --- | --- | --- |", ...rows];
+  const more = hidden === 0 ? [] : [`${hidden} ${rows.length === 0 ? "" : "more "}dependency change(s) are not shown.`];
+
+  return ["### Dependency Changes", "", ...table, ...(table.length > 0 && more.length > 0 ? [""] : []), ...more, ""];
 }
 
 // Suppressed findings stay visible, so a reviewer can check each reason. They share the comment's
