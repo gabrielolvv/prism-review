@@ -1,5 +1,5 @@
 import { minimatch } from "minimatch";
-import { addedLines } from "../analysis/added-lines.js";
+import { patchLines } from "../analysis/added-lines.js";
 import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
@@ -45,7 +45,7 @@ export const remoteScriptRule: Rule = {
         return [];
       }
 
-      const found = addedLines(file.patch).flatMap(({ line, content }) => {
+      const found = commands(file.patch).flatMap(({ line, content }) => {
         if (commentLine.test(content) || !patterns.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
@@ -81,6 +81,38 @@ export const remoteScriptRule: Rule = {
     });
   }
 };
+
+// Joins lines continued with a trailing `\`, as long Dockerfile RUN commands are written, and keeps
+// the commands this patch adds to or changes, numbered by their first added line.
+function commands(patch: string): Array<{ line: number; content: string }> {
+  const result: Array<{ line: number; content: string }> = [];
+  let parts: string[] = [];
+  let firstAdded: number | undefined;
+  const flush = () => {
+    if (firstAdded !== undefined) {
+      result.push({ line: firstAdded, content: parts.join(" ") });
+    }
+    parts = [];
+    firstAdded = undefined;
+  };
+
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      flush();
+    }
+    const continues = /\\\s*$/.test(content);
+    parts.push(continues ? content.replace(/\\\s*$/, "") : content);
+    if (added && firstAdded === undefined) {
+      firstAdded = line;
+    }
+    if (!continues) {
+      flush();
+    }
+  }
+  flush();
+
+  return result;
+}
 
 // "line 4 downloads" or "lines 4, 9 download", to follow the first sentence.
 function describeInsecure(lines: number[]): string {

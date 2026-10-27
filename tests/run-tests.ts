@@ -112,7 +112,8 @@ import {
 import {
   testRemoteScriptRuleReportsDownloadedScriptsThatRun,
   testRemoteScriptRuleIgnoresDownloadsThatDoNotRun,
-  testRemoteScriptRuleCanBeDisabled
+  testRemoteScriptRuleCanBeDisabled,
+  testRemoteScriptRuleJoinsContinuedLines
 } from "./unit/remote-script.test.js";
 import {
   testUnpinnedActionRuleReportsTagsBranchesAndImages,
@@ -350,6 +351,7 @@ const tests: Array<[string, Test]> = [
   ["remote-script rule reports downloaded scripts that run", testRemoteScriptRuleReportsDownloadedScriptsThatRun],
   ["remote-script rule ignores downloads that do not run", testRemoteScriptRuleIgnoresDownloadsThatDoNotRun],
   ["remote-script rule can be disabled", testRemoteScriptRuleCanBeDisabled],
+  ["remote-script rule joins continued lines", testRemoteScriptRuleJoinsContinuedLines],
   ["unpinned-action rule reports tags, branches, and images", testUnpinnedActionRuleReportsTagsBranchesAndImages],
   ["unpinned-action rule skips comments, other files, and allowed owners", testUnpinnedActionRuleSkipsCommentsOtherFilesAndAllowedOwners],
   ["unpinned-action rule sees ignored files and can be disabled", testUnpinnedActionRuleSeesIgnoredFilesAndCanBeDisabled],
