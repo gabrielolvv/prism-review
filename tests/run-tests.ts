@@ -203,6 +203,10 @@ import {
   testStaleLockfileReportsManifestsWithoutTheirLockfile
 } from "./unit/stale-lockfile.test.js";
 import { testGoModulesAreReadFromGoMod, testGoModulesGoThroughTheDependencyRules } from "./unit/go-modules.test.js";
+import {
+  testComposerAndNuGetGoThroughTheDependencyRules,
+  testComposerAndNuGetManifestsAreRead
+} from "./unit/composer-nuget.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -511,6 +515,8 @@ const tests: Array<[string, Test]> = [
   ["findLockfiles lists only the directories it needs", testFindLockfilesListsOnlyTheDirectoriesItNeeds],
   ["Go modules are read from go.mod", testGoModulesAreReadFromGoMod],
   ["Go modules go through the dependency rules", testGoModulesGoThroughTheDependencyRules],
+  ["Composer and NuGet manifests are read", testComposerAndNuGetManifestsAreRead],
+  ["Composer and NuGet go through the dependency rules", testComposerAndNuGetGoThroughTheDependencyRules],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],
