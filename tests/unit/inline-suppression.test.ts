@@ -3,6 +3,7 @@ import { analyzePullRequest } from "../../src/analysis/analyze-pull-request.js";
 import type { ChangedFile } from "../../src/analysis/changed-file.js";
 import { failingFindings } from "../../src/analysis/check-outcome.js";
 import { defaultConfig } from "../../src/config/schema.js";
+import type { Finding, SuppressedFinding } from "../../src/analysis/finding.js";
 import { renderMarkdown } from "../../src/reporting/render-markdown.js";
 
 // Assembled so this file does not suppress anything in its own pull request.
@@ -96,6 +97,34 @@ export function testInlineSuppressionIsListedInTheComment(): void {
     /^- `sql-injection` on line 1 of `app\/reports\.py`: see \\\[docs\\\]\(https:\/\/evil\.example\) \\#\\# Approved \\<b\\>$/m
   );
   assert.doesNotMatch(markdown, /^## Approved/m);
+}
+
+export function testInlineSuppressionSharesTheCommentSizeLimit(): void {
+  const finding = (index: number): Finding => ({
+    ruleId: "sql-injection",
+    title: "SQL built from values",
+    severity: "warning",
+    file: `src/${"nested/".repeat(30)}module-${index}.py`,
+    line: 1,
+    message: "Line 1 builds SQL from values inserted into the query text, which allows SQL injection unless every value is escaped.",
+    recommendation: "Pass values as query parameters and keep the SQL text constant."
+  });
+  const suppressed: SuppressedFinding[] = Array.from({ length: 500 }, (_, index) => ({
+    ...finding(index),
+    suppressionReason: "x".repeat(200)
+  }));
+  const markdown = renderMarkdown({
+    summary: "Reviewed 2500 changed file(s).",
+    riskLevel: "medium",
+    findings: Array.from({ length: 2000 }, (_, index) => finding(index)),
+    suppressed
+  });
+
+  // GitHub rejects comments over 65536 characters, findings and suppressions together.
+  assert.ok(markdown.length <= 60_000, `${markdown.length} characters`);
+  assert.match(markdown, /^### Suppressed Inline$/m);
+  assert.match(markdown, /^- \d+ more suppressed finding\(s\) are not shown\.$/m);
+  assert.match(markdown, /### Suggested Review Checklist/);
 }
 
 function file(path: string, lines: string[]): ChangedFile {

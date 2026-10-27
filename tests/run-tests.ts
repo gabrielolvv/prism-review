@@ -144,7 +144,8 @@ import {
   testInlineSuppressionMovesAcknowledgedFindingsOut,
   testInlineSuppressionNeedsEveryLineARuleAndAReason,
   testInlineSuppressionCannotHideSecurityRules,
-  testInlineSuppressionIsListedInTheComment
+  testInlineSuppressionIsListedInTheComment,
+  testInlineSuppressionSharesTheCommentSizeLimit
 } from "./unit/inline-suppression.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
@@ -397,6 +398,7 @@ const tests: Array<[string, Test]> = [
   ["inline suppression needs every line, a rule, and a reason", testInlineSuppressionNeedsEveryLineARuleAndAReason],
   ["inline suppression cannot hide security rules", testInlineSuppressionCannotHideSecurityRules],
   ["inline suppression is listed in the comment", testInlineSuppressionIsListedInTheComment],
+  ["inline suppression shares the comment size limit", testInlineSuppressionSharesTheCommentSizeLimit],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
