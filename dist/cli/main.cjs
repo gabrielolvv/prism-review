@@ -13301,6 +13301,7 @@ var ruleIds = [
   "destructive-migration",
   "sensitive-files",
   "config-change",
+  "lockfile-source",
   "dependency-risk",
   "oversized-patch"
 ];
@@ -13384,6 +13385,11 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     credentialFiles: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    lockfileSources: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      // URL prefixes of private registries, added to the public ones.
+      allowedSources: external_exports.array(external_exports.string().max(500).refine(isRegistryUrl, "Must be an http or https URL, such as https://npm.pkg.github.com/.")).default([])
     }).default({})
   }).default({}),
   security: external_exports.object({
@@ -13420,6 +13426,13 @@ function isRegularExpression(source) {
   try {
     new RegExp(source);
     return true;
+  } catch {
+    return false;
+  }
+}
+function isRegistryUrl(value) {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
   } catch {
     return false;
   }
@@ -13565,6 +13578,10 @@ var blanketSuppressionRule = {
 function normalizeRepositoryPath(path2) {
   return path2.trim().replace(/\\/g, "/").replace(/^(\.\/)+/, "");
 }
+var testDataDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests__|__mocks__|spec)\//i;
+function isTestDataPath(path2) {
+  return testDataDirectory.test(path2);
+}
 
 // src/rules/config-change.ts
 var configChangeRule = {
@@ -13602,7 +13619,6 @@ var keyFile = /\.key$/i;
 var environmentFile = /(?:^|\/)(?:\.env(?:\.[^/]+)?|[^/]+\.env)$/i;
 var exampleFile = /(?:^|[./])(?:example|sample|template|tmpl|tpl|dist|defaults?|schema)(?:[./]|$)/i;
 var registryFile = /(?:^|\/)(?:\.npmrc|\.yarnrc(?:\.yml)?|\.pypirc)$/i;
-var testDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests__|__mocks__|spec)\//i;
 var commentLine = /^\s*[#;]/;
 var assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
 var secretName = /(?:secret|passw(?:or)?d|[_.-]pass|[_.-]pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
@@ -13614,7 +13630,7 @@ var placeholder = /^(?:|\$\{?[\w:-]*\}?|<[^>]*>|x+|\*+|\.{3}|change[_-]?me|repla
 var filePath = /^(?:~|\.{1,2})?\/[\w.-]+(?:\/[\w.-]+)+$|^(?:~\/|\.{0,2}\/)?[\w.-]+(?:\/[\w.-]+)*\.(?:json|pem|key|p12|pfx|jks|crt)$/i;
 var localDefault = /^(?:password|passw0rd|pass|secret|postgres|mysql|root|admin|guest|dev|development|test|local|default|123456)$/i;
 function credentialFileKind(path2) {
-  if (testDirectory.test(path2)) {
+  if (isTestDataPath(path2)) {
     return void 0;
   }
   if (environmentFile.test(path2)) {
@@ -14036,6 +14052,163 @@ var largeDiffRule = {
     ];
   }
 };
+
+// src/security/lockfile-sources.ts
+var defaultAllowedSources = [
+  "https://registry.npmjs.org/",
+  "https://registry.yarnpkg.com/",
+  "https://pypi.org/",
+  "https://files.pythonhosted.org/",
+  "https://rubygems.org/",
+  "https://index.crates.io/",
+  "https://static.crates.io/",
+  "https://github.com/rust-lang/crates.io-index"
+];
+var gitHosts = /^(?:github\.com|codeload\.github\.com|gitlab\.com|bitbucket\.org)$/i;
+var quotedUrl = (key) => new RegExp(`${key}["']?\\s*[:=]\\s*["']?([a-z][\\w+.-]*:\\/\\/[^\\s"'#,}]+)`, "i");
+var firstUrl = (pattern) => (content) => {
+  const url = pattern.exec(content)?.[1];
+  return url === void 0 ? [] : [{ url }];
+};
+var readers = [
+  // npm's `"resolved": "..."`, yarn v1's `resolved "..."`, yarn berry's `resolution: "pkg@https://..."`,
+  // and pnpm's `tarball: ...` and `repo: ...`.
+  {
+    files: /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml)$/i,
+    urls: firstUrl(/\b(?:resolved|resolution|tarball|repo)["']?\s*[:\s]\s*\{?\s*["']?(?:@?[^"'\s@]+@)?((?:git\+)?[a-z][\w+.-]*:\/\/[^\s"'#,}]+)/i)
+  },
+  { files: /(?:^|\/)poetry\.lock$/i, urls: firstUrl(quotedUrl("url")) },
+  { files: /(?:^|\/)Pipfile\.lock$/i, urls: firstUrl(quotedUrl("url")) },
+  { files: /(?:^|\/)Cargo\.lock$/i, urls: firstUrl(/^\s*source\s*=\s*"((?:registry\+|sparse\+|git\+)?[a-z][\w+.-]*:\/\/[^"]+)"/i) },
+  { files: /(?:^|\/)Gemfile\.lock$/i, urls: firstUrl(/^\s*remote:\s*([a-z][\w+.-]*:\/\/\S+)/i) },
+  { files: /(?:^|\/)\.npmrc$/i, urls: firstUrl(/^\s*(?:@[\w.-]+:)?registry\s*=\s*["']?([a-z][\w+.-]*:\/\/[^\s"']+)/i) },
+  { files: /(?:^|\/)\.yarnrc\.yml$/i, urls: firstUrl(/^\s*npmRegistryServer:\s*["']?([a-z][\w+.-]*:\/\/[^\s"']+)/i) },
+  {
+    files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$|(?:^|\/)pip\.conf$/i,
+    urls: (content) => {
+      const index = /^\s*(-i|--index-url|index-url|--extra-index-url|extra-index-url|-f|--find-links)(?:\s*=\s*|\s+)(\S+)/i.exec(content);
+      if (index) {
+        return [{ url: index[2] ?? "", extraIndex: /extra/i.test(index[1] ?? "") }];
+      }
+      const direct = /^[^#]*?(?:@\s*|^\s*(?:-e\s+)?)((?:git\+)?[a-z][\w+.-]*:\/\/\S+)/i.exec(content);
+      return direct ? [{ url: direct[1] ?? "" }] : [];
+    }
+  }
+];
+function isSourceFile(path2) {
+  return !isTestDataPath(path2) && readers.some((reader) => reader.files.test(path2));
+}
+function findLockfileSources(path2, patch, allowedSources) {
+  const reader = readers.find((candidate) => candidate.files.test(path2));
+  if (reader === void 0 || isTestDataPath(path2)) {
+    return [];
+  }
+  const allowed = [...defaultAllowedSources, ...allowedSources].flatMap((source) => parseUrl(source) ?? []);
+  const gemfile = /Gemfile\.lock$/i.test(path2);
+  let section = "";
+  const found = [];
+  for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
+    if (gemfile) {
+      if (startsHunk) {
+        section = /^[A-Z]+$/.exec(hunkContext?.trim() ?? "")?.[0] ?? "";
+      }
+      if (/^[A-Z]+$/.test(content)) {
+        section = content;
+      }
+    }
+    if (!added) {
+      continue;
+    }
+    for (const { url, extraIndex } of reader.urls(content)) {
+      const source = extraIndex ? { kind: "extra-index" } : classify(url, allowed, section === "GIT");
+      if (source !== void 0) {
+        found.push({ line, ...source });
+      }
+    }
+  }
+  return found;
+}
+function classify(raw, allowed, gitSection) {
+  if (gitSection || /^git\+|^git:|^ssh:/i.test(raw)) {
+    return { kind: "git" };
+  }
+  const url = parseUrl(raw.replace(/^(?:registry|sparse)\+/i, ""));
+  if (url === void 0 || url.protocol === "file:") {
+    return void 0;
+  }
+  if (allowed.some((source) => isUnder(url, source))) {
+    return void 0;
+  }
+  if (url.protocol === "http:") {
+    return { kind: "insecure" };
+  }
+  if (gitHosts.test(url.hostname)) {
+    return { kind: "git" };
+  }
+  return { kind: "unlisted", host: url.hostname };
+}
+function isUnder(url, source) {
+  if (url.protocol !== source.protocol || url.host !== source.host) {
+    return false;
+  }
+  const base = source.pathname.endsWith("/") ? source.pathname : `${source.pathname}/`;
+  return url.pathname === source.pathname || url.pathname.startsWith(base);
+}
+function parseUrl(value) {
+  try {
+    return new URL(value);
+  } catch {
+    return void 0;
+  }
+}
+
+// src/rules/lockfile-source.ts
+var lockfileSourceRule = {
+  id: "lockfile-source",
+  description: "Flags lockfile entries and registry settings that fetch packages from outside the allowed registries.",
+  seesIgnoredFiles: true,
+  run({ files, config }) {
+    const ruleConfig = config.rules.lockfileSources;
+    if (!ruleConfig.enabled) {
+      return [];
+    }
+    return files.flatMap((file) => {
+      const sources = sourcesIn(file, ruleConfig.allowedSources);
+      if (sources.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(sources.map((source) => source.line));
+      const hosts = [...new Set(sources.flatMap((source) => source.host ?? []))];
+      const parts = [
+        hosts.length > 0 ? `downloaded from ${hosts.length > 1 ? "hosts that are not allowed registries" : "a host that is not an allowed registry"} (${hosts.slice(0, 3).join(", ")}${hosts.length > 3 ? ", ..." : ""})` : "",
+        sources.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
+        sources.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
+        sources.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
+      ].filter(Boolean);
+      const high = sources.some((source) => source.kind === "unlisted" || source.kind === "insecure");
+      return [
+        {
+          ruleId: "lockfile-source",
+          title: high ? "Dependency from an untrusted source" : "Dependency from outside a registry",
+          severity: high ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...sources.map((source) => source.line)),
+          message: `${text} ${plural ? "add dependencies" : "adds a dependency"} ${joinParts(parts)}.`,
+          recommendation: "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, and prefer --index-url over --extra-index-url."
+        }
+      ];
+    });
+  }
+};
+function sourcesIn(file, allowedSources) {
+  if (file.lockfileSources !== void 0) {
+    return file.lockfileSources;
+  }
+  return file.patch === void 0 || !isSourceFile(file.path) ? [] : findLockfileSources(file.path, file.patch, allowedSources);
+}
+function joinParts(parts) {
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}` : parts[0] ?? "";
+}
 
 // src/rules/missing-tests.ts
 var missingTestsRule = {
@@ -14598,6 +14771,7 @@ var defaultRules = [
   destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,
+  lockfileSourceRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];
@@ -14854,7 +15028,8 @@ function prepareChangedFiles(files, config) {
   const scanned = detectSecrets(files, allowlist).map((file) => ({
     ...file,
     hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch),
-    ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {}
+    ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {},
+    ...file.patch !== void 0 && isSourceFile(file.path) ? { lockfileSources: findLockfileSources(file.path, file.patch, config.rules.lockfileSources.allowedSources) } : {}
   }));
   const limited = limitPatchSizes(scanned, maxPatchBytes);
   return redactChangedFiles(limited, { allowlist });
