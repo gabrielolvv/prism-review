@@ -74,6 +74,9 @@ rules:
     enabled: true
   credentialFiles:
     enabled: true
+  lockfileSources:
+    enabled: true
+    allowedSources: []
 
 security:
   maxPatchBytes: 200000
@@ -114,7 +117,36 @@ Set to `false` to turn the rule off, including the built-in words.
 
 ### `rules.dependencyRisk.manifests`
 
-The `dependency-risk` rule warns for each changed file that matches one of these globs. The defaults cover Node.js, Python, Go, and Rust manifests and lockfiles, and the message names the ecosystem. `rules.dependencyRisk.enabled: false` turns the rule off.
+The `dependency-risk` rule warns for each changed file that matches one of these globs, so dependency changes get a supply-chain review; `lockfile-source` checks where the packages in lockfiles come from. The defaults cover Node.js, Python, Go, and Rust manifests and lockfiles, and the message names the ecosystem. `rules.dependencyRisk.enabled: false` turns the rule off.
+
+## Lockfile Sources
+
+### `rules.lockfileSources.allowedSources`
+
+The `lockfile-source` rule reads the download URLs that added lines put in lockfiles and registry settings. A lockfile can point a familiar package name at any tarball, and few reviewers read lockfile diffs, so a changed URL is easy to miss.
+
+| Reported | Severity |
+| --- | --- |
+| A URL on a host that is not an allowed registry | High, with the host named |
+| A URL over plain `http://` | High |
+| A Git dependency: `git+https://`, `git+ssh://`, a GitHub, GitLab, or Bitbucket tarball, or a `GIT` section in `Gemfile.lock` | Warning |
+| A pip `--extra-index-url`, which lets a public package with the same name as a private one win | Warning |
+
+It reads `resolved` and `resolution` in `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` (v1 and berry), and `pnpm-lock.yaml`; `url` in `poetry.lock` and `Pipfile.lock`; `source` in `Cargo.lock`; `remote` in `Gemfile.lock`; index options and direct URLs in `requirements*.txt` and `requirements/*.in`; `registry` in `.npmrc`; `npmRegistryServer` in `.yarnrc.yml`; and `index-url` in `pip.conf`.
+
+The public registries are always allowed: `https://registry.npmjs.org/`, `https://registry.yarnpkg.com/`, `https://pypi.org/`, `https://files.pythonhosted.org/`, `https://rubygems.org/`, `https://index.crates.io/`, `https://static.crates.io/`, and `https://github.com/rust-lang/crates.io-index`. Add private registries as URL prefixes:
+
+```yaml
+rules:
+  lockfileSources:
+    allowedSources:
+      - "https://npm.pkg.github.com/"
+      - "https://artifactory.acme.example/api/npm/"
+```
+
+A URL is allowed when its scheme and host match and its path continues the prefix at a `/`, so `https://artifactory.acme.example/api/npm-evil/` does not match the second entry. Entries must be http or https URLs.
+
+Local packages (`file:`, workspaces), registry versions without a URL, and comments are not reported, and neither are lockfiles under test or fixture directories. Like `secret-in-diff`, the rule reads patches before the size limit and redaction, since lockfile diffs are often large and URLs can carry credentials; only the host is shown. It also checks lockfiles matched by `ignorePaths`. `rules.lockfileSources.enabled: false` turns it off.
 
 ## Skipped Tests
 
