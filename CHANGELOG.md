@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `privileged-container` rule reports, as high, privileged containers, Docker socket mounts, and added `SYS_ADMIN` or `ALL` capabilities in Kubernetes manifests, Helm values, Compose files, and `docker run` commands, and warns about host namespaces, `allowPrivilegeEscalation: true`, and running as root. Dropped capabilities and client settings such as `DOCKER_HOST` are not reported. `rules.privilegedContainers.enabled` turns it off.
+
 ## 0.10.0 - 2026-10-27
 
 ### Added
