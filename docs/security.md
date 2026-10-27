@@ -66,6 +66,10 @@ With `reviewComments.enabled`, line findings are also posted as review comments.
 
 The CODEOWNERS file is read from the base commit, like the configuration, so a pull request cannot add itself as the owner of the files it changes. Owners are only shown, never requested or notified: they appear in code spans, where GitHub does not create mentions, and only tokens shaped like `@user`, `@org/team`, or an email address are shown. A CODEOWNERS file that cannot be read only costs the owners, with a warning, and never fails the review.
 
+## Lockfile Checks
+
+For `stale-lockfile`, the action lists, through the contents API and at the base commit, the directories that hold a manifest whose dependencies change and the directories above them, at most 20 per run. It reads only the file names in those listings, and only when a manifest's dependencies change, so most pull requests cost no extra call. A listing that fails only turns the rule off for that run, with a warning.
+
 ## Review Comparison
 
 The record of findings that the review comment ends with holds rule ids and 12-character hashes of each finding's file and title, never a file name, so pull request content cannot reach it. It is read only from the newest bot comment that starts with the review marker, and only from that comment's last line: file names quoted earlier in the comment can spell out a record, but their newlines are escaped, so none can be the last line. A record with any malformed entry is ignored as a whole. The comparison only adds `(new)` marks and a count of findings no longer reported; it never changes which findings are reported, the risk level, or the check outcome.

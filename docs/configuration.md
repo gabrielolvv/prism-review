@@ -222,6 +222,27 @@ The `risky-dependency-version` rule reads the same dependency changes as the Dep
 
 `false` turns the rule off.
 
+## Stale Lockfiles
+
+The `stale-lockfile` rule reports a warning when a manifest's dependencies change, as in the Dependency Changes table, but the lockfile that pins them is not part of the pull request. The next install then resolves versions nobody reviewed, or fails in CI with a frozen lockfile.
+
+| Manifest | Lockfiles |
+| --- | --- |
+| `package.json` | `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb` |
+| `pyproject.toml` | `poetry.lock`, `uv.lock`, `pdm.lock` |
+| `Pipfile` | `Pipfile.lock` |
+| `Gemfile` | `Gemfile.lock` |
+| `Cargo.toml` | `Cargo.lock` |
+
+- The rule only reports a manifest whose repository uses a lockfile: one of its lockfiles must exist on the base commit, in the manifest's directory or a directory above it, as at the root of a workspace. The nearest one counts. The action lists those directories through the contents API, at most 20 per run and only when a manifest's dependencies change; the CLI looks in the working tree.
+- Any change to one of the lockfiles in that directory, including adding a new one, counts as an update. Removing a manifest is not reported.
+- `requirements*.txt` pins versions itself and `*.gemspec` describes a library, so neither is checked.
+- When the directories cannot be listed, the run logs a warning and the rule reports nothing.
+
+### `rules.staleLockfiles.enabled`
+
+`false` turns the rule off, and the action makes no calls for it.
+
 ## Skipped Tests
 
 ### `rules.skippedTests.enabled`

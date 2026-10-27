@@ -11,11 +11,11 @@ Risk level: **High**
 
 ### Summary
 
-Reviewed 2 changed file(s). Found 1 high-risk and 2 warning-level signal(s).
+Reviewed 2 changed file(s). Found 1 high-risk and 3 warning-level signal(s).
 
 ### Findings
 
-3 findings in 3 areas: Review Scope (1), Supply Chain (1), Tests (1).
+4 findings in 3 areas: Review Scope (1), Supply Chain (2), Tests (1).
 
 ### Review Scope (1)
 
@@ -29,7 +29,17 @@ Recommendation: Ask for focused review from someone familiar with this area and 
 
 Rule: [`sensitive-files`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#sensitive-files)
 
-### Supply Chain (1)
+### Supply Chain (2)
+
+#### Warning - Lockfile not updated
+
+This file changes dependencies (left-pad added), but package-lock.json, which pins the versions that are installed, is not part of this pull request.
+
+File: `package.json`, line 12
+
+Recommendation: Run the package manager's install or lock command and commit the updated lockfile, so CI and other developers install the reviewed versions.
+
+Rule: [`stale-lockfile`](https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md#stale-lockfiles)
 
 #### Warning - Dependency definition changed
 
@@ -60,6 +70,7 @@ Rule: [`missing-tests`](https://github.com/gabrielolvv/prism-review/blob/master/
 ### Suggested Review Checklist
 
 - Are security-sensitive changes reviewed by the right owner?
+- Was the lockfile regenerated with the manifest, so the versions installed are the ones reviewed?
 - Are the new or updated dependencies necessary and trusted?
 - Are tests covering the changed behavior?
 ```
