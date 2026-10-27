@@ -4,6 +4,10 @@ All notable changes to Prism Review are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- `remote-script` rule warns about commands that download a script and run it unchecked, such as `curl ... | sh`, `bash <(curl ...)`, `eval "$(curl ...)"`, and PowerShell's `iex (iwr ...)`, in Dockerfiles, workflows, Makefiles, and scripts. It is high when the download uses plain HTTP. Documentation and tests are skipped. `rules.remoteScripts.enabled` turns it off.
+
 ### Changed
 
 - `lockfile-source` also reads package sources in `pyproject.toml`: `name @ URL` dependencies, index URLs, Poetry, uv, and PDM source tables, and inline `git` and `url` sources.
