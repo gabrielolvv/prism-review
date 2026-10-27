@@ -21,15 +21,20 @@ export const lockfileSourceRule: Rule = {
 
       const { text, plural } = describeLines(sources.map((source) => source.line));
       const hosts = [...new Set(sources.flatMap((source) => source.host ?? []))];
+      const modules = [...new Set(sources.flatMap((source) => source.module ?? []))];
       const parts = [
         hosts.length > 0
           ? `downloaded from ${hosts.length > 1 ? "hosts that are not allowed registries" : "a host that is not an allowed registry"} (${hosts.slice(0, 3).join(", ")}${hosts.length > 3 ? ", ..." : ""})`
           : "",
         sources.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
+        sources.some((source) => source.kind === "unverified") ? "downloaded without TLS verification" : "",
         sources.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
+        modules.length > 0
+          ? `replaced with ${modules.length > 1 ? "different modules" : "a different module"} (${modules.slice(0, 3).join(", ")}${modules.length > 3 ? ", ..." : ""})`
+          : "",
         sources.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
       ].filter(Boolean);
-      const high = sources.some((source) => source.kind === "unlisted" || source.kind === "insecure");
+      const high = sources.some((source) => ["unlisted", "insecure", "unverified"].includes(source.kind));
 
       return [
         {
@@ -40,7 +45,7 @@ export const lockfileSourceRule: Rule = {
           line: Math.min(...sources.map((source) => source.line)),
           message: `${text} ${plural ? "add dependencies" : "adds a dependency"} ${joinParts(parts)}.`,
           recommendation:
-            "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, and prefer --index-url over --extra-index-url."
+            "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, prefer --index-url over --extra-index-url, and keep TLS verification on."
         }
       ];
     });

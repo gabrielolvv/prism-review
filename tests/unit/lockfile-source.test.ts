@@ -181,6 +181,62 @@ export function testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction
   assert.ok(findings.every((finding) => !finding.message.includes("s3cret") && !finding.message.includes("user")));
 }
 
+export function testLockfileSourceRuleReadsOlderAndNewerFormats(): void {
+  const findings = sourceFindings([
+    // npm lockfile v1 keeps Git and tarball URLs in "version".
+    file("legacy/package-lock.json", [
+      '    "ui": {',
+      '      "version": "git+https://github.com/acme/ui.git#0123abc",',
+      '      "version": "https://evil.example/pad.tgz",',
+      '      "version": "1.3.0",'
+    ]),
+    file("uv.lock", [
+      "[[package]]",
+      'name = "requests"',
+      'source = { registry = "https://pypi.org/simple" }',
+      'sdist = { url = "https://files.pythonhosted.org/packages/requests-2.32.3.tar.gz", hash = "sha256:abc" }',
+      'source = { git = "https://github.com/acme/toolkit?rev=main#0123abc" }',
+      'wheels = [{ url = "https://wheels.evil.example/toolkit-1.0-py3-none-any.whl" }]',
+      'source = { editable = "libs/core" }'
+    ]),
+    file("Pipfile", ["[[source]]", 'url = "https://pypi.evil.example/simple"', "verify_ssl = true"]),
+    file("requirements.txt", ["--trusted-host pypi.internal.example", "requests==2.32.3"]),
+    file("go.mod", [
+      "module example.com/app",
+      "require golang.org/x/crypto v0.21.0",
+      "replace golang.org/x/crypto => github.com/evil/crypto v0.21.0",
+      "replace (",
+      "\texample.com/shared => ../shared",
+      "\texample.com/log v1.0.0 => example.com/log v1.0.1",
+      "\t// example.com/old => github.com/someone/old v1.0.0",
+      ")"
+    ])
+  ]);
+
+  const byFile = new Map(findings.map((finding) => [finding.file, finding]));
+  assert.deepEqual([...byFile.keys()].sort(), ["Pipfile", "go.mod", "legacy/package-lock.json", "requirements.txt", "uv.lock"]);
+  assert.equal(
+    byFile.get("legacy/package-lock.json")?.message,
+    "Lines 2, 3 add dependencies downloaded from a host that is not an allowed registry (evil.example), and installed from a Git repository."
+  );
+  assert.equal(
+    byFile.get("uv.lock")?.message,
+    "Lines 5, 6 add dependencies downloaded from a host that is not an allowed registry (wheels.evil.example), and installed from a Git repository."
+  );
+  assert.equal(byFile.get("Pipfile")?.severity, "high");
+  assert.equal(
+    byFile.get("requirements.txt")?.message,
+    "Line 1 adds a dependency downloaded without TLS verification."
+  );
+  assert.equal(byFile.get("requirements.txt")?.severity, "high");
+  // A replace that keeps the module path or points at a local directory is routine.
+  assert.equal(
+    byFile.get("go.mod")?.message,
+    "Line 3 adds a dependency replaced with a different module (github.com/evil/crypto)."
+  );
+  assert.equal(byFile.get("go.mod")?.severity, "warning");
+}
+
 export function testLockfileSourceRuleSeesIgnoredLockfiles(): void {
   // Lockfiles are a common entry in ignorePaths, which must not hide a poisoned URL.
   const config = prismConfigSchema.parse({ ignorePaths: ["**/package-lock.json"] });

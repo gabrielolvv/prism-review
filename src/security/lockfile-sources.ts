@@ -1,13 +1,15 @@
 import { patchLines } from "../analysis/added-lines.js";
 import { isTestDataPath } from "../analysis/repository-path.js";
 
-export type LockfileSourceKind = "unlisted" | "insecure" | "git" | "extra-index";
+export type LockfileSourceKind = "unlisted" | "insecure" | "unverified" | "git" | "replaced" | "extra-index";
 
 export type LockfileSource = {
   line: number;
   kind: LockfileSourceKind;
   // For "unlisted": the host, never the full URL, which can carry credentials.
   host?: string;
+  // For "replaced": the module a go.mod replace points to.
+  module?: string;
 };
 
 // The public registries. `rules.lockfileSources.allowedSources` adds private ones.
@@ -25,7 +27,9 @@ export const defaultAllowedSources = [
 // Tarballs from these hosts are snapshots of a Git repository, not registry releases.
 const gitHosts = /^(?:github\.com|codeload\.github\.com|gitlab\.com|bitbucket\.org)$/i;
 
-type Reader = { files: RegExp; urls: (content: string) => Array<{ url: string; extraIndex?: boolean }> };
+// A URL to classify, or a finding a reader recognizes by itself.
+type Entry = { url: string; extraIndex?: boolean; git?: boolean } | Omit<LockfileSource, "line">;
+type Reader = { files: RegExp; urls: (content: string) => Entry[] };
 
 const quotedUrl = (key: string) => new RegExp(`${key}["']?\\s*[:=]\\s*["']?([a-z][\\w+.-]*:\\/\\/[^\\s"'#,}]+)`, "i");
 const firstUrl = (pattern: RegExp) => (content: string) => {
@@ -34,14 +38,35 @@ const firstUrl = (pattern: RegExp) => (content: string) => {
 };
 
 const readers: Reader[] = [
-  // npm's `"resolved": "..."`, yarn v1's `resolved "..."`, yarn berry's `resolution: "pkg@https://..."`,
-  // and pnpm's `tarball: ...` and `repo: ...`.
+  // npm's `"resolved": "..."` (`"version"` in lockfile v1), yarn v1's `resolved "..."`, yarn berry's
+  // `resolution: "pkg@https://..."`, and pnpm's `tarball: ...` and `repo: ...`.
   {
     files: /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml)$/i,
-    urls: firstUrl(/\b(?:resolved|resolution|tarball|repo)["']?\s*[:\s]\s*\{?\s*["']?(?:@?[^"'\s@]+@)?((?:git\+)?[a-z][\w+.-]*:\/\/[^\s"'#,}]+)/i)
+    urls: firstUrl(/\b(?:resolved|resolution|tarball|repo|version)["']?\s*[:\s]\s*\{?\s*["']?(?:@?[^"'\s@]+@)?((?:git\+)?[a-z][\w+.-]*:\/\/[^\s"'#,}]+)/i)
   },
   { files: /(?:^|\/)poetry\.lock$/i, urls: firstUrl(quotedUrl("url")) },
-  { files: /(?:^|\/)Pipfile\.lock$/i, urls: firstUrl(quotedUrl("url")) },
+  { files: /(?:^|\/)Pipfile(?:\.lock)?$/i, urls: firstUrl(quotedUrl("url")) },
+  {
+    // `source = { registry = "..." }`, `sdist = { url = "..." }`, and `source = { git = "..." }`.
+    files: /(?:^|\/)uv\.lock$/i,
+    urls: (content) =>
+      [...content.matchAll(/\b(registry|url|git)\s*=\s*"([^"]+)"/gi)].map(([, key, url]) => ({
+        url: url ?? "",
+        git: key?.toLowerCase() === "git"
+      }))
+  },
+  {
+    // `old => new version` replaces a module; a local path or the same module path is routine.
+    files: /(?:^|\/)go\.mod$/i,
+    urls: (content) => {
+      const replace = /^\s*(?:replace\s+)?(\S+)(?:\s+v\S+)?\s*=>\s*(\S+)/.exec(content);
+      const [, from = "", to = ""] = replace ?? [];
+      if (replace === null || from.startsWith("//") || /^[./]/.test(to) || to === from) {
+        return [];
+      }
+      return [{ kind: "replaced" as const, module: /^[\w.~+/-]{1,200}$/.test(to) ? to : "another module" }];
+    }
+  },
   { files: /(?:^|\/)Cargo\.lock$/i, urls: firstUrl(/^\s*source\s*=\s*"((?:registry\+|sparse\+|git\+)?[a-z][\w+.-]*:\/\/[^"]+)"/i) },
   { files: /(?:^|\/)Gemfile\.lock$/i, urls: firstUrl(/^\s*remote:\s*([a-z][\w+.-]*:\/\/\S+)/i) },
   { files: /(?:^|\/)\.npmrc$/i, urls: firstUrl(/^\s*(?:@[\w.-]+:)?registry\s*=\s*["']?([a-z][\w+.-]*:\/\/[^\s"']+)/i) },
@@ -49,6 +74,10 @@ const readers: Reader[] = [
   {
     files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$|(?:^|\/)pip\.conf$/i,
     urls: (content) => {
+      // `--trusted-host` lets pip skip TLS verification for that host.
+      if (/^\s*(?:--)?trusted-host\b/i.test(content)) {
+        return [{ kind: "unverified" as const }];
+      }
       const index = /^\s*(-i|--index-url|index-url|--extra-index-url|extra-index-url|-f|--find-links)(?:\s*=\s*|\s+)(\S+)/i.exec(content);
       if (index) {
         return [{ url: index[2] ?? "", extraIndex: /extra/i.test(index[1] ?? "") }];
@@ -90,8 +119,13 @@ export function findLockfileSources(path: string, patch: string, allowedSources:
       continue;
     }
 
-    for (const { url, extraIndex } of reader.urls(content)) {
-      const source = extraIndex ? { kind: "extra-index" as const } : classify(url, allowed, section === "GIT");
+    for (const entry of reader.urls(content)) {
+      const source =
+        "kind" in entry
+          ? entry
+          : entry.extraIndex
+            ? { kind: "extra-index" as const }
+            : classify(entry.url, allowed, section === "GIT" || entry.git === true);
       if (source !== undefined) {
         found.push({ line, ...source });
       }
