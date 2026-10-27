@@ -46,7 +46,7 @@ GitHub lists at most 3000 files for a pull request. When the list reaches that l
 
 ## Workflow Changes
 
-`sensitive-files` reports any change under `.github/workflows/`. `workflow-risk` adds what to look at: script injection through untrusted contexts in `run` and `script`, `pull_request_target`, checkouts of pull request code, and `write-all` permissions. It checks workflow files even when `ignorePaths` matches them. Branch protection should still require review for workflow changes, because a pull request can edit the workflow that runs Prism Review.
+`sensitive-files` reports any change under `.github/workflows/`. `workflow-risk` adds what to look at: script injection through untrusted contexts in `run` and `script`, `pull_request_target`, checkouts of pull request code, and `write-all` permissions. It checks workflow files even when `ignorePaths` matches them. `unpinned-action` warns about third-party actions and images used by a tag or branch, which their owners can move to other code after review. Branch protection should still require review for workflow changes, because a pull request can edit the workflow that runs Prism Review.
 
 ## Lockfile Sources
 
