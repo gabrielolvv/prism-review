@@ -42,13 +42,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - A link from each finding to its rule's section in `docs/configuration.md`, which now covers every rule (0.20.0).
 - The CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone (0.21.0).
 - Files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` left out like `ignorePaths` (0.22.0).
-- `review-control-change` rule for changes to CODEOWNERS and to the files `.gitattributes` marks generated or vendored.
+- `review-control-change` rule for changes to CODEOWNERS and to the files `.gitattributes` marks generated or vendored (0.23.0).
+- `lookalike-dependency` rule for added dependencies one character away from a popular npm, PyPI, RubyGems, or crates.io package, from a bundled list.
 
 ## Near Term
 
-### Flag dependencies named like popular packages
+### List the dependencies a pull request adds or upgrades
 
-`dependency-risk` says a manifest changed, but not whether a new dependency is the one the author meant. A name one edit away from a popular package, such as `reqeusts` or `expresss`, is a common way to slip in a malicious package. Comparing added dependency names with a bundled list of the most used packages per ecosystem would catch that without any network call.
+`dependency-risk` says that a manifest changed, but a reviewer still has to read the diff to see which packages were added, removed, or moved to another version. A short table of those changes per manifest, from the same parsing `lookalike-dependency` does, would make a dependency review a glance.
 
 ## Mid Term
 

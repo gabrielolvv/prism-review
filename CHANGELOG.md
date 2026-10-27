@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `lookalike-dependency` rule, a warning for added dependencies one character away from a widely used package in the same registry, such as `expresss`, `lodahs`, or `reqeusts`: one character added, removed, or replaced, or two neighbors swapped. It reads `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `Gemfile`, `*.gemspec`, and `Cargo.toml`, and compares with a list bundled with Prism Review, so it makes no network call. PyPI names are compared as PyPI does. Short names, scoped npm packages, and the popular names themselves are not reported, and `rules.lookalikeDependencies.allowed` lists names known to be intended.
+
 ## 0.23.0 - 2026-10-27
 
 ### Added
