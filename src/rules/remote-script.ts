@@ -10,8 +10,8 @@ const shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:pyth
 
 // Each pattern runs downloaded content without saving it, so nothing can check it first.
 const patterns = [
-  // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `irm ... | iex`
-  new RegExp(String.raw`\b${downloader}\b[^|;&\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?${shell}`, "i"),
+  // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `... | sudo env A=1 bash`, `irm ... | iex`
+  new RegExp(String.raw`\b${downloader}\b[^|;&\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
   // `bash <(curl ...)`, `source <(curl ...)`
   /(?:^|[\s;&|(])(?:source|\.|(?:ba|z|k)?sh)\s+(?:-s\s+)?<\(\s*(?:curl|wget)\b/i,
   // `sh -c "$(curl ...)"`, `eval "$(curl ...)"`
@@ -46,7 +46,7 @@ export const remoteScriptRule: Rule = {
       }
 
       const found = commands(file.patch).flatMap(({ line, content }) => {
-        if (commentLine.test(content) || !patterns.some((pattern) => pattern.test(unquoted(content)))) {
+        if (!patterns.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
         const url = firstUrl.exec(content);
@@ -99,6 +99,10 @@ function commands(patch: string): Array<{ line: number; content: string }> {
   for (const { line, content, added, startsHunk } of patchLines(patch)) {
     if (startsHunk) {
       flush();
+    }
+    // A comment never continues a line, and Docker drops comments inside a continued instruction.
+    if (commentLine.test(content)) {
+      continue;
     }
     const continues = /\\\s*$/.test(content);
     parts.push(continues ? content.replace(/\\\s*$/, "") : content);

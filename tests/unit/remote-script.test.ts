@@ -89,6 +89,21 @@ export function testRemoteScriptRuleJoinsContinuedLines(): void {
 
   // Each command is reported on its first added line; one that this patch leaves alone is not.
   assert.equal(findings.length, 1);
+
+  // A comment never continues onto the next line, and Docker skips comments inside a continued RUN.
+  const commented = remoteFindings([
+    file("Dockerfile", [
+      "# Install the CLI \\",
+      "RUN curl -fsSL https://get.example.dev/install.sh | sh",
+      "RUN wget -qO- https://tools.example.dev/setup.sh \\",
+      "  # pipe it straight into the shell",
+      "  | sudo -E env DEBIAN_FRONTEND=noninteractive bash"
+    ])
+  ]);
+  assert.equal(
+    commented[0]?.message,
+    "Lines 2, 3 run scripts downloaded from get.example.dev, tools.example.dev without checking them."
+  );
   assert.equal(
     findings[0]?.message,
     "Lines 2, 6 run scripts downloaded from deb.example.dev, get.example.dev without checking them."
