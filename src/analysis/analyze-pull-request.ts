@@ -11,6 +11,8 @@ export type AnalyzeOptions = {
   rules?: Rule[];
   configPath?: string;
   expectedFileCount?: number;
+  // Files marked `linguist-generated` or `linguist-vendored`, which are left out like `ignorePaths`.
+  isGenerated?: (path: string) => boolean;
 };
 
 export function analyzePullRequest(
@@ -18,7 +20,7 @@ export function analyzePullRequest(
   config: PrismConfig,
   options: AnalyzeOptions = {}
 ): ReviewResult {
-  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount } = options;
+  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount, isGenerated = () => false } = options;
   // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
@@ -27,9 +29,13 @@ export function analyzePullRequest(
     severity: override.severity
   }));
   // A file moved into an ignored directory is still reviewed, so a rename cannot hide a change.
-  const reviewed = files.filter(
-    (file) => !(isIgnored(file.path) && (file.previousPath === undefined || isIgnored(file.previousPath)))
+  const leftOut = (file: ChangedFile, excluded: (path: string) => boolean) =>
+    excluded(file.path) && (file.previousPath === undefined || excluded(file.previousPath));
+  const ignoredByConfig = new Set(files.filter((file) => leftOut(file, isIgnored)));
+  const generated = new Set(
+    files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path) => isIgnored(path) || isGenerated(path)))
   );
+  const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
   const all = rules
     .flatMap((rule) =>
       rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
@@ -41,7 +47,7 @@ export function analyzePullRequest(
   const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
 
   return {
-    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings, suppressed.length),
+    summary: buildSummary(reviewed.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
     findings,
     suppressed
@@ -71,11 +77,14 @@ function applySeverityOverride(finding: Finding, config: PrismConfig, pathOverri
 function buildSummary(
   reviewedCount: number,
   ignoredCount: number,
+  generatedCount: number,
   findings: Finding[],
   suppressedCount: number
 ): string {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
-  const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}.`;
+  const generated =
+    generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
+  const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found =
     findings.length === 0
       ? "No configured risk signals were detected."

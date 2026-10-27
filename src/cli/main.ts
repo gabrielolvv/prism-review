@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { codeOwnersPaths, parseCodeOwners, type CodeOwners } from "../analysis/code-owners.js";
+import { gitAttributesPath, parseGitAttributes } from "../analysis/git-attributes.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { loadConfig } from "../config/load-config.js";
 import { defaultConfigPath } from "../config/schema.js";
@@ -68,7 +69,10 @@ async function main(): Promise<void> {
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig(resolve(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
-  const result = analyzePullRequest(files, config, { configPath });
+  const generated = config.ignoreGenerated && isFile(gitAttributesPath)
+    ? parseGitAttributes(readFileSync(gitAttributesPath, "utf8"))
+    : undefined;
+  const result = analyzePullRequest(files, config, { configPath, isGenerated: generated?.isGenerated });
   const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : undefined;
   process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
 
@@ -81,8 +85,12 @@ async function main(): Promise<void> {
 
 // The CODEOWNERS file in the current directory, found the way GitHub looks for it.
 function readLocalCodeOwners(): CodeOwners | undefined {
-  const path = codeOwnersPaths.find((candidate) => existsSync(candidate) && statSync(candidate).isFile());
+  const path = codeOwnersPaths.find(isFile);
   return path === undefined ? undefined : parseCodeOwners(readFileSync(path, "utf8"));
+}
+
+function isFile(path: string): boolean {
+  return existsSync(path) && statSync(path).isFile();
 }
 
 function render(result: ReviewResult, format: Format, options: RenderOptions): string {

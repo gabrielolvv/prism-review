@@ -177,6 +177,7 @@ import {
   testCodeOwnersSkipLinesGitHubCannotRead,
   testRenderMarkdownNamesOwnersWithoutMentioningThem
 } from "./unit/code-owners.test.js";
+import { testGeneratedFilesAreLeftOutOfNoiseRulesOnly, testGitAttributesFollowGitRules } from "./unit/git-attributes.test.js";
 import { testRulePatternsStayLinearOnLongLines } from "./unit/pattern-performance.test.js";
 import {
   testPathOverridesChangeSeverityForMatchingFiles,
@@ -467,6 +468,8 @@ const tests: Array<[string, Test]> = [
   ["code owners follow GitHub's patterns", testCodeOwnersFollowGitHubPatterns],
   ["code owners skip lines GitHub cannot read", testCodeOwnersSkipLinesGitHubCannotRead],
   ["render markdown names owners without mentioning them", testRenderMarkdownNamesOwnersWithoutMentioningThem],
+  ["gitattributes follow git's rules", testGitAttributesFollowGitRules],
+  ["generated files are left out of noise rules only", testGeneratedFilesAreLeftOutOfNoiseRulesOnly],
   ["rule patterns stay linear on long lines", testRulePatternsStayLinearOnLongLines],
   ["path overrides change severity for matching files", testPathOverridesChangeSeverityForMatchingFiles],
   ["path overrides reject unknown rules and empty paths", testPathOverridesRejectUnknownRulesAndEmptyPaths],

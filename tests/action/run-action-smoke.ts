@@ -441,7 +441,7 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
-    "the CLI names owners from the local CODEOWNERS file",
+    "the CLI reads owners from CODEOWNERS and generated files from .gitattributes",
     () => {
       const path = join(workDir, "CODEOWNERS");
       writeFileSync(path, "src/auth/ @acme/security\n");
@@ -452,8 +452,17 @@ const scenarios: Array<[string, () => void]> = [
 
         const off = runCli(["analyze", "--diff", "-", "--config", writeConfig("no-owners.yml", "comment:\n  codeOwners: false\n")], riskyDiff);
         assert.doesNotMatch(off.stdout, /Owners:/);
+
+        // The local .gitattributes leaves generated files out, unless ignoreGenerated is off.
+        writeFileSync(join(workDir, ".gitattributes"), "src/auth/** linguist-generated\n");
+        const generated = runCli(["analyze", "--diff", "-"], riskyDiff);
+        assert.match(generated.stdout, /^Reviewed 1 changed file\(s\), 1 more marked generated or vendored in \.gitattributes\./m);
+        assert.doesNotMatch(generated.stdout, /Sensitive file changed/);
+        const reviewed = runCli(["analyze", "--diff", "-", "--config", writeConfig("all.yml", "ignoreGenerated: false\n")], riskyDiff);
+        assert.match(reviewed.stdout, /Sensitive file changed/);
       } finally {
         rmSync(path);
+        rmSync(join(workDir, ".gitattributes"), { force: true });
       }
     }
   ],
@@ -528,6 +537,9 @@ const scenarios: Array<[string, () => void]> = [
       const body = update?.body?.body ?? "";
       assert.match(body, /^Since the previous review: 1 new finding\(s\), 1 no longer reported \(`secret-in-diff` \(1\)\)\.$/m);
       assert.match(body, /^#### High - Sensitive file changed \(new\)$/m);
+      // .gitattributes on the base commit marks src/gen as generated.
+      assert.match(body, /^Reviewed 1 changed file\(s\), 1 more marked generated or vendored in \.gitattributes\./m);
+      assert.doesNotMatch(body, /src\/gen\/client\.ts/);
       // The owners come from CODEOWNERS on the base commit, in code spans so nobody is notified.
       assert.match(body, /^File: `src\/billing\/charge\.ts`\n\nOwners: `@acme\/payments`$/m);
       assert.match(body, /^- Have the code owners of the flagged files, `@acme\/payments`, reviewed the change\?$/m);
