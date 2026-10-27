@@ -7,7 +7,7 @@ All notable changes to Prism Review are documented in this file.
 ### Added
 
 - `unpinned-action` rule warns about third-party actions, reusable workflows, and `docker://` images added to workflows by a tag or branch instead of a full commit SHA or digest. `rules.unpinnedActions.allowedOwners` lists owners whose tags are trusted, GitHub's `actions` and `github` by default. Workflows that use Prism Review as `@v0` are reported too; the README shows how to pin it.
-- `remote-script` rule warns about commands that download a script and run it unchecked, such as `curl ... | sh`, `bash <(curl ...)`, `eval "$(curl ...)"`, and PowerShell's `iex (iwr ...)`, in Dockerfiles, workflows, Makefiles, and scripts. It is high when the download uses plain HTTP. Documentation and tests are skipped. `rules.remoteScripts.enabled` turns it off.
+- `remote-script` rule warns about commands that download a script and run it unchecked, such as `curl ... | sh`, `bash <(curl ...)`, `eval "$(curl ...)"`, and PowerShell's `iex (iwr ...)`, in Dockerfiles, workflows, Makefiles, and scripts. It is high when the download uses plain HTTP. Commands continued across lines with `\` are read as one. Documentation and tests are skipped. `rules.remoteScripts.enabled` turns it off.
 
 ### Changed
 

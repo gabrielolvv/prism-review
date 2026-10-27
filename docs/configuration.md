@@ -239,7 +239,7 @@ The `remote-script` rule reports added lines that download a script and run it i
 
 Whoever controls the URL, or can intercept the download, runs code in the build, the image, or the developer's machine. The finding is a warning that names each host, or says the URL comes from a variable, and it is high when a line downloads over plain `http://`.
 
-Downloading to a file and checking a checksum before running it is not reported, and neither are downloads piped into other programs such as `jq` or `tar`, commands inside single-quoted strings, and comment lines. Documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, because installation guides show these commands on purpose. A command split across lines with `\` is only reported when the download and the pipe are on the same line.
+Downloading to a file and checking a checksum before running it is not reported, and neither are downloads piped into other programs such as `jq` or `tar`, commands inside single-quoted strings, and comment lines. Documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, because installation guides show these commands on purpose. Lines continued with a trailing `\`, as long Dockerfile `RUN` commands are written, are read as one command, which is reported on its first added line; a command the pull request does not touch is not reported.
 
 ## Workflow Risk
 
