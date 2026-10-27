@@ -60,6 +60,10 @@ A lockfile records the URL each package is downloaded from, and an install runs 
 
 With `reviewComments.enabled`, line findings are also posted as review comments. Their text is escaped like the review comment's, and only bot comments that start with the `prism-review-line` marker are ever edited, so pasting the marker into a human comment does not let a run rewrite it. Comments are marked resolved rather than deleted, so a run never removes a discussion.
 
+## Code Owners
+
+The CODEOWNERS file is read from the base commit, like the configuration, so a pull request cannot add itself as the owner of the files it changes. Owners are only shown, never requested or notified: they appear in code spans, where GitHub does not create mentions, and only tokens shaped like `@user`, `@org/team`, or an email address are shown. A CODEOWNERS file that cannot be read only costs the owners, with a warning, and never fails the review.
+
 ## Review Comparison
 
 The record of findings that the review comment ends with holds rule ids and 12-character hashes of each finding's file and title, never a file name, so pull request content cannot reach it. It is read only from the newest bot comment that starts with the review marker, and only from that comment's last line: file names quoted earlier in the comment can spell out a record, but their newlines are escaped, so none can be the last line. A record with any malformed entry is ignored as a whole. The comparison only adds `(new)` marks and a count of findings no longer reported; it never changes which findings are reported, the risk level, or the check outcome.

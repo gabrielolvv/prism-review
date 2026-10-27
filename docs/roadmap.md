@@ -39,13 +39,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - New findings marked since the previous review, with a count of findings no longer reported, from a hashed record kept in the review comment (0.18.0).
 - A reviewer checklist with a question for each rule that reported a finding, and `comment.checklist` for questions of the repository's own (0.19.0).
 - Marketplace branding, and GitHub releases created from pushed version tags (0.19.1).
-- A link from each finding to its rule's section in `docs/configuration.md`, which now covers every rule.
+- A link from each finding to its rule's section in `docs/configuration.md`, which now covers every rule (0.20.0).
+- The CODEOWNERS owners of each flagged file, read from the base commit and shown without notifying anyone.
 
 ## Near Term
 
-### Name the code owners of flagged files
+### Skip generated and vendored files marked in `.gitattributes`
 
-The review says a sensitive file changed and asks whether the right owner reviewed it, but not who that owner is. Reading `CODEOWNERS` from the base commit, the review could name the owners of each flagged file, in code spans so nobody is notified, and the checklist could ask whether they approved.
+Many repositories already mark generated and vendored files with `linguist-generated` or `linguist-vendored` in `.gitattributes`, which GitHub uses to collapse them in diffs. Reading those attributes from the base commit and treating the marked files like `ignorePaths` would cut noise without repeating the list in `.prism-review.yml`.
 
 ## Mid Term
 
