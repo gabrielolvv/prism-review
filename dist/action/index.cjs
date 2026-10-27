@@ -13311,6 +13311,7 @@ var ruleIds = [
   "lockfile-source",
   "lookalike-dependency",
   "risky-dependency-version",
+  "stale-lockfile",
   "dependency-risk",
   "oversized-patch"
 ];
@@ -13420,6 +13421,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     credentialFiles: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    staleLockfiles: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     riskyDependencyVersions: external_exports.object({
@@ -15405,6 +15409,71 @@ function compareVersions(left, right) {
   return 0;
 }
 
+// src/analysis/lockfiles.ts
+var lockfileNames = [
+  [/(?:^|\/)package\.json$/, ["package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml", "bun.lock", "bun.lockb"]],
+  [/(?:^|\/)pyproject\.toml$/i, ["poetry.lock", "uv.lock", "pdm.lock"]],
+  [/(?:^|\/)Pipfile$/, ["Pipfile.lock"]],
+  [/(?:^|\/)Gemfile$/, ["Gemfile.lock"]],
+  [/(?:^|\/)Cargo\.toml$/, ["Cargo.lock"]]
+];
+function lockfilesFor(manifestPath) {
+  return lockfileNames.find(([pattern]) => pattern.test(manifestPath))?.[1] ?? [];
+}
+function lockfileDirectories(manifestPath) {
+  const parts = manifestPath.split("/").slice(0, -1);
+  return parts.map((_, index) => parts.slice(0, parts.length - index).join("/")).concat("");
+}
+function joinPath(directory, name) {
+  return directory === "" ? name : `${directory}/${name}`;
+}
+
+// src/rules/stale-lockfile.ts
+var maxListed2 = 3;
+var staleLockfileRule = {
+  id: "stale-lockfile",
+  description: "Flags dependency changes in a manifest whose lockfile the pull request does not update.",
+  run({ files, config, changedPaths, existingLockfiles }) {
+    if (!config.rules.staleLockfiles.enabled || existingLockfiles === void 0) {
+      return [];
+    }
+    return files.flatMap((file) => {
+      const names = lockfilesFor(file.path);
+      const changes = names.length === 0 || file.status === "removed" ? [] : dependencyChanges([file]);
+      if (changes.length === 0) {
+        return [];
+      }
+      const directory = lockfileDirectories(file.path).find(
+        (candidate) => names.some((name) => existingLockfiles.has(joinPath(candidate, name)))
+      );
+      if (directory === void 0 || names.some((name) => changedPaths.has(joinPath(directory, name)))) {
+        return [];
+      }
+      const lockfile = names.map((name) => joinPath(directory, name)).find((path2) => existingLockfiles.has(path2)) ?? "";
+      const lines = changes.flatMap((change) => change.line === void 0 ? [] : [change.line]);
+      const listed = changes.slice(0, maxListed2).map(describe).join(", ");
+      const more = changes.length > maxListed2 ? ` and ${changes.length - maxListed2} more` : "";
+      return [
+        {
+          ruleId: "stale-lockfile",
+          title: "Lockfile not updated",
+          severity: "warning",
+          file: file.path,
+          ...lines.length > 0 ? { line: Math.min(...lines), lines } : {},
+          message: `This file changes dependencies (${listed}${more}), but ${lockfile}, which pins the versions that are installed, is not part of this pull request.`,
+          recommendation: "Run the package manager's install or lock command and commit the updated lockfile, so CI and other developers install the reviewed versions."
+        }
+      ];
+    });
+  }
+};
+function describe(change) {
+  if (change.from === void 0) {
+    return `${change.name} added`;
+  }
+  return change.to === void 0 ? `${change.name} removed` : `${change.name} changed`;
+}
+
 // src/rules/missing-tests.ts
 var missingTestsRule = {
   id: "missing-tests",
@@ -15989,7 +16058,7 @@ var secretInDiffRule = {
       severity: "high",
       file: file.path,
       line: Math.min(...secrets.map((secret) => secret.line)),
-      message: describe(
+      message: describe2(
         secrets.map((secret) => secret.line),
         [...new Set(secrets.map((secret) => secret.kind))]
       ),
@@ -16003,7 +16072,7 @@ function secretsIn(file, allowlist) {
   }
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
 }
-function describe(lines, kinds3) {
+function describe2(lines, kinds3) {
   const { text, plural } = describeLines(lines);
   if (!plural && kinds3.length === 1) {
     return `${text} adds what looks like ${article(kinds3[0] ?? "")} ${kinds3[0]}. The value is redacted from this review.`;
@@ -16066,7 +16135,7 @@ function pathWords(path2) {
 var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
-var maxListed2 = 3;
+var maxListed3 = 3;
 var unpinnedActionRule = {
   id: "unpinned-action",
   description: "Flags third-party actions and container images in workflows that are not pinned to a commit SHA or digest.",
@@ -16129,7 +16198,7 @@ function unique(values) {
   return [...new Set(values)];
 }
 function list(targets) {
-  const shown2 = targets.filter((target) => /^[\w.:/@-]{1,200}$/.test(target)).slice(0, maxListed2);
+  const shown2 = targets.filter((target) => /^[\w.:/@-]{1,200}$/.test(target)).slice(0, maxListed3);
   const more = targets.length - shown2.length;
   return [...shown2, ...more > 0 ? [`${more} more`] : []].join(", ");
 }
@@ -16482,6 +16551,7 @@ var defaultRules = [
   lockfileSourceRule,
   lookalikeDependencyRule,
   riskyDependencyVersionRule,
+  staleLockfileRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];
@@ -16555,7 +16625,14 @@ function findMarkers(files) {
 
 // src/analysis/analyze-pull-request.ts
 function analyzePullRequest(files, config, options = {}) {
-  const { rules = defaultRules, configPath = defaultConfigPath, expectedFileCount, isGenerated = () => false } = options;
+  const {
+    rules = defaultRules,
+    configPath = defaultConfigPath,
+    expectedFileCount,
+    isGenerated = () => false,
+    existingLockfiles
+  } = options;
+  const changedPaths = new Set(files.flatMap((file) => [file.path, ...file.previousPath === void 0 ? [] : [file.previousPath]]));
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path2) => ignored.some((matcher) => matcher.match(path2));
   const pathOverrides = config.overrides.map((override) => ({
@@ -16569,7 +16646,14 @@ function analyzePullRequest(files, config, options = {}) {
   );
   const reviewed = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
   const all = rules.flatMap(
-    (rule) => rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
+    (rule) => rule.run({
+      files: rule.seesIgnoredFiles ? files : reviewed,
+      config,
+      configPath,
+      expectedFileCount,
+      changedPaths,
+      ...existingLockfiles === void 0 ? {} : { existingLockfiles }
+    })
   ).flatMap((finding) => applySeverityOverride(finding, config, pathOverrides)).sort((left, right) => compareSeverity(left.severity, right.severity));
   const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
   const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
@@ -16745,6 +16829,7 @@ var ruleAreas = {
   "lockfile-source": "supply-chain",
   "lookalike-dependency": "supply-chain",
   "risky-dependency-version": "supply-chain",
+  "stale-lockfile": "supply-chain",
   "unpinned-action": "supply-chain",
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
@@ -16776,6 +16861,7 @@ var ruleQuestions = {
   "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
   "lockfile-source": "Do the packages from other sources come from places the team trusts?",
   "lookalike-dependency": "Is each flagged dependency the package that was meant, and not a lookalike of a popular one?",
+  "stale-lockfile": "Was the lockfile regenerated with the manifest, so the versions installed are the ones reviewed?",
   "risky-dependency-version": "Is each older or open-ended dependency version intended, and does a lockfile pin what is actually installed?",
   "unpinned-action": "Can the third-party actions be pinned to a full commit SHA?",
   "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
@@ -16845,6 +16931,7 @@ var ruleSections = {
   "lockfile-source": "Lockfile Sources",
   "lookalike-dependency": "Lookalike Dependencies",
   "risky-dependency-version": "Risky Dependency Versions",
+  "stale-lockfile": "Stale Lockfiles",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
 };
@@ -17334,6 +17421,49 @@ async function loadBaseGitAttributes(client, owner, repo, baseSha) {
   return text === void 0 ? void 0 : parseGitAttributes(text);
 }
 
+// src/github/list-directory.ts
+async function listDirectoryFiles(client, owner, repo, directory, ref) {
+  const encoded = directory.split("/").filter(Boolean).map(encodeURIComponent).join("/");
+  let content;
+  try {
+    content = await client.request(
+      `/repos/${owner}/${repo}/contents${encoded === "" ? "" : `/${encoded}`}?ref=${encodeURIComponent(ref)}`
+    );
+  } catch (error) {
+    if (error instanceof GitHubApiError && error.status === 404) {
+      return [];
+    }
+    throw error;
+  }
+  return Array.isArray(content) ? content.filter((entry) => entry.type === "file" && typeof entry.name === "string").map((entry) => entry.name ?? "") : [];
+}
+
+// src/github/load-lockfiles.ts
+var maxDirectories = 20;
+async function findBaseLockfiles(client, owner, repo, baseSha, files) {
+  return findLockfiles(files, async (directory) => listDirectoryFiles(client, owner, repo, directory, baseSha));
+}
+async function findLockfiles(files, list2) {
+  const directories = /* @__PURE__ */ new Set();
+  const names = /* @__PURE__ */ new Set();
+  for (const file of files) {
+    const lockfiles = lockfilesFor(file.path);
+    if (lockfiles.length > 0 && dependencyChanges([file]).length > 0) {
+      lockfiles.forEach((name) => names.add(name));
+      lockfileDirectories(file.path).forEach((directory) => directories.add(directory));
+    }
+  }
+  const existing = /* @__PURE__ */ new Set();
+  for (const directory of [...directories].slice(0, maxDirectories)) {
+    for (const name of await list2(directory)) {
+      if (names.has(name)) {
+        existing.add(joinPath(directory, name));
+      }
+    }
+  }
+  return existing;
+}
+
 // src/github/publish-comment.ts
 async function findReviewComment(client, owner, repo, issueNumber) {
   const comments = await client.paginate(
@@ -17632,10 +17762,15 @@ async function run() {
     ".gitattributes, so generated files are reviewed",
     () => loadBaseGitAttributes(client, owner, repo, baseSha)
   ) : void 0;
+  const existingLockfiles = config.rules.staleLockfiles.enabled ? await loadOptional(
+    "the base commit's lockfiles, so stale lockfiles are not checked",
+    () => findBaseLockfiles(client, owner, repo, baseSha, files)
+  ) : void 0;
   const result = analyzePullRequest(files, config, {
     configPath: inputs.configPath,
     expectedFileCount: pullRequest.changed_files,
-    isGenerated: generated?.isGenerated
+    isGenerated: generated?.isGenerated,
+    existingLockfiles
   });
   const previous = inputs.dryRun ? void 0 : await findReviewComment(client, owner, repo, pullRequest.number);
   const codeOwners = config.comment.codeOwners ? await loadOptional("CODEOWNERS, so owners are not shown", () => loadBaseCodeOwners(client, owner, repo, baseSha)) : void 0;
