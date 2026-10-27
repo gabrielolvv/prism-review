@@ -13307,6 +13307,7 @@ var ruleIds = [
   "public-exposure",
   "sensitive-files",
   "config-change",
+  "review-control-change",
   "lockfile-source",
   "dependency-risk",
   "oversized-patch"
@@ -13653,6 +13654,137 @@ var configChangeRule = {
     }));
   }
 };
+
+// src/analysis/code-owners.ts
+var codeOwnersPaths = [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"];
+var maxRules = 5e3;
+var maxPatternLength = 500;
+var ownerToken = /^(?:@[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\/[A-Za-z0-9._-]{1,100})?|[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63})$/;
+function parseCodeOwners(text) {
+  const rules = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/(?:^|\s)#.*$/, "").trim();
+    if (line === "" || rules.length >= maxRules) {
+      continue;
+    }
+    const [pattern = "", ...tokens] = line.split(/\s+/);
+    if (pattern.length > maxPatternLength || pattern.startsWith("!") || /[[\]]/.test(pattern)) {
+      continue;
+    }
+    const globs = patternGlobs(pattern);
+    if (globs.length > 0) {
+      rules.push({ globs, owners: tokens.filter((token2) => ownerToken.test(token2)) });
+    }
+  }
+  return {
+    ownersOf(path2) {
+      for (let index = rules.length - 1; index >= 0; index -= 1) {
+        const rule = rules[index];
+        if (rule?.globs.some((glob) => minimatch(path2, glob, { dot: true }))) {
+          return rule.owners;
+        }
+      }
+      return [];
+    }
+  };
+}
+function patternGlobs(pattern) {
+  const directoryOnly = pattern.endsWith("/");
+  let glob = pattern.replace(/\/+$/, "");
+  const anchored = glob.includes("/");
+  glob = glob.replace(/^\/+/, "");
+  if (glob === "") {
+    return [];
+  }
+  if (!anchored) {
+    glob = `**/${glob}`;
+  }
+  if (directoryOnly) {
+    return [`${glob}/**`];
+  }
+  return glob.split("/").pop() === "*" ? [glob] : [glob, `${glob}/**`];
+}
+
+// src/rules/review-control-change.ts
+var linguistAttribute = /\blinguist-(?:generated|vendored)\b/;
+var hunkHeader2 = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+var reviewControlChangeRule = {
+  id: "review-control-change",
+  seesIgnoredFiles: true,
+  description: "Flags changes to CODEOWNERS and to the files .gitattributes marks generated or vendored.",
+  run({ files }) {
+    return files.flatMap((file) => {
+      const paths = [file.path, file.previousPath].filter((path2) => path2 !== void 0);
+      if (paths.some((path2) => codeOwnersPaths.includes(path2))) {
+        return [codeOwnersFinding(file)];
+      }
+      if (paths.some((path2) => path2 === ".gitattributes" || path2.endsWith("/.gitattributes"))) {
+        return gitAttributesFindings(file);
+      }
+      return [];
+    });
+  }
+};
+function codeOwnersFinding(file) {
+  return {
+    ruleId: "review-control-change",
+    title: "Code owners changed",
+    severity: "warning",
+    file: file.path,
+    message: file.status === "removed" ? "This pull request removes a CODEOWNERS file, so later pull requests no longer require reviews from the owners it named." : "This pull request changes CODEOWNERS, which decides whose review later pull requests require for each path.",
+    recommendation: "Have the current owners of the affected paths approve the change, and check that no path lost its owner."
+  };
+}
+function gitAttributesFindings(file) {
+  if (file.patch === void 0) {
+    return [gitAttributesFinding(file, "This .gitattributes change could not be inspected, so it may change", [])];
+  }
+  const { touched, added } = linguistChanges(file.patch);
+  if (!touched) {
+    return [];
+  }
+  if (added.length === 0) {
+    return [gitAttributesFinding(file, "This change removes lines that set", [])];
+  }
+  const { text, plural } = describeLines(added);
+  return [gitAttributesFinding(file, `${text} ${plural ? "change" : "changes"}`, added)];
+}
+function gitAttributesFinding(file, opening, lines) {
+  return {
+    ruleId: "review-control-change",
+    title: "Generated file markers changed",
+    severity: "warning",
+    file: file.path,
+    ...lines.length > 0 ? { line: Math.min(...lines), lines } : {},
+    message: `${opening} which files are marked linguist-generated or linguist-vendored. GitHub collapses those files in diffs and Prism Review leaves them out of its noise rules, so the change affects how later pull requests are reviewed.`,
+    recommendation: "Check that only generated or third-party files are marked, and that no source directory is."
+  };
+}
+function linguistChanges(patch) {
+  const added = [];
+  let touched = false;
+  let newLine;
+  for (const line of patch.split(/\r?\n/)) {
+    const header = hunkHeader2.exec(line);
+    if (header) {
+      newLine = Number(header[1]);
+      continue;
+    }
+    if (newLine === void 0 || line.startsWith("\\")) {
+      continue;
+    }
+    if (line.startsWith("-")) {
+      touched ||= linguistAttribute.test(line);
+      continue;
+    }
+    if (line.startsWith("+") && linguistAttribute.test(line)) {
+      touched = true;
+      added.push(newLine);
+    }
+    newLine += 1;
+  }
+  return { touched, added };
+}
 
 // src/security/credential-files.ts
 var wholeFileKinds = [
@@ -15485,6 +15617,7 @@ var defaultRules = [
   publicExposureRule,
   sensitiveFilesRule,
   configChangeRule,
+  reviewControlChangeRule,
   lockfileSourceRule,
   dependencyRiskRule,
   oversizedPatchRule
@@ -15760,7 +15893,8 @@ var ruleAreas = {
   "large-diff": "review-scope",
   "oversized-patch": "review-scope",
   "sensitive-files": "review-scope",
-  "config-change": "review-scope"
+  "config-change": "review-scope",
+  "review-control-change": "review-scope"
 };
 function areaOf(ruleId) {
   return Object.hasOwn(ruleAreas, ruleId) ? ruleAreas[ruleId] ?? "other" : "other";
@@ -15789,7 +15923,8 @@ var ruleQuestions = {
   "large-diff": "Could this pull request be split into smaller ones?",
   "oversized-patch": "Has someone read the files too large for Prism Review to inspect?",
   "sensitive-files": "Are security-sensitive changes reviewed by the right owner?",
-  "config-change": "Has someone who owns the review configuration approved the change to it?"
+  "config-change": "Has someone who owns the review configuration approved the change to it?",
+  "review-control-change": "Did the current owners of the affected paths approve the change to CODEOWNERS or to the files marked generated or vendored?"
 };
 var defaultQuestions = [
   "Are tests covering the changed behavior?",
@@ -15835,6 +15970,7 @@ var ruleSections = {
   "public-exposure": "Public Exposure",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
+  "review-control-change": "Review Control Changes",
   "lockfile-source": "Lockfile Sources",
   "dependency-risk": "Dependency Risk",
   "oversized-patch": "Rules Without Options"
@@ -16226,56 +16362,6 @@ async function loadBaseBranchConfig(client, owner, repo, configPath, baseSha) {
     return void 0;
   }
   return parseConfig(raw, `${configPath} at ${baseSha.slice(0, 7)}`);
-}
-
-// src/analysis/code-owners.ts
-var codeOwnersPaths = [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"];
-var maxRules = 5e3;
-var maxPatternLength = 500;
-var ownerToken = /^(?:@[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\/[A-Za-z0-9._-]{1,100})?|[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63})$/;
-function parseCodeOwners(text) {
-  const rules = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.replace(/(?:^|\s)#.*$/, "").trim();
-    if (line === "" || rules.length >= maxRules) {
-      continue;
-    }
-    const [pattern = "", ...tokens] = line.split(/\s+/);
-    if (pattern.length > maxPatternLength || pattern.startsWith("!") || /[[\]]/.test(pattern)) {
-      continue;
-    }
-    const globs = patternGlobs(pattern);
-    if (globs.length > 0) {
-      rules.push({ globs, owners: tokens.filter((token2) => ownerToken.test(token2)) });
-    }
-  }
-  return {
-    ownersOf(path2) {
-      for (let index = rules.length - 1; index >= 0; index -= 1) {
-        const rule = rules[index];
-        if (rule?.globs.some((glob) => minimatch(path2, glob, { dot: true }))) {
-          return rule.owners;
-        }
-      }
-      return [];
-    }
-  };
-}
-function patternGlobs(pattern) {
-  const directoryOnly = pattern.endsWith("/");
-  let glob = pattern.replace(/\/+$/, "");
-  const anchored = glob.includes("/");
-  glob = glob.replace(/^\/+/, "");
-  if (glob === "") {
-    return [];
-  }
-  if (!anchored) {
-    glob = `**/${glob}`;
-  }
-  if (directoryOnly) {
-    return [`${glob}/**`];
-  }
-  return glob.split("/").pop() === "*" ? [glob] : [glob, `${glob}/**`];
 }
 
 // src/github/load-code-owners.ts
