@@ -14341,7 +14341,7 @@ var remoteScriptRule = {
       if (file.patch === void 0 || documentation.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = addedLines(file.patch).flatMap(({ line, content }) => {
+      const found = commands(file.patch).flatMap(({ line, content }) => {
         if (commentLine3.test(content) || !patterns.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
@@ -14374,6 +14374,33 @@ var remoteScriptRule = {
     });
   }
 };
+function commands(patch) {
+  const result = [];
+  let parts = [];
+  let firstAdded;
+  const flush = () => {
+    if (firstAdded !== void 0) {
+      result.push({ line: firstAdded, content: parts.join(" ") });
+    }
+    parts = [];
+    firstAdded = void 0;
+  };
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      flush();
+    }
+    const continues = /\\\s*$/.test(content);
+    parts.push(continues ? content.replace(/\\\s*$/, "") : content);
+    if (added && firstAdded === void 0) {
+      firstAdded = line;
+    }
+    if (!continues) {
+      flush();
+    }
+  }
+  flush();
+  return result;
+}
 function describeInsecure(lines) {
   const { text, plural } = describeLines(lines);
   return `${text.charAt(0).toLowerCase()}${text.slice(1)} ${plural ? "download" : "downloads"}`;
