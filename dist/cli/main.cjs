@@ -15720,11 +15720,64 @@ function plainFinding(finding) {
   };
 }
 
+// src/reporting/review-state.ts
+var import_node_crypto = require("node:crypto");
+var STATE_MARKER = "prism-review-state";
+var maxRecorded = 400;
+var rulePattern = /^[a-z0-9-]{1,64}$/;
+function fingerprint(finding) {
+  const hash = (0, import_node_crypto.createHash)("sha256").update(JSON.stringify([finding.file ?? "", finding.title])).digest("hex");
+  return `${finding.ruleId}:${hash.slice(0, 12)}`;
+}
+function renderState(findings) {
+  if (findings.length > maxRecorded) {
+    return `<!-- ${STATE_MARKER} v1 incomplete -->`;
+  }
+  const byRule = /* @__PURE__ */ new Map();
+  for (const finding of findings) {
+    const [ruleId = "", hash = ""] = fingerprint(finding).split(":");
+    if (rulePattern.test(ruleId)) {
+      byRule.set(ruleId, [...byRule.get(ruleId) ?? [], hash]);
+    }
+  }
+  const entries = [...byRule].map(([ruleId, hashes]) => `${ruleId}:${hashes.join(",")}`);
+  return `<!-- ${STATE_MARKER} v1${entries.map((entry) => ` ${entry}`).join("")} -->`;
+}
+function compareWithPrevious(findings, previous) {
+  const remaining = new Map(previous);
+  const fresh = /* @__PURE__ */ new Set();
+  for (const finding of findings) {
+    const key = fingerprint(finding);
+    const count = remaining.get(key) ?? 0;
+    if (count > 0) {
+      remaining.set(key, count - 1);
+    } else {
+      fresh.add(finding);
+    }
+  }
+  const gone = /* @__PURE__ */ new Map();
+  for (const [key, count] of remaining) {
+    if (count > 0) {
+      const ruleId = key.split(":")[0] ?? "";
+      gone.set(ruleId, (gone.get(ruleId) ?? 0) + count);
+    }
+  }
+  return {
+    isNew: (finding) => fresh.has(finding),
+    newCount: fresh.size,
+    noLongerReported: [...gone].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+  };
+}
+
 // src/reporting/render-markdown.ts
 var PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const findings = options.includeLowSeverity ? result.findings : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
+  const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
+  const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
+  const state = options.recordState ? ["", renderState(findings)] : [];
+  const budget = maxFindingsLength - [...suppressed, ...changes, ...state].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -15738,7 +15791,8 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     "### Findings",
     "",
-    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, maxFindingsLength - suppressed.join("\n").length),
+    ...changes,
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, budget, comparison?.isNew ?? (() => false)),
     "",
     ...suppressed,
     "### Suggested Review Checklist",
@@ -15746,17 +15800,26 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "- Are tests covering the changed behavior?",
     "- Are security-sensitive changes reviewed by the right owner?",
     "- Are deployment, migration, or rollback risks understood?",
-    "- Are new dependencies necessary and trusted?"
+    "- Are new dependencies necessary and trusted?",
+    ...state
   ].join("\n");
+}
+function renderChanges({ newCount, noLongerReported }) {
+  const resolved = noLongerReported.reduce((total, [, count]) => total + count, 0);
+  if (newCount === 0 && resolved === 0) {
+    return "No findings were added or resolved since the previous review.";
+  }
+  const rules = noLongerReported.map(([ruleId, count]) => `${codeSpan(ruleId)} (${count})`).join(", ");
+  return `Since the previous review: ${newCount} new finding(s), ${resolved} no longer reported${resolved > 0 ? ` (${rules})` : ""}.`;
 }
 var maxFindingsLength = 55e3;
 var groupingReserve = 1e3;
-function renderFindings(findings, budget) {
+function renderFindings(findings, budget, isNew) {
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
   const shown = [];
   let length = 0;
   for (const finding of findings) {
-    const block = renderFinding(finding);
+    const block = renderFinding(finding, isNew(finding));
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
@@ -15812,9 +15875,9 @@ function renderSuppressed(suppressed) {
   }
   return ["### Suppressed Inline", "", ...lines, ""];
 }
-function renderFinding(finding) {
+function renderFinding(finding, isNew) {
   const sections = [
-    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
+    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}${isNew ? " (new)" : ""}`,
     "",
     escapeText(finding.message)
   ];

@@ -7361,7 +7361,7 @@ var require_dist = __commonJS({
 });
 
 // src/action/index.ts
-var import_node_crypto = require("node:crypto");
+var import_node_crypto2 = require("node:crypto");
 var import_node_fs2 = require("node:fs");
 
 // node_modules/balanced-match/dist/esm/index.js
@@ -15756,11 +15756,86 @@ function areaOf(ruleId) {
   return Object.hasOwn(ruleAreas, ruleId) ? ruleAreas[ruleId] ?? "other" : "other";
 }
 
+// src/reporting/review-state.ts
+var import_node_crypto = require("node:crypto");
+var STATE_MARKER = "prism-review-state";
+var maxRecorded = 400;
+var hashPattern = /^[0-9a-f]{12}$/;
+var rulePattern = /^[a-z0-9-]{1,64}$/;
+function fingerprint(finding) {
+  const hash = (0, import_node_crypto.createHash)("sha256").update(JSON.stringify([finding.file ?? "", finding.title])).digest("hex");
+  return `${finding.ruleId}:${hash.slice(0, 12)}`;
+}
+function renderState(findings) {
+  if (findings.length > maxRecorded) {
+    return `<!-- ${STATE_MARKER} v1 incomplete -->`;
+  }
+  const byRule = /* @__PURE__ */ new Map();
+  for (const finding of findings) {
+    const [ruleId = "", hash = ""] = fingerprint(finding).split(":");
+    if (rulePattern.test(ruleId)) {
+      byRule.set(ruleId, [...byRule.get(ruleId) ?? [], hash]);
+    }
+  }
+  const entries = [...byRule].map(([ruleId, hashes]) => `${ruleId}:${hashes.join(",")}`);
+  return `<!-- ${STATE_MARKER} v1${entries.map((entry) => ` ${entry}`).join("")} -->`;
+}
+function readState(body) {
+  const text = body.trimEnd();
+  const lastLine = text.slice(text.lastIndexOf("\n") + 1);
+  const match2 = new RegExp(`^<!-- ${STATE_MARKER} v1((?: [^ ]{1,20000}){0,100}) -->$`).exec(lastLine);
+  if (match2 === null) {
+    return void 0;
+  }
+  const counts = /* @__PURE__ */ new Map();
+  for (const entry of (match2[1] ?? "").split(" ").filter(Boolean)) {
+    const [ruleId = "", hashes = "", ...rest] = entry.split(":");
+    const list2 = hashes.split(",");
+    if (rest.length > 0 || !rulePattern.test(ruleId) || !list2.every((hash) => hashPattern.test(hash))) {
+      return void 0;
+    }
+    for (const hash of list2) {
+      const key2 = `${ruleId}:${hash}`;
+      counts.set(key2, (counts.get(key2) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+function compareWithPrevious(findings, previous) {
+  const remaining = new Map(previous);
+  const fresh = /* @__PURE__ */ new Set();
+  for (const finding of findings) {
+    const key2 = fingerprint(finding);
+    const count = remaining.get(key2) ?? 0;
+    if (count > 0) {
+      remaining.set(key2, count - 1);
+    } else {
+      fresh.add(finding);
+    }
+  }
+  const gone = /* @__PURE__ */ new Map();
+  for (const [key2, count] of remaining) {
+    if (count > 0) {
+      const ruleId = key2.split(":")[0] ?? "";
+      gone.set(ruleId, (gone.get(ruleId) ?? 0) + count);
+    }
+  }
+  return {
+    isNew: (finding) => fresh.has(finding),
+    newCount: fresh.size,
+    noLongerReported: [...gone].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+  };
+}
+
 // src/reporting/render-markdown.ts
 var PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 function renderMarkdown(result, options = { includeLowSeverity: false }) {
   const findings = options.includeLowSeverity ? result.findings : result.findings.filter((finding) => finding.severity !== "info");
   const suppressed = renderSuppressed(result.suppressed ?? []);
+  const comparison = options.previous === void 0 ? void 0 : compareWithPrevious(findings, options.previous);
+  const changes = comparison === void 0 ? [] : [renderChanges(comparison), ""];
+  const state = options.recordState ? ["", renderState(findings)] : [];
+  const budget = maxFindingsLength - [...suppressed, ...changes, ...state].join("\n").length;
   return [
     PRISM_COMMENT_MARKER,
     "",
@@ -15774,7 +15849,8 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "",
     "### Findings",
     "",
-    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, maxFindingsLength - suppressed.join("\n").length),
+    ...changes,
+    findings.length === 0 ? "No warning or high-risk findings were detected." : renderFindings(findings, budget, comparison?.isNew ?? (() => false)),
     "",
     ...suppressed,
     "### Suggested Review Checklist",
@@ -15782,17 +15858,26 @@ function renderMarkdown(result, options = { includeLowSeverity: false }) {
     "- Are tests covering the changed behavior?",
     "- Are security-sensitive changes reviewed by the right owner?",
     "- Are deployment, migration, or rollback risks understood?",
-    "- Are new dependencies necessary and trusted?"
+    "- Are new dependencies necessary and trusted?",
+    ...state
   ].join("\n");
+}
+function renderChanges({ newCount, noLongerReported }) {
+  const resolved = noLongerReported.reduce((total, [, count]) => total + count, 0);
+  if (newCount === 0 && resolved === 0) {
+    return "No findings were added or resolved since the previous review.";
+  }
+  const rules = noLongerReported.map(([ruleId, count]) => `${codeSpan(ruleId)} (${count})`).join(", ");
+  return `Since the previous review: ${newCount} new finding(s), ${resolved} no longer reported${resolved > 0 ? ` (${rules})` : ""}.`;
 }
 var maxFindingsLength = 55e3;
 var groupingReserve = 1e3;
-function renderFindings(findings, budget) {
+function renderFindings(findings, budget, isNew) {
   const grouped = new Set(findings.map((finding) => areaOf(finding.ruleId))).size > 1;
   const shown = [];
   let length = 0;
   for (const finding of findings) {
-    const block = renderFinding(finding);
+    const block = renderFinding(finding, isNew(finding));
     if (length + block.length > budget - (grouped ? groupingReserve : 0)) {
       break;
     }
@@ -15848,9 +15933,9 @@ function renderSuppressed(suppressed) {
   }
   return ["### Suppressed Inline", "", ...lines, ""];
 }
-function renderFinding(finding) {
+function renderFinding(finding, isNew) {
   const sections = [
-    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}`,
+    `#### ${capitalize(finding.severity)} - ${escapeText(finding.title)}${isNew ? " (new)" : ""}`,
     "",
     escapeText(finding.message)
   ];
@@ -16027,19 +16112,15 @@ async function loadBaseBranchConfig(client, owner, repo, configPath, baseSha) {
 }
 
 // src/github/publish-comment.ts
-async function publishPullRequestComment(client, owner, repo, issueNumber, body, mode) {
-  if (mode === "append") {
-    await createComment(client, owner, repo, issueNumber, body);
-    return;
-  }
-  await upsertPullRequestComment(client, owner, repo, issueNumber, body);
-}
-async function upsertPullRequestComment(client, owner, repo, issueNumber, body) {
+async function findReviewComment(client, owner, repo, issueNumber) {
   const comments = await client.paginate(
     `/repos/${owner}/${repo}/issues/${issueNumber}/comments`
   );
   const existing = [...comments].reverse().find(isPrismReviewComment);
-  if (existing) {
+  return existing === void 0 ? void 0 : { id: existing.id, body: existing.body ?? "" };
+}
+async function publishReviewComment(client, owner, repo, issueNumber, body, mode, existing) {
+  if (mode === "upsert" && existing !== void 0) {
     await client.request(`/repos/${owner}/${repo}/issues/comments/${existing.id}`, {
       method: "PATCH",
       body: { body }
@@ -16327,7 +16408,12 @@ async function run() {
     configPath: inputs.configPath,
     expectedFileCount: pullRequest.changed_files
   });
-  const body = renderMarkdown(result, config.comment);
+  const previous = inputs.dryRun ? void 0 : await findReviewComment(client, owner, repo, pullRequest.number);
+  const body = renderMarkdown(result, {
+    includeLowSeverity: config.comment.includeLowSeverity,
+    previous: previous === void 0 ? void 0 : readState(previous.body),
+    recordState: true
+  });
   if (config.annotations.enabled) {
     for (const annotation of renderAnnotations(result, config.annotations)) {
       console.log(annotation);
@@ -16342,14 +16428,7 @@ async function run() {
     printUntrusted(body);
   } else {
     try {
-      await publishPullRequestComment(
-        client,
-        owner,
-        repo,
-        pullRequest.number,
-        body,
-        config.comment.mode
-      );
+      await publishReviewComment(client, owner, repo, pullRequest.number, body, config.comment.mode, previous);
       if (config.reviewComments.enabled) {
         await publishLineComments(client, owner, repo, pullRequest, result.findings, config.reviewComments);
       }
@@ -16390,7 +16469,7 @@ async function publishLineComments(client, owner, repo, pullRequest, findings, o
   }
 }
 function printUntrusted(text) {
-  const token2 = (0, import_node_crypto.randomUUID)();
+  const token2 = (0, import_node_crypto2.randomUUID)();
   console.log(`::stop-commands::${token2}`);
   console.log(text);
   console.log(`::${token2}::`);
