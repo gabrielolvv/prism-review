@@ -13302,6 +13302,7 @@ var ruleIds = [
   "unpinned-action",
   "destructive-migration",
   "privileged-container",
+  "public-exposure",
   "sensitive-files",
   "config-change",
   "lockfile-source",
@@ -13395,6 +13396,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     privilegedContainers: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    publicExposure: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     credentialFiles: external_exports.object({
@@ -14419,6 +14423,154 @@ function joinLabels(labels) {
   return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
 }
 
+// src/rules/public-exposure.ts
+var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
+var settings = [
+  [
+    "makes a storage bucket public",
+    /\bacl\s*[=:]\s*["']public-read(?:-write)?["']|\bAccessControl["']?\s*:\s*["']?PublicRead(?:Write)?\b|\b(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b|\b(?:BlockPublicAcls|BlockPublicPolicy|IgnorePublicAcls|RestrictPublicBuckets)["']?\s*:\s*["']?false\b|\b(?:allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b/
+  ],
+  ["makes a database publicly accessible", /\bpublicly_accessible\s*=\s*true\b|\bPubliclyAccessible["']?\s*:\s*["']?true\b/],
+  ["grants access to allUsers", /["'](?:allUsers|allAuthenticatedUsers)["']/]
+];
+var worldSource = /(?:^|[^\d.])0\.0\.0\.0\/0\b|(?:^|[^:\w])::\/0\b|\bsource_address_prefix\s*=\s*"(?:\*|Internet|Any)"|\bSourceAddressPrefix["']?\s*:\s*["']?(?:\*|Internet)\b/i;
+var outbound = /egress|outbound/i;
+var notInbound = /\b(?:type|direction)["']?\s*[=:]\s*["']?(?:egress|outbound)|\begress\s*=\s*true\b|\b(?:rule_action|access|Access|RuleAction)["']?\s*[=:]\s*["']?deny\b/i;
+var sensitivePorts = [22, 23, 2375, 2376, 2379, 2380, 3306, 3389, 5432, 5601, 5900, 5984, 6379, 9042, 9200, 9300, 10250, 11211, 1433, 1521, 27017];
+var publicExposureRule = {
+  id: "public-exposure",
+  description: "Flags infrastructure that opens sensitive ports to the internet or makes storage and databases public.",
+  run({ files, config }) {
+    if (!config.rules.publicExposure.enabled) {
+      return [];
+    }
+    const testGlobs = config.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !infrastructureFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findExposure(file.patch, /\.ya?ml$/i.test(file.path));
+      if (found.length === 0) {
+        return [];
+      }
+      const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
+      const labels = [
+        ...settings.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
+        ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
+        ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
+      ];
+      const lines = found.map((match2) => match2.line);
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "public-exposure",
+          title: "Resource exposed to the internet",
+          severity: "high",
+          file: file.path,
+          line: Math.min(...lines),
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels2(labels)}.`,
+          recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
+        }
+      ];
+    });
+  }
+};
+function findExposure(patch, yaml) {
+  const found = [];
+  const pending = [];
+  let stack = [];
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      stack = [];
+    }
+    if (/^\s*(?:#|\/\/)/.test(content) || content.trim() === "") {
+      continue;
+    }
+    let touched;
+    if (yaml) {
+      const indent = /^\s*/.exec(content)?.[0].length ?? 0;
+      stack = stack.filter((block) => block.indent < indent);
+      for (const block of stack) {
+        block.lines.push(content);
+      }
+      if (/^\s*-\s/.test(content) || /:\s*$/.test(content)) {
+        stack.push({ header: content, indent, lines: [content] });
+      }
+      touched = [...stack];
+    } else {
+      for (const block of stack) {
+        block.lines.push(content);
+      }
+      touched = [...stack];
+      for (const brace of content.replace(/"(?:[^"\\]|\\.)*"/g, '""').match(/[{}]/g) ?? []) {
+        if (brace === "{") {
+          const block = { header: content, indent: 0, lines: [content] };
+          stack.push(block);
+          touched.push(block);
+        } else {
+          stack.pop();
+        }
+      }
+    }
+    if (!added) {
+      continue;
+    }
+    for (const [label, pattern] of settings) {
+      if (pattern.test(content)) {
+        found.push({ line, label });
+      }
+    }
+    if (worldSource.test(content)) {
+      pending.push({ line, chain: touched.reverse() });
+    }
+  }
+  for (const { line, chain } of pending) {
+    if (chain.some((block2) => outbound.test(block2.header) || notInbound.test(block2.lines.join("\n")))) {
+      continue;
+    }
+    const block = chain.find((candidate) => portsIn(candidate.lines) !== void 0);
+    const ports = block === void 0 ? void 0 : portsIn(block.lines);
+    if (ports === "all") {
+      found.push({ line, allPorts: true });
+    } else if (ports !== void 0) {
+      const open = sensitivePorts.filter((port) => ports.some(([from, to]) => port >= from && port <= to));
+      if (open.length > 0) {
+        found.push({ line, ports: open });
+      }
+    }
+  }
+  return found.sort((left, right) => left.line - right.line);
+}
+function portsIn(lines) {
+  const text = lines.join("\n");
+  if (/\b(?:protocol|IpProtocol)["']?\s*[=:]\s*["']?(?:-1|all)\b/i.test(text)) {
+    return "all";
+  }
+  const ranges = [];
+  const froms = [...text.matchAll(/\b(?:from_port|FromPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
+  const tos = [...text.matchAll(/\b(?:to_port|ToPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
+  froms.forEach((from, index) => ranges.push([from, tos[index] ?? from]));
+  const values = [
+    ...[...text.matchAll(/\b(?:port|Port|destination_port_range|DestinationPortRange)["']?\s*[=:]\s*["']?(\*|\d+(?:-\d+)?)/g)].map((match2) => match2[1] ?? ""),
+    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]*)\]/g)].flatMap(
+      (match2) => (match2[1] ?? "").split(",").map((value) => value.replace(/["'\s]/g, ""))
+    )
+  ].filter(Boolean);
+  for (const value of values) {
+    if (value === "*") {
+      return "all";
+    }
+    const [from, to] = value.split("-").map(Number);
+    if (from !== void 0 && !Number.isNaN(from)) {
+      ranges.push([from, to ?? from]);
+    }
+  }
+  return ranges.length > 0 ? ranges : void 0;
+}
+function joinLabels2(labels) {
+  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
+}
+
 // src/rules/remote-script.ts
 var downloader = String.raw`(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)`;
 var shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:python[23]?|node|perl|ruby)(?:\s+-)?\s*(?:$|[;&|)]))`;
@@ -15109,6 +15261,7 @@ var defaultRules = [
   unpinnedActionRule,
   destructiveMigrationRule,
   privilegedContainerRule,
+  publicExposureRule,
   sensitiveFilesRule,
   configChangeRule,
   lockfileSourceRule,
