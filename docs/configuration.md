@@ -68,6 +68,8 @@ rules:
     enabled: true
   riskyApis:
     enabled: true
+  remoteScripts:
+    enabled: true
   workflowRisk:
     enabled: true
   destructiveMigration:
@@ -218,6 +220,21 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | PHP | `eval(...)`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `unserialize(...)` | `$runner->exec(...)`, `Foo::exec(...)`, `function exec(...)`, `json_decode(...)` |
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
+
+## Remote Scripts
+
+### `rules.remoteScripts.enabled`
+
+The `remote-script` rule reports added lines that download a script and run it in the same command, so nothing checks what was downloaded:
+
+- `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, PowerShell's `irm ... | iex`, and pipes into `python`, `node`, `perl`, or `ruby` with no arguments or `-`. With `-m`, `-c`, or `-e` they read the download as data, as in `curl ... | python3 -m json.tool`, which is not reported.
+- `bash <(curl ...)` and `source <(curl ...)`
+- `sh -c "$(curl ...)"` and `eval "$(curl ...)"`
+- `iex (iwr ...)` and `iex ((New-Object Net.WebClient).DownloadString(...))`
+
+Whoever controls the URL, or can intercept the download, runs code in the build, the image, or the developer's machine. The finding is a warning that names each host, or says the URL comes from a variable, and it is high when a line downloads over plain `http://`.
+
+Downloading to a file and checking a checksum before running it is not reported, and neither are downloads piped into other programs such as `jq` or `tar`, commands inside single-quoted strings, and comment lines. Documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, because installation guides show these commands on purpose. A command split across lines with `\` is only reported when the download and the pipe are on the same line.
 
 ## Workflow Risk
 
