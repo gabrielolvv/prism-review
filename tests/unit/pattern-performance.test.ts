@@ -34,6 +34,7 @@ const cases: Array<[path: string, prefix: string, repeated: string, context?: st
   ["pyproject.toml", "", '"a'],
   ["requirements.txt", "", "a"],
   ["package.json", '"', "a"],
+  ["package.json", '"@a/', "a"],
   ["Gemfile", "gem ", "a"],
   ["go.mod", "require ", "a"],
   ["App.csproj", "<PackageReference ", "Include=\"a\" "],

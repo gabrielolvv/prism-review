@@ -35,7 +35,8 @@ const packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
 // npm keys whose values look like versions but are not dependencies, such as `engines.node`.
 const npmFields = new Set(["version", "node", "npm"]);
 const npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
-const npmEntry = new RegExp(`^\\s*"(${packageName})"\\s*:\\s*"([^"]{0,200})"`);
+// npm names may have a scope, such as `@types/node`.
+const npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);
 const requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*([<>=!~][^;#]{0,100}|@[^;#]{0,200})?(?:[;#]|$)`);
 const quotedRequirement = new RegExp(
   `"(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*((?:[<>=!~]=|[<>]|===)[^";]{0,100})`,
@@ -72,7 +73,7 @@ const manifests: Manifest[] = [
     ecosystem: "npm",
     files: /(?:^|\/)package\.json$/,
     entries(content) {
-      // `"name": "version"` in a dependencies object. Unscoped only: a scope belongs to its owner.
+      // `"name": "version"` in a dependencies object.
       const [matched, name = "", version = ""] = npmEntry.exec(content) ?? [];
       return matched !== undefined && !npmFields.has(name) && npmVersion.test(version) ? [{ name, version }] : [];
     }
