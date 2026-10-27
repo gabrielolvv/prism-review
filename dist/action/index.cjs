@@ -6344,15 +6344,15 @@ var require_parser = __commonJS({
     var node_process = require("process");
     var cst = require_cst();
     var lexer = require_lexer();
-    function includesToken(list, type) {
-      for (let i = 0; i < list.length; ++i)
-        if (list[i].type === type)
+    function includesToken(list2, type) {
+      for (let i = 0; i < list2.length; ++i)
+        if (list2[i].type === type)
           return true;
       return false;
     }
-    function findNonEmptyIndex(list) {
-      for (let i = 0; i < list.length; ++i) {
-        switch (list[i].type) {
+    function findNonEmptyIndex(list2) {
+      for (let i = 0; i < list2.length; ++i) {
+        switch (list2[i].type) {
           case "space":
           case "comment":
           case "newline":
@@ -8530,7 +8530,7 @@ var defaults = (def) => {
     defaults: (options) => orig.defaults(ext(def, options)),
     makeRe: (pattern, options = {}) => orig.makeRe(pattern, ext(def, options)),
     braceExpand: (pattern, options = {}) => orig.braceExpand(pattern, ext(def, options)),
-    match: (list, pattern, options = {}) => orig.match(list, pattern, ext(def, options)),
+    match: (list2, pattern, options = {}) => orig.match(list2, pattern, ext(def, options)),
     sep: orig.sep,
     GLOBSTAR
   });
@@ -8546,13 +8546,13 @@ var braceExpand = (pattern, options = {}) => {
 minimatch.braceExpand = braceExpand;
 var makeRe = (pattern, options = {}) => new Minimatch(pattern, options).makeRe();
 minimatch.makeRe = makeRe;
-var match = (list, pattern, options = {}) => {
+var match = (list2, pattern, options = {}) => {
   const mm = new Minimatch(pattern, options);
-  list = list.filter((f) => mm.match(f));
-  if (mm.options.nonull && !list.length) {
-    list.push(pattern);
+  list2 = list2.filter((f) => mm.match(f));
+  if (mm.options.nonull && !list2.length) {
+    list2.push(pattern);
   }
-  return list;
+  return list2;
 };
 minimatch.match = match;
 var globMagic = /[?*]|[+@!]\(.*?\)|\[|\]/;
@@ -13299,6 +13299,7 @@ var ruleIds = [
   "risky-api",
   "remote-script",
   "workflow-risk",
+  "unpinned-action",
   "destructive-migration",
   "sensitive-files",
   "config-change",
@@ -13383,6 +13384,11 @@ var prismConfigSchema = external_exports.object({
     }).default({}),
     workflowRisk: external_exports.object({
       enabled: external_exports.boolean().default(true)
+    }).default({}),
+    unpinnedActions: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      // Owners whose actions may be used by tag, compared without case. GitHub's own by default.
+      allowedOwners: external_exports.array(external_exports.string().min(1).max(100)).default(["actions", "github"])
     }).default({}),
     destructiveMigration: external_exports.object({
       enabled: external_exports.boolean().default(true)
@@ -14642,8 +14648,80 @@ function pathWords(path2) {
   return path2.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word) => word.toLowerCase());
 }
 
-// src/rules/workflow-risk.ts
+// src/rules/unpinned-action.ts
 var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
+var commitSha = /^[0-9a-f]{40}$/i;
+var maxListed = 3;
+var unpinnedActionRule = {
+  id: "unpinned-action",
+  description: "Flags third-party actions and container images in workflows that are not pinned to a commit SHA or digest.",
+  // A path setting must not hide a change to what a workflow runs.
+  seesIgnoredFiles: true,
+  run({ files, config }) {
+    const ruleConfig = config.rules.unpinnedActions;
+    if (!ruleConfig.enabled) {
+      return [];
+    }
+    const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !workflowFile.test(file.path)) {
+        return [];
+      }
+      const found = addedLines(file.patch).flatMap(({ line, content }) => {
+        const target = usesLine.exec(content)?.[1];
+        const kind = target === void 0 ? void 0 : unpinnedKind(target, allowedOwners);
+        return kind === void 0 || target === void 0 ? [] : [{ line, kind, target }];
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const actions = unique(found.filter((match2) => match2.kind === "action").map((match2) => match2.target));
+      const images = unique(found.filter((match2) => match2.kind === "image").map((match2) => match2.target));
+      const parts = [
+        actions.length > 0 ? `${actions.length > 1 ? "actions" : "an action"} by a tag or branch that can be moved to other code (${list(actions)})` : "",
+        images.length > 0 ? `${images.length > 1 ? "container images" : "a container image"} without a digest (${list(images)})` : ""
+      ].filter(Boolean);
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      return [
+        {
+          ruleId: "unpinned-action",
+          title: "Action not pinned to a commit",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          message: `${text} ${plural ? "use" : "uses"} ${parts.join(", and ")}.`,
+          recommendation: "Pin each action to the full commit SHA of a release, with the tag in a comment (uses: owner/action@<sha> # v4.2.0), and each image to a digest. Dependabot and Renovate can keep pinned versions up to date."
+        }
+      ];
+    });
+  }
+};
+function unpinnedKind(target, allowedOwners) {
+  if (target.startsWith("./") || target.includes("${{")) {
+    return void 0;
+  }
+  if (target.startsWith("docker://")) {
+    return target.includes("@sha256:") ? void 0 : "image";
+  }
+  const at = target.lastIndexOf("@");
+  if (at < 0) {
+    return void 0;
+  }
+  const owner = target.slice(0, target.indexOf("/")).toLowerCase();
+  return allowedOwners.has(owner) || commitSha.test(target.slice(at + 1)) ? void 0 : "action";
+}
+function unique(values) {
+  return [...new Set(values)];
+}
+function list(targets) {
+  const shown = targets.filter((target) => /^[\w.:/@-]{1,200}$/.test(target)).slice(0, maxListed);
+  const more = targets.length - shown.length;
+  return [...shown, ...more > 0 ? [`${more} more`] : []].join(", ");
+}
+
+// src/rules/workflow-risk.ts
+var workflowFile2 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var untrustedPaths = [
   "github.head_ref",
   "github.event.issue.title",
@@ -14690,7 +14768,7 @@ var workflowRiskRule = {
     if (!config.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile2.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const lines = [...injections.map(({ line }) => line), ...flagged.map(({ line }) => line)];
@@ -14896,6 +14974,7 @@ var defaultRules = [
   riskyApiRule,
   remoteScriptRule,
   workflowRiskRule,
+  unpinnedActionRule,
   destructiveMigrationRule,
   sensitiveFilesRule,
   configChangeRule,
