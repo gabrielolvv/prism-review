@@ -101,6 +101,7 @@ security:
 comment:
   mode: "upsert"
   includeLowSeverity: false
+  checklist: []
 
 annotations:
   enabled: false
@@ -477,6 +478,12 @@ Anchor patterns with `^` and `$` where possible. A loose pattern such as `[0-9a-
 ### `comment.includeLowSeverity`
 
 When `true`, `info` findings such as `oversized-patch` are rendered in the comment. They are hidden by default to keep the comment focused on warnings and high-risk findings.
+
+### `comment.checklist`
+
+Questions of your own, added at the end of the Suggested Review Checklist on every review, such as `Is the CHANGELOG updated?`. Up to 10, each up to 300 characters; they are shown as plain text, like finding text.
+
+The checklist starts with one question for each rule that reported a finding the comment shows, at most 8, ordered like the areas in the comment: most severe first, then by area, such as whether an added credential was revoked, or whether a migration can be rolled back while the previous release is still running. A review with no such findings asks four general questions about tests, ownership, rollout, and dependencies instead.
 
 ### Finding Areas
 

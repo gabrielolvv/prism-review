@@ -47,8 +47,7 @@ Recommendation: Add or update tests for the modified behavior, or explain why ex
 
 ### Suggested Review Checklist
 
-- Are tests covering the changed behavior?
 - Are security-sensitive changes reviewed by the right owner?
-- Are deployment, migration, or rollback risks understood?
-- Are new dependencies necessary and trusted?
+- Are the new or updated dependencies necessary and trusted?
+- Are tests covering the changed behavior?
 ```
