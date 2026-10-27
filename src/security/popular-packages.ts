@@ -1,6 +1,6 @@
 // Widely used packages per registry, which typosquatters imitate. The list only needs the names
 // worth imitating; a dependency named exactly like one of them is never reported.
-export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io";
+export type Ecosystem = "npm" | "PyPI" | "RubyGems" | "crates.io" | "Go";
 
 export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
   npm: [
@@ -75,5 +75,25 @@ export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
     "tempfile", "walkdir", "glob", "num-traits", "smallvec", "arrayvec", "hashbrown", "indexmap",
     "criterion", "proptest", "mockall", "wasm-bindgen", "js-sys", "web-sys", "image", "nalgebra",
     "ndarray", "semver", "flate2", "zip", "dashmap", "memchr", "aho-corasick", "nom", "pest"
+  ],
+  // Without their major version suffix, as they are compared.
+  Go: [
+    "github.com/gin-gonic/gin", "github.com/gorilla/mux", "github.com/gorilla/websocket", "github.com/stretchr/testify",
+    "github.com/stretchr/objx", "github.com/sirupsen/logrus", "go.uber.org/zap", "go.uber.org/fx", "github.com/spf13/cobra",
+    "github.com/spf13/viper", "github.com/spf13/pflag", "github.com/pkg/errors", "github.com/google/uuid",
+    "github.com/google/go-cmp", "github.com/golang/protobuf", "google.golang.org/grpc", "google.golang.org/protobuf",
+    "golang.org/x/net", "golang.org/x/crypto", "golang.org/x/sync", "golang.org/x/sys", "golang.org/x/text",
+    "golang.org/x/oauth2", "golang.org/x/exp", "golang.org/x/mod", "golang.org/x/term", "golang.org/x/time",
+    "golang.org/x/tools", "golang.org/x/image", "github.com/go-redis/redis", "github.com/redis/go-redis",
+    "github.com/lib/pq", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql", "github.com/mattn/go-sqlite3",
+    "gorm.io/gorm", "gorm.io/driver/postgres", "github.com/labstack/echo", "github.com/gofiber/fiber",
+    "github.com/go-chi/chi", "github.com/valyala/fasthttp", "github.com/prometheus/client_golang",
+    "github.com/aws/aws-sdk-go", "github.com/aws/aws-sdk-go-v2", "k8s.io/client-go", "k8s.io/apimachinery", "k8s.io/api",
+    "github.com/golang-jwt/jwt", "github.com/dgrijalva/jwt-go", "github.com/joho/godotenv", "github.com/rs/zerolog",
+    "github.com/urfave/cli", "github.com/docker/docker", "gopkg.in/yaml.v2", "gopkg.in/yaml.v3",
+    "github.com/burntsushi/toml", "github.com/davecgh/go-spew", "github.com/onsi/ginkgo", "github.com/onsi/gomega",
+    "go.mongodb.org/mongo-driver", "github.com/json-iterator/go", "github.com/tidwall/gjson", "github.com/mitchellh/mapstructure",
+    "github.com/hashicorp/go-multierror", "github.com/cenkalti/backoff", "github.com/fsnotify/fsnotify",
+    "go.opentelemetry.io/otel", "github.com/golang/mock", "go.uber.org/mock", "github.com/google/go-github"
   ]
 };

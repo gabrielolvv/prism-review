@@ -11,8 +11,10 @@ type Entry = { name: string; version: string };
 type Manifest = {
   ecosystem: Ecosystem;
   files: RegExp;
-  // The dependencies a line declares. `section` is the current TOML table.
+  // The dependencies a line declares. `section` is the current TOML table or go.mod block.
   entries: (content: string, section: string) => Entry[];
+  // The section a line opens or closes, if any; TOML table headers by default.
+  section?: (content: string) => string | undefined;
 };
 
 // How a dependency changed: `from` is missing for an added one, and `to` for a removed one. `line`
@@ -41,7 +43,11 @@ const gemLine = new RegExp(
   `^\\s*(?:gem|\\w{1,50}\\.add_(?:runtime_|development_)?dependency)\\s*\\(?\\s*["'](${packageName})["'](?:\\s*,\\s*["']([^"']{1,100})["'])?`
 );
 const tableHeader = /^\s*\[\[?([^\]]{1,200})\]\]?\s*(?:#.*)?$/;
-const hunkHeader = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+const hunkHeader = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@ ?(.{0,300})/;
+const goModule = "[A-Za-z0-9][A-Za-z0-9._~/-]{0,250}";
+const goRequireLine = new RegExp(`^\\s*require\\s+(${goModule})\\s+(v\\S{1,100})`);
+const goBlockEntry = new RegExp(`^\\s*(${goModule})\\s+(v\\S{1,100})`);
+const goBlockStart = /^\s*(require|replace|exclude|retract)\s*\(\s*(?:\/\/.*)?$/;
 
 const manifests: Manifest[] = [
   {
@@ -92,6 +98,17 @@ const manifests: Manifest[] = [
     }
   },
   {
+    ecosystem: "Go",
+    files: /(?:^|\/)go\.mod$/,
+    // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
+    // blocks name modules too, but not dependencies.
+    entries(content, section) {
+      const [matched, name = "", version = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
+      return matched === undefined ? [] : [{ name, version }];
+    },
+    section: (content) => goBlockStart.exec(content)?.[1] ?? (/^\s*\)\s*$/.test(content) ? "" : undefined)
+  },
+  {
     ecosystem: "crates.io",
     files: /(?:^|\/)Cargo\.toml$/,
     // `[dependencies]`, `[dev-dependencies]`, `[workspace.dependencies]`, `[target.'cfg(..)'.dependencies]`.
@@ -119,13 +136,15 @@ export function declaredDependencies(path: string, patch: string): { added: Decl
 
   let oldLine: number | undefined;
   let newLine = 0;
+  const sectionOf = manifest.section ?? ((content: string) => tableHeader.exec(content)?.[1]?.trim());
   let section = "";
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader.exec(line);
     if (header) {
       oldLine = Number(header[1]);
       newLine = Number(header[2]);
-      section = "";
+      // Git shows the enclosing line after `@@`, such as `require (` for a hunk inside a go.mod block.
+      section = sectionOf(header[3] ?? "") ?? "";
       continue;
     }
     // Lines before the first hunk are git headers such as `+++ b/path`.
@@ -134,7 +153,7 @@ export function declaredDependencies(path: string, patch: string): { added: Decl
     }
 
     const content = line.slice(1);
-    section = tableHeader.exec(content)?.[1]?.trim() ?? section;
+    section = sectionOf(content) ?? section;
     if (line.startsWith("+")) {
       added.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: newLine })));
       newLine += 1;
@@ -199,10 +218,14 @@ function byName(dependencies: DeclaredDependency[], ecosystem: Ecosystem): Map<s
 }
 
 // PyPI treats `-`, `_`, and `.` alike and ignores case; other registries compare names as written,
-// in lowercase.
+// in lowercase, and Go module paths without their major version suffix.
 export function normalizePackageName(name: string, ecosystem: Ecosystem): string {
   const lower = name.toLowerCase();
-  return ecosystem === "PyPI" ? lower.replace(/[-_.]+/g, "-") : lower;
+  if (ecosystem === "PyPI") {
+    return lower.replace(/[-_.]+/g, "-");
+  }
+  // A Go module's major version suffix, such as `/v5` or gopkg.in's `.v3`, names the same project.
+  return ecosystem === "Go" ? lower.replace(/\/v\d+$/, "").replace(/^(gopkg\.in\/.+)\.v\d+$/, "$1") : lower;
 }
 
 // `name = "1.0"`, `name = { version = "1.0", ... }`, or `name = { git = "..." }`, which has no version.
