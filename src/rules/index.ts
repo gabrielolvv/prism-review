@@ -9,6 +9,7 @@ import { hiddenUnicodeRule } from "./hidden-unicode.js";
 import { incompleteReviewRule } from "./incomplete-review.js";
 import { largeDiffRule } from "./large-diff.js";
 import { lockfileSourceRule } from "./lockfile-source.js";
+import { lookalikeDependencyRule } from "./lookalike-dependency.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
 import { privilegedContainerRule } from "./privileged-container.js";
@@ -45,6 +46,7 @@ export const defaultRules: Rule[] = [
   configChangeRule,
   reviewControlChangeRule,
   lockfileSourceRule,
+  lookalikeDependencyRule,
   dependencyRiskRule,
   oversizedPatchRule
 ];

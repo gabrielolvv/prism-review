@@ -29,7 +29,11 @@ const cases: Array<[path: string, prefix: string, repeated: string]> = [
   ["Tests/AppTests.swift", "", "@Test("],
   ["tests/FooTest.php", "", "it("],
   ["infra/fw.tf", "", "ports = ["],
-  ["app/db.py", "# prism-review-ignore sql-injection -- ", " "]
+  ["app/db.py", "# prism-review-ignore sql-injection -- ", " "],
+  ["pyproject.toml", "", '"a'],
+  ["requirements.txt", "", "a"],
+  ["package.json", '"', "a"],
+  ["Gemfile", "gem ", "a"]
 ];
 
 export function testRulePatternsStayLinearOnLongLines(): void {
