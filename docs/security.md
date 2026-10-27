@@ -32,7 +32,7 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 ## Ignored Paths
 
-`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `hidden-unicode`, `workflow-risk`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
+`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `lockfile-source`, `hidden-unicode`, `workflow-risk`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
 
 The `severity` setting can lower or turn off any rule, the security rules included. That is a deliberate choice for maintainers, and the pull request that makes it is reviewed with the previous configuration, where `config-change` reports it as high risk.
 
@@ -47,6 +47,10 @@ GitHub lists at most 3000 files for a pull request. When the list reaches that l
 ## Workflow Changes
 
 `sensitive-files` reports any change under `.github/workflows/`. `workflow-risk` adds what to look at: script injection through untrusted contexts in `run` and `script`, `pull_request_target`, checkouts of pull request code, and `write-all` permissions. It checks workflow files even when `ignorePaths` matches them. Branch protection should still require review for workflow changes, because a pull request can edit the workflow that runs Prism Review.
+
+## Lockfile Sources
+
+A lockfile records the URL each package is downloaded from, and an install runs the package's scripts. A pull request can change that URL for a familiar package name, and the change hides in a diff few people read. `lockfile-source` reports URLs outside the allowed registries or over plain HTTP as high risk, and Git sources and extra pip indexes as warnings. It reads patches before the size limit, so a large lockfile update is still checked, and it shows only the host, never a URL that may carry credentials. GitHub sends no patch at all for the largest diffs, so such a lockfile is only covered by `dependency-risk`; the CLI reads the full `git diff` and can check it.
 
 ## Merge Gate
 
