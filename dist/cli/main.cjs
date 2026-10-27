@@ -15769,6 +15769,40 @@ function checklistQuestions(findings, extra = []) {
   return [...asked.size > 0 ? asked : defaultQuestions, ...extra];
 }
 
+// src/reporting/rule-docs.ts
+var docsUrl = "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md";
+var ruleSections = {
+  "incomplete-review": "Rules Without Options",
+  "secret-in-diff": "Secrets",
+  "credential-file": "Credential Files",
+  "disabled-security-check": "Disabled Security Checks",
+  "hidden-unicode": "Hidden Unicode",
+  "large-diff": "Large Diff",
+  "missing-tests": "Missing Tests",
+  "skipped-tests": "Skipped Tests",
+  "blanket-suppression": "Blanket Suppressions",
+  "risky-api": "Risky APIs",
+  "sql-injection": "SQL Injection",
+  "remote-script": "Remote Scripts",
+  "workflow-risk": "Workflow Risk",
+  "unpinned-action": "Unpinned Actions",
+  "destructive-migration": "Destructive Migrations",
+  "privileged-container": "Privileged Containers",
+  "public-exposure": "Public Exposure",
+  "sensitive-files": "Sensitive Files",
+  "config-change": "Rules Without Options",
+  "lockfile-source": "Lockfile Sources",
+  "dependency-risk": "Dependency Risk",
+  "oversized-patch": "Rules Without Options"
+};
+function ruleDocsUrl(ruleId) {
+  const section = Object.hasOwn(ruleSections, ruleId) ? ruleSections[ruleId] : void 0;
+  return section === void 0 ? void 0 : `${docsUrl}#${headingAnchor(section)}`;
+}
+function headingAnchor(heading) {
+  return heading.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-");
+}
+
 // src/reporting/review-state.ts
 var import_node_crypto = require("node:crypto");
 var STATE_MARKER = "prism-review-state";
@@ -15935,7 +15969,12 @@ function renderFinding(finding, isNew) {
   if (finding.recommendation) {
     sections.push("", `Recommendation: ${escapeText(finding.recommendation)}`);
   }
+  sections.push("", renderRule(finding.ruleId));
   return sections.join("\n");
+}
+function renderRule(ruleId) {
+  const url = ruleDocsUrl(ruleId);
+  return `Rule: ${url === void 0 ? codeSpan(ruleId) : `[${codeSpan(ruleId)}](${url})`}`;
 }
 function escapeText(value) {
   return value.replace(/\r\n?|\n/g, " ").replace(/[\\`*_[\]<>#|!~&]/g, "\\$&");
@@ -15980,7 +16019,7 @@ function renderSarif(result, rules) {
                 id: rule.id,
                 name: rule.id,
                 shortDescription: { text: rule.description },
-                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md",
+                helpUri: ruleDocsUrl(rule.id) ?? "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md",
                 // Code scanning lets alerts be filtered by tag.
                 properties: { tags: [areaOf(rule.id)] }
               }))
