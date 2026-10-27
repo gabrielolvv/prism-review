@@ -73,6 +73,7 @@ export const remoteScriptRule: Rule = {
           severity: insecure.length > 0 ? ("high" as const) : ("warning" as const),
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "run scripts" : "runs a script"} downloaded from ${sources} without checking ${plural ? "them" : "it"}${http}.`,
           recommendation:
             "Whoever controls the URL, or can intercept it, runs code here. Download the script to a file, check its checksum or signature, then run it, or install a pinned release from a package manager."

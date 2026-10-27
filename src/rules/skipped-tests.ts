@@ -118,6 +118,7 @@ export const skippedTestsRule: Rule = {
             severity: "warning" as const,
             file: file.path,
             line: Math.min(...found.map((match) => match.line)),
+            lines: found.map((match) => match.line),
             message: [
               focused.length > 0 ? describeFocused(focused) : "",
               skipped.length > 0 ? describeSkipped(skipped) : ""

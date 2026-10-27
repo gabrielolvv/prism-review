@@ -68,6 +68,7 @@ export const sqlInjectionRule: Rule = {
           severity: "warning" as const,
           file: file.path,
           line: Math.min(...lines),
+          lines: lines,
           message: `${text} ${plural ? "build" : "builds"} SQL from values inserted into the query text, which allows SQL injection unless every value is escaped.`,
           recommendation:
             "Pass values as query parameters (?, $1, %s with a separate argument, or named parameters) and keep the SQL text constant. For identifiers such as column names, choose from a fixed list."

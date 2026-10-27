@@ -148,6 +148,7 @@ export const riskyApiRule: Rule = {
           severity: "warning" as const,
           file: file.path,
           line: Math.min(...found.map((match) => match.line)),
+          lines: found.map((match) => match.line),
           message: `${text} ${plural ? "add" : "adds"} ${many ? "calls that deserve" : "a call that deserves"} a security review: ${kinds.join(", ")}.`,
           recommendation:
             "Check that no user or pull request input reaches these calls, and prefer a safer alternative such as JSON.parse, execFile with an argument list, yaml.safe_load, or textContent."

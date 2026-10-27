@@ -140,6 +140,12 @@ import {
   testSqlInjectionRuleIgnoresParameterizedQueries,
   testSqlInjectionRuleCanBeDisabled
 } from "./unit/sql-injection.test.js";
+import {
+  testInlineSuppressionMovesAcknowledgedFindingsOut,
+  testInlineSuppressionNeedsEveryLineARuleAndAReason,
+  testInlineSuppressionCannotHideSecurityRules,
+  testInlineSuppressionIsListedInTheComment
+} from "./unit/inline-suppression.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -387,6 +393,10 @@ const tests: Array<[string, Test]> = [
   ["sql-injection rule reports SQL built from values", testSqlInjectionRuleReportsSqlBuiltFromValues],
   ["sql-injection rule ignores parameterized queries", testSqlInjectionRuleIgnoresParameterizedQueries],
   ["sql-injection rule can be disabled", testSqlInjectionRuleCanBeDisabled],
+  ["inline suppression moves acknowledged findings out", testInlineSuppressionMovesAcknowledgedFindingsOut],
+  ["inline suppression needs every line, a rule, and a reason", testInlineSuppressionNeedsEveryLineARuleAndAReason],
+  ["inline suppression cannot hide security rules", testInlineSuppressionCannotHideSecurityRules],
+  ["inline suppression is listed in the comment", testInlineSuppressionIsListedInTheComment],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

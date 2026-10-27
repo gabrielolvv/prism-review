@@ -5,6 +5,7 @@ import type { Rule } from "./rule.js";
 import { defaultConfigPath, type PrismConfig } from "../config/schema.js";
 import { defaultRules } from "../rules/index.js";
 import { compareSeverity } from "./severity.js";
+import { applySuppressions } from "./suppressions.js";
 
 export type AnalyzeOptions = {
   rules?: Rule[];
@@ -25,17 +26,21 @@ export function analyzePullRequest(
   const reviewed = files.filter(
     (file) => !(isIgnored(file.path) && (file.previousPath === undefined || isIgnored(file.previousPath)))
   );
-  const findings = rules
+  const all = rules
     .flatMap((rule) =>
       rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
     )
     .flatMap((finding) => applySeverityOverride(finding, config))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
+  // The rules ignorePaths cannot hide cannot be suppressed inline either.
+  const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
+  const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
 
   return {
-    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings),
+    summary: buildSummary(reviewed.length, files.length - reviewed.length, findings, suppressed.length),
     riskLevel: calculateRiskLevel(reviewed, findings, config),
-    findings
+    findings,
+    suppressed
   };
 }
 
@@ -48,14 +53,21 @@ function applySeverityOverride(finding: Finding, config: PrismConfig): Finding[]
   return override === "off" ? [] : [{ ...finding, severity: override }];
 }
 
-function buildSummary(reviewedCount: number, ignoredCount: number, findings: Finding[]): string {
+function buildSummary(
+  reviewedCount: number,
+  ignoredCount: number,
+  findings: Finding[],
+  suppressedCount: number
+): string {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
   const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}.`;
-  if (findings.length === 0) {
-    return `${reviewed} No configured risk signals were detected.`;
-  }
+  const found =
+    findings.length === 0
+      ? "No configured risk signals were detected."
+      : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
+  const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
 
-  return `${reviewed} Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
+  return `${reviewed} ${found}${suppressed}`;
 }
 
 function calculateRiskLevel(
