@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Scoped npm packages, such as `@types/node` and `@babel/core`, are read from `package.json`. They were skipped, so they were missing from the Dependency Changes table, and `risky-dependency-version` and `stale-lockfile` did not see their changes. `lookalike-dependency` still compares only unscoped names.
+
 ## 0.31.0 - 2026-10-27
 
 ### Added

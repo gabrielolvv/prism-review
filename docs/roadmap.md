@@ -50,7 +50,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Go modules in the dependency checks, read from `go.mod` with `go.sum` as the lockfile (0.28.0).
 - Composer and NuGet manifests in the dependency checks, with `composer.lock` and per-project `packages.lock.json` (0.29.0).
 - Maven and Gradle builds in the dependency checks: `pom.xml` dependency blocks, Gradle build scripts, and version catalogs, with `gradle.lockfile` (0.30.0).
-- An optional AI summary written from the redacted diff, behind a provider interface, with a validated reply, a fallback that publishes the review without it, and prompt-injection fixtures checked against what the model is sent and what the comment shows.
+- An optional AI summary written from the redacted diff, behind a provider interface, with a validated reply, a fallback that publishes the review without it, and prompt-injection fixtures checked against what the model is sent and what the comment shows (0.31.0).
+- Scoped npm packages in the dependency checks.
 
 ## Later
 
