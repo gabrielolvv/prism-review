@@ -32,7 +32,7 @@ Pull request content can contain characters a reviewer cannot see. The `hidden-u
 
 ## Ignored Paths
 
-`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `hidden-unicode`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
+`ignorePaths` keeps generated and vendored files out of the noise rules. It cannot hide `secret-in-diff`, `credential-file`, `hidden-unicode`, `workflow-risk`, `incomplete-review`, or `config-change` findings, which read every changed file, and it is read from the base commit, so a pull request cannot add its own files to it. A file renamed into an ignored path is still reviewed unless its old path was ignored too.
 
 The `severity` setting can lower or turn off any rule, the security rules included. That is a deliberate choice for maintainers, and the pull request that makes it is reviewed with the previous configuration, where `config-change` reports it as high risk.
 
@@ -75,6 +75,8 @@ The redactor returns new changed-file objects instead of mutating the originals,
 ### Secret Detection
 
 Before the size limit and redaction, added lines are checked for credential formats that rarely match anything else: GitHub tokens, OpenAI-style keys, AWS access key IDs, and private key headers, including PGP key blocks. The match is recorded as a line number and a kind, never as the value, and the `secret-in-diff` rule reports it. Detection shares its token patterns with the redactor, so a value that is reported is also masked.
+
+The same step checks `.env`, `.npmrc`, `.yarnrc.yml`, and `.pypirc` files for credential values, before redaction replaces the values that tell a secret from a reference such as `${NPM_TOKEN}`. Only line numbers are kept, and the `credential-file` rule reports them along with committed private keys, key stores, and Terraform state.
 
 A finding means the credential has already been pushed to a branch that others can read. Rotating it matters more than removing it from the pull request.
 
