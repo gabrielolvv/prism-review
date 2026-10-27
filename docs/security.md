@@ -60,6 +60,10 @@ A lockfile records the URL each package is downloaded from, and an install runs 
 
 The SARIF report holds the same text as the comment: rule ids, file paths, line numbers, messages, and suppression reasons, never a secret's value. Uploading it to code scanning needs `security-events: write` and a checkout so code scanning can match results to files; the checkout is only read, and Prism Review itself still reads the pull request through the API.
 
+## Pattern Performance
+
+The rules run regular expressions over lines the pull request author writes. A pattern that rescans the rest of the line from every repeated prefix, such as `curl curl curl ...` with no pipe, costs time quadratic in the line's length, and a single crafted line could stall the review and the gate. Every span that can repeat is bounded, for example to 2000 characters for a shell command or 500 for a list, so the work stays linear. A unit test runs each formerly slow pattern on a 200,000-character line and fails if any takes more than three seconds. Patches over `security.maxPatchBytes` are dropped before the rules run, except for the secret, hidden character, credential, and lockfile scans, which only use linear patterns.
+
 ## Merge Gate
 
 `check.failOn` turns the review into a required check. It is read from the base commit like the rest of the configuration, so a pull request cannot lower the threshold for itself; it can only edit the workflow, which `sensitive-files` reports and branch protection should require review for.
