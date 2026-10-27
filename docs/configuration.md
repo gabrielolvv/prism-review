@@ -72,6 +72,11 @@ rules:
     enabled: true
   workflowRisk:
     enabled: true
+  unpinnedActions:
+    enabled: true
+    allowedOwners:
+      - "actions"
+      - "github"
   destructiveMigration:
     enabled: true
   credentialFiles:
@@ -298,6 +303,25 @@ Environment and package manager files are often committed on purpose, so they ar
 Values are read before redaction. These are not reported: empty values, references such as `${NPM_TOKEN}`, placeholders such as `<your password>` or `changeme`, local development defaults such as `postgres` or `password`, file paths such as `GOOGLE_APPLICATION_CREDENTIALS=./secrets/service-account.json`, URLs pointing at `localhost`, variables with a public prefix (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `EXPO_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_`), and comment lines.
 
 Example files (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `example.env`), public keys (`id_ed25519.pub`, `public-key.pem`), certificates, deleted files, and files under `test/`, `tests/`, `testdata/`, `fixtures/`, `__tests__/`, `__mocks__/`, or `spec/` are not reported. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
+
+## Unpinned Actions
+
+### `rules.unpinnedActions.allowedOwners`
+
+The `unpinned-action` rule warns about added `uses:` lines in `.github/workflows/*.yml` and `action.yml` files that point to a tag or branch, such as `tj-actions/changed-files@v45` or `acme/shared-workflows/.github/workflows/deploy.yml@main`, and about `docker://` images without an `@sha256:` digest. A tag or branch can be moved to other code after the pull request is reviewed, which is how the `tj-actions/changed-files` compromise in March 2025 reached thousands of repositories. A full 40-character commit SHA cannot be moved.
+
+Local actions (`./...`) are not reported. Actions whose owner is listed in `allowedOwners` are not reported either; the default lists GitHub's own `actions` and `github` organizations. Add the organizations you trust to keep releases in place, compared without case:
+
+```yaml
+rules:
+  unpinnedActions:
+    allowedOwners:
+      - "actions"
+      - "github"
+      - "acme"
+```
+
+Comment lines are skipped. Like `workflow-risk`, the rule also checks workflow files matched by `ignorePaths`. `rules.unpinnedActions.enabled: false` turns it off.
 
 ## Hidden Unicode
 
