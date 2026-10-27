@@ -15623,6 +15623,39 @@ function invalidConfig(source, details) {
   return new Error(`Invalid Prism Review configuration in ${source}: ${details}`);
 }
 
+// src/reporting/render-json.ts
+function renderJson(result) {
+  const suppressed = result.suppressed ?? [];
+  return JSON.stringify(
+    {
+      riskLevel: result.riskLevel,
+      summary: result.summary,
+      counts: {
+        high: countBySeverity(result.findings, "high"),
+        warning: countBySeverity(result.findings, "warning"),
+        info: countBySeverity(result.findings, "info"),
+        suppressed: suppressed.length
+      },
+      findings: result.findings.map(plainFinding),
+      suppressed: suppressed.map((finding) => ({ ...plainFinding(finding), reason: finding.suppressionReason }))
+    },
+    null,
+    2
+  );
+}
+function plainFinding(finding) {
+  return {
+    ruleId: finding.ruleId,
+    severity: finding.severity,
+    title: finding.title,
+    message: finding.message,
+    ...finding.recommendation === void 0 ? {} : { recommendation: finding.recommendation },
+    ...finding.file === void 0 ? {} : { file: finding.file },
+    ...finding.line === void 0 ? {} : { line: finding.line },
+    ...finding.lines === void 0 ? {} : { lines: finding.lines }
+  };
+}
+
 // src/reporting/render-markdown.ts
 var PRISM_COMMENT_MARKER = "<!-- prism-review-comment -->";
 function renderMarkdown(result, options = { includeLowSeverity: false }) {
@@ -15728,6 +15761,61 @@ function showHiddenCharacters(value) {
     const codePoint = char.codePointAt(0) ?? 0;
     return isHiddenCodePoint(codePoint) ? `${backslash}u{${codePoint.toString(16).toUpperCase()}}` : char;
   }).join("");
+}
+
+// src/reporting/render-sarif.ts
+var levels = { high: "error", warning: "warning", info: "note" };
+function renderSarif(result, rules) {
+  const located = (finding) => finding.file !== void 0;
+  const results = [
+    ...result.findings.filter(located).map((finding) => sarifResult(finding)),
+    ...(result.suppressed ?? []).filter(located).map((finding) => sarifResult(finding, finding))
+  ];
+  return JSON.stringify(
+    {
+      $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+      version: "2.1.0",
+      runs: [
+        {
+          tool: {
+            driver: {
+              name: "Prism Review",
+              informationUri: "https://github.com/gabrielolvv/prism-review",
+              rules: rules.map((rule) => ({
+                id: rule.id,
+                name: rule.id,
+                shortDescription: { text: rule.description },
+                helpUri: "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md"
+              }))
+            }
+          },
+          results
+        }
+      ]
+    },
+    null,
+    2
+  );
+}
+function sarifResult(finding, suppressed) {
+  return {
+    ruleId: finding.ruleId,
+    level: levels[finding.severity],
+    message: { text: [finding.message, finding.recommendation].filter(Boolean).join(" ") },
+    locations: [
+      {
+        physicalLocation: {
+          artifactLocation: { uri: fileUri(finding.file ?? "") },
+          ...finding.line === void 0 ? {} : { region: { startLine: finding.line } }
+        }
+      }
+    ],
+    // An inline suppression is SARIF's in-source suppression; code scanning shows it as dismissed.
+    ...suppressed === void 0 ? {} : { suppressions: [{ kind: "inSource", justification: suppressed.suppressionReason }] }
+  };
+}
+function fileUri(path2) {
+  return path2.split("/").map(encodeURIComponent).join("/");
 }
 
 // src/security/limit-patches.ts
@@ -15925,15 +16013,17 @@ function detectStatus(lines) {
 
 // src/cli/main.ts
 var usage = [
-  "Usage: prism-review analyze --diff <path|-> [--config <path>]",
+  "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
   "",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
+  "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
   "",
   "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
   ""
 ].join("\n");
+var formats = ["markdown", "json", "sarif"];
 var UsageError = class extends Error {
 };
 async function main() {
@@ -15960,7 +16050,7 @@ async function main() {
   const config = loadConfig((0, import_node_path.resolve)(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
-  process.stdout.write(`${renderMarkdown(result, config.comment)}
+  process.stdout.write(`${render(result, options.format, config.comment)}
 `);
   const failing = failingFindings(result, config.check.failOn);
   if (failing.length > 0) {
@@ -15968,6 +16058,15 @@ async function main() {
 `);
     process.exitCode = 1;
   }
+}
+function render(result, format, options) {
+  if (format === "json") {
+    return renderJson(result);
+  }
+  if (format === "sarif") {
+    return renderSarif(result, defaultRules);
+  }
+  return renderMarkdown(result, options);
 }
 function parseDiff(diff) {
   if (diff.trim() === "") {
@@ -15998,20 +16097,25 @@ async function readDiff(source) {
   return Buffer.concat(chunks).toString("utf8");
 }
 function parseArgs(args) {
-  const options = { help: false };
+  const options = { format: "markdown", help: false };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--help" || arg === "-h") {
       options.help = true;
       continue;
     }
-    if (arg === "--diff" || arg === "--fixture" || arg === "--config") {
+    if (arg === "--diff" || arg === "--fixture" || arg === "--config" || arg === "--format") {
       const value = args[index + 1];
       if (value === void 0 || value.startsWith("--") && value !== "-") {
         throw new UsageError(`Missing value for ${arg}.`);
       }
       if (arg === "--config") {
         options.config = value;
+      } else if (arg === "--format") {
+        if (!formats.includes(value)) {
+          throw new UsageError(`Unknown format: ${value}. Use markdown, json, or sarif.`);
+        }
+        options.format = value;
       } else {
         options.diff = value;
       }
