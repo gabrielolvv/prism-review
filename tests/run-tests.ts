@@ -109,6 +109,11 @@ import {
   testLockfileSourceRuleReadsOlderAndNewerFormats,
   testLockfileSourceRuleReadsPyprojectSources
 } from "./unit/lockfile-source.test.js";
+import {
+  testRemoteScriptRuleReportsDownloadedScriptsThatRun,
+  testRemoteScriptRuleIgnoresDownloadsThatDoNotRun,
+  testRemoteScriptRuleCanBeDisabled
+} from "./unit/remote-script.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -337,6 +342,9 @@ const tests: Array<[string, Test]> = [
   ["lockfile-source rule reads older and newer formats", testLockfileSourceRuleReadsOlderAndNewerFormats],
   ["lockfile-source rule reads pyproject sources", testLockfileSourceRuleReadsPyprojectSources],
   ["patterns without a slash match at any depth", testPatternsWithoutASlashMatchAtAnyDepth],
+  ["remote-script rule reports downloaded scripts that run", testRemoteScriptRuleReportsDownloadedScriptsThatRun],
+  ["remote-script rule ignores downloads that do not run", testRemoteScriptRuleIgnoresDownloadsThatDoNotRun],
+  ["remote-script rule can be disabled", testRemoteScriptRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

@@ -9,6 +9,7 @@ import { largeDiffRule } from "./large-diff.js";
 import { lockfileSourceRule } from "./lockfile-source.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
+import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
 import { secretInDiffRule } from "./secret-in-diff.js";
 import { sensitiveFilesRule } from "./sensitive-files.js";
@@ -26,6 +27,7 @@ export const defaultRules: Rule[] = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  remoteScriptRule,
   workflowRiskRule,
   destructiveMigrationRule,
   sensitiveFilesRule,
