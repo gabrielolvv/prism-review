@@ -434,6 +434,46 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI prints JSON and SARIF and keeps the gate",
+    () => {
+      const config = writeConfig("formats.yml", "check:\n  failOn: high\n");
+      const json = runCli(["analyze", "--diff", "-", "--config", config, "--format", "json"], riskyDiff);
+      assert.equal(json.status, 1, json.stderr);
+      const parsed = JSON.parse(json.stdout) as { riskLevel: string; findings: Array<{ ruleId: string }> };
+      assert.equal(parsed.riskLevel, "high");
+      assert.ok(parsed.findings.some((finding) => finding.ruleId === "sensitive-files"));
+
+      const sarif = runCli(["analyze", "--diff", "-", "--format", "sarif"], riskyDiff);
+      assert.equal(sarif.status, 0, sarif.stderr);
+      const report = JSON.parse(sarif.stdout) as { version: string; runs: Array<{ results: unknown[] }> };
+      assert.equal(report.version, "2.1.0");
+      assert.ok((report.runs[0]?.results.length ?? 0) > 0);
+
+      const unknown = runCli(["analyze", "--diff", "-", "--format", "xml"], riskyDiff);
+      assert.equal(unknown.status, 1);
+      assert.match(unknown.stderr, /Unknown format: xml/);
+    }
+  ],
+  [
+    "the action writes a SARIF report when sarif-file is set",
+    () => {
+      const workspace = join(workDir, "workspace");
+      const run = runAction(
+        { "INPUT_DRY-RUN": "true", "INPUT_SARIF-FILE": "reports/prism.sarif", GITHUB_WORKSPACE: workspace },
+        pullRequestEvent
+      );
+      assert.equal(run.status, 0, run.stderr);
+      const report = JSON.parse(readFileSync(join(workspace, "reports/prism.sarif"), "utf8")) as {
+        runs: Array<{ results: Array<{ ruleId: string }> }>;
+      };
+      assert.ok(report.runs[0]?.results.some((result) => result.ruleId === "config-change"));
+
+      const escape = runAction({ "INPUT_DRY-RUN": "true", "INPUT_SARIF-FILE": "../outside.sarif", GITHUB_WORKSPACE: workspace }, pullRequestEvent);
+      assert.equal(escape.status, 1);
+      assert.match(escape.stderr, /Invalid sarif-file/);
+    }
+  ],
+  [
     "events other than pull_request are skipped",
     () => {
       const run = runAction({}, { ref: "refs/heads/master" });

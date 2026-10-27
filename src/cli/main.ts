@@ -4,24 +4,33 @@ import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { loadConfig } from "../config/load-config.js";
 import { defaultConfigPath } from "../config/schema.js";
-import { renderMarkdown } from "../reporting/render-markdown.js";
+import type { ReviewResult } from "../analysis/finding.js";
+import { defaultRules } from "../rules/index.js";
+import { renderJson } from "../reporting/render-json.js";
+import { renderMarkdown, type RenderOptions } from "../reporting/render-markdown.js";
+import { renderSarif } from "../reporting/render-sarif.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { parseUnifiedDiff } from "../testing/parse-unified-diff.js";
 
 const usage = [
-  "Usage: prism-review analyze --diff <path|-> [--config <path>]",
+  "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
   "",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
+  "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
   "",
   "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
   ""
 ].join("\n");
 
+const formats = ["markdown", "json", "sarif"] as const;
+type Format = (typeof formats)[number];
+
 type CliOptions = {
   diff?: string;
   config?: string;
+  format: Format;
   help: boolean;
 };
 
@@ -59,13 +68,23 @@ async function main(): Promise<void> {
   const config = loadConfig(resolve(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
   const result = analyzePullRequest(files, config, { configPath });
-  process.stdout.write(`${renderMarkdown(result, config.comment)}\n`);
+  process.stdout.write(`${render(result, options.format, config.comment)}\n`);
 
   const failing = failingFindings(result, config.check.failOn);
   if (failing.length > 0) {
     process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
     process.exitCode = 1;
   }
+}
+
+function render(result: ReviewResult, format: Format, options: RenderOptions): string {
+  if (format === "json") {
+    return renderJson(result);
+  }
+  if (format === "sarif") {
+    return renderSarif(result, defaultRules);
+  }
+  return renderMarkdown(result, options);
 }
 
 // The CLI is meant to gate pushes, so input it cannot review is an error, never an empty
@@ -109,7 +128,7 @@ async function readDiff(source: string): Promise<string> {
 }
 
 function parseArgs(args: string[]): CliOptions {
-  const options: CliOptions = { help: false };
+  const options: CliOptions = { format: "markdown", help: false };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -119,7 +138,7 @@ function parseArgs(args: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "--diff" || arg === "--fixture" || arg === "--config") {
+    if (arg === "--diff" || arg === "--fixture" || arg === "--config" || arg === "--format") {
       const value = args[index + 1];
       if (value === undefined || (value.startsWith("--") && value !== "-")) {
         throw new UsageError(`Missing value for ${arg}.`);
@@ -127,6 +146,11 @@ function parseArgs(args: string[]): CliOptions {
 
       if (arg === "--config") {
         options.config = value;
+      } else if (arg === "--format") {
+        if (!formats.includes(value as Format)) {
+          throw new UsageError(`Unknown format: ${value}. Use markdown, json, or sarif.`);
+        }
+        options.format = value as Format;
       } else {
         options.diff = value;
       }

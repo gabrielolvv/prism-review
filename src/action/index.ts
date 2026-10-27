@@ -9,9 +9,11 @@ import { loadBaseBranchConfig } from "../github/load-base-config.js";
 import { publishPullRequestComment } from "../github/publish-comment.js";
 import { renderAnnotations } from "../reporting/render-annotations.js";
 import { renderMarkdown } from "../reporting/render-markdown.js";
+import { renderSarif } from "../reporting/render-sarif.js";
+import { defaultRules } from "../rules/index.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { readInputs } from "./inputs.js";
-import { writeJobSummary, writeOutputs } from "./report.js";
+import { writeJobSummary, writeOutputs, writeSarif } from "./report.js";
 
 async function run(): Promise<void> {
   const inputs = readInputs();
@@ -57,6 +59,9 @@ async function run(): Promise<void> {
 
   writeOutputs(result);
   writeJobSummary(body);
+  if (inputs.sarifFile !== undefined) {
+    writeSarif(inputs.sarifFile, renderSarif(result, defaultRules));
+  }
 
   if (inputs.dryRun) {
     printUntrusted(body);

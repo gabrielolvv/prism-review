@@ -147,6 +147,10 @@ import {
   testInlineSuppressionIsListedInTheComment,
   testInlineSuppressionSharesTheCommentSizeLimit
 } from "./unit/inline-suppression.test.js";
+import {
+  testRenderJsonKeepsEveryField,
+  testRenderSarifMapsFindingsForCodeScanning
+} from "./unit/output-formats.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -399,6 +403,8 @@ const tests: Array<[string, Test]> = [
   ["inline suppression cannot hide security rules", testInlineSuppressionCannotHideSecurityRules],
   ["inline suppression is listed in the comment", testInlineSuppressionIsListedInTheComment],
   ["inline suppression shares the comment size limit", testInlineSuppressionSharesTheCommentSizeLimit],
+  ["render JSON keeps every field", testRenderJsonKeepsEveryField],
+  ["render SARIF maps findings for code scanning", testRenderSarifMapsFindingsForCodeScanning],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

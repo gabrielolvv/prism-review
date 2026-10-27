@@ -5,6 +5,8 @@ export type ActionInputs = {
   githubToken: string;
   configPath: string;
   dryRun: boolean;
+  // Workspace-relative path to write a SARIF report to, for upload-sarif.
+  sarifFile?: string;
 };
 
 export function readInputs(): ActionInputs {
@@ -13,8 +15,21 @@ export function readInputs(): ActionInputs {
   return {
     githubToken,
     configPath: readConfigPath(),
-    dryRun: parseBooleanInput(getInput("dry-run") || "false")
+    dryRun: parseBooleanInput(getInput("dry-run") || "false"),
+    ...readSarifFile()
   };
+}
+
+function readSarifFile(): { sarifFile?: string } {
+  const sarifFile = getInput("sarif-file");
+  if (!sarifFile) {
+    return {};
+  }
+  if (!isSafeRepositoryPath(sarifFile)) {
+    throw new Error(`Invalid sarif-file "${sarifFile}": sarif-file must be a relative path inside the workspace.`);
+  }
+
+  return { sarifFile: normalizeRepositoryPath(sarifFile) };
 }
 
 function readConfigPath(): string {

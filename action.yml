@@ -13,6 +13,10 @@ inputs:
     description: "Render the review without publishing a pull request comment."
     required: false
     default: "false"
+  sarif-file:
+    description: "Workspace-relative path to also write the review to as SARIF, for github/codeql-action/upload-sarif. Empty by default, which writes nothing."
+    required: false
+    default: ""
 outputs:
   risk-level:
     description: "Overall risk level of the review: low, medium, or high."
