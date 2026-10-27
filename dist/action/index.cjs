@@ -13290,6 +13290,7 @@ var NEVER = INVALID;
 var ruleIds = [
   "incomplete-review",
   "secret-in-diff",
+  "credential-file",
   "hidden-unicode",
   "large-diff",
   "missing-tests",
@@ -13379,6 +13380,9 @@ var prismConfigSchema = external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({}),
     destructiveMigration: external_exports.object({
+      enabled: external_exports.boolean().default(true)
+    }).default({}),
+    credentialFiles: external_exports.object({
       enabled: external_exports.boolean().default(true)
     }).default({})
   }).default({}),
@@ -13588,6 +13592,134 @@ var configChangeRule = {
   }
 };
 
+// src/security/credential-files.ts
+var wholeFileKinds = [
+  ["a private key", /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)(?:_sk)?$|\.ppk$|(?:^|\/)(?:privkey[^/]*|(?:[^/]*[-_])?(?<!pub(?:lic)?[-_])key)\.pem$/i],
+  ["a key store", /\.(?:p12|pfx|jks|keystore|bks)$/i],
+  ["a Terraform state file", /\.tfstate(?:\.backup)?$/i],
+  ["a credentials file", /(?:^|\/)(?:\.git-credentials|\.netrc|_netrc|\.pgpass|\.htpasswd)$|(?:^|\/)\.aws\/credentials$/i],
+  ["a Docker credentials file", /(?:^|\/)\.docker\/config\.json$/i],
+  ["a Kubernetes config file", /(?:^|\/)\.kube\/config$|(?:^|\/)kubeconfig$|\.kubeconfig$/i],
+  ["a cloud service account key", /(?:^|\/)(?:service[-_]?account|client_secret)[^/]*\.json$/i]
+];
+var keyFile = /\.key$/i;
+var environmentFile = /(?:^|\/)(?:\.env(?:\.[^/]+)?|[^/]+\.env)$/i;
+var exampleFile = /(?:^|[./])(?:example|sample|template|tmpl|tpl|dist|defaults?|schema)(?:[./]|$)/i;
+var registryFile = /(?:^|\/)(?:\.npmrc|\.yarnrc(?:\.yml)?|\.pypirc)$/i;
+var testDirectory = /(?:^|\/)(?:tests?|testdata|fixtures|__fixtures__|__tests__|__mocks__|spec)\//i;
+var commentLine = /^\s*[#;]/;
+var assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
+var secretName = /(?:secret|passw(?:or)?d|[_.-]pass|pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
+var publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
+var urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@([^\s:/?#]+)/i;
+var localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
+var registryToken = /(?:_authToken|_auth|_password|npmAuthToken|npmAuthIdent)\s*[=:]\s*(.*)$|^\s*password\s*[=:]\s*(.*)$/i;
+var placeholder = /^(?:|\$\{?[\w:-]*\}?|<[^>]*>|x+|\*+|\.{3}|change[_-]?me|replace[_-]?me|your[\w-]*|placeholder|example|todo|tbd|none|null|true|false|\d)$/i;
+var localDefault = /^(?:password|passw0rd|pass|secret|postgres|mysql|root|admin|guest|dev|development|test|local|default|123456)$/i;
+function credentialFileKind(path2) {
+  if (testDirectory.test(path2)) {
+    return void 0;
+  }
+  if (environmentFile.test(path2)) {
+    return exampleFile.test(path2.slice(path2.lastIndexOf("/") + 1)) ? void 0 : { name: "an environment file", checksLines: true };
+  }
+  if (registryFile.test(path2)) {
+    return { name: "a package manager configuration file", checksLines: true };
+  }
+  if (keyFile.test(path2)) {
+    return { name: "a key file", checksLines: false, textOnly: true };
+  }
+  const name = wholeFileKinds.find(([, pattern]) => pattern.test(path2))?.[0];
+  return name === void 0 ? void 0 : { name, checksLines: false };
+}
+function findCredentialLines(path2, patch) {
+  const check = registryFile.test(path2) ? registrySecret : environmentSecret;
+  return addedLines(patch).filter(({ content }) => !commentLine.test(content) && check(content)).map(({ line }) => line);
+}
+function environmentSecret(content) {
+  const match2 = assignment.exec(content);
+  if (!match2) {
+    return false;
+  }
+  const [, name = "", raw = ""] = match2;
+  const value = cleanValue(raw);
+  const url = urlPassword.exec(value);
+  if (url) {
+    return !isPlaceholder(url[1] ?? "") && !localHost.test(url[2] ?? "");
+  }
+  return secretName.test(name) && !publicName.test(name) && !isPlaceholder(value);
+}
+function registrySecret(content) {
+  const match2 = registryToken.exec(content);
+  return match2 !== null && !isPlaceholder(cleanValue(match2[1] ?? match2[2] ?? ""));
+}
+function isPlaceholder(value) {
+  return placeholder.test(value) || localDefault.test(value);
+}
+function cleanValue(raw) {
+  const value = raw.trim();
+  const quoted = /^(["'])(.*)\1/.exec(value);
+  if (quoted) {
+    return quoted[2] ?? "";
+  }
+  return value.replace(/\s+#.*$/, "");
+}
+
+// src/rules/credential-file.ts
+var exposure = "readable by anyone with access to the repository";
+var recommendation = "Treat the credentials as exposed and rotate them, remove the file from the branch history, and add it to .gitignore. Commit an example file with placeholder values instead, or read the value from an environment variable such as ${NPM_TOKEN}.";
+var credentialFileRule = {
+  id: "credential-file",
+  description: "Flags private keys, Terraform state, and other files that hold credentials, and secrets added to .env and .npmrc files.",
+  seesIgnoredFiles: true,
+  run({ files, config }) {
+    if (!config.rules.credentialFiles.enabled) {
+      return [];
+    }
+    return files.flatMap((file) => {
+      const kind = file.status === "removed" ? void 0 : credentialFileKind(file.path);
+      if (kind === void 0 || kind.textOnly && file.patch === void 0) {
+        return [];
+      }
+      if (!kind.checksLines) {
+        return [
+          {
+            ruleId: "credential-file",
+            title: "Credential file committed",
+            severity: "high",
+            file: file.path,
+            message: `This is ${kind.name}, a kind of file that usually holds credentials, so they would be ${exposure}.`,
+            recommendation
+          }
+        ];
+      }
+      const lines = credentialLines(file);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      const what = kind.name === "an environment file" ? plural ? "secrets" : "a secret" : plural ? "registry tokens" : "a registry token";
+      return [
+        {
+          ruleId: "credential-file",
+          title: "Credential added to a configuration file",
+          severity: "high",
+          file: file.path,
+          line: Math.min(...lines),
+          message: `${text} ${plural ? "add" : "adds"} ${what} to ${kind.name}, so ${plural ? "they" : "it"} would be ${exposure}.`,
+          recommendation
+        }
+      ];
+    });
+  }
+};
+function credentialLines(file) {
+  if (file.credentialLines !== void 0) {
+    return file.credentialLines;
+  }
+  return file.patch === void 0 ? [] : findCredentialLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -13654,7 +13786,7 @@ var migrationFile = /\.(?:sql|rb|py|[cm]?[jt]s|php|cs|go|java|kt|exs?)$/i;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine2 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
   id: "destructive-migration",
@@ -13710,7 +13842,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine2.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -14458,6 +14590,7 @@ function describeSkipped(lines) {
 var defaultRules = [
   incompleteReviewRule,
   secretInDiffRule,
+  credentialFileRule,
   hiddenUnicodeRule,
   largeDiffRule,
   missingTestsRule,
@@ -14903,7 +15036,8 @@ function prepareChangedFiles(files, config) {
   const allowlist = redaction2.allowlist.map((source) => new RegExp(source));
   const scanned = detectSecrets(files, allowlist).map((file) => ({
     ...file,
-    hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch)
+    hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch),
+    ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {}
   }));
   const limited = limitPatchSizes(scanned, maxPatchBytes);
   return redactChangedFiles(limited, { allowlist });
