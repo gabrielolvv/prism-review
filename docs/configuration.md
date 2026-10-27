@@ -238,10 +238,10 @@ These are reported whenever they are added, changed, or renamed:
 
 Environment and package manager files are often committed on purpose, so they are only reported, with line numbers, when an added line holds a credential:
 
-- In `.env`, `.env.production`, or `prod.env`, a variable whose name ends with a secret word, such as `JWT_SECRET`, `DB_PASSWORD`, `GITHUB_TOKEN`, `STRIPE_SECRET_KEY`, or `SECRET_KEY_BASE`, or any URL with a password in it, such as `postgres://app:hunter2@db/app`. Names that only contain the word, such as `MAX_TOKENS` or `PASSWORD_MIN_LENGTH`, do not count.
+- In `.env`, `.env.production`, or `prod.env`, a variable whose name ends with a secret word, such as `JWT_SECRET`, `DB_PASSWORD`, `GITHUB_TOKEN`, `STRIPE_SECRET_KEY`, or `SECRET_KEY_BASE`, or any URL with a password in it, such as `postgres://app:hunter2@db/app`. Names that only contain the word, such as `MAX_TOKENS` or `PASSWORD_MIN_LENGTH`, do not count, and neither does `PWD`, the working directory.
 - In `.npmrc`, `.yarnrc.yml`, or `.pypirc`, an `_authToken`, `_auth`, `_password`, `npmAuthToken`, or `password` value.
 
-Values are read before redaction. These are not reported: empty values, references such as `${NPM_TOKEN}`, placeholders such as `<your password>` or `changeme`, local development defaults such as `postgres` or `password`, URLs pointing at `localhost`, variables with a public prefix (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `EXPO_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_`), and comment lines.
+Values are read before redaction. These are not reported: empty values, references such as `${NPM_TOKEN}`, placeholders such as `<your password>` or `changeme`, local development defaults such as `postgres` or `password`, file paths such as `GOOGLE_APPLICATION_CREDENTIALS=./secrets/service-account.json`, URLs pointing at `localhost`, variables with a public prefix (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `EXPO_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_`), and comment lines.
 
 Example files (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `example.env`), public keys (`id_ed25519.pub`, `public-key.pem`), certificates, deleted files, and files under `test/`, `tests/`, `testdata/`, `fixtures/`, `__tests__/`, `__mocks__/`, or `spec/` are not reported. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
 
