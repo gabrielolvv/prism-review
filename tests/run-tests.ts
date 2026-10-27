@@ -105,7 +105,8 @@ import {
   testLockfileSourceRuleUsesAllowedSources,
   testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction,
   testLockfileSourceRuleCanBeDisabled,
-  testLockfileSourceRuleSeesIgnoredLockfiles
+  testLockfileSourceRuleSeesIgnoredLockfiles,
+  testLockfileSourceRuleReadsOlderAndNewerFormats
 } from "./unit/lockfile-source.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
@@ -332,6 +333,7 @@ const tests: Array<[string, Test]> = [
   ["lockfile-source rule reads patches before the size limit and redaction", testLockfileSourceRuleReadsPatchesBeforeTheSizeLimitAndRedaction],
   ["lockfile-source rule can be disabled", testLockfileSourceRuleCanBeDisabled],
   ["lockfile-source rule sees ignored lockfiles", testLockfileSourceRuleSeesIgnoredLockfiles],
+  ["lockfile-source rule reads older and newer formats", testLockfileSourceRuleReadsOlderAndNewerFormats],
   ["patterns without a slash match at any depth", testPatternsWithoutASlashMatchAtAnyDepth],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
