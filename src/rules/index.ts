@@ -1,5 +1,6 @@
 import { blanketSuppressionRule } from "./blanket-suppression.js";
 import { configChangeRule } from "./config-change.js";
+import { credentialFileRule } from "./credential-file.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { hiddenUnicodeRule } from "./hidden-unicode.js";
@@ -17,6 +18,7 @@ import type { Rule } from "../analysis/rule.js";
 export const defaultRules: Rule[] = [
   incompleteReviewRule,
   secretInDiffRule,
+  credentialFileRule,
   hiddenUnicodeRule,
   largeDiffRule,
   missingTestsRule,

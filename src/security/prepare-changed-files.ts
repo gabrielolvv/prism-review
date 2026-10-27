@@ -1,6 +1,7 @@
 import type { ChangedFile } from "../analysis/changed-file.js";
 import type { PrismConfig } from "../config/schema.js";
 import { findHiddenLines } from "../analysis/hidden-characters.js";
+import { credentialFileKind, findCredentialLines } from "./credential-files.js";
 import { detectSecrets } from "./detect-secrets.js";
 import { limitPatchSizes } from "./limit-patches.js";
 import { redactChangedFiles } from "./redact-secrets.js";
@@ -15,7 +16,10 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
   // Hidden characters are found the same way, so a large file cannot hide a Trojan Source edit.
   const scanned = detectSecrets(files, allowlist).map((file) => ({
     ...file,
-    hiddenLines: file.patch === undefined ? [] : findHiddenLines(file.patch)
+    hiddenLines: file.patch === undefined ? [] : findHiddenLines(file.patch),
+    ...(file.patch !== undefined && credentialFileKind(file.path)?.checksLines
+      ? { credentialLines: findCredentialLines(file.path, file.patch) }
+      : {})
   }));
   const limited = limitPatchSizes(scanned, maxPatchBytes);
   return redactChangedFiles(limited, { allowlist });

@@ -3,6 +3,7 @@
 export const ruleIds: readonly string[] = [
   "incomplete-review",
   "secret-in-diff",
+  "credential-file",
   "hidden-unicode",
   "large-diff",
   "missing-tests",

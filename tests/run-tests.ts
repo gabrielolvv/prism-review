@@ -88,6 +88,15 @@ import {
   testDestructiveMigrationRuleReadsMySqlDropsAndCodeAfterARollback,
   testDestructiveMigrationRuleSkipsSqlComments
 } from "./unit/destructive-migration.test.js";
+import {
+  testCredentialFileRuleReportsFilesThatHoldCredentials,
+  testCredentialFileRuleReportsSecretsInEnvironmentFiles,
+  testCredentialFileRuleReportsPackageManagerTokens,
+  testCredentialFileRuleIgnoresExamplesTestsAndPublicFiles,
+  testCredentialFileRuleSkipsDeletionsAndSeesIgnoredPaths,
+  testCredentialFileRuleReadsValuesBeforeRedaction,
+  testCredentialFileRuleCanBeDisabled
+} from "./unit/credential-file.test.js";
 import { testConfigurationDocsNameEveryRule, testReadmeListsEveryRule } from "./unit/docs.test.js";
 import {
   testRiskyApiRuleCanBeDisabled,
@@ -297,6 +306,13 @@ const tests: Array<[string, Test]> = [
   ["destructive-migration rule can be disabled", testDestructiveMigrationRuleCanBeDisabled],
   ["destructive-migration rule reads MySQL drops and code after a rollback", testDestructiveMigrationRuleReadsMySqlDropsAndCodeAfterARollback],
   ["destructive-migration rule skips SQL comments", testDestructiveMigrationRuleSkipsSqlComments],
+  ["credential-file rule reports files that hold credentials", testCredentialFileRuleReportsFilesThatHoldCredentials],
+  ["credential-file rule reports secrets in environment files", testCredentialFileRuleReportsSecretsInEnvironmentFiles],
+  ["credential-file rule reports package manager tokens", testCredentialFileRuleReportsPackageManagerTokens],
+  ["credential-file rule ignores examples, tests, and public files", testCredentialFileRuleIgnoresExamplesTestsAndPublicFiles],
+  ["credential-file rule skips deletions and sees ignored paths", testCredentialFileRuleSkipsDeletionsAndSeesIgnoredPaths],
+  ["credential-file rule reads values before redaction", testCredentialFileRuleReadsValuesBeforeRedaction],
+  ["credential-file rule can be disabled", testCredentialFileRuleCanBeDisabled],
   ["README lists every rule", testReadmeListsEveryRule],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],
