@@ -14071,14 +14071,34 @@ var firstUrl = (pattern) => (content) => {
   return url === void 0 ? [] : [{ url }];
 };
 var readers = [
-  // npm's `"resolved": "..."`, yarn v1's `resolved "..."`, yarn berry's `resolution: "pkg@https://..."`,
-  // and pnpm's `tarball: ...` and `repo: ...`.
+  // npm's `"resolved": "..."` (`"version"` in lockfile v1), yarn v1's `resolved "..."`, yarn berry's
+  // `resolution: "pkg@https://..."`, and pnpm's `tarball: ...` and `repo: ...`.
   {
     files: /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml)$/i,
-    urls: firstUrl(/\b(?:resolved|resolution|tarball|repo)["']?\s*[:\s]\s*\{?\s*["']?(?:@?[^"'\s@]+@)?((?:git\+)?[a-z][\w+.-]*:\/\/[^\s"'#,}]+)/i)
+    urls: firstUrl(/\b(?:resolved|resolution|tarball|repo|version)["']?\s*[:\s]\s*\{?\s*["']?(?:@?[^"'\s@]+@)?((?:git\+)?[a-z][\w+.-]*:\/\/[^\s"'#,}]+)/i)
   },
   { files: /(?:^|\/)poetry\.lock$/i, urls: firstUrl(quotedUrl("url")) },
-  { files: /(?:^|\/)Pipfile\.lock$/i, urls: firstUrl(quotedUrl("url")) },
+  { files: /(?:^|\/)Pipfile(?:\.lock)?$/i, urls: firstUrl(quotedUrl("url")) },
+  {
+    // `source = { registry = "..." }`, `sdist = { url = "..." }`, and `source = { git = "..." }`.
+    files: /(?:^|\/)uv\.lock$/i,
+    urls: (content) => [...content.matchAll(/\b(registry|url|git)\s*=\s*"([^"]+)"/gi)].map(([, key, url]) => ({
+      url: url ?? "",
+      git: key?.toLowerCase() === "git"
+    }))
+  },
+  {
+    // `old => new version` replaces a module; a local path or the same module path is routine.
+    files: /(?:^|\/)go\.mod$/i,
+    urls: (content) => {
+      const replace = /^\s*(?:replace\s+)?(\S+)(?:\s+v\S+)?\s*=>\s*(\S+)/.exec(content);
+      const [, from = "", to = ""] = replace ?? [];
+      if (replace === null || from.startsWith("//") || /^[./]/.test(to) || to === from) {
+        return [];
+      }
+      return [{ kind: "replaced", module: /^[\w.~+/-]{1,200}$/.test(to) ? to : "another module" }];
+    }
+  },
   { files: /(?:^|\/)Cargo\.lock$/i, urls: firstUrl(/^\s*source\s*=\s*"((?:registry\+|sparse\+|git\+)?[a-z][\w+.-]*:\/\/[^"]+)"/i) },
   { files: /(?:^|\/)Gemfile\.lock$/i, urls: firstUrl(/^\s*remote:\s*([a-z][\w+.-]*:\/\/\S+)/i) },
   { files: /(?:^|\/)\.npmrc$/i, urls: firstUrl(/^\s*(?:@[\w.-]+:)?registry\s*=\s*["']?([a-z][\w+.-]*:\/\/[^\s"']+)/i) },
@@ -14086,6 +14106,9 @@ var readers = [
   {
     files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$|(?:^|\/)pip\.conf$/i,
     urls: (content) => {
+      if (/^\s*(?:--)?trusted-host\b/i.test(content)) {
+        return [{ kind: "unverified" }];
+      }
       const index = /^\s*(-i|--index-url|index-url|--extra-index-url|extra-index-url|-f|--find-links)(?:\s*=\s*|\s+)(\S+)/i.exec(content);
       if (index) {
         return [{ url: index[2] ?? "", extraIndex: /extra/i.test(index[1] ?? "") }];
@@ -14119,8 +14142,8 @@ function findLockfileSources(path2, patch, allowedSources) {
     if (!added) {
       continue;
     }
-    for (const { url, extraIndex } of reader.urls(content)) {
-      const source = extraIndex ? { kind: "extra-index" } : classify(url, allowed, section === "GIT");
+    for (const entry of reader.urls(content)) {
+      const source = "kind" in entry ? entry : entry.extraIndex ? { kind: "extra-index" } : classify(entry.url, allowed, section === "GIT" || entry.git === true);
       if (source !== void 0) {
         found.push({ line, ...source });
       }
@@ -14179,13 +14202,16 @@ var lockfileSourceRule = {
       }
       const { text, plural } = describeLines(sources.map((source) => source.line));
       const hosts = [...new Set(sources.flatMap((source) => source.host ?? []))];
+      const modules = [...new Set(sources.flatMap((source) => source.module ?? []))];
       const parts = [
         hosts.length > 0 ? `downloaded from ${hosts.length > 1 ? "hosts that are not allowed registries" : "a host that is not an allowed registry"} (${hosts.slice(0, 3).join(", ")}${hosts.length > 3 ? ", ..." : ""})` : "",
         sources.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
+        sources.some((source) => source.kind === "unverified") ? "downloaded without TLS verification" : "",
         sources.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
+        modules.length > 0 ? `replaced with ${modules.length > 1 ? "different modules" : "a different module"} (${modules.slice(0, 3).join(", ")}${modules.length > 3 ? ", ..." : ""})` : "",
         sources.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
       ].filter(Boolean);
-      const high = sources.some((source) => source.kind === "unlisted" || source.kind === "insecure");
+      const high = sources.some((source) => ["unlisted", "insecure", "unverified"].includes(source.kind));
       return [
         {
           ruleId: "lockfile-source",
@@ -14194,7 +14220,7 @@ var lockfileSourceRule = {
           file: file.path,
           line: Math.min(...sources.map((source) => source.line)),
           message: `${text} ${plural ? "add dependencies" : "adds a dependency"} ${joinParts(parts)}.`,
-          recommendation: "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, and prefer --index-url over --extra-index-url."
+          recommendation: "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, prefer --index-url over --extra-index-url, and keep TLS verification on."
         }
       ];
     });
