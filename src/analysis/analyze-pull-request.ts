@@ -22,6 +22,10 @@ export function analyzePullRequest(
   // Compiled once; `dot` lets `dist/**` cover `dist/.cache/` and `**/*.yml` cover `.github/`.
   const ignored = config.ignorePaths.map((glob) => new Minimatch(glob, { dot: true }));
   const isIgnored = (path: string) => ignored.some((matcher) => matcher.match(path));
+  const pathOverrides = config.overrides.map((override) => ({
+    matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
+    severity: override.severity
+  }));
   // A file moved into an ignored directory is still reviewed, so a rename cannot hide a change.
   const reviewed = files.filter(
     (file) => !(isIgnored(file.path) && (file.previousPath === undefined || isIgnored(file.previousPath)))
@@ -30,7 +34,7 @@ export function analyzePullRequest(
     .flatMap((rule) =>
       rule.run({ files: rule.seesIgnoredFiles ? files : reviewed, config, configPath, expectedFileCount })
     )
-    .flatMap((finding) => applySeverityOverride(finding, config))
+    .flatMap((finding) => applySeverityOverride(finding, config, pathOverrides))
     .sort((left, right) => compareSeverity(left.severity, right.severity));
   // The rules ignorePaths cannot hide cannot be suppressed inline either.
   const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
@@ -44,8 +48,19 @@ export function analyzePullRequest(
   };
 }
 
-function applySeverityOverride(finding: Finding, config: PrismConfig): Finding[] {
-  const override = config.severity[finding.ruleId];
+type PathOverride = { matchers: Minimatch[]; severity: PrismConfig["severity"] };
+
+// The global `severity` first, then each `overrides` entry whose paths match the finding's file.
+function applySeverityOverride(finding: Finding, config: PrismConfig, pathOverrides: PathOverride[]): Finding[] {
+  let override = config.severity[finding.ruleId];
+  const file = finding.file;
+  if (file !== undefined) {
+    for (const entry of pathOverrides) {
+      if (entry.severity[finding.ruleId] !== undefined && entry.matchers.some((matcher) => matcher.match(file))) {
+        override = entry.severity[finding.ruleId];
+      }
+    }
+  }
   if (override === undefined) {
     return [finding];
   }
