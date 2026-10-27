@@ -47,7 +47,8 @@ export function testCredentialFileRuleReportsSecretsInEnvironmentFiles(): void {
       "VITE_API_URL=https://api.example.com",
       "DATABASE_URL=postgres://app:hunter2@db.internal/app",
       "export STRIPE_SECRET_KEY=\"sk_live_abc\"",
-      "SMTP_PASSWORD=correct-horse  # rotated monthly"
+      "SMTP_PASSWORD=correct-horse  # rotated monthly",
+      "SESSION_SECRET=/Xk9aB3dEfQ+r2T=="
     ]),
     file("services/api/.env.production", ["JWT_SECRET: abc123"]),
     file("deploy/prod.env", ["REDIS_URL=redis://default:s3cret@cache:6379"])
@@ -63,7 +64,7 @@ export function testCredentialFileRuleReportsSecretsInEnvironmentFiles(): void {
   );
   assert.equal(
     findings[0]?.message,
-    "Lines 4, 5, 6 add secrets to an environment file, so they would be readable by anyone with access to the repository."
+    "Lines 4, 5, 6, 7 add secrets to an environment file, so they would be readable by anyone with access to the repository."
   );
   assert.equal(
     findings[1]?.message,
@@ -118,6 +119,10 @@ export function testCredentialFileRuleIgnoresExamplesTestsAndPublicFiles(): void
       "TOKEN_TTL_SECONDS=3600",
       "PASSWORD_MIN_LENGTH=12",
       "POSTGRES_PASSWORD=postgres",
+      "PWD=/app",
+      "GOOGLE_APPLICATION_CREDENTIALS=./secrets/service-account.json",
+      "SSL_PRIVATE_KEY=/etc/ssl/private/server.key",
+      "LOCAL_DB_URL=postgres://u:p4ss@[::1]:5432/db",
       "COMPOSE_DB_URL=postgres://app:postgres@db:5432/app",
       "# PASSWORD=hunter2"
     ]),
