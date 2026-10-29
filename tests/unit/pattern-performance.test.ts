@@ -40,6 +40,7 @@ const cases: Array<[path: string, prefix: string, repeated: string, context?: st
   ["App.csproj", "<PackageReference ", "Include=\"a\" "],
   ["composer.json", '"', "a/"],
   [".github/workflows/a.yml", "permissions: {", "a: write, "],
+  ["k8s/role.yaml", "verbs: [", "a, ", "kind: ClusterRole"],
   ["infra/main.tf", "", 'Action = ["'],
   ["infra/main.tf", "min_tls_version = \"", "TLS"],
   ["policy.json", "", '"Action": ['],

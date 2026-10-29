@@ -17,6 +17,7 @@ import { oversizedPatchRule } from "./oversized-patch.js";
 import { privilegedContainerRule } from "./privileged-container.js";
 import { dockerfileRiskRule } from "./dockerfile-risk.js";
 import { insecureInfrastructureRule } from "./insecure-infrastructure.js";
+import { kubernetesRbacRule } from "./kubernetes-rbac.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -48,6 +49,7 @@ export const defaultRules: Rule[] = [
   dockerfileRiskRule,
   publicExposureRule,
   insecureInfrastructureRule,
+  kubernetesRbacRule,
   sensitiveFilesRule,
   configChangeRule,
   reviewControlChangeRule,
