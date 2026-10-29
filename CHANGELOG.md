@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.55.0 - 2026-10-29
+
+### Added
+
+- `secret-logging` rule: warns about log and console calls that write a value named like a password, token, API key, or other secret, such as `logger.info(user.password)`, `` console.log(`Bearer ${token}`) ``, or `log.debug(f"token={token}")`, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Text inside quotes and names that describe a secret, such as `passwordLength` or `password.length`, are not reported. The values are found before redaction, which would otherwise hide them. On about 43,000 files of library code, it reports 15 files, such as Authlib's debug logs of issued OAuth tokens and Tomcat's command-line tool that prints a credential.
+
 ## 0.54.0 - 2026-10-29
 
 ### Added
