@@ -5,6 +5,7 @@ export const ruleIds: readonly string[] = [
   "secret-in-diff",
   "credential-file",
   "hardcoded-jwt-secret",
+  "secret-logging",
   "disabled-security-check",
   "hidden-unicode",
   "large-diff",

@@ -3,6 +3,7 @@ import { configChangeRule } from "./config-change.js";
 import { reviewControlChangeRule } from "./review-control-change.js";
 import { credentialFileRule } from "./credential-file.js";
 import { hardcodedJwtSecretRule } from "./hardcoded-jwt-secret.js";
+import { secretLoggingRule } from "./secret-logging.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -42,6 +43,7 @@ export const defaultRules: Rule[] = [
   secretInDiffRule,
   credentialFileRule,
   hardcodedJwtSecretRule,
+  secretLoggingRule,
   disabledSecurityCheckRule,
   hiddenUnicodeRule,
   largeDiffRule,
