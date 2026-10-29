@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `insecure-web-config` rule. It reports CORS that allows every origin, or reflects the request's origin, together with credentials, in Express, raw headers, Django, Flask-CORS, Spring, and ASP.NET Core, as a high-risk finding, and warns about cookies with HttpOnly or Secure turned off and about debug modes in production: Flask `app.run(debug=True)`, Django `DEBUG = True` outside development settings, and Rails `consider_all_requests_local` in production. `rules.insecureWebConfig.enabled` turns it off.
+
 ## 0.39.1 - 2026-10-29
 
 ### Documentation
