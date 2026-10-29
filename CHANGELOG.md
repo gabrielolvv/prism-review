@@ -15,6 +15,10 @@ All notable changes to Prism Review are documented in this file.
 - The workflows in the README and `examples/basic` grant `pull-requests: write` to the review job instead of the whole workflow, so Prism Review's own `workflow-risk` rule no longer warns about them.
 - The bundles target Node.js 22, and the CLI bundle starts with `#!/usr/bin/env node` so npm can run it.
 
+### Fixed
+
+- The dependency changes table and the dependency rules read `package.json` entries only inside `dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`, `overrides`, and `resolutions`, as far as the diff shows the enclosing object. `repository.url`, `homepage`, `bugs`, `engines`, and settings such as `bundlesize[].threshold` were listed as dependencies. Prism Review's own review of this release found it.
+
 ## 0.43.1 - 2026-10-29
 
 ### Added
