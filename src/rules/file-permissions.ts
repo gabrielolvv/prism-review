@@ -82,6 +82,10 @@ function kindsIn(content: string): Kind[] {
   }
   for (const pattern of [shellUmask, umaskCall]) {
     for (const match of content.matchAll(pattern)) {
+      // `old = os.umask(0)` reads the current umask, to restore it right after.
+      if (pattern === umaskCall && /(?:=|return)\s*$/.test(content.slice(0, match.index).replace(/[\w.]+$/, ""))) {
+        continue;
+      }
       const digits = (match[1] ?? "").replace(/^0o/, "");
       // The last digit is what others may not do; without its write bit, they can write.
       const others = Number(digits.at(-1) ?? "0");

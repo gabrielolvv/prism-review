@@ -3,6 +3,10 @@ import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
 const effect = "characters that are invisible or reorder text";
+// Translations use direction marks and zero-width spaces on purpose, for right-to-left scripts and
+// for languages such as Khmer that write words without spaces. Tag characters never belong there.
+const translationCatalog = /\.(?:po|pot|xlf|xliff|strings|stringsdict|arb)$/i;
+const tagLabel = "Unicode tag characters";
 
 export const hiddenUnicodeRule: Rule = {
   id: "hidden-unicode",
@@ -16,10 +20,10 @@ export const hiddenUnicodeRule: Rule = {
     return files.flatMap((file) => {
       const inPath = findHiddenCharacters(file.path);
       // Prepared files carry the scan of their full patch; others are scanned here.
-      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).map((found) => ({
-        line: found.line,
-        found
-      }));
+      const translation = translationCatalog.test(file.path);
+      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? ""))
+        .filter((found) => !translation || found.labels.includes(tagLabel))
+        .map((found) => ({ line: found.line, found }));
 
       if (inPath.labels.length === 0 && inLines.length === 0) {
         return [];

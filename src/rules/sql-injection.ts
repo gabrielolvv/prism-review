@@ -101,7 +101,7 @@ function findBuiltSql(patch: string, patterns: RegExp[]): number[] {
       checked !== undefined &&
       checked.argument.trim() !== "" &&
       patterns.some((pattern) => pattern.test(checked.argument)) &&
-      (sqlKeyword.test(checked.argument) || (fragmentCall.test(checked.name) && /#\{/.test(checked.argument)))
+      (sqlKeyword.test(checked.argument) || (fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument)))
     ) {
       found.push(line);
     }
