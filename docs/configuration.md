@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -90,6 +90,8 @@ rules:
   weakCrypto:
     enabled: true
   untrustedInput:
+    enabled: true
+  xmlExternalEntities:
     enabled: true
   workflowRisk:
     enabled: true
@@ -420,6 +422,25 @@ MD5 and SHA-1 are fast, so a leaked hash of a password is quickly guessed. The b
 - MD5, SHA-1, and the random generators are only reported on a line that names something secret: a word such as `password`, `passphrase`, `secret`, `token`, `nonce`, `salt`, `otp`, `apikey`, or `csrf`, or `api key`, `session id`, `reset code`, or `verification code`. Names are split on `_` and camelCase, so `resetToken` counts and `footprint`, `tokens`, and `tokenizer` do not. Checksums, ETags, cache keys, and jitter are not reported.
 - Minified bundles (`*.min.js`) and lines longer than 500 characters are skipped, since a whole library on one line puts a random call and a word such as `token` side by side by chance.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
+## XML External Entities
+
+### `rules.xmlExternalEntities.enabled`
+
+The `xml-external-entities` rule reads added lines in source files and reports one warning per file for settings that turn on document type definitions (DTDs) or external entities in an XML parser:
+
+| Parser | Reported | Safe |
+| --- | --- | --- |
+| Python lxml and SAX | `XMLParser(resolve_entities=True)`, `load_dtd=True`, `no_network=False`, `setFeature(feature_external_ges, True)` | `resolve_entities=False`, `defusedxml` |
+| Java | `setFeature(".../disallow-doctype-decl", false)`, `setFeature(".../external-general-entities", true)`, `.../load-external-dtd` set to `true`, `setExpandEntityReferences(true)`, `XMLInputFactory.SUPPORT_DTD` or `IS_SUPPORTING_EXTERNAL_ENTITIES` set to `true`, `XMLConstants.ACCESS_EXTERNAL_DTD` set to `"all"` | `disallow-doctype-decl` set to `true` |
+| PHP | `libxml_disable_entity_loader(false)`, the `NOENT` and `DTDLOAD` libxml flags, `$doc->substituteEntities = true`, `$doc->resolveExternals = true` | the default flags |
+| .NET | `DtdProcessing = DtdProcessing.Parse`, `ProhibitDtd = false`, `XmlResolver = new XmlUrlResolver()` | `DtdProcessing.Prohibit`, `XmlResolver = null` |
+| Node.js libxmljs | `{ noent: true }`, `{ dtdload: true }` | the defaults |
+| Ruby Nokogiri and libxml-ruby | `config.noent`, `config.dtdload`, `ParseOptions::NOENT`, `ParseOptions::DTDLOAD` | `config.strict.nonet` |
+
+With these settings, a document that declares an entity such as `<!ENTITY x SYSTEM "file:///etc/passwd">` makes the parser read a local file or request a URL from the server (XXE). The rule reports the setting, not whether the XML comes from outside, so turn it off for trusted documents with `severity` or `overrides`.
+
+- Comment lines, documentation, including `PKG-INFO` and README or changelog files without an extension, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## SQL Injection
 
@@ -778,7 +799,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
