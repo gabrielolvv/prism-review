@@ -38,10 +38,13 @@ rules:
       - "**/*.test.*"
       - "**/*.spec.*"
       - "**/__tests__/**"
+      - "**/test/**"
+      - "**/tests/**"
+      - "**/spec/**"
       - "**/test_*.py"
       - "**/*_test.py"
+      - "**/tests.py"
       - "**/*_test.go"
-      - "**/tests/**/*.rs"
       - "**/*_spec.rb"
       - "**/*_test.rb"
       - "**/src/test/**"
@@ -162,7 +165,7 @@ The `large-diff` rule reports a warning when a pull request changes more than `m
 
 ### `rules.missingTests.sourceGlobs` and `rules.missingTests.testGlobs`
 
-The `missing-tests` rule reports a warning when a file matched by `sourceGlobs` changed and no file matched by `testGlobs` did. `sourceGlobs` defaults to `src/**/*.{ts,tsx,js,jsx}`; add globs for the other source directories and languages of your repository, such as `app/**/*.py`. The default `testGlobs` cover the usual test file names of the languages Prism Review reads, shown in the example above. Other rules use `testGlobs` too, to skip test files. Files matched by `ignorePaths` are not counted.
+The `missing-tests` rule reports a warning when a file matched by `sourceGlobs` changed and no file matched by `testGlobs` did. `sourceGlobs` defaults to `src/**/*.{ts,tsx,js,jsx}`; add globs for the other source directories and languages of your repository, such as `app/**/*.py`. The default `testGlobs` cover the usual test file names of the languages Prism Review reads, and the `test/`, `tests/`, and `spec/` directories, shown in the example above. Other rules use `testGlobs` too, to skip test files. Files matched by `ignorePaths` are not counted.
 
 ### `rules.missingTests.enabled`
 
@@ -464,6 +467,8 @@ It also reports SQL built into a variable named like `sql`, `query`, `stmt`, or 
 
 To keep text that only mentions SQL words out, the string has to look like SQL: `SELECT ... FROM`, `INSERT INTO`, `UPDATE ... SET`, `DELETE FROM`, `WHERE column =`, `ORDER BY`, `GROUP BY`, or `VALUES (`. ActiveRecord fragments such as `where("email = '#{email}'")` count without one, when the interpolated string is the first argument; in `select_all(sql, "#{name} Load")`, the second argument only names the query in the log. GraphQL queries and messages such as `` `email from ${sender}` `` are not reported, and neither are `exec` calls, which usually start a process and are covered by `risky-api`.
 
+A template literal, Ruby string, or Python `%` whose every inserted value goes through the database's quoting, such as `quote_name(...)`, `quote_table_name(...)`, `this.quoteTable(...)`, `escapeId(...)`, or `escape(...)`, or is a variable named like `quotedTable`, is not reported. `%`, `+`, and `.format` inside a string, as in the placeholder template `"%(field)s = VALUES(%(field)s)"`, do not count as building it.
+
 The finding is a warning, because the inserted value may be a constant or already escaped. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## Remote Scripts
@@ -508,7 +513,7 @@ Workflow files are checked even when `ignorePaths` matches them, because a patte
 
 ### `rules.destructiveMigration.enabled`
 
-The `destructive-migration` rule checks added lines in database migrations: files under a directory whose name contains `migrat` (`migrations/`, Rails' `db/migrate/`, Flyway's `db/migration/`) or under `alembic/`, and SQL files named like migrations (`V1__init.sql`, `001_users.up.sql`). It reads SQL, including SQL in strings, and the schema calls of Rails, Django, Alembic, Knex, Sequelize, TypeORM, Laravel, Entity Framework Core, and Ecto.
+The `destructive-migration` rule checks added lines in database migrations: files under a directory whose name contains `migrat` (`migrations/`, Rails' `db/migrate/`, Flyway's `db/migration/`) or under `alembic/`, and SQL files named like migrations (`V1__init.sql`, `001_users.up.sql`). It reads SQL, including SQL in strings, and the schema calls of Rails, Django, Alembic, Knex, Sequelize, TypeORM, Laravel, Entity Framework Core, and Ecto. Code files count when they are named the way migration tools name them, starting with a number or timestamp (`0002_remove_name.py`, `20261020_drop_legacy.rb`, `V2__drop.java`), or are in Alembic's `versions/` directory, so the code of a migration framework, such as Django's `django/db/migrations/autodetector.py`, is not read as a migration.
 
 | Reported | Severity | Examples |
 | --- | --- | --- |
@@ -520,7 +525,7 @@ The `destructive-migration` rule checks added lines in database migrations: file
 
 Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
 
-Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. A function or method defined after a rollback, at the same indentation or less, is not part of it. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, `--` and `/* */` comments in SQL files, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
+Rollbacks are expected to undo what the migration created, so they are skipped: `down` and `downgrade` methods and functions, `-- +goose Down` and `-- migrate:down` sections, and rollback files such as `001_users.down.sql`, Diesel's `down.sql`, and Flyway's `U1__init.sql`. A function or method defined after a rollback, at the same indentation or less, is not part of it. When a hunk starts inside a method, the function name git shows after `@@` is used to tell which section it is in. Comment lines, `--` and `/* */` comments in SQL files, lines that define a class or method or raise an error, such as Django's `class RemoveField(...)` or `raise ActiveRecord::IrreversibleMigration, "..."`, Ruby symbols such as `:remove_column`, test files matched by `rules.missingTests.testGlobs`, dumps such as `db/dump.sql`, and documentation are not checked. Safe changes such as `ALTER COLUMN ... SET DEFAULT`, `DROP INDEX`, `remove_index`, `change_column_null`, and `DELETE ... WHERE` are not reported.
 
 ## Privileged Containers
 
