@@ -56,7 +56,14 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `dockerfile-risk` rule for unpinned base images, unchecked remote `ADD`, secrets in `ENV` or `ARG`, and a final `USER root` (0.34.0).
 - `insecure-infrastructure` rule for IAM policies that allow every action, and encryption, TLS 1.2, audit logging, or IMDSv2 turned off in Terraform and CloudFormation (0.35.0).
 - Workflow permissions: write scopes granted to every job at the top of a workflow, and new workflows that set no permissions (0.36.0).
-- `sensitive-files` keeps high for configured paths and warns for files that only a word in their path marks sensitive, leaving out documentation, tests, and fixtures.
+- `sensitive-files` keeps high for configured paths and warns for files that only a word in their path marks sensitive, leaving out documentation, tests, and fixtures (0.37.0).
+- `kubernetes-rbac` rule for bindings to cluster-admin, roles granted to everyone, wildcard verbs and resources, and the escalate, bind, and impersonate verbs.
+
+## Near Term
+
+### Report world-writable and setuid file permissions
+
+`chmod 777`, `chmod -R o+w`, and `chmod u+s` in scripts, Dockerfiles, and workflows let any process change a file, or run it with its owner's rights. Reporting those modes, and `umask 000`, would catch a common shortcut that turns a small bug into a privilege escalation.
 
 ## Later
 

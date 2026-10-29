@@ -91,6 +91,8 @@ rules:
     enabled: true
   insecureInfrastructure:
     enabled: true
+  kubernetesRbac:
+    enabled: true
   credentialFiles:
     enabled: true
   lockfileSources:
@@ -499,6 +501,24 @@ A role that may do anything turns any bug in what uses it into control of the ac
 
 `public-exposure` covers what is opened to the internet: ports, public buckets and databases, and `allUsers`.
 
+## Kubernetes RBAC
+
+### `rules.kubernetesRbac.enabled`
+
+The `kubernetes-rbac` rule reads added lines in Kubernetes RBAC manifests and Helm templates: YAML files that show `kind: Role`, `ClusterRole`, `RoleBinding`, or `ClusterRoleBinding`, a `roleRef`, or `apiGroups`, in a line of the diff or in the context git prints after `@@`. It reports one finding per file:
+
+| Reported | Severity | Examples |
+| --- | --- | --- |
+| A binding to the `cluster-admin` role | High | `roleRef:` with `name: cluster-admin` |
+| A role granted to everyone | High | a subject named `system:anonymous`, `system:unauthenticated`, or `system:authenticated` |
+| Every verb on every resource | High | `verbs: ["*"]` and `resources: ["*"]` in the same file, which is cluster-admin by another name |
+| Every verb, or every resource, on its own | Warning | `verbs: [*]`, or `- "*"` under `resources:` |
+| Verbs that grant more than the role holds | Warning | `escalate`, `bind`, or `impersonate` under `verbs:` |
+
+Whoever controls a pod with such a service account controls the cluster, and `system:authenticated` includes every account the cluster's identity provider knows, which on some providers is anyone with an account there.
+
+Inline lists, such as `verbs: ["get", "list"]`, and block lists, with one `- item` per line, are both read. Roles that list their verbs and resources, bindings to other roles, YAML files that are not RBAC, comment lines, documentation directories, test files matched by `rules.missingTests.testGlobs`, and fixture directories are not reported.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -662,7 +682,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
-| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `destructive-migration` |
+| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `destructive-migration` |
 | Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
