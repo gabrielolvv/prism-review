@@ -69,6 +69,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `xml-external-entities` rule for XML parsers that turn on DTDs or external entities (0.45.0).
 - `hardcoded-jwt-secret` rule for JSON Web Tokens signed or verified with a key written in the code (0.46.0).
 - `analyze --staged`, `--base`, and `--fail-on`, a pre-commit hook, and a GitLab CI example (0.47.0).
+- Fewer false positives in `destructive-migration`, `sql-injection`, and every rule that skips tests, which now include `test/`, `tests/`, and `spec/` directories (0.48.0).
 
 ## Later
 
