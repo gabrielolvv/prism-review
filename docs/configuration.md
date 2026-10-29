@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -95,6 +95,8 @@ rules:
   untrustedInput:
     enabled: true
   xmlExternalEntities:
+    enabled: true
+  massAssignment:
     enabled: true
   workflowRisk:
     enabled: true
@@ -446,6 +448,23 @@ The `xml-external-entities` rule reads added lines in source files and reports o
 With these settings, a document that declares an entity such as `<!ENTITY x SYSTEM "file:///etc/passwd">` makes the parser read a local file or request a URL from the server (XXE). The rule reports the setting, not whether the XML comes from outside, so turn it off for trusted documents with `severity` or `overrides`.
 
 - Comment lines, documentation, including `PKG-INFO` and README or changelog files without an extension, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
+## Mass Assignment
+
+### `rules.massAssignment.enabled`
+
+The `mass-assignment` rule reads added lines in source files and reports one warning per file where a request can set every field of a model, including ones it should not, such as a role, an owner, or a price:
+
+| Framework | Reported | Safe |
+| --- | --- | --- |
+| Rails | `params.require(:user).permit!`, `params.to_unsafe_h` | `permit(:name, :email)` |
+| Django, Django REST framework | `fields = "__all__"` in a `ModelForm` or `ModelSerializer`; `Model.objects.create(**request.POST)`, `User(**request.data)` | an explicit `fields` list |
+| Flask | `User(**request.json)`, `**request.form`, `**request.get_json()` | the expected keys, read one by one |
+| Laravel | `protected $guarded = [];`, `Model::unguard()` | `$fillable` |
+| Express with Mongoose, Sequelize, Prisma, or TypeORM | `User.create(req.body)`, `findByIdAndUpdate(id, req.body)`, `create({ data: req.body })`, `Object.assign(user, req.body)`, `new User(req.body)` | `User.create({ name, email })` from picked properties |
+| ASP.NET MVC | `TryUpdateModel(user)` without a list of properties | `TryUpdateModelAsync(user, "", u => u.Name)` |
+
+The request value and the write must be on the same line; a body stored in a variable first is not followed. `permit!` after `.slice(...)`, which already kept only the listed keys, is not reported. `fields = "__all__"` counts only in Python files that are not django-filter `FilterSet`s, whose Meta option chooses what can be filtered, not written. `update(req.body)` on a hash or HMAC, which only reads the body, is not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## SQL Injection
 
@@ -827,7 +846,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
