@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -649,6 +649,49 @@ const scenarios: Array<[string, () => void]> = [
       assert.equal(run.status, 0, run.stderr);
       assert.match(run.stdout, /Prism Review only runs on pull_request events\./);
       assert.equal(run.requests.length, 0);
+    }
+  ],
+  [
+    "the CLI prints the version in package.json",
+    () => {
+      const run = runCli(["--version"]);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(run.stdout, `${JSON.parse(readFileSync("package.json", "utf8")).version}\n`);
+    }
+  ],
+  [
+    "init sets up a repository and leaves existing files alone",
+    () => {
+      const repo = join(workDir, "init-repo");
+      const init = (...args: string[]) =>
+        spawnSync(process.execPath, [cliEntry, "init", ...args], {
+          cwd: repo,
+          encoding: "utf8",
+          env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT }
+        });
+      mkdirSync(repo);
+
+      const outside = init("--ref", "v0");
+      assert.equal(outside.status, 1);
+      assert.match(outside.stderr, /root of a Git repository/);
+
+      spawnSync("git", ["init", "-q", repo]);
+      const first = init("--ref", "v0");
+      assert.equal(first.status, 0, first.stderr);
+      assert.match(first.stdout, /^Created \.github\/workflows\/prism-review\.yml$/m);
+      assert.match(first.stdout, /^Created \.prism-review\.yml$/m);
+      const workflow = parseYaml(readFileSync(join(repo, ".github/workflows/prism-review.yml"), "utf8"));
+      assert.equal(workflow.jobs.review.steps[0].uses, "gabrielolvv/prism-review@v0");
+
+      const second = init("--ref", "v0");
+      assert.equal(second.status, 0, second.stderr);
+      assert.doesNotMatch(second.stdout, /Created/);
+      assert.match(second.stdout, /Left \.prism-review\.yml unchanged/);
+
+      const unknown = init("--pin");
+      assert.equal(unknown.status, 1);
+      assert.match(unknown.stderr, /Unknown option: --pin/);
     }
   ]
 ];
