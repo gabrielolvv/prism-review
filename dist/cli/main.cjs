@@ -15382,6 +15382,7 @@ var ruleIds = [
   "unpinned-action",
   "destructive-migration",
   "privileged-container",
+  "dockerfile-risk",
   "public-exposure",
   "sensitive-files",
   "config-change",
@@ -15490,6 +15491,9 @@ var prismConfigSchema = object({
       allowedOwners: array(string2().min(1).max(100)).default(["actions", "github"])
     }).prefault({}),
     destructiveMigration: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    dockerfileRisk: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     privilegedContainers: object({
@@ -16257,7 +16261,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels = listed.map((check) => check.label);
+      const labels2 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -16266,7 +16270,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels2)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -16282,8 +16286,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels(labels) {
-  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
+function joinLabels(labels2) {
+  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
 }
 
 // src/analysis/hidden-characters.ts
@@ -16316,7 +16320,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels = /* @__PURE__ */ new Set();
+  const labels2 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -16328,15 +16332,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels2.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels2.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels.add("Unicode tag characters");
+      labels2.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels], reordersText };
+  return { labels: [...labels2], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -16375,9 +16379,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels2 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels2.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -18092,7 +18096,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels = listed.map((kind) => kind.label);
+      const labels2 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -18101,7 +18105,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels2)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -18136,8 +18140,147 @@ function findSettings(patch) {
   }
   return found;
 }
-function joinLabels2(labels) {
-  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
+function joinLabels2(labels2) {
+  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+}
+
+// src/rules/dockerfile-risk.ts
+var labels = {
+  "unpinned-base": "a base image without a version tag or with `latest`",
+  "remote-add": "a file downloaded by `ADD` without a checksum",
+  "secret-variable": "a secret in `ENV` or `ARG`, which the image and its history keep",
+  "root-user": "a final `USER` that runs the image as root"
+};
+var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
+var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
+var commentLine5 = /^\s*#/;
+var secretWords = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
+var secretPairs = [
+  ["api", "key"],
+  ["private", "key"],
+  ["access", "key"],
+  ["secret", "key"]
+];
+var locationWords = /* @__PURE__ */ new Set(["file", "path", "dir", "url", "uri", "endpoint", "host", "name", "id", "type", "header"]);
+var dockerfileRiskRule = {
+  id: "dockerfile-risk",
+  description: "Flags unpinned base images, root users, unchecked downloads, and secrets in Dockerfiles.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.dockerfileRisk.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !dockerfile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findRisks(file.patch);
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = Object.keys(labels).filter((kind) => found.some((match2) => match2.kind === kind));
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      return [
+        {
+          ruleId: "dockerfile-risk",
+          title: "Risky Dockerfile change",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          lines: [...new Set(found.map((match2) => match2.line))],
+          message: `${text} ${plural ? "add" : "adds"} ${joinLabels3(listed.map((kind) => labels[kind]))}.`,
+          recommendation: "Pin base images to a version or digest, switch to a non-root USER before the image runs, give remote ADD sources a --checksum, and pass secrets with RUN --mount=type=secret, since ENV values and build arguments stay in the image and its history."
+        }
+      ];
+    });
+  }
+};
+function findRisks(patch) {
+  const instructions = readInstructions(patch);
+  const stages = /* @__PURE__ */ new Set();
+  const found = [];
+  for (const [index, { keyword, args, line, added }] of instructions.entries()) {
+    if (keyword === "FROM") {
+      const [image = "", ...rest] = args.replace(/--[\w-]{1,50}=\S{1,200}\s*/g, "").trim().split(/\s+/);
+      const stage = /^as$/i.test(rest[0] ?? "") ? rest[1]?.toLowerCase() : void 0;
+      if (added && isUnpinned(image, stages)) {
+        found.push({ line, kind: "unpinned-base" });
+      }
+      if (stage !== void 0) {
+        stages.add(stage);
+      }
+    }
+    if (keyword === "USER" && added && isRoot(args) && !instructions.slice(index + 1).some((later) => later.keyword === "USER")) {
+      found.push({ line, kind: "root-user" });
+    }
+    if (keyword === "ADD" && added && /(?:^|\s)https?:\/\//i.test(args) && !/--checksum=/i.test(args)) {
+      found.push({ line, kind: "remote-add" });
+    }
+    if ((keyword === "ENV" || keyword === "ARG") && added && variableNames(keyword, args).some(isSecretName)) {
+      found.push({ line, kind: "secret-variable" });
+    }
+  }
+  return found;
+}
+function readInstructions(patch) {
+  const instructions = [];
+  let current;
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      current = void 0;
+    }
+    if (commentLine5.test(content)) {
+      continue;
+    }
+    const continues = /\\\s*$/.test(content);
+    const text = content.replace(/\\\s*$/, "");
+    if (current !== void 0) {
+      current.args = `${current.args} ${text.trim()}`;
+      current.added ||= added;
+    } else {
+      const match2 = instruction.exec(text);
+      if (match2 === null) {
+        continue;
+      }
+      current = { keyword: (match2[1] ?? "").toUpperCase(), args: (match2[2] ?? "").trim(), line, added };
+      instructions.push(current);
+    }
+    if (!continues) {
+      current = void 0;
+    }
+  }
+  return instructions;
+}
+function isUnpinned(image, stages) {
+  const name = image.toLowerCase();
+  if (name === "" || name.includes("$") || name === "scratch" || stages.has(name) || name.includes("@sha256:")) {
+    return false;
+  }
+  const lastSegment = name.slice(name.lastIndexOf("/") + 1);
+  const tag = lastSegment.includes(":") ? lastSegment.slice(lastSegment.indexOf(":") + 1) : "";
+  return tag === "" || tag === "latest";
+}
+function isRoot(args) {
+  const user = args.trim().split(/[\s:]/)[0] ?? "";
+  return user === "root" || user === "0";
+}
+function variableNames(keyword, args) {
+  if (keyword === "ENV" && !/^[\w.-]{1,200}=/.test(args)) {
+    return [args.split(/\s/)[0] ?? ""];
+  }
+  const unquoted2 = args.replace(/"(?:[^"\\]|\\.){0,2000}"|'[^']{0,2000}'/g, "''");
+  const name = keyword === "ENV" ? /(?:^|\s)([A-Za-z_][\w.-]{0,199})(?==)/g : /(?:^|\s)([A-Za-z_][\w.-]{0,199})(?==|\s|$)/g;
+  return [...unquoted2.matchAll(name)].map((match2) => match2[1] ?? "");
+}
+function isSecretName(name) {
+  const words = name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase().split(/[_.-]+/).filter((word2) => word2 !== "");
+  if (words.length === 0 || locationWords.has(words[words.length - 1] ?? "") || words.includes("public")) {
+    return false;
+  }
+  return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+}
+function joinLabels3(labels2) {
+  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
 }
 
 // src/rules/public-exposure.ts
@@ -18171,7 +18314,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels = [
+      const labels2 = [
         ...settings.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -18186,7 +18329,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels3(labels)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels4(labels2)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -18285,8 +18428,8 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels3(labels) {
-  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}` : labels[0] ?? "";
+function joinLabels4(labels2) {
+  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -18302,7 +18445,7 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine5 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine6 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation3 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -18366,7 +18509,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine5.test(content)) {
+    if (commentLine6.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -18780,7 +18923,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels = [
+      const labels2 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label))
       ];
@@ -18792,7 +18935,7 @@ var workflowRiskRule = {
           severity: contexts.length > 0 ? "high" : "warning",
           file: file.path,
           line: Math.min(...lines),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels2.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and grant only the permissions each job needs."
         }
       ];
@@ -18991,7 +19134,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine6 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine7 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -19033,7 +19176,7 @@ function findBuiltSql(patch, patterns2) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine6.test(content)) {
+    if (commentLine7.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -19065,6 +19208,7 @@ var defaultRules = [
   unpinnedActionRule,
   destructiveMigrationRule,
   privilegedContainerRule,
+  dockerfileRiskRule,
   publicExposureRule,
   sensitiveFilesRule,
   configChangeRule,
@@ -19374,6 +19518,7 @@ var ruleAreas = {
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
   "privileged-container": "infrastructure",
+  "dockerfile-risk": "infrastructure",
   "public-exposure": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
@@ -19442,6 +19587,7 @@ var ruleQuestions = {
   "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
   "remote-script": "Is each downloaded script checked against a known checksum or signature before it runs?",
   "privileged-container": "Does each container need the privileges it is given?",
+  "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
   "destructive-migration": "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
   "sql-injection": "Is every value in the flagged queries passed as a parameter?",
@@ -19499,6 +19645,7 @@ var ruleSections = {
   "unpinned-action": "Unpinned Actions",
   "destructive-migration": "Destructive Migrations",
   "privileged-container": "Privileged Containers",
+  "dockerfile-risk": "Dockerfile Risk",
   "public-exposure": "Public Exposure",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
