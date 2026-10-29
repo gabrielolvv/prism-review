@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.43.1 - 2026-10-29
+
+### Added
+
+- The README shows the comment Prism Review posts, made from the new `fixtures/diffs/showcase.diff`, with a test that keeps the two in sync, and compares Prism Review with CodeQL, Semgrep, and Danger.
+- `CONTRIBUTING.md` describes how to report a false positive, set up the project, add a rule, and check it against real code.
+- Issue forms for false positives and missed findings, and for new rules, with a link to private vulnerability reporting. They replace two templates for work that has shipped.
+
 ## 0.43.0 - 2026-10-29
 
 ### Fixed
