@@ -1,4 +1,10 @@
 import {
+  testDockerfileRiskOnlyReadsDockerfiles,
+  testDockerfileRiskReadsContinuedLinesAndContext,
+  testDockerfileRiskReportsEachKind,
+  testDockerfileRiskSkipsSafeInstructions
+} from "./unit/dockerfile-risk.test.js";
+import {
   testScopedNpmPackagesAreDependencyChanges,
   testScopedNpmPackagesGoThroughTheDependencyRules
 } from "./unit/scoped-packages.test.js";
@@ -540,6 +546,10 @@ const tests: Array<[string, Test]> = [
   ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
   ["Gradle dependencies are read", testGradleDependenciesAreRead],
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
+  ["dockerfile-risk reports each kind of risk", testDockerfileRiskReportsEachKind],
+  ["dockerfile-risk skips safe instructions", testDockerfileRiskSkipsSafeInstructions],
+  ["dockerfile-risk reads continued lines and context", testDockerfileRiskReadsContinuedLinesAndContext],
+  ["dockerfile-risk only reads Dockerfiles", testDockerfileRiskOnlyReadsDockerfiles],
   ["scoped npm packages are dependency changes", testScopedNpmPackagesAreDependencyChanges],
   ["scoped npm packages go through the dependency rules", testScopedNpmPackagesGoThroughTheDependencyRules],
   ["the AI summary is off by default", testAiSummaryIsOffByDefault],

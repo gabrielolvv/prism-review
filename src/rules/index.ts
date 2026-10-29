@@ -15,6 +15,7 @@ import { staleLockfileRule } from "./stale-lockfile.js";
 import { missingTestsRule } from "./missing-tests.js";
 import { oversizedPatchRule } from "./oversized-patch.js";
 import { privilegedContainerRule } from "./privileged-container.js";
+import { dockerfileRiskRule } from "./dockerfile-risk.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -43,6 +44,7 @@ export const defaultRules: Rule[] = [
   unpinnedActionRule,
   destructiveMigrationRule,
   privilegedContainerRule,
+  dockerfileRiskRule,
   publicExposureRule,
   sensitiveFilesRule,
   configChangeRule,
