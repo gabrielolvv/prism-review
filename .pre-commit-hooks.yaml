@@ -1,0 +1,13 @@
+# Hooks for the pre-commit framework (https://pre-commit.com). pre-commit installs the CLI from
+# this repository at the rev a project pins; README.md shows how to add it.
+- id: prism-review
+  name: Prism Review
+  description: Reviews the staged changes for credentials, risky workflows, lookalike dependencies, and other risk signals.
+  entry: prism-review analyze
+  # The default reviews what is staged and blocks the commit on high-risk findings. A project can
+  # replace the args, for example with [--base, origin/main] and `stages: [pre-push]`.
+  args: [--staged, --fail-on, high]
+  language: node
+  pass_filenames: false
+  require_serial: true
+  minimum_pre_commit_version: "3.2.0"

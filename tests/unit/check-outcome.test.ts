@@ -22,6 +22,11 @@ export function testDescribeFailureNamesThreshold(): void {
     describeFailure(review(["high"]).findings, "high"),
     'Prism Review found 1 high-risk finding(s), and check.failOn is "high".'
   );
+  // The CLI's --fail-on takes precedence over the file, so the message names it instead.
+  assert.equal(
+    describeFailure(review(["high"]).findings, "high", "--fail-on"),
+    'Prism Review found 1 high-risk finding(s), and --fail-on is "high".'
+  );
 }
 
 export function testConfigNeverFailsByDefault(): void {

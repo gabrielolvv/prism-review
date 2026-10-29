@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
@@ -18,14 +19,19 @@ import { initRepository } from "./init.js";
 import { version } from "./version.js";
 
 const usage = [
-  "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
+  "Usage: prism-review analyze (--diff <path|-> | --staged | --base <ref>) [--config <path>]",
+  "                            [--format markdown|json|sarif] [--fail-on never|warning|high]",
   "       prism-review init [--ref <ref>] [--force]",
   "",
   "analyze reviews a diff:",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
+  "  --staged          Review the changes staged for the next commit, as `git diff --cached` shows them.",
+  "  --base <ref>      Review the changes on this branch since it left <ref>, such as origin/main,",
+  "                    as `git diff <ref>...HEAD` shows them.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
   "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "  --fail-on <level> Exit with status 1 on findings of this severity, instead of check.failOn.",
   "",
   "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
   "current directory:",
@@ -35,17 +41,23 @@ const usage = [
   "",
   "  --version         Print the version.",
   "",
-  "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
+  "Example: prism-review analyze --base origin/main --fail-on high",
   ""
 ].join("\n");
 
 const formats = ["markdown", "json", "sarif"] as const;
 type Format = (typeof formats)[number];
 
+const failOnLevels = ["never", "warning", "high"] as const;
+type FailOn = (typeof failOnLevels)[number];
+
 type CliOptions = {
   diff?: string;
+  staged: boolean;
+  base?: string;
   config?: string;
   format: Format;
+  failOn?: FailOn;
   help: boolean;
 };
 
@@ -79,8 +91,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!options.diff) {
-    throw new UsageError("Missing required --diff option.");
+  const sources = [options.diff !== undefined, options.staged, options.base !== undefined].filter(Boolean).length;
+  if (sources !== 1) {
+    throw new UsageError(sources === 0 ? "Missing --diff, --staged, or --base." : "Use only one of --diff, --staged, and --base.");
   }
 
   // An explicit --config that does not exist would silently fall back to the defaults,
@@ -91,7 +104,13 @@ async function main(): Promise<void> {
 
   const configPath = options.config ?? defaultConfigPath;
   const config = loadConfig(resolve(configPath));
-  const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config);
+  const diff = options.diff !== undefined ? await readDiff(options.diff) : gitDiff(options.base);
+  // Nothing staged, or a branch with no changes, is nothing to review rather than bad input.
+  if (options.diff === undefined && diff.trim() === "") {
+    process.stdout.write("No changes to review.\n");
+    return;
+  }
+  const files = prepareChangedFiles(parseDiff(diff), config);
   const generated = config.ignoreGenerated && isFile(gitAttributesPath)
     ? parseGitAttributes(readFileSync(gitAttributesPath, "utf8"))
     : undefined;
@@ -111,9 +130,10 @@ async function main(): Promise<void> {
   const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : undefined;
   process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
 
-  const failing = failingFindings(result, config.check.failOn);
+  const failOn = options.failOn ?? config.check.failOn;
+  const failing = failingFindings(result, failOn);
   if (failing.length > 0) {
-    process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
+    process.stderr.write(`${describeFailure(failing, failOn, options.failOn === undefined ? "check.failOn" : "--fail-on")}\n`);
     process.exitCode = 1;
   }
 }
@@ -211,6 +231,23 @@ function parseDiff(diff: string) {
   return files;
 }
 
+// Runs git in the current directory, without a shell. External diff tools and colors are turned off,
+// since the review needs git's own unified diff.
+function gitDiff(base: string | undefined): string {
+  const range = base === undefined ? ["--cached"] : [`${base}...HEAD`];
+  const result = spawnSync("git", ["diff", "--no-color", "--no-ext-diff", ...range], {
+    encoding: "utf8",
+    maxBuffer: 512 * 1024 * 1024
+  });
+  if (result.error !== undefined) {
+    throw new Error(`Could not run git: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`git diff failed: ${result.stderr.trim().split("\n")[0] ?? ""}`);
+  }
+  return result.stdout;
+}
+
 async function readDiff(source: string): Promise<string> {
   if (source !== "-") {
     return readFileSync(resolve(source), "utf8");
@@ -231,13 +268,39 @@ async function readDiff(source: string): Promise<string> {
 }
 
 function parseArgs(args: string[]): CliOptions {
-  const options: CliOptions = { format: "markdown", help: false };
+  const options: CliOptions = { format: "markdown", staged: false, help: false };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
 
     if (arg === "--help" || arg === "-h") {
       options.help = true;
+      continue;
+    }
+
+    if (arg === "--staged") {
+      options.staged = true;
+      continue;
+    }
+
+    if (arg === "--base") {
+      const value = args[index + 1];
+      // A value starting with - would reach git as an option.
+      if (value === undefined || value.startsWith("-") || /\s/.test(value)) {
+        throw new UsageError("--base needs a branch, tag, or commit, such as origin/main.");
+      }
+      options.base = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--fail-on") {
+      const value = args[index + 1];
+      if (!failOnLevels.includes(value as FailOn)) {
+        throw new UsageError("--fail-on needs never, warning, or high.");
+      }
+      options.failOn = value as FailOn;
+      index += 1;
       continue;
     }
 
