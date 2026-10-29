@@ -15381,6 +15381,7 @@ var ruleIds = [
   "insecure-web-config",
   "weak-crypto",
   "untrusted-input",
+  "xml-external-entities",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
@@ -15487,6 +15488,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     weakCrypto: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    xmlExternalEntities: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     insecureWebConfig: object({
@@ -18861,6 +18865,62 @@ function joinLabels8(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
+// src/rules/xml-external-entities.ts
+var settings2 = [
+  // lxml and Python's SAX parser.
+  /\b(?:resolve_entities|load_dtd)\s*=\s*True\b|\bno_network\s*=\s*False\b/,
+  /\bsetFeature\(\s*(?:[\w.]{0,40}\.)?feature_external_(?:ges|pes)\s*,\s*(?:True|1)\s*\)/,
+  // Java's DocumentBuilderFactory, SAXParserFactory, XMLInputFactory, and TransformerFactory.
+  /\bsetFeature\(\s*"http:\/\/(?:apache\.org\/xml\/features\/disallow-doctype-decl"\s*,\s*false|xml\.org\/sax\/features\/external-(?:general|parameter)-entities"\s*,\s*true|apache\.org\/xml\/features\/nonvalidating\/load-external-dtd"\s*,\s*true)\s*\)/,
+  /\bsetExpandEntityReferences\(\s*true\s*\)/,
+  /\bsetProperty\(\s*(?:XMLInputFactory\.(?:SUPPORT_DTD|IS_SUPPORTING_EXTERNAL_ENTITIES)|"javax\.xml\.stream\.(?:supportDTD|isSupportingExternalEntities)")\s*,\s*(?:true|Boolean\.TRUE)\s*\)/,
+  /\b(?:setAttribute|setProperty)\(\s*XMLConstants\.ACCESS_EXTERNAL_(?:DTD|SCHEMA|STYLESHEET)\s*,\s*"all"\s*\)/,
+  // PHP's libxml.
+  /\blibxml_disable_entity_loader\(\s*false\s*\)|\bLIBXML_(?:NOENT|DTDLOAD)\b|->(?:substituteEntities|resolveExternals)\s*=\s*true\b/i,
+  // .NET's XmlReaderSettings and XmlDocument.
+  /\bDtdProcessing\s*=\s*DtdProcessing\.Parse\b|\bProhibitDtd\s*=\s*false\b|\bXmlResolver\s*=\s*new\s+XmlUrlResolver\s*\(/,
+  // libxmljs in Node.js.
+  /\b(?:noent|dtdload)\s*:\s*true\b/,
+  // Nokogiri and libxml-ruby.
+  /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
+];
+var commentLine11 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation7 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var xmlExternalEntitiesRule = {
+  id: "xml-external-entities",
+  description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.xmlExternalEntities.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation7.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch).flatMap(
+        ({ line, content, added }) => added && !commentLine11.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+      );
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "xml-external-entities",
+          title: "XML external entities turned on",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "turn" : "turns"} on DTDs or external entities in an XML parser, which lets a document read local files or reach internal hosts (XXE).`,
+          recommendation: "Keep DTDs and external entities off for XML that comes from users or other systems: set disallow-doctype-decl to true in Java, leave resolve_entities and no_network at safe values in lxml or use defusedxml, drop the NOENT and DTDLOAD flags in PHP, and use DtdProcessing.Prohibit in .NET."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/untrusted-input.ts
 var labels6 = {
   redirect: "redirects to a URL from the request, which can send users to any site",
@@ -18890,8 +18950,8 @@ var guarded = {
   path: /\b(?:path\.basename|basename|secure_filename|filepath\.Base|Path\.GetFileName|File\.basename|sanitize\w*)\s*\(/
 };
 var fixedTarget = /^\s*\(?\s*(["'`])(?:\/(?![\/$])|https?:\/\/[\w.-]+(?:[:/?]|\1))/;
-var commentLine11 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation7 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine12 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation8 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var untrustedInputRule = {
   id: "untrusted-input",
   description: "Flags request values passed straight to redirects, outgoing requests, and file paths.",
@@ -18901,13 +18961,13 @@ var untrustedInputRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation7.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation8.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const ruby = rubyFile.test(file.path);
       const fromRequest = (content) => requestValue.test(content) || ruby && railsParams.test(content);
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine11.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine12.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -18943,7 +19003,7 @@ function joinLabels9(items) {
 
 // src/rules/public-exposure.ts
 var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
-var settings2 = [
+var settings3 = [
   [
     "makes a storage bucket public",
     /\bacl\s*[=:]\s*["']public-read(?:-write)?["']|\bAccessControl["']?\s*:\s*["']?PublicRead(?:Write)?\b|\b(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b|\b(?:BlockPublicAcls|BlockPublicPolicy|IgnorePublicAcls|RestrictPublicBuckets)["']?\s*:\s*["']?false\b|\b(?:allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b/
@@ -18973,7 +19033,7 @@ var publicExposureRule = {
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
       const labels7 = [
-        ...settings2.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
+        ...settings3.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
       ];
@@ -19034,7 +19094,7 @@ function findExposure(patch, yaml) {
     if (!added) {
       continue;
     }
-    for (const [label, pattern] of settings2) {
+    for (const [label, pattern] of settings3) {
       if (pattern.test(content)) {
         found.push({ line, label });
       }
@@ -19103,8 +19163,8 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine12 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation8 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine13 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -19115,7 +19175,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation8.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation9.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -19167,7 +19227,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine12.test(content)) {
+    if (commentLine13.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -19421,7 +19481,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -19431,7 +19491,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation9.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation10.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -19847,8 +19907,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine13 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine14 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -19858,7 +19918,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => pattern)];
@@ -19889,7 +19949,7 @@ function findBuiltSql(patch, patterns2) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine13.test(content)) {
+    if (commentLine14.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -19919,6 +19979,7 @@ var defaultRules = [
   insecureWebConfigRule,
   weakCryptoRule,
   untrustedInputRule,
+  xmlExternalEntitiesRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,
@@ -20246,6 +20307,7 @@ var ruleAreas = {
   "sql-injection": "code",
   "insecure-web-config": "code",
   "weak-crypto": "code",
+  "xml-external-entities": "code",
   "untrusted-input": "code",
   "risky-api": "code",
   "disabled-security-check": "code",
@@ -20321,6 +20383,7 @@ var ruleQuestions = {
   "sql-injection": "Is every value in the flagged queries passed as a parameter?",
   "untrusted-input": "Is each redirect target, outgoing URL, and file path from the request checked against what is allowed?",
   "weak-crypto": "Are secrets hashed with a password hash, encrypted with an authenticated cipher, and made with a cryptographic random generator?",
+  "xml-external-entities": "Does every XML parser that turns on DTDs or external entities read only trusted documents?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
@@ -20374,6 +20437,7 @@ var ruleSections = {
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
   "untrusted-input": "Untrusted Input",
+  "xml-external-entities": "XML External Entities",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",
@@ -21023,7 +21087,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.44.0" : "development";
+var version2 = true ? "0.45.0" : "development";
 
 // src/cli/main.ts
 var usage = [
