@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.51.0 - 2026-10-29
+
+### Added
+
+- `mass-assignment` rule: warns about code that lets a request set every field of a model, such as a role or an owner. It reads Rails' `permit!` and `params.to_unsafe_h`, Django's and Django REST framework's `fields = "__all__"` in forms and serializers, Laravel's empty `$guarded` and `Model::unguard()`, models created or updated from the whole request body in Express (`User.create(req.body)`, `create({ data: req.body })`, `Object.assign(user, req.body)`) and Python (`User(**request.json)`, `create(**request.POST)`), and ASP.NET's `TryUpdateModel` without a list of properties. On the three corpora, about 39,000 files of npm, PyPI, RubyGems, Go, and Java code, plus Django REST framework, django-filter, django-allauth, Devise, ActiveAdmin, Administrate, and Mongoose, it reports only the framework code that does what the rule describes, such as Django's admin forms with `fields = "__all__"`.
+
 ## 0.50.0 - 2026-10-29
 
 ### Fixed
