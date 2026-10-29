@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities)
@@ -115,6 +115,8 @@ rules:
   filePermissions:
     enabled: true
   credentialFiles:
+    enabled: true
+  hardcodedJwtSecret:
     enabled: true
   lockfileSources:
     enabled: true
@@ -661,6 +663,27 @@ Values are read before redaction. These are not reported: empty values, referenc
 
 Example files (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `example.env`), public keys (`id_ed25519.pub`, `public-key.pem`), certificates, deleted files, and files under `test/`, `tests/`, `testdata/`, `fixtures/`, `__tests__/`, `__mocks__/`, or `spec/` are not reported. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
 
+## Hardcoded JWT Secrets
+
+### `rules.hardcodedJwtSecret.enabled`
+
+The `hardcoded-jwt-secret` rule reads added lines in source files and reports one warning per file where a JSON Web Token is signed or verified with a key written as text in the call:
+
+| Library | Reported | Safe |
+| --- | --- | --- |
+| jsonwebtoken (Node.js) | `jwt.sign(payload, "secret")`, `` jwt.verify(token, `secret`) `` | `jwt.sign(payload, process.env.JWT_SECRET)` |
+| PyJWT | `jwt.encode(payload, "secret", algorithm="HS256")`, `jwt.decode(token, key="secret")`, `b"secret"` | `jwt.encode(payload, settings.SECRET_KEY)` |
+| ruby-jwt | `JWT.encode(payload, "secret", "HS256")` | `JWT.encode(payload, ENV.fetch("JWT_SECRET"))` |
+| firebase/php-jwt | `JWT::encode($payload, "secret", "HS256")`, `new Key("secret", "HS256")` | `new Key($_ENV["JWT_SECRET"], "HS256")` |
+| java-jwt and jjwt | `Algorithm.HMAC256("secret")`, `.signWith(SignatureAlgorithm.HS256, "secret")`, `Keys.hmacShaKeyFor("secret".getBytes())` | a key read from configuration |
+| golang-jwt | `token.SignedString([]byte("secret"))` | `token.SignedString(key)` |
+| .NET | `new SymmetricSecurityKey(Encoding.UTF8.GetBytes("secret"))` | a key read from configuration |
+
+Anyone who can read the code, or a copy of it, can sign tokens the application accepts. `secret-in-diff` only recognizes a few token formats, so it misses keys such as `"change-me"`.
+
+- The key must be written in the call itself; a key stored in a variable first is not followed. Template literals and f-strings that insert a value, and public keys or certificates (`-----BEGIN PUBLIC KEY-----`), which only verify tokens, are not reported.
+- Comment lines, Python doctest examples (`>>> ...`), documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
 ## Unpinned Actions
 
 ### `rules.unpinnedActions.allowedOwners`
@@ -796,7 +819,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities` |

@@ -39,7 +39,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Runs on GitHub Pull Request events
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
-- Reports credentials added in the diff, on the line where they appear, without ever printing the value
+- Reports credentials added in the diff, on the line where they appear, without ever printing the value, and JWT signing keys written in the code
 - Flags script injection and other risky changes to GitHub Actions workflows
 - Flags bidirectional control characters and invisible text that make code read differently from how it runs
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
@@ -284,6 +284,7 @@ flowchart TD
 | `incomplete-review` | High | Flags pull requests with more changed files than GitHub returns (3000), so the unreviewed rest cannot pass a gate. |
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `credential-file` | High | Flags committed private keys, key stores, Terraform state, and credential files, and secrets added to `.env`, `.npmrc`, and `.pypirc` files. |
+| `hardcoded-jwt-secret` | Warning | Flags JSON Web Tokens signed or verified with a key written in the code, such as `jwt.sign(payload, "secret")`, in Node.js, Python, Ruby, PHP, Java, Go, and .NET. |
 | `disabled-security-check` | High or Warning | Flags code that turns off TLS certificate verification or token signature checks, and warns when CSRF protection is turned off. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `workflow-risk` | High or Warning | Flags script injection, `pull_request_target`, checkout of pull request code, `write-all` permissions, write scopes granted to every job, and new workflows that set no permissions. |
