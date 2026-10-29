@@ -18840,6 +18840,7 @@ function joinLabels6(items) {
 var labels4 = {
   cors: "lets any website read responses sent with the user's cookies, by allowing every origin together with credentials",
   cookie: "lets scripts read, or plain HTTP carry, a cookie, by turning off HttpOnly or Secure",
+  samesite: "lets other websites send a cookie with the requests they make, by setting SameSite to None",
   debug: "turns on a debug mode that shows internals, or runs code, for whoever triggers an error"
 };
 var anyOrigin = [
@@ -18869,6 +18870,14 @@ var cookieFlags = [
   // Java's Cookie. `setSecure(false)` on anything else, such as Tomcat's request, is not about a cookie.
   /\.setHttpOnly\s*\(\s*false\s*\)|\b\w*cookie\w*\.setSecure\s*\(\s*false\s*\)/i,
   /\bHttpOnly\s*=\s*false\b/
+];
+var sameSiteNone = [
+  /\bsameSite\s*:\s*(?:["']none["']|false\b)/i,
+  /\b(?:SESSION|CSRF|LANGUAGE)_COOKIE_SAMESITE\s*=\s*["']None["']/,
+  /\bsame_site\s*[:=]>?\s*:none\b|\bcookies_same_site_protection\s*=\s*:none\b/,
+  /\bSameSite\s*=\s*SameSiteMode\.None\b/,
+  /\.(?:setSameSite|sameSite)\s*\(\s*"None"\s*\)|\bsame-site\s*[=:]\s*none\b/i,
+  /["']samesite["']\s*=>\s*["']None["']|\bsession\.cookie_samesite\s*=\s*["']?None\b/i
 ];
 var flaskDebug = /\.run\s*\([^)]{0,500}\b(?:debug|use_debugger)\s*=\s*True\b/;
 var djangoDebug = /^\s*DEBUG\s*=\s*True\b/;
@@ -18907,7 +18916,7 @@ var insecureWebConfigRule = {
           line: lines[0],
           lines,
           message: `${text} ${plural ? "change" : "changes"} web configuration in a way that ${joinLabels7(listed.map((kind) => labels4[kind]))}.`,
-          recommendation: "List the origins allowed to send credentials, keep HttpOnly and Secure on session and authentication cookies, and turn debug modes on only in development settings."
+          recommendation: "List the origins allowed to send credentials, keep HttpOnly, Secure, and SameSite Lax or Strict on session and authentication cookies, and turn debug modes on only in development settings."
         }
       ];
     });
@@ -18928,7 +18937,8 @@ function findSettings3(path2, patch) {
       }
     }
   }
-  const djangoProduction = djangoSettings.test(path2) && !developmentPath.test(path2);
+  const development = developmentPath.test(path2);
+  const djangoProduction = djangoSettings.test(path2) && !development;
   for (const { line, content, added } of lines) {
     if (!added) {
       continue;
@@ -18936,7 +18946,13 @@ function findSettings3(path2, patch) {
     if (cookieFlags.some((pattern) => pattern.test(content))) {
       found.push({ line, kind: "cookie" });
     }
-    if (flaskDebug.test(content) || djangoProduction && djangoDebug.test(content) || railsProduction.test(path2) && railsLocalErrors.test(content)) {
+    if (sameSiteNone.some((pattern) => pattern.test(content))) {
+      found.push({ line, kind: "samesite" });
+    }
+    if (
+      // Example and development apps, such as Flask-AppBuilder's `examples/*/run.py`, run in debug mode on purpose.
+      !development && flaskDebug.test(content) || djangoProduction && djangoDebug.test(content) || railsProduction.test(path2) && railsLocalErrors.test(content)
+    ) {
       found.push({ line, kind: "debug" });
     }
   }
@@ -21774,7 +21790,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.52.0" : "development";
+var version2 = true ? "0.53.0" : "development";
 
 // src/cli/main.ts
 var usage = [
