@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `kubernetes-rbac` rule. It reports RBAC that binds `cluster-admin`, grants a role to `system:anonymous`, `system:unauthenticated`, or `system:authenticated`, or allows every verb on every resource, as high-risk findings, and warns about other wildcard verbs or resources and the `escalate`, `bind`, and `impersonate` verbs. `rules.kubernetesRbac.enabled` turns it off.
+
 ## 0.37.0 - 2026-10-29
 
 ### Changed
