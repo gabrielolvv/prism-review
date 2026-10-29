@@ -12,7 +12,8 @@ export function failingFindings(result: ReviewResult, failOn: FailOn): Finding[]
   return result.findings.filter((finding) => isAtLeast(finding.severity, failOn));
 }
 
-export function describeFailure(failing: Finding[], failOn: FailOn): string {
+// `setting` names where the level came from, such as the CLI's --fail-on.
+export function describeFailure(failing: Finding[], failOn: FailOn, setting = "check.failOn"): string {
   const severities = failOn === "high" ? "high-risk" : "warning or high-risk";
-  return `Prism Review found ${failing.length} ${severities} finding(s), and check.failOn is "${failOn}".`;
+  return `Prism Review found ${failing.length} ${severities} finding(s), and ${setting} is "${failOn}".`;
 }

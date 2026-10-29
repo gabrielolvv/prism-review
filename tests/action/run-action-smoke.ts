@@ -287,11 +287,11 @@ const scenarios: Array<[string, () => void]> = [
       const unknown = runCli(["analyze", "--difff", "-"], riskyDiff);
       assert.equal(unknown.status, 1);
       assert.match(unknown.stderr, /Unknown option: --difff/);
-      assert.match(unknown.stderr, /Usage: prism-review analyze --diff/);
+      assert.match(unknown.stderr, /Usage: prism-review analyze \(--diff <path\|-> \| --staged \| --base <ref>\)/);
 
       const help = runCli(["--help"]);
       assert.equal(help.status, 0);
-      assert.match(help.stdout, /Usage: prism-review analyze --diff/);
+      assert.match(help.stdout, /Usage: prism-review analyze \(--diff <path\|-> \| --staged \| --base <ref>\)/);
     }
   ],
   [
@@ -692,6 +692,78 @@ const scenarios: Array<[string, () => void]> = [
       const unknown = init("--pin");
       assert.equal(unknown.status, 1);
       assert.match(unknown.stderr, /Unknown option: --pin/);
+    }
+  ],
+  [
+    "the CLI reviews staged changes and a branch, and --fail-on sets the exit status",
+    () => {
+      const repo = join(workDir, "git-sources");
+      const git = (...args: string[]) => {
+        const result = spawnSync("git", ["-C", repo, ...args], { encoding: "utf8" });
+        assert.equal(result.status, 0, result.stderr);
+      };
+      const cli = (...args: string[]) =>
+        spawnSync(process.execPath, [cliEntry, "analyze", ...args], {
+          cwd: repo,
+          encoding: "utf8",
+          env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT }
+        });
+      const workflow = ["on: pull_request_target", "jobs:", "  x:", "    runs-on: ubuntu-latest", "    steps:", '      - run: echo "${{ github.event.pull_request.title }}"', ""].join("\n");
+
+      spawnSync("git", ["init", "-q", "-b", "main", repo]);
+      git("config", "user.email", "smoke@example.com");
+      git("config", "user.name", "Smoke");
+      // Colors and an external diff tool must not reach the review.
+      git("config", "color.diff", "always");
+      git("config", "diff.external", "false");
+      writeFileSync(join(repo, "README.md"), "base\n");
+      git("add", ".");
+      git("commit", "-qm", "base");
+
+      const nothing = cli("--staged");
+      assert.equal(nothing.status, 0, nothing.stderr);
+      assert.equal(nothing.stdout, "No changes to review.\n");
+
+      mkdirSync(join(repo, ".github/workflows"), { recursive: true });
+      writeFileSync(join(repo, ".github/workflows/x.yml"), workflow);
+      git("add", ".");
+      const staged = cli("--staged");
+      assert.equal(staged.status, 0, staged.stderr);
+      assert.match(staged.stdout, /Risky workflow change/);
+      const blocked = cli("--staged", "--fail-on", "high");
+      assert.equal(blocked.status, 1);
+      assert.match(blocked.stderr, /high-risk finding\(s\), and --fail-on is "high"\./);
+
+      git("checkout", "-qb", "feature");
+      git("commit", "-qm", "workflow");
+      const branch = cli("--base", "main", "--format", "json");
+      assert.equal(branch.status, 0, branch.stderr);
+      assert.ok(JSON.parse(branch.stdout).findings.some((finding: { ruleId: string }) => finding.ruleId === "workflow-risk"));
+
+      for (const [args, message] of [
+        [[], /Missing --diff, --staged, or --base\./],
+        [["--staged", "--base", "main"], /Use only one of --diff, --staged, and --base\./],
+        [["--base", "--output=x"], /--base needs a branch/],
+        [["--staged", "--fail-on", "always"], /--fail-on needs never, warning, or high\./]
+      ] as Array<[string[], RegExp]>) {
+        const run = cli(...args);
+        assert.equal(run.status, 1, args.join(" "));
+        assert.match(run.stderr, message);
+      }
+      const missing = cli("--base", "no-such-branch");
+      assert.equal(missing.status, 1);
+      assert.match(missing.stderr, /git diff failed/);
+    }
+  ],
+  [
+    "the pre-commit hook runs the CLI with its own arguments",
+    () => {
+      const [hook] = parseYaml(readFileSync(".pre-commit-hooks.yaml", "utf8"));
+      assert.equal(hook.id, "prism-review");
+      assert.equal(hook.language, "node");
+      assert.equal(hook.pass_filenames, false);
+      assert.equal(hook.entry, `${Object.keys(JSON.parse(readFileSync("package.json", "utf8")).bin)[0]} analyze`);
+      assert.deepEqual(hook.args, ["--staged", "--fail-on", "high"]);
     }
   ]
 ];
