@@ -61,7 +61,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `file-permissions` rule for world-writable modes, the setuid bit, and an open umask, in shell, Dockerfiles, and code (0.39.0).
 - Marketplace-ready README, `SECURITY.md`, and listing checklist (0.39.1).
 - `insecure-web-config` rule for CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production (0.40.0).
-- `weak-crypto` rule for secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.
+- `weak-crypto` rule for secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers (0.41.0).
+- `untrusted-input` rule for request values passed straight to redirects, outgoing requests, and file paths.
 
 ## Later
 
