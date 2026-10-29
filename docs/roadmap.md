@@ -66,6 +66,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - False positives measured on about 16,000 files from 39 popular packages and fixed in nine rules, with a script to repeat the check and an index of every rule by area.
 - README image of a review, comparison with other tools, `CONTRIBUTING.md`, and issue forms (0.43.1).
 - `prism-review init`, which sets up the workflow and configuration pinned to the release commit, `--version`, and the CLI on npm (0.44.0).
+- `xml-external-entities` rule for XML parsers that turn on DTDs or external entities (0.45.0).
 
 ## Later
 
