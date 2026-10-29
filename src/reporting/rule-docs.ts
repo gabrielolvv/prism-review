@@ -6,6 +6,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "incomplete-review": "Rules Without Options",
   "secret-in-diff": "Secrets",
   "credential-file": "Credential Files",
+  "hardcoded-jwt-secret": "Hardcoded JWT Secrets",
   "disabled-security-check": "Disabled Security Checks",
   "hidden-unicode": "Hidden Unicode",
   "large-diff": "Large Diff",

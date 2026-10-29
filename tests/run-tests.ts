@@ -397,6 +397,14 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testHardcodedJwtSecretCanBeDisabled,
+  testHardcodedJwtSecretReadsEachLibrary,
+  testHardcodedJwtSecretReportsOneFindingPerFile,
+  testHardcodedJwtSecretSeesRedactedKeys,
+  testHardcodedJwtSecretSkipsKeysFromElsewhere,
+  testHardcodedJwtSecretSkipsTestsAndDocs
+} from "./unit/hardcoded-jwt-secret.test.js";
+import {
   testXmlExternalEntitiesCanBeDisabled,
   testXmlExternalEntitiesReadsEachParser,
   testXmlExternalEntitiesReportsOneFindingPerFile,
@@ -639,6 +647,12 @@ const tests: Array<[string, Test]> = [
   ["xml-external-entities skips safe settings", testXmlExternalEntitiesSkipsSafeSettings],
   ["xml-external-entities skips tests and docs", testXmlExternalEntitiesSkipsTestsAndDocs],
   ["xml-external-entities can be disabled", testXmlExternalEntitiesCanBeDisabled],
+  ["hardcoded-jwt-secret reports one finding per file", testHardcodedJwtSecretReportsOneFindingPerFile],
+  ["hardcoded-jwt-secret reads each library", testHardcodedJwtSecretReadsEachLibrary],
+  ["hardcoded-jwt-secret skips keys from elsewhere", testHardcodedJwtSecretSkipsKeysFromElsewhere],
+  ["hardcoded-jwt-secret sees keys that redaction hid", testHardcodedJwtSecretSeesRedactedKeys],
+  ["hardcoded-jwt-secret skips tests and docs", testHardcodedJwtSecretSkipsTestsAndDocs],
+  ["hardcoded-jwt-secret can be disabled", testHardcodedJwtSecretCanBeDisabled],
   ["insecure-web-config reports CORS with credentials", testInsecureWebConfigReportsCorsWithCredentials],
   ["insecure-web-config reports cookies and debug modes", testInsecureWebConfigReportsCookiesAndDebug],
   ["insecure-web-config skips safe settings", testInsecureWebConfigSkipsSafeSettings],

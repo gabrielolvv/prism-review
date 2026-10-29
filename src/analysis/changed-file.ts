@@ -22,6 +22,9 @@ export type ChangedFile = {
   credentialLines?: number[];
   // Set by prepareChangedFiles before the size limit and redaction, for lockfiles and registry settings.
   lockfileSources?: LockfileSource[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that sign or verify
+  // a JSON Web Token with a key written in the code.
+  jwtKeyLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
