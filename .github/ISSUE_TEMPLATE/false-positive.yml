@@ -25,7 +25,7 @@ body:
     id: diff
     attributes:
       label: Smallest diff that shows it
-      description: Output of `git diff`, cut down to the lines that matter. `node dist/cli/main.cjs analyze --diff -` reviews it locally.
+      description: Output of `git diff`, cut down to the lines that matter. `npx @gabrielolvv/prism-review analyze --diff -` reviews it locally.
       render: diff
     validations:
       required: true

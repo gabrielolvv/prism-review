@@ -7,7 +7,7 @@ Thanks for helping make Prism Review better. Reports of false positives and miss
 Open an issue with the [false positive or missed finding template](https://github.com/gabrielolvv/prism-review/issues/new?template=false-positive.yml). The smallest diff that shows the problem is the most helpful part. You can check it locally first:
 
 ```bash
-git diff origin/main...HEAD | node dist/cli/main.cjs analyze --diff -
+git diff origin/main...HEAD | npx @gabrielolvv/prism-review analyze --diff -
 ```
 
 Remove credentials and private code from the diff before posting it. To report a vulnerability in Prism Review itself, follow [`SECURITY.md`](SECURITY.md) instead of opening an issue.
