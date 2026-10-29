@@ -21,6 +21,7 @@ import { kubernetesRbacRule } from "./kubernetes-rbac.js";
 import { filePermissionsRule } from "./file-permissions.js";
 import { insecureWebConfigRule } from "./insecure-web-config.js";
 import { weakCryptoRule } from "./weak-crypto.js";
+import { untrustedInputRule } from "./untrusted-input.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -46,6 +47,7 @@ export const defaultRules: Rule[] = [
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
+  untrustedInputRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,

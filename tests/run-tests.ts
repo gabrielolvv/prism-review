@@ -1,4 +1,9 @@
 import {
+  testUntrustedInputReadsOtherFrameworks,
+  testUntrustedInputReportsEachKind,
+  testUntrustedInputSkipsFixedTargetsAndGuards
+} from "./unit/untrusted-input.test.js";
+import {
   testWeakCryptoReadsOtherLanguages,
   testWeakCryptoReportsEachKind,
   testWeakCryptoSkipsSafeUses
@@ -577,6 +582,9 @@ const tests: Array<[string, Test]> = [
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
   ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
+  ["untrusted-input reports each kind", testUntrustedInputReportsEachKind],
+  ["untrusted-input reads other frameworks", testUntrustedInputReadsOtherFrameworks],
+  ["untrusted-input skips fixed targets and guarded values", testUntrustedInputSkipsFixedTargetsAndGuards],
   ["weak-crypto reports each kind", testWeakCryptoReportsEachKind],
   ["weak-crypto reads other languages", testWeakCryptoReadsOtherLanguages],
   ["weak-crypto skips safe uses", testWeakCryptoSkipsSafeUses],

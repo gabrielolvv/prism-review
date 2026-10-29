@@ -27,6 +27,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "destructive-migration":
     "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
   "sql-injection": "Is every value in the flagged queries passed as a parameter?",
+  "untrusted-input": "Is each redirect target, outgoing URL, and file path from the request checked against what is allowed?",
   "weak-crypto": "Are secrets hashed with a password hash, encrypted with an authenticated cipher, and made with a cryptographic random generator?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",

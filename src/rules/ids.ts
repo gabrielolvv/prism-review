@@ -14,6 +14,7 @@ export const ruleIds: readonly string[] = [
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
+  "untrusted-input",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
