@@ -1037,5 +1037,5 @@ Fails the job when the review has a finding at or above this severity, so branch
 
 `info` findings never fail the job. The comment and annotations are published first, so the reason is on the pull request when the job turns red. With `dry-run: true`, the review is printed and the job still fails.
 
-Because the configuration is read from the base commit, a pull request cannot lower its own threshold. The CLI applies the same setting and exits with status 1.
+Because the configuration is read from the base commit, a pull request cannot lower its own threshold. The CLI applies the same setting and exits with status 1; its `--fail-on` option, as the pre-commit hook uses, takes precedence over the file.
 

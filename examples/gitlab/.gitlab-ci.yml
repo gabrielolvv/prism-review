@@ -1,0 +1,12 @@
+# Reviews each merge request with Prism Review's CLI. The review is printed in the job log, and a
+# high-risk finding fails the job. Pin the version, as here, and update it on purpose.
+prism-review:
+  image: node:22
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    # --base needs the history back to where the branch left the target branch.
+    GIT_DEPTH: 0
+  script:
+    - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - npx --yes @gabrielolvv/prism-review@0.47.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
