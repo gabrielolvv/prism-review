@@ -17,10 +17,13 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
+    # Creating a release needs write access to the repository's contents.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       # A tag push checks out the tag; a manual run checks out the default branch, whose
