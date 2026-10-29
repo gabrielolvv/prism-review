@@ -16436,7 +16436,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels7 = listed.map((check) => check.label);
+      const labels8 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -16445,7 +16445,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels7)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels8)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -16461,8 +16461,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/analysis/hidden-characters.ts
@@ -16495,7 +16495,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels7 = /* @__PURE__ */ new Set();
+  const labels8 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -16507,15 +16507,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels7.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels8.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels7.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels8.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels7.add("Unicode tag characters");
+      labels8.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels7], reordersText };
+  return { labels: [...labels8], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -16554,9 +16554,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels7 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels8 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels7.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels8.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -18306,7 +18306,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels7 = listed.map((kind) => kind.label);
+      const labels8 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -18315,7 +18315,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels7)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels8)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -18350,8 +18350,8 @@ function findSettings(patch) {
   }
   return found;
 }
-function joinLabels2(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels2(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/dockerfile-risk.ts
@@ -18489,8 +18489,8 @@ function isSecretName(name) {
   }
   return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
-function joinLabels3(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels3(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
@@ -18608,8 +18608,8 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels4(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels4(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/kubernetes-rbac.ts
@@ -19177,7 +19177,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels7 = [
+      const labels8 = [
         ...settings3.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -19192,7 +19192,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels10(labels7)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels10(labels8)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -19291,8 +19291,8 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels10(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels10(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -19808,7 +19808,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels7 = [
+      const labels8 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label)),
         ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
@@ -19823,7 +19823,7 @@ var workflowRiskRule = {
           file: file.path,
           line: Math.min(...lines),
           lines: [...new Set(lines)].sort((left, right) => left - right),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels7.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels8.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
@@ -21005,6 +21005,57 @@ function fileUri(path2) {
   return path2.split("/").map(encodeURIComponent).join("/");
 }
 
+// src/reporting/render-text.ts
+var styles = {
+  high: "1;31",
+  warning: "33",
+  info: "36",
+  bold: "1",
+  dim: "2"
+};
+var labels7 = { high: "high", warning: "warning", info: "info" };
+function renderText(result, options) {
+  const paint = (style, text) => options.color ? `\x1B[${styles[style]}m${text}\x1B[0m` : text;
+  const findings = (options.includeLowSeverity ? result.findings : result.findings.filter((finding2) => finding2.severity !== "info")).slice().sort(
+    (left, right) => compareSeverity(left.severity, right.severity) || (left.file ?? "").localeCompare(right.file ?? "") || (left.line ?? 0) - (right.line ?? 0)
+  );
+  const width = Math.max(0, ...findings.map((finding2) => labels7[finding2.severity].length));
+  const lines = [`${paint("bold", "Prism Review:")} ${paint(riskStyle(result.riskLevel), `${result.riskLevel} risk`)}. ${plain(result.summary)}`];
+  if (findings.length > 0) {
+    lines.push("");
+  }
+  for (const finding2 of findings) {
+    const severity = labels7[finding2.severity].padEnd(width);
+    lines.push(`${paint(finding2.severity, severity)}  ${location(finding2)}${plain(finding2.title)} ${paint("dim", `[${finding2.ruleId}]`)}`);
+    lines.push(`${" ".repeat(width)}  ${plain(finding2.message)}`);
+  }
+  const notes = [
+    ...(result.suppressed?.length ?? 0) > 0 ? [`${result.suppressed?.length} finding(s) acknowledged inline.`] : [],
+    ...(result.dependencyChanges?.length ?? 0) > 0 ? [`${result.dependencyChanges?.length} dependency change(s).`] : [],
+    ...findings.length > 0 || (result.dependencyChanges?.length ?? 0) > 0 ? ["Use --format markdown for recommendations and the reviewer checklist."] : []
+  ];
+  if (notes.length > 0) {
+    lines.push("", paint("dim", notes.join(" ")));
+  }
+  return lines.join("\n");
+}
+function location(finding2) {
+  if (finding2.file === void 0) {
+    return "";
+  }
+  return `${plain(finding2.file)}${finding2.line === void 0 ? "" : `:${finding2.line}`}  `;
+}
+function riskStyle(risk) {
+  return risk === "high" ? "high" : risk === "medium" ? "warning" : "bold";
+}
+function plain(value) {
+  return [...value.replace(/\r\n?|\n/g, " ")].map((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    const control = codePoint < 32 || codePoint >= 127 && codePoint <= 159;
+    return control || isHiddenCodePoint(codePoint) ? `\\u{${codePoint.toString(16).toUpperCase()}}` : char;
+  }).join("");
+}
+
 // src/security/limit-patches.ts
 function limitPatchSizes(files, maxPatchBytes) {
   return files.map((file) => {
@@ -21299,12 +21350,12 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.48.0" : "development";
+var version2 = true ? "0.49.0" : "development";
 
 // src/cli/main.ts
 var usage = [
   "Usage: prism-review analyze (--diff <path|-> | --staged | --base <ref>) [--config <path>]",
-  "                            [--format markdown|json|sarif] [--fail-on never|warning|high]",
+  "                            [--format text|markdown|json|sarif] [--fail-on never|warning|high]",
   "       prism-review init [--ref <ref>] [--force]",
   "",
   "analyze reviews a diff:",
@@ -21314,7 +21365,9 @@ var usage = [
   "  --base <ref>      Review the changes on this branch since it left <ref>, such as origin/main,",
   "                    as `git diff <ref>...HEAD` shows them.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
-  "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "  --format <format> text, one line per finding, the default in a terminal; markdown, the pull",
+  "                    request comment, the default otherwise; json; or sarif for code scanning.",
+  "                    text is colored in a terminal, unless NO_COLOR is set, or when FORCE_COLOR is.",
   "  --fail-on <level> Exit with status 1 on findings of this severity, instead of check.failOn.",
   "",
   "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
@@ -21328,7 +21381,7 @@ var usage = [
   "Example: prism-review analyze --base origin/main --fail-on high",
   ""
 ].join("\n");
-var formats = ["markdown", "json", "sarif"];
+var formats = ["text", "markdown", "json", "sarif"];
 var failOnLevels = ["never", "warning", "high"];
 var UsageError = class extends Error {
 };
@@ -21383,7 +21436,8 @@ async function main() {
     existingLockfiles
   });
   const codeOwners = config2.comment.codeOwners ? readLocalCodeOwners() : void 0;
-  process.stdout.write(`${render(result, options.format, { ...config2.comment, ownersOf: codeOwners?.ownersOf })}
+  const format = options.format ?? (process.stdout.isTTY ? "text" : "markdown");
+  process.stdout.write(`${render(result, format, { ...config2.comment, ownersOf: codeOwners?.ownersOf })}
 `);
   const failOn = options.failOn ?? config2.check.failOn;
   const failing = failingFindings(result, failOn);
@@ -21451,6 +21505,9 @@ function isFile(path2) {
   return (0, import_node_fs3.existsSync)(path2) && (0, import_node_fs3.statSync)(path2).isFile();
 }
 function render(result, format, options) {
+  if (format === "text") {
+    return renderText(result, { includeLowSeverity: options.includeLowSeverity, color: useColor() });
+  }
   if (format === "json") {
     return renderJson(result);
   }
@@ -21458,6 +21515,13 @@ function render(result, format, options) {
     return renderSarif(result, defaultRules);
   }
   return renderMarkdown(result, options);
+}
+function useColor() {
+  if ((process.env.NO_COLOR ?? "") !== "") {
+    return false;
+  }
+  const forced = process.env.FORCE_COLOR;
+  return forced !== void 0 && forced !== "" ? forced !== "0" && forced !== "false" : process.stdout.isTTY === true;
 }
 function parseDiff(diff) {
   if (diff.trim() === "") {
@@ -21502,7 +21566,7 @@ async function readDiff(source) {
   return Buffer.concat(chunks).toString("utf8");
 }
 function parseArgs(args) {
-  const options = { format: "markdown", staged: false, help: false };
+  const options = { staged: false, help: false };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--help" || arg === "-h") {
@@ -21540,7 +21604,7 @@ function parseArgs(args) {
         options.config = value;
       } else if (arg === "--format") {
         if (!formats.includes(value)) {
-          throw new UsageError(`Unknown format: ${value}. Use markdown, json, or sarif.`);
+          throw new UsageError(`Unknown format: ${value}. Use text, markdown, json, or sarif.`);
         }
         options.format = value;
       } else {
