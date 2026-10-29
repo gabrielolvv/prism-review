@@ -397,6 +397,13 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testXmlExternalEntitiesCanBeDisabled,
+  testXmlExternalEntitiesReadsEachParser,
+  testXmlExternalEntitiesReportsOneFindingPerFile,
+  testXmlExternalEntitiesSkipsSafeSettings,
+  testXmlExternalEntitiesSkipsTestsAndDocs
+} from "./unit/xml-external-entities.test.js";
+import {
   testInitFallsBackToTheMajorTag,
   testInitFilesPassTheirOwnReview,
   testInitLeavesExistingFilesUnlessForced,
@@ -627,6 +634,11 @@ const tests: Array<[string, Test]> = [
   ["weak-crypto reports each kind", testWeakCryptoReportsEachKind],
   ["weak-crypto reads other languages", testWeakCryptoReadsOtherLanguages],
   ["weak-crypto skips safe uses", testWeakCryptoSkipsSafeUses],
+  ["xml-external-entities reports one finding per file", testXmlExternalEntitiesReportsOneFindingPerFile],
+  ["xml-external-entities reads each parser", testXmlExternalEntitiesReadsEachParser],
+  ["xml-external-entities skips safe settings", testXmlExternalEntitiesSkipsSafeSettings],
+  ["xml-external-entities skips tests and docs", testXmlExternalEntitiesSkipsTestsAndDocs],
+  ["xml-external-entities can be disabled", testXmlExternalEntitiesCanBeDisabled],
   ["insecure-web-config reports CORS with credentials", testInsecureWebConfigReportsCorsWithCredentials],
   ["insecure-web-config reports cookies and debug modes", testInsecureWebConfigReportsCookiesAndDebug],
   ["insecure-web-config skips safe settings", testInsecureWebConfigSkipsSafeSettings],
