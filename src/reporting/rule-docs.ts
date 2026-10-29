@@ -19,6 +19,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "weak-crypto": "Weak Cryptography",
   "untrusted-input": "Untrusted Input",
   "xml-external-entities": "XML External Entities",
+  "mass-assignment": "Mass Assignment",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",
