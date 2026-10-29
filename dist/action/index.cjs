@@ -34491,7 +34491,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels2 = /* @__PURE__ */ new Set();
+  const labels3 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -34503,15 +34503,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels2.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels3.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels2.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels3.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels2.add("Unicode tag characters");
+      labels3.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels2], reordersText };
+  return { labels: [...labels3], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -36560,6 +36560,7 @@ var ruleIds = [
   "dockerfile-risk",
   "public-exposure",
   "insecure-infrastructure",
+  "kubernetes-rbac",
   "sensitive-files",
   "config-change",
   "review-control-change",
@@ -36673,6 +36674,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     privilegedContainers: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    kubernetesRbac: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     insecureInfrastructure: object({
@@ -37405,7 +37409,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels2 = listed.map((check) => check.label);
+      const labels3 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -37414,7 +37418,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels2)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels3)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -37430,8 +37434,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels(labels2) {
-  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+function joinLabels(labels3) {
+  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
 }
 
 // src/rules/hidden-unicode.ts
@@ -37461,9 +37465,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels2 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels3 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels2.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels3.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -38970,8 +38974,8 @@ function describeProblem(change) {
     }
     return void 0;
   }
-  const wildcard = (change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim()) || change.ecosystem === "Maven" && to !== "" && isOpenEnded(to, change.ecosystem);
-  if (wildcard) {
+  const wildcard2 = (change.ecosystem === "npm" || change.ecosystem === "crates.io") && /^(?:\*|x|latest|next|)$/i.test(to.trim()) || change.ecosystem === "Maven" && to !== "" && isOpenEnded(to, change.ecosystem);
+  if (wildcard2) {
     return { line: change.line, kind: "open", text: `${name} at ${shown(to)}, which accepts any release` };
   }
   return void 0;
@@ -39178,7 +39182,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels2 = listed.map((kind) => kind.label);
+      const labels3 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -39187,7 +39191,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels2)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels3)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -39196,17 +39200,17 @@ var privilegedContainerRule = {
 };
 function findSettings(patch) {
   const found = [];
-  let listKey = "";
+  let listKey2 = "";
   for (const { line, content, added, startsHunk } of patchLines(patch)) {
     if (startsHunk) {
-      listKey = "";
+      listKey2 = "";
     }
     if (commentLine4.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
     if (key2 !== void 0) {
-      listKey = key2;
+      listKey2 = key2;
     }
     if (!added) {
       continue;
@@ -39216,14 +39220,14 @@ function findSettings(patch) {
         found.push({ line, kind });
       }
     }
-    if (capabilityItem.test(content) && (listKey === "add" || listKey === "cap_add")) {
+    if (capabilityItem.test(content) && (listKey2 === "add" || listKey2 === "cap_add")) {
       found.push({ line, kind: capabilityKind });
     }
   }
   return found;
 }
-function joinLabels2(labels2) {
-  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+function joinLabels2(labels3) {
+  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
 }
 
 // src/rules/dockerfile-risk.ts
@@ -39361,8 +39365,8 @@ function isSecretName(name) {
   }
   return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
-function joinLabels3(labels2) {
-  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+function joinLabels3(labels3) {
+  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
@@ -39480,8 +39484,118 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels4(labels2) {
-  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+function joinLabels4(labels3) {
+  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+}
+
+// src/rules/kubernetes-rbac.ts
+var labels2 = {
+  "cluster-admin": "binds the cluster-admin role",
+  anonymous: "grants a role to every user or to unauthenticated requests",
+  "wildcard-verbs": "allows every verb",
+  "wildcard-resources": "covers every resource",
+  escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
+};
+var yamlFile = /\.ya?ml$/i;
+var documentation3 = /(?:^|\/)docs?\//i;
+var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
+var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
+var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
+var wildcard = /^["']?\*["']?$/;
+var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
+var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
+var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
+var commentLine7 = /^\s*#/;
+var kubernetesRbacRule = {
+  id: "kubernetes-rbac",
+  description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.kubernetesRbac.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation3.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = findGrants(file.patch);
+      if (found.length === 0) {
+        return [];
+      }
+      const kinds3 = new Set(found.map((match2) => match2.kind));
+      const listed = Object.keys(labels2).filter((kind) => kinds3.has(kind));
+      const high = kinds3.has("cluster-admin") || kinds3.has("anonymous") || kinds3.has("wildcard-verbs") && kinds3.has("wildcard-resources");
+      const lines = [...new Set(found.map((match2) => match2.line))].sort((left, right) => left - right);
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "kubernetes-rbac",
+          title: high ? "Cluster-wide access granted" : "Broad Kubernetes permissions",
+          severity: high ? "high" : "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "change" : "changes"} Kubernetes RBAC so that it ${joinLabels5(listed.map((kind) => labels2[kind]))}.`,
+          recommendation: "List the verbs, resources, and API groups each role needs, bind service accounts to those roles instead of cluster-admin, and never bind roles to system:anonymous, system:unauthenticated, or system:authenticated."
+        }
+      ];
+    });
+  }
+};
+function findGrants(patch) {
+  const lines = patchLines(patch);
+  if (!lines.some((entry) => rbacMarker.test(entry.content) || rbacMarker.test(entry.hunkContext ?? ""))) {
+    return [];
+  }
+  const found = [];
+  let key2;
+  let keyIndent = 0;
+  for (const { line, content, added, startsHunk } of lines) {
+    if (startsHunk) {
+      key2 = void 0;
+    }
+    if (commentLine7.test(content) || content.trim() === "") {
+      continue;
+    }
+    const indent = content.length - content.trimStart().length;
+    const entry = listKey.exec(content);
+    let values = [];
+    if (entry !== null) {
+      key2 = entry[1];
+      keyIndent = indent;
+      values = inlineValues(entry[2] ?? "");
+    } else if (key2 !== void 0 && listItem.test(content) && indent >= keyIndent) {
+      values = [listItem.exec(content)?.[1] ?? ""];
+    } else {
+      key2 = void 0;
+    }
+    if (!added) {
+      continue;
+    }
+    if (clusterAdmin.test(content)) {
+      found.push({ line, kind: "cluster-admin" });
+    }
+    if (everyone.test(content)) {
+      found.push({ line, kind: "anonymous" });
+    }
+    if (key2 === "verbs" && values.some((value) => wildcard.test(value))) {
+      found.push({ line, kind: "wildcard-verbs" });
+    }
+    if (key2 === "resources" && values.some((value) => wildcard.test(value))) {
+      found.push({ line, kind: "wildcard-resources" });
+    }
+    if (key2 === "verbs" && values.some((value) => escalationVerbs.has(value.replace(/["']/g, "")))) {
+      found.push({ line, kind: "escalation" });
+    }
+  }
+  return found;
+}
+function inlineValues(value) {
+  const inline = /^\[([^\]]{0,1000})\]/.exec(value.trim())?.[1];
+  return inline === void 0 ? [] : inline.split(",").map((item) => item.trim());
+}
+function joinLabels5(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
 // src/rules/public-exposure.ts
@@ -39515,7 +39629,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels2 = [
+      const labels3 = [
         ...settings2.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -39530,7 +39644,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels5(labels2)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels6(labels3)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -39629,8 +39743,8 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels5(labels2) {
-  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+function joinLabels6(labels3) {
+  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -39646,8 +39760,8 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine7 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation3 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine8 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -39658,7 +39772,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation3.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -39710,7 +39824,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine7.test(content)) {
+    if (commentLine8.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -39964,7 +40078,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -39974,7 +40088,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation4.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation5.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -40146,7 +40260,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels2 = [
+      const labels3 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label)),
         ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
@@ -40161,7 +40275,7 @@ var workflowRiskRule = {
           file: file.path,
           line: Math.min(...lines),
           lines: [...new Set(lines)].sort((left, right) => left - right),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels2.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels3.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
@@ -40390,8 +40504,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine8 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine9 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation6 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -40401,7 +40515,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation5.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation6.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => pattern)];
@@ -40432,7 +40546,7 @@ function findBuiltSql(patch, patterns2) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine8.test(content)) {
+    if (commentLine9.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -40467,6 +40581,7 @@ var defaultRules = [
   dockerfileRiskRule,
   publicExposureRule,
   insecureInfrastructureRule,
+  kubernetesRbacRule,
   sensitiveFilesRule,
   configChangeRule,
   reviewControlChangeRule,
@@ -40763,6 +40878,7 @@ var ruleAreas = {
   "dockerfile-risk": "infrastructure",
   "public-exposure": "infrastructure",
   "insecure-infrastructure": "infrastructure",
+  "kubernetes-rbac": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
   "risky-api": "code",
@@ -40797,6 +40913,7 @@ var ruleQuestions = {
   "privileged-container": "Does each container need the privileges it is given?",
   "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
+  "kubernetes-rbac": "Does each service account need the roles it is bound to, and nothing cluster-wide?",
   "insecure-infrastructure": "Does each role need every action it is granted, and is turning off encryption, TLS 1.2, audit logs, or IMDSv2 intended?",
   "destructive-migration": "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
   "sql-injection": "Is every value in the flagged queries passed as a parameter?",
@@ -40857,6 +40974,7 @@ var ruleSections = {
   "dockerfile-risk": "Dockerfile Risk",
   "public-exposure": "Public Exposure",
   "insecure-infrastructure": "Insecure Infrastructure",
+  "kubernetes-rbac": "Kubernetes RBAC",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",
