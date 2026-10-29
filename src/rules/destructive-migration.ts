@@ -12,13 +12,13 @@ const kinds: Array<{ kind: Kind; destructive: boolean; pattern: RegExp }> = [
     kind: "drops a table",
     destructive: true,
     pattern:
-      /\bdrop\s+(?:table|schema|database)\b|(?<!\w)(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel(?=\s*\())|\bSchema::drop(?:IfExists)?\s*\(/i
+      /\bdrop\s+(?:table|schema|database)\b|(?<![\w:])(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel(?=\s*\())|\bSchema::drop(?:IfExists)?\s*\(/i
   },
   {
     kind: "drops a column",
     destructive: true,
     pattern:
-      /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField(?=\s*\())|^\s*remove\s+:/i
+      /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<![\w:])(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField(?=\s*\())|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -29,13 +29,13 @@ const kinds: Array<{ kind: Kind; destructive: boolean; pattern: RegExp }> = [
     kind: "changes a column definition",
     destructive: false,
     pattern:
-      /\balter\s+column\s+["`[]?[\w.]+["`\]]?\s+(?!(?:set|drop|add|reset|restart|options)\b)\w|\b(?:modify|change)\s+column\b|(?<!\w)(?:change_column(?!_)|changeColumn|AlterColumn)\b|->change\s*\(\s*\)|\.alter\s*\(\s*\)|\balter_column\s*\([^)]*\btype_\s*=|^\s*modify\s+:/i
+      /\balter\s+column\s+["`[]?[\w.]+["`\]]?\s+(?!(?:set|drop|add|reset|restart|options)\b)\w|\b(?:modify|change)\s+column\b|(?<![\w:])(?:change_column(?!_)|changeColumn|AlterColumn)\b|->change\s*\(\s*\)|\.alter\s*\(\s*\)|\balter_column\s*\([^)]*\btype_\s*=|^\s*modify\s+:/i
   },
   {
     kind: "renames a table or column",
     destructive: false,
     pattern:
-      /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<!\w)(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField(?=\s*\()|RenameModel(?=\s*\())|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
+      /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<![\w:])(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField(?=\s*\()|RenameModel(?=\s*\())|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
   }
 ];
 
@@ -43,6 +43,11 @@ const kinds: Array<{ kind: Kind; destructive: boolean; pattern: RegExp }> = [
 // `alembic/versions/`, or SQL files named the way migration tools name them.
 const migrationPath = /(?:^|\/)[^/]*(?:migrat|alembic)[^/]*\/|(?:^|\/)(?:V\d[^/]*__[^/]*|[^/]*\.up)\.sql$/i;
 const migrationFile = /\.(?:sql|rb|py|[cm]?[jt]s|php|cs|go|java|kt|exs?)$/i;
+// Migration tools name code files with a number or timestamp first, such as Django's `0002_...py`,
+// Rails' `20261020_...rb`, or Flyway's `V2__...java`, and Alembic keeps them in `versions/`. Other
+// files in a migrations directory, such as Django's own `django/db/migrations/autodetector.py`, run no
+// migration.
+const migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 // golang-migrate, sqlx, and Diesel keep rollbacks in their own files; Flyway names them `U<version>__`.
 const rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 
@@ -52,6 +57,10 @@ const rollbackStart =
 const forwardStart =
   /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
 const commentLine = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+// A class or method named like an operation, such as Django's `class RemoveField(FieldOperation):` or
+// Rails' `def rename_table(...)`, defines it rather than running it, and an error such as
+// `raise ActiveRecord::IrreversibleMigration, "remove_column ..."` only names it.
+const operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 // Any other function or method ends a rollback that started at the same or a deeper indentation.
 const definition =
   /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
@@ -71,6 +80,7 @@ export const destructiveMigrationRule: Rule = {
         file.patch === undefined ||
         !migrationPath.test(file.path) ||
         !migrationFile.test(file.path) ||
+        (!/\.sql$/i.test(file.path) && !migrationName.test(file.path)) ||
         rollbackFile.test(file.path) ||
         testGlobs.some((glob) => minimatch(file.path, glob))
       ) {
@@ -130,7 +140,7 @@ function findChanges(path: string, patch: string): Array<{ line: number; kind: K
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== undefined || commentLine.test(code)) {
+    if (!added || rollbackIndent !== undefined || commentLine.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {

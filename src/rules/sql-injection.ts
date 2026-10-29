@@ -15,16 +15,27 @@ const fragmentCall = /^(?:where|order|having|joins|find_by_sql|select_all|select
 const sqlKeyword =
   /\bselect\s.{1,500}?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
 
-// Values inserted into the query text rather than passed as parameters.
-const builtString = [
-  /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/, // Python f-string, also inside text(...)
-  /["']\s*%\s*[\w(]/, // Python "... %s" % value
-  /["']\.format\(/, // Python and C# .format()
-  /`[^`]*\$\{/, // JavaScript template literal
-  /["'`]\s*\+\s*[\w$(]|[\w)\]]\s*\+\s*["'`]/, // concatenation
-  /\b(?:fmt\.Sprintf|String\.format|sprintf)\s*\(/, // Go, Java, PHP
-  /"[^"]*#\{/ // Ruby interpolation
+// Values inserted into the query text rather than passed as parameters. Operators are looked for
+// outside the text of strings, so a template such as `"%(field)s = VALUES(%(field)s)"` does not count.
+const builtString: Array<{ pattern: RegExp; operator?: true }> = [
+  { pattern: /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/ }, // Python f-string, also inside text(...)
+  { pattern: /["']\s*%\s*[\w(]/, operator: true }, // Python "... %s" % value
+  { pattern: /["']\.format\(/, operator: true }, // Python and C# .format()
+  { pattern: /`[^`]*\$\{/ }, // JavaScript template literal
+  { pattern: /["'`]\s*\+\s*[\w$(]|[\w)\]]\s*\+\s*["'`]/, operator: true }, // concatenation
+  { pattern: /\b(?:fmt\.Sprintf|String\.format|sprintf)\s*\(/ }, // Go, Java, PHP
+  { pattern: /"[^"]*#\{/ } // Ruby interpolation
 ];
+// The text inside single and double quotes, which masking replaces so operators are not read in it.
+const quotedText = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
+
+// Values that pass through a function that quotes an identifier or escapes a value for SQL, such as
+// Django's `quote_name(...)`, Sequelize's `this.quoteTable(...)`, or Rails' `quote_table_name(...)`,
+// and variables named for the result, such as `quotedTable`.
+const quotedValue =
+  /^\s*(?:(?:[\w$]+\.)*(?:quote_name|quote_table_name|quote_column_name|quoteTable|quoteIdentifiers?|quote_ident|quoteName|escapeId|escapeIdentifier|escapeLiteral|escape_string|escape|quote|sanitize_sql\w*)\s*\([^]*\)|(?:quoted|escaped)[\w$]*)\s*$/;
+const templateValue = /\$\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+const rubyValue = /#\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 // PHP and C# interpolate in their own string syntax, which means something else elsewhere.
 const languageStrings: Array<[RegExp, RegExp]> = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
@@ -54,7 +65,7 @@ export const sqlInjectionRule: Rule = {
         return [];
       }
 
-      const patterns = [...builtString, ...languageStrings.filter(([files]) => files.test(file.path)).map(([, pattern]) => pattern)];
+      const patterns = [...builtString, ...languageStrings.filter(([files]) => files.test(file.path)).map(([, pattern]) => ({ pattern }))];
       const lines = findBuiltSql(file.patch, patterns);
       if (lines.length === 0) {
         return [];
@@ -79,7 +90,7 @@ export const sqlInjectionRule: Rule = {
 };
 
 // The argument of a SQL call, on the call's line or, when the call ends with `(`, on the next line.
-function findBuiltSql(patch: string, patterns: RegExp[]): number[] {
+function findBuiltSql(patch: string, patterns: Array<{ pattern: RegExp; operator?: true }>): number[] {
   const found: number[] = [];
   let pendingCall: string | undefined;
 
@@ -100,7 +111,7 @@ function findBuiltSql(patch: string, patterns: RegExp[]): number[] {
       added &&
       checked !== undefined &&
       checked.argument.trim() !== "" &&
-      patterns.some((pattern) => pattern.test(checked.argument)) &&
+      builds(checked.argument, patterns) &&
       (sqlKeyword.test(checked.argument) || (fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument)))
     ) {
       found.push(line);
@@ -108,4 +119,68 @@ function findBuiltSql(patch: string, patterns: RegExp[]): number[] {
   }
 
   return found;
+}
+
+function builds(argument: string, patterns: Array<{ pattern: RegExp; operator?: true }>): boolean {
+  const masked = argument.replace(quotedText, (text) => `${text[0]}${"x".repeat(text.length - 2)}${text[0]}`);
+  const matched = patterns.filter(({ pattern, operator }) => pattern.test(operator ? masked : argument));
+  if (matched.length === 0) {
+    return false;
+  }
+  // Interpolation that only inserts quoted identifiers or escaped values is not reported: template
+  // literals, Ruby strings, and Python's `%` operator. Other ways of building the text, such as
+  // concatenation, are not read that closely.
+  const readable = [builtString[1], builtString[3], builtString[6]].map((entry) => entry?.pattern);
+  if (!matched.every(({ pattern }) => readable.includes(pattern))) {
+    return true;
+  }
+  const values = [...argument.matchAll(templateValue), ...argument.matchAll(rubyValue)].map((match) => match[1] ?? "");
+  const percent = /["']\s*%\s*/.exec(masked);
+  if (percent !== null) {
+    values.push(...percentOperands(argument.slice(percent.index + percent[0].length)));
+  }
+  return !(values.length > 0 && values.every((value) => quotedValue.test(value)));
+}
+
+// The values after Python's `%`: one expression, or the items of a tuple. Brackets that close the
+// surrounding call are left out.
+function percentOperands(text: string): string[] {
+  const items: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of text) {
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      if (depth === 0) {
+        break;
+      }
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      break;
+    }
+    current += char;
+  }
+  const operand = current.trim();
+  const tuple = /^\((.*)\)$/s.exec(operand)?.[1];
+  if (tuple === undefined) {
+    items.push(operand);
+    return items;
+  }
+  depth = 0;
+  current = "";
+  for (const char of tuple) {
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      items.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  items.push(current);
+  return items.filter((item) => item.trim() !== "");
 }

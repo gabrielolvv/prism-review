@@ -131,3 +131,61 @@ export function testImportsDoNotTurnOffChecks(): void {
   assert.ok(!ruleIds("celery/backends/redis.py", ["from ssl import CERT_NONE, CERT_OPTIONAL, CERT_REQUIRED"]).includes("disabled-security-check"));
   assert.ok(ruleIds("app/client.py", ["context.verify_mode = ssl.CERT_NONE"]).includes("disabled-security-check"));
 }
+
+export function testTestDirectoriesAreTests(): void {
+  // Django keeps tests in tests/ and tests.py, Mocha in test/, and RSpec helpers in spec/.
+  const deserialize = ["self.assertEqual(qs.db, pickle.loads(pickle.dumps(qs)).db)"];
+  assert.ok(!ruleIds("tests/multiple_database/tests.py", deserialize).includes("risky-api"));
+  assert.ok(!ruleIds("tests/i18n/utils.py", deserialize).includes("risky-api"));
+  assert.ok(!ruleIds("spec/support/fixtures.rb", ["Marshal.load(File.read(path))"]).includes("risky-api"));
+  assert.ok(ruleIds("app/cache.py", ["value = pickle.loads(data)"]).includes("risky-api"));
+
+  // Being test files, they are also where skip markers count.
+  assert.ok(ruleIds("test/index.js", [`${["it", "skip"].join(".")}("parses dates", () => {});`]).includes("skipped-tests"));
+}
+
+export function testMigrationFrameworkCodeIsNotAMigration(): void {
+  // Django's and Rails' migration code defines, generates, or names operations without running them.
+  assert.ok(!ruleIds("django/db/migrations/operations/fields.py", ["class RemoveField(FieldOperation):"]).includes("destructive-migration"));
+  assert.ok(!ruleIds("django/db/migrations/autodetector.py", ["                    operations.RemoveField("]).includes("destructive-migration"));
+  assert.ok(!ruleIds("lib/active_record/migration/compatibility.rb", ["def rename_table(table_name, new_name, **options)"]).includes("destructive-migration"));
+  assert.ok(!ruleIds("db/migrate/20261020_recorder.rb", [":create_table, :rename_table, :add_column, :remove_column,"]).includes("destructive-migration"));
+  assert.ok(
+    !ruleIds("db/migrate/20261020_guard.rb", ['raise ActiveRecord::IrreversibleMigration, "remove_column is only reversible if given a type."']).includes(
+      "destructive-migration"
+    )
+  );
+  // Django's own test migrations live under tests/.
+  assert.ok(!ruleIds("tests/migrations/test_migrations/0002_second.py", ['        migrations.DeleteModel("Tribble"),']).includes("destructive-migration"));
+
+  assert.ok(ruleIds("app/migrations/0002_second.py", ['        migrations.DeleteModel("Tribble"),']).includes("destructive-migration"));
+  assert.ok(ruleIds("db/migrate/20261020_drop_legacy.rb", ["    remove_column :users, :legacy_id"]).includes("destructive-migration"));
+  assert.ok(ruleIds("alembic/versions/ae1027a6acf_drop.py", ['    op.drop_table("legacy")']).includes("destructive-migration"));
+}
+
+export function testQuotedIdentifiersAreNotSqlInjection(): void {
+  const quoted = [
+    // A placeholder template, filled in by a later line.
+    'field_sql = "%(field)s = VALUES(%(field)s)"',
+    // Identifiers and values passed through the database's own quoting.
+    'cursor.execute("SELECT * FROM %s LIMIT 1" % self.connection.ops.quote_name(table_name))',
+    'sql = "ALTER TABLE %s RENAME TO %s" % (quote_name(old), quote_name(new))',
+    "let query = `DELETE FROM ${this.quoteTable(tableName)}`;",
+    "const emptyQuery = `INSERT INTO ${quotedTable} DEFAULT VALUES`;",
+    'connection.execute("DELETE FROM #{quote_table_name(table)}")'
+  ];
+  for (const line of quoted) {
+    assert.ok(!ruleIds("lib/db.py", [line]).includes("sql-injection"), line);
+  }
+
+  const built = [
+    'cursor.execute("SELECT * FROM users WHERE name = %s" % name)',
+    "let query = `DELETE FROM ${this.quoteTable(tableName)} WHERE id = ${id}`;",
+    "const sql = `SELECT sql FROM sqlite_master WHERE tbl_name='${tableName}'`;",
+    'connection.execute("DELETE FROM #{table}")',
+    'query = "SELECT * FROM users WHERE id = " + quote_name(id) + suffix'
+  ];
+  for (const line of built) {
+    assert.ok(ruleIds("lib/db.py", [line]).includes("sql-injection"), line);
+  }
+}

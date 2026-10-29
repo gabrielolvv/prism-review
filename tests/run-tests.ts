@@ -2,13 +2,16 @@ import {
   testActiveRecordLogNamesAreNotSql,
   testExampleProjectsAreNotProductionSettings,
   testImportsDoNotTurnOffChecks,
+  testMigrationFrameworkCodeIsNotAMigration,
   testMigrationOperationsCountOnlyAsCalls,
   testMinifiedBundlesAreNotReadAsWeakCrypto,
   testPopularPackagesNamedLikeOthersAreNotLookalikes,
   testPublishConfigIsNotADependency,
   testPackageMetadataIsNotADependency,
   testPythonNamesAreNotReadAsRailsInput,
+  testQuotedIdentifiersAreNotSqlInjection,
   testReadingTheUmaskIsNotReported,
+  testTestDirectoriesAreTests,
   testTranslationCatalogsMayUseDirectionMarks
 } from "./unit/corpus-regressions.test.js";
 import {
@@ -636,6 +639,9 @@ const tests: Array<[string, Test]> = [
   ["migration operations count only as calls", testMigrationOperationsCountOnlyAsCalls],
   ["ActiveRecord log names are not SQL", testActiveRecordLogNamesAreNotSql],
   ["imports do not turn off checks", testImportsDoNotTurnOffChecks],
+  ["files in test directories are tests", testTestDirectoriesAreTests],
+  ["migration framework code is not a migration", testMigrationFrameworkCodeIsNotAMigration],
+  ["quoted identifiers are not SQL injection", testQuotedIdentifiersAreNotSqlInjection],
   ["untrusted-input reports each kind", testUntrustedInputReportsEachKind],
   ["untrusted-input reads other frameworks", testUntrustedInputReadsOtherFrameworks],
   ["untrusted-input skips fixed targets and guarded values", testUntrustedInputSkipsFixedTargetsAndGuards],
