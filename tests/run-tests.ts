@@ -400,7 +400,8 @@ import {
   testDependencyRiskRule,
   testSensitiveFilesRuleMatchesKeywordsAsWords,
   testSensitiveFilePatternsStayHighForEveryFile,
-  testPatternsWithoutASlashMatchAtAnyDepth
+  testPatternsWithoutASlashMatchAtAnyDepth,
+  testShowcaseDiffMatchesTheReadmeImage
 } from "./unit/rules.test.js";
 import {
   testFindAddedSecretsDetectsPgpPrivateKeys,
@@ -429,6 +430,7 @@ const tests: Array<[string, Test]> = [
   ["parseUnifiedDiff parses changed files", testParseUnifiedDiff],
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
+  ["showcase diff gets the review shown in the README image", testShowcaseDiffMatchesTheReadmeImage],
   ["sensitive files rule matches keywords as whole words", testSensitiveFilesRuleMatchesKeywordsAsWords],
   ["sensitive-files patterns stay high for every file", testSensitiveFilePatternsStayHighForEveryFile],
   ["redactSecrets masks token-like values", testRedactSecrets],

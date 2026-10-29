@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { analyzePullRequest } from "../../src/analysis/analyze-pull-request.js";
 import type { ChangedFile } from "../../src/analysis/changed-file.js";
 import { defaultConfig, prismConfigSchema } from "../../src/config/schema.js";
+import { prepareChangedFiles } from "../../src/security/prepare-changed-files.js";
 import { loadDiffFixture } from "../../src/testing/fixture-loader.js";
 
 export function testDefaultRules(): void {
@@ -122,4 +123,29 @@ export function testPatternsWithoutASlashMatchAtAnyDepth(): void {
     "crates/core/Cargo.lock"
   ]);
   assert.deepEqual(flagged("sensitive-files"), ["modules/network/main.tf"]);
+}
+
+export function testShowcaseDiffMatchesTheReadmeImage(): void {
+  // docs/images/review-comment.png shows the review of this fixture; update both together.
+  const files = prepareChangedFiles(loadDiffFixture("fixtures/diffs/showcase.diff"), defaultConfig);
+
+  const result = analyzePullRequest(files, defaultConfig);
+
+  assert.equal(result.riskLevel, "high");
+  assert.deepEqual(
+    [...new Set(result.findings.map((finding) => finding.ruleId))].sort(),
+    [
+      "dependency-risk",
+      "dockerfile-risk",
+      "lookalike-dependency",
+      "missing-tests",
+      "risky-dependency-version",
+      "secret-in-diff",
+      "sensitive-files",
+      "sql-injection",
+      "unpinned-action",
+      "untrusted-input",
+      "workflow-risk"
+    ]
+  );
 }
