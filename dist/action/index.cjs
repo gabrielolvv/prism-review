@@ -27338,7 +27338,7 @@ var require_parser = __commonJS({
         }
       }
     }
-    var Parser = class {
+    var Parser2 = class {
       /**
        * @param onNewLine - If defined, called separately with the start position of
        *   each new line (in `parse()`, including the start of input).
@@ -28111,7 +28111,7 @@ var require_parser = __commonJS({
         }
       }
     };
-    exports2.Parser = Parser;
+    exports2.Parser = Parser2;
   }
 });
 
@@ -32464,8 +32464,8 @@ function _check(fn, params) {
 }
 
 // node_modules/zod/v4/core/to-json-schema.js
-function assignProps(target, ...sources) {
-  for (const source of sources) {
+function assignProps(target, ...sources2) {
+  for (const source of sources2) {
     for (const key2 of Reflect.ownKeys(source)) {
       if (Object.prototype.propertyIsEnumerable.call(source, key2)) {
         assignProp(target, key2, source[key2]);
@@ -36558,6 +36558,7 @@ var ruleIds = [
   "untrusted-input",
   "xml-external-entities",
   "mass-assignment",
+  "redos",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
@@ -36674,6 +36675,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     massAssignment: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    redos: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     insecureWebConfig: object({
@@ -37136,9 +37140,9 @@ function isPlaceholder(value) {
 }
 function cleanValue(raw) {
   const value = raw.trim();
-  const quoted = /^(["'])(.*)\1/.exec(value);
-  if (quoted) {
-    return quoted[2] ?? "";
+  const quoted2 = /^(["'])(.*)\1/.exec(value);
+  if (quoted2) {
+    return quoted2[2] ?? "";
   }
   return value.replace(/\s+#.*$/, "");
 }
@@ -37864,29 +37868,29 @@ var lockfileSourceRule = {
       return [];
     }
     return files.flatMap((file) => {
-      const sources = sourcesIn(file, ruleConfig.allowedSources);
-      if (sources.length === 0) {
+      const sources2 = sourcesIn(file, ruleConfig.allowedSources);
+      if (sources2.length === 0) {
         return [];
       }
-      const { text, plural } = describeLines(sources.map((source) => source.line));
-      const hosts = [...new Set(sources.flatMap((source) => source.host ?? []))];
-      const modules = [...new Set(sources.flatMap((source) => source.module ?? []))];
+      const { text, plural } = describeLines(sources2.map((source) => source.line));
+      const hosts = [...new Set(sources2.flatMap((source) => source.host ?? []))];
+      const modules = [...new Set(sources2.flatMap((source) => source.module ?? []))];
       const parts = [
         hosts.length > 0 ? `downloaded from ${hosts.length > 1 ? "hosts that are not allowed registries" : "a host that is not an allowed registry"} (${hosts.slice(0, 3).join(", ")}${hosts.length > 3 ? ", ..." : ""})` : "",
-        sources.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
-        sources.some((source) => source.kind === "unverified") ? "downloaded without TLS verification" : "",
-        sources.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
+        sources2.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
+        sources2.some((source) => source.kind === "unverified") ? "downloaded without TLS verification" : "",
+        sources2.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
         modules.length > 0 ? `replaced with ${modules.length > 1 ? "different modules" : "a different module"} (${modules.slice(0, 3).join(", ")}${modules.length > 3 ? ", ..." : ""})` : "",
-        sources.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
+        sources2.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
       ].filter(Boolean);
-      const high = sources.some((source) => ["unlisted", "insecure", "unverified"].includes(source.kind));
+      const high = sources2.some((source) => ["unlisted", "insecure", "unverified"].includes(source.kind));
       return [
         {
           ruleId: "lockfile-source",
           title: high ? "Dependency from an untrusted source" : "Dependency from outside a registry",
           severity: high ? "high" : "warning",
           file: file.path,
-          line: Math.min(...sources.map((source) => source.line)),
+          line: Math.min(...sources2.map((source) => source.line)),
           message: `${text} ${plural ? "add dependencies" : "adds a dependency"} ${joinParts(parts)}.`,
           recommendation: "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, prefer --index-url over --extra-index-url, and keep TLS verification on."
         }
@@ -40227,6 +40231,286 @@ function joinLabels9(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
+// src/analysis/regex-ambiguity.ts
+var maxPatternLength2 = 2e3;
+function ambiguousGroup(pattern) {
+  if (pattern.length > maxPatternLength2) {
+    return void 0;
+  }
+  let found;
+  try {
+    const parser = new Parser(pattern);
+    const items = parser.sequence();
+    const visit = (sequence) => {
+      for (const item of sequence) {
+        if (found !== void 0) {
+          return;
+        }
+        if (item.kind === "group" && item.alternatives !== void 0) {
+          if (isAmbiguous(item)) {
+            found = item.source;
+            return;
+          }
+          item.alternatives.forEach(visit);
+        }
+      }
+    };
+    visit(items);
+  } catch {
+    return void 0;
+  }
+  return found;
+}
+function isAmbiguous(group) {
+  const quantifier = group.quantifier;
+  if (quantifier === void 0 || quantifier.max !== Infinity || quantifier.possessive || group.atomic) {
+    return false;
+  }
+  if (group.alternatives?.length !== 1) {
+    return false;
+  }
+  const sequence = (group.alternatives[0] ?? []).filter((item) => item.kind !== "lookaround");
+  const required2 = sequence.filter((item) => (item.quantifier?.min ?? 1) >= 1);
+  const unbounded = sequence.filter((item) => item.quantifier?.max === Infinity && !item.quantifier.possessive && !item.atomic);
+  if (unbounded.length === 0 || required2.length > 1) {
+    return false;
+  }
+  const [anchor2] = required2;
+  if (anchor2 === void 0 || unbounded.includes(anchor2)) {
+    return true;
+  }
+  return unbounded.some((item) => overlaps(item, anchor2));
+}
+var probes = [..." !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", "	", "\n", "\r", "\xE9", "\u4E2D"];
+function overlaps(repeated, anchor2) {
+  const firsts = firstAtoms(anchor2);
+  if (repeated.kind !== "atom" || repeated.atom === void 0 || firsts === void 0) {
+    return true;
+  }
+  const left = singleCharacter(repeated.atom);
+  const rights = firsts.map(singleCharacter);
+  if (left === void 0 || rights.some((right) => right === void 0)) {
+    return true;
+  }
+  return probes.some((char) => left.test(char) && rights.some((right) => right?.test(char)));
+}
+function firstAtoms(item) {
+  if (item.kind === "atom") {
+    return item.atom === void 0 ? void 0 : [item.atom];
+  }
+  const atoms = [];
+  for (const alternative of item.alternatives ?? []) {
+    const start = alternative.find((entry) => entry.kind !== "lookaround");
+    const nested = start === void 0 || (start.quantifier?.min ?? 1) === 0 ? void 0 : firstAtoms(start);
+    if (nested === void 0) {
+      return void 0;
+    }
+    atoms.push(...nested);
+  }
+  return atoms.length > 0 ? atoms : void 0;
+}
+function singleCharacter(atom) {
+  try {
+    return new RegExp(`^(?:${atom})$`, "u");
+  } catch {
+    try {
+      return new RegExp(`^(?:${atom})$`);
+    } catch {
+      return void 0;
+    }
+  }
+}
+var Parser = class {
+  constructor(text) {
+    this.text = text;
+  }
+  text;
+  index = 0;
+  sequence() {
+    return this.alternatives()[0] ?? [];
+  }
+  alternatives() {
+    const alternatives = [[]];
+    while (this.index < this.text.length) {
+      const char = this.text[this.index];
+      if (char === ")") {
+        break;
+      }
+      if (char === "|") {
+        this.index += 1;
+        alternatives.push([]);
+        continue;
+      }
+      const start = this.index;
+      const item = this.atom();
+      item.atom = this.text.slice(start, this.index);
+      item.quantifier = this.quantifier();
+      item.source = this.text.slice(start, this.index);
+      alternatives.at(-1)?.push(item);
+    }
+    return alternatives;
+  }
+  atom() {
+    const char = this.text[this.index];
+    if (char === "\\") {
+      this.index += 2;
+      return { kind: "atom", source: "" };
+    }
+    if (char === "[") {
+      this.index += 1;
+      if (this.text[this.index] === "^") {
+        this.index += 1;
+      }
+      if (this.text[this.index] === "]") {
+        this.index += 1;
+      }
+      while (this.index < this.text.length && this.text[this.index] !== "]") {
+        this.index += this.text[this.index] === "\\" ? 2 : 1;
+      }
+      this.index += 1;
+      return { kind: "atom", source: "" };
+    }
+    if (char === "(") {
+      this.index += 1;
+      let lookaround = false;
+      let atomic = false;
+      if (this.text[this.index] === "?") {
+        const rest = this.text.slice(this.index, this.index + 4);
+        lookaround = /^\?(?:[=!]|<[=!])/.test(rest);
+        atomic = rest.startsWith("?>");
+        const header = /^\?(?:P?<[A-Za-z_]\w*>|'[A-Za-z_]\w*'|<[=!]|[=!:>]|[a-zA-Z-]+[:)])/.exec(this.text.slice(this.index));
+        this.index += header?.[0].length ?? 1;
+        if (header?.[0].endsWith(")")) {
+          return { kind: "lookaround", source: "" };
+        }
+      }
+      const alternatives = this.alternatives();
+      this.index += 1;
+      return { kind: lookaround ? "lookaround" : "group", alternatives, atomic, source: "" };
+    }
+    this.index += 1;
+    return { kind: "atom", source: "" };
+  }
+  quantifier() {
+    const rest = this.text.slice(this.index);
+    const match2 = /^(?:([*+?])|\{(\d+)(?:(,)(\d*))?\})([?+]?)/.exec(rest);
+    if (match2 === null) {
+      return void 0;
+    }
+    this.index += match2[0].length;
+    const [, symbol, low, comma, high, suffix] = match2;
+    const possessive = suffix === "+";
+    if (symbol === "*") {
+      return { min: 0, max: Infinity, possessive };
+    }
+    if (symbol === "+") {
+      return { min: 1, max: Infinity, possessive };
+    }
+    if (symbol === "?") {
+      return { min: 0, max: 1, possessive };
+    }
+    const min = Number(low);
+    return { min, max: comma === void 0 ? min : high === "" ? Infinity : Number(high), possessive };
+  }
+};
+
+// src/rules/redos.ts
+var regexLiteral = /(?:^|[=(,:[!&|?{};]|\breturn|\bwhen|\bif|\bunless)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\[\n])+)\/[a-z]*/g;
+var quoted = String.raw`(["'])((?:\\.|(?!\1)[^\\])*)\1`;
+var regexCall = (prefix, rawPrefix = "") => new RegExp(String.raw`${prefix}\s*\(\s*(?:[^,()]{1,200},\s*)?(${rawPrefix})?(["'])((?:\\.|(?!\2)[^\\])*)\2`, "g");
+var sources = (content, pattern, rawGroup, textGroup) => [...content.matchAll(pattern)].map((match2) => ({ pattern: match2[textGroup] ?? "", raw: rawGroup(match2) }));
+var languages2 = [
+  {
+    files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    find: (content) => [
+      ...sources(content, regexLiteral, () => true, 1),
+      ...sources(content, new RegExp(String.raw`\bRegExp\s*\(\s*${quoted}`, "g"), () => false, 2)
+    ]
+  },
+  {
+    files: /\.pyi?$/,
+    find: (content) => sources(content, regexCall(String.raw`\bre(?:gex)?\.(?:compile|match|fullmatch|search|findall|finditer|sub|subn|split)`, "[rRbB]{1,2}"), (match2) => /r/i.test(match2[1] ?? ""), 3)
+  },
+  {
+    files: /\.rb$/,
+    find: (content) => [
+      ...sources(content, regexLiteral, () => true, 1),
+      ...sources(content, new RegExp(String.raw`\bRegexp\.new\s*\(\s*${quoted}`, "g"), (match2) => match2[1] === "'", 2)
+    ]
+  },
+  {
+    files: /\.(?:java|kt|scala)$/,
+    find: (content) => sources(content, regexCall(String.raw`(?:\bPattern\.compile|\.matches|\.replaceAll|\.replaceFirst|\.split|\bRegex)`), () => false, 3)
+  },
+  {
+    files: /\.cs$/,
+    find: (content) => sources(content, regexCall(String.raw`(?:\bnew\s+Regex|\bRegex\.(?:IsMatch|Match|Matches|Replace|Split))`, "@"), (match2) => match2[1] === "@", 3)
+  },
+  {
+    files: /\.php$/,
+    find: (content) => sources(content, regexCall(String.raw`\bpreg_(?:match|match_all|replace|replace_callback|split|grep)`), (match2) => match2[2] === "'", 3).map(
+      ({ pattern, raw }) => ({ pattern: withoutDelimiters(pattern), raw })
+    )
+  }
+];
+var commentLine14 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
+var maxLineLength3 = 1e3;
+var redosRule = {
+  id: "redos",
+  description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.redos.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const language = languages2.find(({ files: files2 }) => files2.test(file.path));
+      if (language === void 0 || file.patch === void 0 || documentation10.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
+        if (!added || commentLine14.test(content) || content.length > maxLineLength3) {
+          return [];
+        }
+        const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
+        return group === void 0 ? [] : [{ line, group }];
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lines = found.map((match2) => match2.line);
+      const { text, plural } = describeLines(lines);
+      const example = found[0]?.group ?? "";
+      return [
+        {
+          ruleId: "redos",
+          title: "Regular expression open to ReDoS",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "add regular expressions" : "adds a regular expression"} with a repeated group that can match the same text in many ways, such as ${example.length > 60 ? `${example.slice(0, 57)}...` : example}, which can take exponential time on a crafted input (ReDoS).`,
+          recommendation: "Make each repetition match text the others cannot, for example with a required separator such as (\\w+\\s)*, use an atomic group or possessive quantifier where the engine has them, limit the input length, or use a linear-time engine such as RE2."
+        }
+      ];
+    });
+  }
+};
+function unescapeString(text) {
+  return text.replace(/\\\\/g, "\\");
+}
+function withoutDelimiters(pattern) {
+  const delimiter2 = pattern[0];
+  if (delimiter2 === void 0 || /[\w\s\\]/.test(delimiter2)) {
+    return pattern;
+  }
+  const closing = { "(": ")", "[": "]", "{": "}", "<": ">" }[delimiter2] ?? delimiter2;
+  const end = pattern.lastIndexOf(closing);
+  return end > 0 ? pattern.slice(1, end) : pattern;
+}
+
 // src/rules/untrusted-input.ts
 var labels7 = {
   redirect: "redirects to a URL from the request, which can send users to any site",
@@ -40256,8 +40540,8 @@ var guarded = {
   path: /\b(?:path\.basename|basename|secure_filename|filepath\.Base|Path\.GetFileName|File\.basename|sanitize\w*)\s*\(/
 };
 var fixedTarget = /^\s*\(?\s*(["'`])(?:\/(?![\/$])|https?:\/\/[\w.-]+(?:[:/?]|\1))/;
-var commentLine14 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine15 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var untrustedInputRule = {
   id: "untrusted-input",
   description: "Flags request values passed straight to redirects, outgoing requests, and file paths.",
@@ -40267,13 +40551,13 @@ var untrustedInputRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const ruby = rubyFile.test(file.path);
       const fromRequest = (content) => requestValue.test(content) || ruby && railsParams.test(content);
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine14.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine15.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -40469,8 +40753,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine15 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine16 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -40481,7 +40765,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation12.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -40496,7 +40780,7 @@ var remoteScriptRule = {
       }
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       const hosts = [...new Set(found.flatMap((match2) => match2.host ?? []))];
-      const sources = [
+      const sources2 = [
         ...hosts.slice(0, 3),
         ...hosts.length > 3 ? ["..."] : [],
         ...found.some((match2) => match2.host === void 0) ? ["a URL in a variable"] : []
@@ -40511,7 +40795,7 @@ var remoteScriptRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "run scripts" : "runs a script"} downloaded from ${sources} without checking ${plural ? "them" : "it"}${http}.`,
+          message: `${text} ${plural ? "run scripts" : "runs a script"} downloaded from ${sources2} without checking ${plural ? "them" : "it"}${http}.`,
           recommendation: "Whoever controls the URL, or can intercept it, runs code here. Download the script to a file, check its checksum or signature, then run it, or install a pinned release from a package manager."
         }
       ];
@@ -40533,7 +40817,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine15.test(content)) {
+    if (commentLine16.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -40558,7 +40842,7 @@ function unquoted(content) {
 
 // src/rules/risky-api.ts
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
-var languages2 = [
+var languages3 = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
     calls: [
@@ -40674,7 +40958,7 @@ var riskyApiRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const language = languages2.find((candidate) => candidate.files.test(file.path));
+      const language = languages3.find((candidate) => candidate.files.test(file.path));
       if (!language || file.patch === void 0 || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
@@ -40806,7 +41090,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -40816,7 +41100,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation12.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation13.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -41093,7 +41377,7 @@ function isUntrusted(path5) {
 
 // src/rules/skipped-tests.ts
 var notMember = String.raw`(?<![.\w$])`;
-var languages3 = [
+var languages4 = [
   {
     // Jest, Vitest, Mocha, Jasmine, and node:test.
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
@@ -41170,7 +41454,7 @@ var skippedTestsRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.filter((file) => file.patch !== void 0).flatMap((file) => {
       const isTestFile = testGlobs.some((glob2) => minimatch(file.path, glob2));
-      const markers = languages3.filter((language) => language.files.test(file.path) && (isTestFile || language.anyFile)).flatMap((language) => language.markers);
+      const markers = languages4.filter((language) => language.files.test(file.path) && (isTestFile || language.anyFile)).flatMap((language) => language.markers);
       const found = matchAddedLines(file.patch ?? "", markers).map(({ line, label }) => ({
         line,
         marker: label
@@ -41236,8 +41520,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine17 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -41247,7 +41531,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation13.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation14.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -41278,7 +41562,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine16.test(content)) {
+    if (commentLine17.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -41396,6 +41680,7 @@ var defaultRules = [
   untrustedInputRule,
   xmlExternalEntitiesRule,
   massAssignmentRule,
+  redosRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,
@@ -41711,6 +41996,7 @@ var ruleAreas = {
   "weak-crypto": "code",
   "xml-external-entities": "code",
   "mass-assignment": "code",
+  redos: "code",
   "untrusted-input": "code",
   "risky-api": "code",
   "disabled-security-check": "code",
@@ -41754,6 +42040,7 @@ var ruleQuestions = {
   "weak-crypto": "Are secrets hashed with a password hash, encrypted with an authenticated cipher, and made with a cryptographic random generator?",
   "xml-external-entities": "Does every XML parser that turns on DTDs or external entities read only trusted documents?",
   "mass-assignment": "Does each form, serializer, or model write accept only the fields a user may change?",
+  redos: "Can a user send the text these regular expressions read, and is its length limited?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
@@ -41810,6 +42097,7 @@ var ruleSections = {
   "untrusted-input": "Untrusted Input",
   "xml-external-entities": "XML External Entities",
   "mass-assignment": "Mass Assignment",
+  redos: "Regular Expression Denial of Service",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",
@@ -42290,7 +42578,7 @@ async function loadBaseCodeOwners(client, owner, repo, baseSha) {
 // src/analysis/git-attributes.ts
 var gitAttributesPath = ".gitattributes";
 var maxRules2 = 5e3;
-var maxPatternLength2 = 500;
+var maxPatternLength3 = 500;
 function parseGitAttributes(text) {
   const rules = [];
   for (const raw of text.split(/\r?\n/)) {
@@ -42299,7 +42587,7 @@ function parseGitAttributes(text) {
       continue;
     }
     const [pattern = "", ...attributes] = line.split(/\s+/);
-    if (pattern.length > maxPatternLength2 || pattern.startsWith("!") || pattern.endsWith("/")) {
+    if (pattern.length > maxPatternLength3 || pattern.startsWith("!") || pattern.endsWith("/")) {
       continue;
     }
     const rule = { matcher: new Minimatch(patternGlob(pattern), { dot: true }) };
