@@ -52,6 +52,18 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Maven and Gradle builds in the dependency checks: `pom.xml` dependency blocks, Gradle build scripts, and version catalogs, with `gradle.lockfile` (0.30.0).
 - An optional AI summary written from the redacted diff, behind a provider interface, with a validated reply, a fallback that publishes the review without it, and prompt-injection fixtures checked against what the model is sent and what the comment shows (0.31.0).
 - Scoped npm packages in the dependency checks (0.32.0).
+- zod 4, which fixes GHSA-mrhx-c7xc-m3w5 (0.33.0).
+- `dockerfile-risk` rule for unpinned base images, unchecked remote `ADD`, secrets in `ENV` or `ARG`, and a final `USER root`.
+
+## Near Term
+
+### Check Terraform and other infrastructure code
+
+`public-exposure` already reports public buckets and open ports. A rule for IAM policies that grant every action or resource (`"Action": "*"`), storage and databases with encryption turned off, and logging turned off would cover the other common infrastructure-as-code mistakes.
+
+### Check workflow permissions in more detail
+
+`workflow-risk` reports `permissions: write-all`. Reporting workflows that add write permissions or `id-token: write` without a step that needs them, and jobs that inherit broad default permissions, would tighten what a compromised step can do.
 
 ## Later
 
