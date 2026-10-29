@@ -21,6 +21,25 @@ The action reads the configuration from the **base commit** of the pull request 
 - When the file does not exist on the base commit, the defaults apply and the log says so. This is the case for the pull request that first adds a configuration file, which also receives a high-risk `config-change` finding.
 - The CLI reads the file from disk, because it reviews local diffs and has no base commit. It uses `.prism-review.yml` in the current directory when present, or the file passed with `--config`; a `--config` path that does not exist is an error rather than a silent fallback to the defaults.
 
+### `extends`
+
+A configuration can extend another file, so several repositories share one set of rules and each keeps only what it changes:
+
+```yaml
+# .prism-review.yml
+extends: acme/policies/prism-review.yml@v2
+check:
+  failOn: high
+```
+
+- `extends: owner/repo/path@ref` reads a file from another repository at a tag, branch, or commit. Pin a tag or a commit SHA: a branch can change the rules of every repository that extends it without a pull request to any of them.
+- `extends: path/in/this/repo.yml` reads a file from the same repository. The action reads it from the base commit, like the configuration itself, and `config-change` reports a pull request that changes it.
+- The extended file can extend another one, up to five files deep. A file that extends one that extends it back is an error.
+- Settings are laid over the extended ones: mappings, such as `rules` or `severity`, merge key by key, and lists, such as `ignorePaths` or `testGlobs`, and single values replace the extended ones. The merged result is checked like a single file, and an error names the file it came from.
+- The action reads other repositories with its `github-token`. The default `GITHUB_TOKEN` can read public repositories and the current one; for a private repository, pass a token that can read it, such as a GitHub App installation token with read access to the shared repository.
+- The CLI reads files in the repository from the current directory, as its root, and other repositories through the GitHub API, using `GITHUB_TOKEN` or `GH_TOKEN` when one is set, and `GITHUB_API_URL` for GitHub Enterprise Server.
+- An extended file that cannot be found or read fails the run, rather than falling back to the defaults, so a moved or private shared file does not turn the checks off unnoticed.
+
 ## Example
 
 ```yaml
