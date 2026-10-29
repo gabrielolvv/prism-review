@@ -47,3 +47,17 @@ export function testConfigurationDocsListEveryRuleByArea(): void {
     assert.ok(areaTable.includes(`\`${rule.id}\``), `the area table is missing ${rule.id}`);
   }
 }
+
+// The pre-commit and GitLab examples pin a release, so each release updates them with the version.
+export function testInstallExamplesPinTheCurrentVersion(): void {
+  const { version } = JSON.parse(readFileSync("package.json", "utf8")) as { version: string };
+  const readme = readFileSync("README.md", "utf8");
+  const gitlab = readFileSync("examples/gitlab/.gitlab-ci.yml", "utf8");
+
+  assert.deepEqual([...readme.matchAll(/^\s*rev: (v\S+)$/gm)].map((match) => match[1]), [`v${version}`]);
+  for (const text of [readme, gitlab]) {
+    const pins = [...text.matchAll(/@gabrielolvv\/prism-review@(\S+)/g)].map((match) => match[1]);
+    assert.ok(pins.length > 0);
+    assert.deepEqual([...new Set(pins)], [version]);
+  }
+}

@@ -83,8 +83,10 @@ export function oneEditApart(left: string, right: string): boolean {
         differences.push(index);
       }
     }
+    // A different digit is usually another major version in the name, such as rxjava2 and rxjava3.
     if (differences.length === 1) {
-      return true;
+      const [index = 0] = differences;
+      return !(/\d/.test(left[index] ?? "") && /\d/.test(right[index] ?? ""));
     }
     const [first = 0, second = 0] = differences;
     return (

@@ -89,7 +89,7 @@ export function testMavenAndGradleGoThroughTheDependencyRules(): void {
       "     <dependency>",
       "       <groupId>org.apache.commons</groupId>",
       "-      <artifactId>commons-lang3</artifactId>",
-      "+      <artifactId>commons-lang4</artifactId>",
+      "+      <artifactId>commons-lamg3</artifactId>",
       "     </dependency>",
       "     <dependency>",
       "       <groupId>com.google.guava</groupId>",
@@ -104,7 +104,7 @@ export function testMavenAndGradleGoThroughTheDependencyRules(): void {
   const messages = (ruleId: string) => result.findings.filter((finding) => finding.ruleId === ruleId).map((finding) => finding.message);
 
   assert.deepEqual(messages("lookalike-dependency"), [
-    "Line 3 adds org.apache.commons:commons-lang4 (like org.apache.commons:commons-lang3): a name one character away from a popular Maven package, a common way to slip in a malicious one."
+    "Line 3 adds org.apache.commons:commons-lamg3 (like org.apache.commons:commons-lang3): a name one character away from a popular Maven package, a common way to slip in a malicious one."
   ]);
   assert.deepEqual(messages("risky-dependency-version"), [
     "Lines 1, 2 change dependency versions: com.squareup.okhttp3:okhttp from 4.12.0 to +, which accepts any future release; com.google.code.gson:gson at latest.release, which accepts any release."

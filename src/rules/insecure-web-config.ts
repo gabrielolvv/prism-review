@@ -42,7 +42,8 @@ const cookieFlags = [
   /\b(?:SESSION|CSRF)_COOKIE_(?:SECURE|HTTPONLY)\s*=\s*False\b/,
   /\bset_cookie\s*\([^)]{0,500}\b(?:httponly|secure)\s*=\s*False\b/,
   /\b(?:res|response|reply)\.cookie\s*\([^)]{0,500}\b(?:httpOnly|secure)\s*:\s*false\b/,
-  /\.set(?:HttpOnly|Secure)\s*\(\s*false\s*\)/,
+  // Java's Cookie. `setSecure(false)` on anything else, such as Tomcat's request, is not about a cookie.
+  /\.setHttpOnly\s*\(\s*false\s*\)|\b\w*cookie\w*\.setSecure\s*\(\s*false\s*\)/i,
   /\bHttpOnly\s*=\s*false\b/
 ];
 const flaskDebug = /\.run\s*\([^)]{0,500}\b(?:debug|use_debugger)\s*=\s*True\b/;

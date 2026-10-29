@@ -189,3 +189,64 @@ export function testQuotedIdentifiersAreNotSqlInjection(): void {
     assert.ok(ruleIds("lib/db.py", [line]).includes("sql-injection"), line);
   }
 }
+
+// Found on about 18,600 files from popular Go modules and Java libraries, such as gin, gRPC, pgx,
+// Spring, Hibernate, Tomcat, Netty, and Liquibase.
+
+export function testSqlFromConstantsAndEscapedNamesIsNotReported(): void {
+  const safe = [
+    'private static final String DELETE_SQL = "DELETE FROM " + TABLE_NAME + " WHERE " + ID_FILTER;',
+    'jdbcTemplate.execute("DELETE FROM " + SQLiteTable.SQLITE_SEQUENCE);',
+    'String sql = "SELECT * FROM " + referenceDatabase.escapeTableName(catalog, schema, table);'
+  ];
+  for (const line of safe) {
+    assert.ok(!ruleIds("src/main/java/Store.java", [line]).includes("sql-injection"), line);
+  }
+  const built = ['String sql = "SELECT * FROM users WHERE name = \'" + name + "\'";', 'stmt.executeQuery("DELETE FROM " + TABLE_NAME + " WHERE id = " + id);'];
+  for (const line of built) {
+    assert.ok(ruleIds("src/main/java/Store.java", [line]).includes("sql-injection"), line);
+  }
+}
+
+export function testRubyCommandsWithArgumentListsRunNoShell(): void {
+  const list = ['ok = system("cockroach", *args, **opts)', 'exec("process-compose", "down", *ARGV[1..])', 'system("createdb", "-U", user, "app")'];
+  for (const line of list) {
+    assert.ok(!ruleIds("scripts/dev.rb", [line]).includes("risky-api"), line);
+  }
+  // One string, even with options after it, goes through the shell.
+  for (const line of ['system("rm -rf #{dir}")', 'system("make #{target}", exception: true)']) {
+    assert.ok(ruleIds("scripts/dev.rb", [line]).includes("risky-api"), line);
+  }
+}
+
+export function testDefiningASwitchDoesNotTurnAChecksOff(): void {
+  const definitions = [
+    "func (p *Parser) ParseUnverified(tokenString string, claims Claims) (token *Token, parts []string, err error) {",
+    "public class NoopHostnameVerifier implements HostnameVerifier {",
+    "public final class TrustAllStrategy implements TrustStrategy {"
+  ];
+  for (const line of definitions) {
+    assert.ok(!ruleIds("src/ssl/Verifiers.java", [line]).includes("disabled-security-check"), line);
+  }
+  assert.ok(ruleIds("internal/client.go", ["token, _, err := parser.ParseUnverified(raw, claims)"]).includes("disabled-security-check"));
+}
+
+export function testRsaTransformationsAreNotEcb(): void {
+  // Java names RSA padding `RSA/ECB/...`, though RSA has no block mode.
+  assert.ok(!ruleIds("src/main/java/Keys.java", ['Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");']).includes("weak-crypto"));
+  assert.ok(ruleIds("src/main/java/Keys.java", ['Cipher aes = Cipher.getInstance("AES/ECB/PKCS5Padding");']).includes("weak-crypto"));
+}
+
+export function testOnlyCookiesAreInsecureCookies(): void {
+  // Tomcat's RemoteIpValve marks a request as not secure when a proxy says so.
+  assert.ok(!ruleIds("src/main/java/RemoteIpValve.java", ["request.setSecure(false);"]).includes("insecure-web-config"));
+  assert.ok(ruleIds("src/main/java/Login.java", ["sessionCookie.setSecure(false);"]).includes("insecure-web-config"));
+  assert.ok(ruleIds("src/main/java/Login.java", ["c.setHttpOnly(false);"]).includes("insecure-web-config"));
+}
+
+export function testAnotherMajorVersionIsNotALookalike(): void {
+  const pom = (artifact: string, group: string) =>
+    added("pom.xml", ["  <dependency>", `    <groupId>${group}</groupId>`, `    <artifactId>${artifact}</artifactId>`, "  </dependency>"]);
+  assert.ok(!analyzePullRequest([pom("rxjava", "io.reactivex.rxjava2")], defaultConfig).findings.some((finding) => finding.ruleId === "lookalike-dependency"));
+  assert.ok(analyzePullRequest([pom("commons-lamg3", "org.apache.commons")], defaultConfig).findings.some((finding) => finding.ruleId === "lookalike-dependency"));
+}

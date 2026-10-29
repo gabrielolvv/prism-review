@@ -1,16 +1,22 @@
 import {
   testActiveRecordLogNamesAreNotSql,
+  testAnotherMajorVersionIsNotALookalike,
+  testDefiningASwitchDoesNotTurnAChecksOff,
   testExampleProjectsAreNotProductionSettings,
   testImportsDoNotTurnOffChecks,
   testMigrationFrameworkCodeIsNotAMigration,
   testMigrationOperationsCountOnlyAsCalls,
   testMinifiedBundlesAreNotReadAsWeakCrypto,
+  testOnlyCookiesAreInsecureCookies,
+  testPackageMetadataIsNotADependency,
   testPopularPackagesNamedLikeOthersAreNotLookalikes,
   testPublishConfigIsNotADependency,
-  testPackageMetadataIsNotADependency,
   testPythonNamesAreNotReadAsRailsInput,
   testQuotedIdentifiersAreNotSqlInjection,
   testReadingTheUmaskIsNotReported,
+  testRsaTransformationsAreNotEcb,
+  testRubyCommandsWithArgumentListsRunNoShell,
+  testSqlFromConstantsAndEscapedNamesIsNotReported,
   testTestDirectoriesAreTests,
   testTranslationCatalogsMayUseDirectionMarks
 } from "./unit/corpus-regressions.test.js";
@@ -295,9 +301,10 @@ import {
   testRenderLineCommentEscapesFindingText
 } from "./unit/line-comments.test.js";
 import {
+  testConfigurationDocsListEveryRuleByArea,
   testConfigurationDocsNameEveryRule,
   testEveryRuleLinksToItsDocumentation,
-  testConfigurationDocsListEveryRuleByArea,
+  testInstallExamplesPinTheCurrentVersion,
   testReadmeListsEveryRule
 } from "./unit/docs.test.js";
 import {
@@ -438,6 +445,8 @@ import {
 } from "./unit/rules.test.js";
 import {
   testFindAddedSecretsDetectsPgpPrivateKeys,
+  testFindAddedSecretsNeedsKeyMaterialAfterAHeader,
+  testFindAddedSecretsSkipsTheDocumentedAwsExample,
   testFindAddedSecretsHonorsAllowlist,
   testFindAddedSecretsIgnoresGenericTokens,
   testFindAddedSecretsNumbersLinesInTheNewFile,
@@ -480,6 +489,8 @@ const tests: Array<[string, Test]> = [
   ["secret-in-diff rule summarizes many lines", testSecretInDiffRuleSummarizesManyLines],
   ["secret-in-diff rule can be disabled", testSecretInDiffRuleCanBeDisabled],
   ["findAddedSecrets detects PGP private keys", testFindAddedSecretsDetectsPgpPrivateKeys],
+  ["findAddedSecrets needs key material after a private key header", testFindAddedSecretsNeedsKeyMaterialAfterAHeader],
+  ["findAddedSecrets skips the documented AWS example key", testFindAddedSecretsSkipsTheDocumentedAwsExample],
   ["secret-in-diff rule scans patches over the size limit", testSecretInDiffRuleScansOversizedPatches],
   ["secret-in-diff rule scans files that were not prepared", testSecretInDiffRuleScansUnpreparedFiles],
   ["findAddedSecrets stays linear on hostile input", testFindAddedSecretsStaysLinearOnHostileInput],
@@ -649,6 +660,12 @@ const tests: Array<[string, Test]> = [
   ["files in test directories are tests", testTestDirectoriesAreTests],
   ["migration framework code is not a migration", testMigrationFrameworkCodeIsNotAMigration],
   ["quoted identifiers are not SQL injection", testQuotedIdentifiersAreNotSqlInjection],
+  ["SQL from constants and escaped names is not reported", testSqlFromConstantsAndEscapedNamesIsNotReported],
+  ["Ruby commands with argument lists run no shell", testRubyCommandsWithArgumentListsRunNoShell],
+  ["defining a switch does not turn a check off", testDefiningASwitchDoesNotTurnAChecksOff],
+  ["RSA transformations are not ECB", testRsaTransformationsAreNotEcb],
+  ["only cookies are insecure cookies", testOnlyCookiesAreInsecureCookies],
+  ["another major version is not a lookalike", testAnotherMajorVersionIsNotALookalike],
   ["untrusted-input reports each kind", testUntrustedInputReportsEachKind],
   ["untrusted-input reads other frameworks", testUntrustedInputReadsOtherFrameworks],
   ["untrusted-input skips fixed targets and guarded values", testUntrustedInputSkipsFixedTargetsAndGuards],
@@ -706,6 +723,7 @@ const tests: Array<[string, Test]> = [
   ["plan line comments keeps resolved comments quiet and caps the count", testPlanLineCommentsKeepsResolvedCommentsQuietAndCapsTheCount],
   ["render line comment escapes finding text", testRenderLineCommentEscapesFindingText],
   ["README lists every rule", testReadmeListsEveryRule],
+  ["the pre-commit and GitLab examples pin the current version", testInstallExamplesPinTheCurrentVersion],
   ["configuration docs list every rule by area", testConfigurationDocsListEveryRuleByArea],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["every rule links to its documentation", testEveryRuleLinksToItsDocumentation],
