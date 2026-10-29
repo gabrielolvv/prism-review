@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `insecure-infrastructure` rule. It reports IAM policies that allow every action, as a high-risk finding, and warns when Terraform or CloudFormation turns off encryption, allows TLS 1.0 or 1.1, turns off CloudTrail logging or log file validation, or allows IMDSv1 with `http_tokens = "optional"`. A statement that denies every action is not reported. `rules.insecureInfrastructure.enabled` turns it off.
+
 ## 0.34.0 - 2026-10-29
 
 ### Added
