@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -325,13 +326,13 @@ var require_directives = __commonJS({
               onError(0, "%YAML directive should contain exactly one part");
               return false;
             }
-            const [version2] = parts;
-            if (version2 === "1.1" || version2 === "1.2") {
-              this.yaml.version = version2;
+            const [version3] = parts;
+            if (version3 === "1.1" || version3 === "1.2") {
+              this.yaml.version = version3;
               return true;
             } else {
-              const isValid = /^\d+\.\d+$/.test(version2);
-              onError(6, `Unsupported YAML version ${version2}`, isValid);
+              const isValid = /^\d+\.\d+$/.test(version3);
+              onError(6, `Unsupported YAML version ${version3}`, isValid);
               return false;
             }
           }
@@ -3431,14 +3432,14 @@ var require_Document = __commonJS({
           version: "1.2"
         }, options);
         this.options = opt;
-        let { version: version2 } = opt;
+        let { version: version3 } = opt;
         if (options?._directives) {
           this.directives = options._directives.atDocument();
           if (this.directives.yaml.explicit)
-            version2 = this.directives.yaml.version;
+            version3 = this.directives.yaml.version;
         } else
-          this.directives = new directives.Directives({ version: version2 });
-        this.setSchema(version2, options);
+          this.directives = new directives.Directives({ version: version3 });
+        this.setSchema(version3, options);
         this.contents = value === void 0 ? null : this.createNode(value, _replacer, options);
       }
       /**
@@ -3618,11 +3619,11 @@ var require_Document = __commonJS({
        *
        * Overrides all previously set schema options.
        */
-      setSchema(version2, options = {}) {
-        if (typeof version2 === "number")
-          version2 = String(version2);
+      setSchema(version3, options = {}) {
+        if (typeof version3 === "number")
+          version3 = String(version3);
         let opt;
-        switch (version2) {
+        switch (version3) {
           case "1.1":
             if (this.directives)
               this.directives.yaml.version = "1.1";
@@ -3633,9 +3634,9 @@ var require_Document = __commonJS({
           case "1.2":
           case "next":
             if (this.directives)
-              this.directives.yaml.version = version2;
+              this.directives.yaml.version = version3;
             else
-              this.directives = new directives.Directives({ version: version2 });
+              this.directives = new directives.Directives({ version: version3 });
             opt = { resolveKnownTags: true, schema: "core" };
             break;
           case null:
@@ -3644,7 +3645,7 @@ var require_Document = __commonJS({
             opt = null;
             break;
           default: {
-            const sv = JSON.stringify(version2);
+            const sv = JSON.stringify(version3);
             throw new Error(`Expected '1.1', '1.2' or null as first argument, but found: ${sv}`);
           }
         }
@@ -7361,8 +7362,8 @@ var require_dist = __commonJS({
 });
 
 // src/cli/main.ts
-var import_node_fs2 = require("node:fs");
-var import_node_path = require("node:path");
+var import_node_fs3 = require("node:fs");
+var import_node_path2 = require("node:path");
 
 // node_modules/balanced-match/dist/esm/index.js
 var balanced = (a, b, str) => {
@@ -10136,7 +10137,7 @@ function $constructor(name, initializer3, proto, params) {
   Internals.prototype = zodProto;
   const protoMembers = proto;
   const initialized = protoMembers && /* @__PURE__ */ new WeakSet();
-  function init(inst, def) {
+  function init2(inst, def) {
     if (!inst._zod) {
       _zodDesc.value = new Internals(def);
       try {
@@ -10176,7 +10177,7 @@ function $constructor(name, initializer3, proto, params) {
   Object.defineProperty(Definition, "name", { value: name });
   function _(def) {
     const inst = params?.Parent ? newError(Definition) : this;
-    init(inst, def);
+    init2(inst, def);
     const deferred = inst._zod.deferred;
     if (deferred) {
       for (const fn of deferred) {
@@ -10189,7 +10190,7 @@ function $constructor(name, initializer3, proto, params) {
       pp(inst);
     return inst;
   }
-  Object.defineProperty(_, "init", { value: init });
+  Object.defineProperty(_, "init", { value: init2 });
   Object.defineProperty(_, Symbol.hasInstance, {
     value: (inst) => {
       if (params?.Parent && inst instanceof params.Parent)
@@ -10494,10 +10495,10 @@ function nanoidOfLength(length) {
 }
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-var uuid = (version2) => {
-  if (!version2)
+var uuid = (version3) => {
+  if (!version3)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
-  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version2}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
+  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version3}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
 var email = /^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
 var _emoji = `^(?=[\\s\\S]*[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3])[\\p{Extended_Pictographic}\\p{Emoji_Component}]+$`;
@@ -16712,8 +16713,8 @@ var manifests = [
     ecosystem: "npm",
     files: /(?:^|\/)package\.json$/,
     entries(content) {
-      const [matched, name = "", version2 = ""] = npmEntry.exec(content) ?? [];
-      return matched !== void 0 && !npmFields.has(name) && npmVersion.test(version2) ? [{ name, version: version2 }] : [];
+      const [matched, name = "", version3 = ""] = npmEntry.exec(content) ?? [];
+      return matched !== void 0 && !npmFields.has(name) && npmVersion.test(version3) ? [{ name, version: version3 }] : [];
     }
   },
   {
@@ -16721,8 +16722,8 @@ var manifests = [
     files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$/i,
     // `name`, `name[extra]`, `name>=1.0`, or `name @ url`; options and URLs are not package names.
     entries(content) {
-      const [matched, name = "", version2 = ""] = requirementLine.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2.trim() }];
+      const [matched, name = "", version3 = ""] = requirementLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3.trim() }];
     }
   },
   {
@@ -16748,8 +16749,8 @@ var manifests = [
     ecosystem: "RubyGems",
     files: /(?:^|\/)(?:Gemfile|[^/]+\.gemspec)$/,
     entries(content) {
-      const [matched, name = "", version2 = ""] = gemLine.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2 }];
+      const [matched, name = "", version3 = ""] = gemLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3 }];
     }
   },
   {
@@ -16757,8 +16758,8 @@ var manifests = [
     files: /(?:^|\/)composer\.json$/,
     // `"vendor/name": "^1.0"`; platform requirements such as `php` and `ext-json` have no vendor.
     entries(content) {
-      const [matched, name = "", version2 = ""] = composerEntry.exec(content) ?? [];
-      return matched !== void 0 && composerVersion.test(version2) ? [{ name, version: version2 }] : [];
+      const [matched, name = "", version3 = ""] = composerEntry.exec(content) ?? [];
+      return matched !== void 0 && composerVersion.test(version3) ? [{ name, version: version3 }] : [];
     }
   },
   {
@@ -16793,8 +16794,8 @@ var manifests = [
     // `implementation("group:artifact:1.0")`, `implementation 'group:artifact:1.0'`, `platform(...)`,
     // and `implementation group: 'g', name: 'a', version: '1.0'`.
     entries(content) {
-      const [matched, group = "", artifact = "", version2 = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name: `${group}:${artifact}`, version: version2 }];
+      const [matched, group = "", artifact = "", version3 = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name: `${group}:${artifact}`, version: version3 }];
     }
   },
   {
@@ -16811,14 +16812,14 @@ var manifests = [
       const module2 = /\bmodule\s*=\s*"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})"/.exec(value);
       const group = /\bgroup\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
       const name = /\bname\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
-      const version2 = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
+      const version3 = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
       if (short) {
         return [{ name: `${short[1]}:${short[2]}`, version: short[3] ?? "" }];
       }
       if (module2) {
-        return [{ name: `${module2[1]}:${module2[2]}`, version: version2 }];
+        return [{ name: `${module2[1]}:${module2[2]}`, version: version3 }];
       }
-      return group !== void 0 && name !== void 0 ? [{ name: `${group}:${name}`, version: version2 }] : [];
+      return group !== void 0 && name !== void 0 ? [{ name: `${group}:${name}`, version: version3 }] : [];
     }
   },
   {
@@ -16827,8 +16828,8 @@ var manifests = [
     // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
     // blocks name modules too, but not dependencies.
     entries(content, section) {
-      const [matched, name = "", version2 = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2 }];
+      const [matched, name = "", version3 = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3 }];
     },
     section: (content) => goBlockStart.exec(content)?.[1] ?? (/^\s*\)\s*$/.test(content) ? "" : void 0)
   },
@@ -16940,8 +16941,8 @@ function tomlEntries(content) {
   if (matched === void 0) {
     return [];
   }
-  const version2 = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
-  return [{ name, version: version2 }];
+  const version3 = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
+  return [{ name, version: version3 }];
 }
 function mavenDependencies(patch) {
   const added = [];
@@ -16996,8 +16997,8 @@ function dependencyBlocks(lines, side) {
     const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
     const changed = block.find((entry) => entry.kind !== " ");
     if (group !== void 0 && artifact !== void 0 && changed !== void 0) {
-      const version2 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
-      found.push({ name: `${group}:${artifact}`, version: version2, line: side === "+" ? changed.newLine : changed.oldLine });
+      const version3 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
+      found.push({ name: `${group}:${artifact}`, version: version3, line: side === "+" ? changed.newLine : changed.oldLine });
     }
     block = [];
   }
@@ -17921,11 +17922,11 @@ function describeProblem(change) {
   }
   return void 0;
 }
-function shown(version2) {
-  return version2 === "" ? "no version" : version2;
+function shown(version3) {
+  return version3 === "" ? "no version" : version3;
 }
-function isOpenEnded(version2, ecosystem) {
-  const spec = version2.trim();
+function isOpenEnded(version3, ecosystem) {
+  const spec = version3.trim();
   if (spec === "" && ecosystem === "Maven") {
     return false;
   }
@@ -17938,11 +17939,11 @@ function isOpenEnded(version2, ecosystem) {
   const parts = spec.split(/\s*,\s*|\s+(?=[<>=])/).filter(Boolean);
   return parts.length > 0 && !spec.includes("||") && parts.every((part) => /^>=?\s*v?\d/.test(part));
 }
-function versionNumbers(version2) {
-  if (/:\/\/|^(?:git|file|link|workspace|npm|github)[:+]/i.test(version2.trim())) {
+function versionNumbers(version3) {
+  if (/:\/\/|^(?:git|file|link|workspace|npm|github)[:+]/i.test(version3.trim())) {
     return void 0;
   }
-  const match2 = /(\d{1,9})(?:\.(\d{1,9}))?(?:\.(\d{1,9}))?/.exec(version2);
+  const match2 = /(\d{1,9})(?:\.(\d{1,9}))?(?:\.(\d{1,9}))?/.exec(version3);
   return match2 === null ? void 0 : match2.slice(1).filter((part) => part !== void 0).map(Number);
 }
 function compareVersions(left, right) {
@@ -20545,11 +20546,11 @@ function renderDependencyChanges(changes) {
     return [];
   }
   const cell = (value) => codeSpan(value).replace(/\|/g, "\\|");
-  const version2 = (value) => value === void 0 || value === "" ? "" : ` ${cell(value)}`;
+  const version3 = (value) => value === void 0 || value === "" ? "" : ` ${cell(value)}`;
   const rows = [];
   let length = 0;
   for (const change of changes.slice(0, maxDependencyRows)) {
-    const what = change.from === void 0 ? `added${version2(change.to)}` : change.to === void 0 ? `removed${version2(change.from)}` : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
+    const what = change.from === void 0 ? `added${version3(change.to)}` : change.to === void 0 ? `removed${version3(change.from)}` : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
     const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
     if (length + row.length > maxDependencyLength) {
       break;
@@ -20890,14 +20891,125 @@ function detectStatus(lines) {
   return "modified";
 }
 
+// src/cli/init.ts
+var import_node_fs2 = require("node:fs");
+var import_node_path = require("node:path");
+var workflowPath = ".github/workflows/prism-review.yml";
+var actionRepository = "gabrielolvv/prism-review";
+var commitLookupTimeoutMs = 5e3;
+async function initRepository(options) {
+  const uses = await chooseRef(options);
+  const files = [
+    [workflowPath, workflowYaml(uses)],
+    [defaultConfigPath, starterConfig]
+  ];
+  const written = [];
+  const skipped = [];
+  for (const [path2, content] of files) {
+    const target = (0, import_node_path.join)(options.directory, path2);
+    if ((0, import_node_fs2.existsSync)(target) && !options.force) {
+      skipped.push(path2);
+      continue;
+    }
+    (0, import_node_fs2.mkdirSync)((0, import_node_path.dirname)(target), { recursive: true });
+    (0, import_node_fs2.writeFileSync)(target, content);
+    written.push(path2);
+  }
+  return { written, skipped, uses };
+}
+async function chooseRef(options) {
+  if (options.ref !== void 0) {
+    return options.ref;
+  }
+  if (!/^\d+\.\d+\.\d+$/.test(options.version)) {
+    return "v0";
+  }
+  const tag = `v${options.version}`;
+  const commit = await (options.findReleaseCommit ?? findReleaseCommit)(tag).catch(() => void 0);
+  return commit === void 0 ? "v0" : `${commit} # ${tag}`;
+}
+async function findReleaseCommit(tag) {
+  const response = await fetch(`https://api.github.com/repos/${actionRepository}/commits/${encodeURIComponent(tag)}`, {
+    headers: { Accept: "application/vnd.github.sha", "User-Agent": "prism-review-cli" },
+    signal: AbortSignal.timeout(commitLookupTimeoutMs)
+  });
+  if (!response.ok) {
+    return void 0;
+  }
+  const sha = (await response.text()).trim();
+  return /^[0-9a-f]{40}$/.test(sha) ? sha : void 0;
+}
+function workflowYaml(uses) {
+  return `name: Prism Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: ${actionRepository}@${uses}
+        with:
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+          config-path: ${defaultConfigPath}
+`;
+}
+var starterConfig = `# Prism Review configuration. Every option, with its default, is described in
+# https://github.com/${actionRepository}/blob/master/docs/configuration.md
+#
+# The action reads this file from the pull request's base branch, so a change to it applies to
+# the pull requests opened after it is merged.
+
+check:
+  # Fail the review job on findings of this severity: never, warning, or high. Mark the job as a
+  # required status check in branch protection to block merges on them.
+  failOn: never
+
+comment:
+  # upsert updates one comment on every push; append posts a new comment each time.
+  mode: upsert
+  # Questions of your own, added to the reviewer checklist of every review.
+  checklist: []
+
+# Files to leave out of the review, such as vendored or generated code that is not marked
+# linguist-generated in .gitattributes.
+ignorePaths: []
+#  - "vendor/**"
+
+# Change a rule's severity, or turn it off.
+severity: {}
+#  missing-tests: off
+`;
+
+// src/cli/version.ts
+var version2 = true ? "0.44.0" : "development";
+
 // src/cli/main.ts
 var usage = [
   "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
+  "       prism-review init [--ref <ref>] [--force]",
   "",
+  "analyze reviews a diff:",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
   "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "",
+  "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
+  "current directory:",
+  "  --ref <ref>       Use the action at this tag or commit, such as v0, instead of pinning the",
+  "                    commit of this version's release.",
+  "  --force           Replace the files when they already exist.",
+  "",
+  "  --version         Print the version.",
   "",
   "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
   ""
@@ -20911,6 +21023,15 @@ async function main() {
     process.stdout.write(usage);
     return;
   }
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`${version2}
+`);
+    return;
+  }
+  if (command === "init") {
+    await init(args);
+    return;
+  }
   if (command !== "analyze") {
     throw new UsageError(command ? `Unknown command: ${command}` : "Missing command.");
   }
@@ -20922,16 +21043,16 @@ async function main() {
   if (!options.diff) {
     throw new UsageError("Missing required --diff option.");
   }
-  if (options.config !== void 0 && !(0, import_node_fs2.existsSync)((0, import_node_path.resolve)(options.config))) {
+  if (options.config !== void 0 && !(0, import_node_fs3.existsSync)((0, import_node_path2.resolve)(options.config))) {
     throw new Error(`Configuration file not found: ${options.config}`);
   }
   const configPath = options.config ?? defaultConfigPath;
-  const config2 = loadConfig((0, import_node_path.resolve)(configPath));
+  const config2 = loadConfig((0, import_node_path2.resolve)(configPath));
   const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config2);
-  const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs2.readFileSync)(gitAttributesPath, "utf8")) : void 0;
+  const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs3.readFileSync)(gitAttributesPath, "utf8")) : void 0;
   const existingLockfiles = config2.rules.staleLockfiles.enabled ? await findLockfiles(
     files,
-    async (directory) => (0, import_node_fs2.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
+    async (directory) => (0, import_node_fs3.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
       (entry) => entry.isFile() ? [entry.name] : []
     )
   ).catch(() => void 0) : void 0;
@@ -20950,12 +21071,62 @@ async function main() {
     process.exitCode = 1;
   }
 }
+async function init(args) {
+  let ref;
+  let force = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--help" || arg === "-h") {
+      process.stdout.write(usage);
+      return;
+    }
+    if (arg === "--force") {
+      force = true;
+    } else if (arg === "--ref") {
+      ref = args[index + 1];
+      if (ref === void 0 || !/^[\w.\/-]{1,100}$/.test(ref)) {
+        throw new UsageError("--ref needs a tag, branch, or commit, such as v0.");
+      }
+      index += 1;
+    } else {
+      throw new UsageError(`Unknown option: ${arg}`);
+    }
+  }
+  if (!(0, import_node_fs3.existsSync)(".git")) {
+    throw new Error("Run prism-review init from the root of a Git repository.");
+  }
+  const result = await initRepository({ directory: ".", force, ref, version: version2 });
+  for (const path2 of result.written) {
+    process.stdout.write(`Created ${path2}
+`);
+  }
+  for (const path2 of result.skipped) {
+    process.stdout.write(`Left ${path2} unchanged because it exists; use --force to replace it.
+`);
+  }
+  if (ref === void 0 && !result.uses.includes("#")) {
+    process.stdout.write(
+      "Could not look up this version's release commit, so the workflow uses gabrielolvv/prism-review@v0, which follows the latest 0.x release.\n"
+    );
+  }
+  if (result.written.length > 0) {
+    process.stdout.write(
+      [
+        "",
+        "Next: commit these files and open a pull request. Prism Review reviews that pull request too, with the default",
+        "configuration, since it reads .prism-review.yml from the base branch, and reports the new workflow and",
+        "configuration as high risk, as it does for every change to them. Once merged, your configuration applies.",
+        ""
+      ].join("\n")
+    );
+  }
+}
 function readLocalCodeOwners() {
   const path2 = codeOwnersPaths.find(isFile);
-  return path2 === void 0 ? void 0 : parseCodeOwners((0, import_node_fs2.readFileSync)(path2, "utf8"));
+  return path2 === void 0 ? void 0 : parseCodeOwners((0, import_node_fs3.readFileSync)(path2, "utf8"));
 }
 function isFile(path2) {
-  return (0, import_node_fs2.existsSync)(path2) && (0, import_node_fs2.statSync)(path2).isFile();
+  return (0, import_node_fs3.existsSync)(path2) && (0, import_node_fs3.statSync)(path2).isFile();
 }
 function render(result, format, options) {
   if (format === "json") {
@@ -20983,7 +21154,7 @@ function parseDiff(diff) {
 }
 async function readDiff(source) {
   if (source !== "-") {
-    return (0, import_node_fs2.readFileSync)((0, import_node_path.resolve)(source), "utf8");
+    return (0, import_node_fs3.readFileSync)((0, import_node_path2.resolve)(source), "utf8");
   }
   if (process.stdin.isTTY) {
     throw new UsageError("--diff - reads a diff from stdin; pipe one in, for example from `git diff`.");
