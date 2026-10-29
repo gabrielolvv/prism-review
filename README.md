@@ -186,7 +186,18 @@ git diff HEAD~3 | npx @gabrielolvv/prism-review analyze --diff -   # any unified
 
 The CLI needs Node.js 22 or later. It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`, or the level given with `--fail-on`. With `--staged` or `--base`, it runs `git diff` itself, without colors or external diff tools, and passes when there is nothing to review. With `--diff`, it exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. From a clone of this repository, `node dist/cli/main.cjs` runs the same program.
 
-`--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. The exit status works the same way in every format. Run `npx @gabrielolvv/prism-review --help` for every option.
+In a terminal, the review is compact text, one entry per finding with its `path:line`, most severe first:
+
+```text
+Prism Review: high risk. Reviewed 4 changed file(s). Found 3 high-risk and 11 warning-level signal(s).
+
+high     src/payments/webhook.ts:2  Possible secret added [secret-in-diff]
+         Line 2 adds what looks like an OpenAI-style API key. The value is redacted from this review.
+warning  package.json:11  Dependency named like a popular package [lookalike-dependency]
+         Line 11 adds expresss (like express): a name one character away from a popular npm package, a common way to slip in a malicious one.
+```
+
+It is colored unless `NO_COLOR` is set, and `FORCE_COLOR=1` colors it in a pipe. File names and finding text from the diff are printed with control and invisible characters escaped, so a file name cannot send escape sequences to the terminal. Piped or redirected, the CLI prints the Markdown of the pull request comment, as before; `--format text` and `--format markdown` choose one. `--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. The exit status works the same way in every format. Run `npx @gabrielolvv/prism-review --help` for every option.
 
 ### pre-commit
 
@@ -200,7 +211,7 @@ repos:
       - id: prism-review
 ```
 
-It reviews the staged changes and blocks the commit on high-risk findings, printing the review. By default, every change to a workflow, a migration, or an auth directory is high risk through `sensitive-files`, as is any change to `.prism-review.yml`. To be warned without being blocked for those, lower them with `severity` in `.prism-review.yml`. For a single commit, `SKIP=prism-review git commit` skips the hook. To review the whole branch before each push instead, replace the arguments:
+It reviews the staged changes and blocks the commit on high-risk findings, printing the review as text. By default, every change to a workflow, a migration, or an auth directory is high risk through `sensitive-files`, as is any change to `.prism-review.yml`. To be warned without being blocked for those, lower them with `severity` in `.prism-review.yml`. For a single commit, `SKIP=prism-review git commit` skips the hook. To review the whole branch before each push instead, replace the arguments:
 
 ```yaml
       - id: prism-review
