@@ -47,6 +47,8 @@ const cases: Array<[path: string, prefix: string, repeated: string, context?: st
   ["src/server.ts", "res.cookie(", "a, "],
   ["src/cors.ts", "app.use(cors({ ", "origin: a, "],
   ["app.py", "app.run(", "a, "],
+  ["src/crypto.ts", 'createCipheriv("', "a-"],
+  ["src/token.ts", "const resetToken = ", "aB_"],
   ["infra/main.tf", "", 'Action = ["'],
   ["infra/main.tf", "min_tls_version = \"", "TLS"],
   ["policy.json", "", '"Action": ['],

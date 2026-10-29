@@ -114,6 +114,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      weakCrypto: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       insecureWebConfig: z
         .object({
           enabled: z.boolean().default(true)
