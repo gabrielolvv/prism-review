@@ -25,6 +25,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that sign or verify
   // a JSON Web Token with a key written in the code.
   jwtKeyLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
+  // named like a secret.
+  secretLogLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.

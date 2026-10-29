@@ -411,6 +411,14 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testSecretLoggingCanBeDisabled,
+  testSecretLoggingReadsEachLanguage,
+  testSecretLoggingReportsOneFindingPerFile,
+  testSecretLoggingSeesLinesRedactionRewrites,
+  testSecretLoggingSkipsDescriptionsOfSecrets,
+  testSecretLoggingSkipsTestsDocsAndOtherFiles
+} from "./unit/secret-logging.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -718,6 +726,12 @@ const tests: Array<[string, Test]> = [
   ["hardcoded-jwt-secret sees keys that redaction hid", testHardcodedJwtSecretSeesRedactedKeys],
   ["hardcoded-jwt-secret skips tests and docs", testHardcodedJwtSecretSkipsTestsAndDocs],
   ["hardcoded-jwt-secret can be disabled", testHardcodedJwtSecretCanBeDisabled],
+  ["secret-logging reports one finding per file", testSecretLoggingReportsOneFindingPerFile],
+  ["secret-logging reads each language", testSecretLoggingReadsEachLanguage],
+  ["secret-logging skips descriptions of secrets", testSecretLoggingSkipsDescriptionsOfSecrets],
+  ["secret-logging skips tests, docs, and other files", testSecretLoggingSkipsTestsDocsAndOtherFiles],
+  ["secret-logging can be disabled", testSecretLoggingCanBeDisabled],
+  ["secret-logging sees lines that redaction rewrites", testSecretLoggingSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
