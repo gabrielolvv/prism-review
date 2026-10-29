@@ -20,6 +20,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "untrusted-input": "Untrusted Input",
   "xml-external-entities": "XML External Entities",
   "mass-assignment": "Mass Assignment",
+  redos: "Regular Expression Denial of Service",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",

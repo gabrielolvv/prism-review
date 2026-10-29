@@ -37,6 +37,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "weak-crypto": "code",
   "xml-external-entities": "code",
   "mass-assignment": "code",
+  redos: "code",
   "untrusted-input": "code",
   "risky-api": "code",
   "disabled-security-check": "code",
