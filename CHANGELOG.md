@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.52.0 - 2026-10-29
+
+### Added
+
+- `redos` rule: warns about regular expressions with a repeated group that can match the same text in many ways, such as `(\w+\s?)*`, `([a-z]+\.?)+`, or `(.*,)+`, which take exponential time on a crafted input (ReDoS). It reads regular expression literals and the regex calls of JavaScript, TypeScript, Python, Ruby, Java, Kotlin, Scala, C#, and PHP, and leaves out Go and Rust, whose engines match in linear time. A group whose repetitions start with a required part the repeated part cannot match, as in `(\d+,)*` or `([01]_*)+`, is not reported. On 24 old npm packages with ReDoS advisories, it finds brace-expansion's CVE-2017-18077, marked 0.3.6's paragraph pattern, and highlight.js 10.4.0's GAMS grammar, and on the corpora of about 40,000 files of npm, PyPI, RubyGems, Go, and Java code it reports nothing.
+
 ## 0.51.0 - 2026-10-29
 
 ### Added

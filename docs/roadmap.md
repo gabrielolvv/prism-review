@@ -73,6 +73,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `--format text` for terminals and the pre-commit hook (0.49.0).
 - False positives measured on about 18,600 files from popular Go modules and Java libraries and fixed in seven rules (0.50.0).
 - `mass-assignment` rule for requests that can set every field of a model (0.51.0).
+- `redos` rule for regular expressions that can take exponential time (0.52.0).
 
 ## Later
 
