@@ -407,6 +407,13 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testMassAssignmentCanBeDisabled,
+  testMassAssignmentReadsEachFramework,
+  testMassAssignmentReportsOneFindingPerFile,
+  testMassAssignmentSkipsListedFields,
+  testMassAssignmentSkipsTestsAndDocs
+} from "./unit/mass-assignment.test.js";
+import {
   testRenderTextColorsOnlyWhenAsked,
   testRenderTextListsFindingsBySeverity,
   testRenderTextShowsControlCharactersFromThePullRequest,
@@ -677,6 +684,11 @@ const tests: Array<[string, Test]> = [
   ["xml-external-entities skips safe settings", testXmlExternalEntitiesSkipsSafeSettings],
   ["xml-external-entities skips tests and docs", testXmlExternalEntitiesSkipsTestsAndDocs],
   ["xml-external-entities can be disabled", testXmlExternalEntitiesCanBeDisabled],
+  ["mass-assignment reports one finding per file", testMassAssignmentReportsOneFindingPerFile],
+  ["mass-assignment reads each framework", testMassAssignmentReadsEachFramework],
+  ["mass-assignment skips listed fields", testMassAssignmentSkipsListedFields],
+  ["mass-assignment skips tests and docs", testMassAssignmentSkipsTestsAndDocs],
+  ["mass-assignment can be disabled", testMassAssignmentCanBeDisabled],
   ["hardcoded-jwt-secret reports one finding per file", testHardcodedJwtSecretReportsOneFindingPerFile],
   ["hardcoded-jwt-secret reads each library", testHardcodedJwtSecretReadsEachLibrary],
   ["hardcoded-jwt-secret skips keys from elsewhere", testHardcodedJwtSecretSkipsKeysFromElsewhere],
