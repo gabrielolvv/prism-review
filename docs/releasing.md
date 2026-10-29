@@ -6,8 +6,9 @@ Each release is a version tag, such as `v0.19.1`, on a commit of `master`, plus 
 
 1. Rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z - YYYY-MM-DD`.
 2. Run `npm version X.Y.Z --no-git-tag-version`, then `npm run bundle`, so `package.json`, `package-lock.json`, and `dist/` carry the new version. `prism-review --version` prints the version built into the bundle.
-3. Run `npm run typecheck`, `npm test`, and `npm run test:action`.
-4. Commit as `chore: release X.Y.Z` and merge the pull request into `master`.
+3. Update the pinned version in the README's pre-commit example (`rev: vX.Y.Z`) and its GitLab CI job, and in `examples/gitlab/.gitlab-ci.yml` (`@gabrielolvv/prism-review@X.Y.Z`); a test fails until they match `package.json`.
+4. Run `npm run typecheck`, `npm test`, and `npm run test:action`.
+5. Commit as `chore: release X.Y.Z` and merge the pull request into `master`.
 
 ## Tag It
 
