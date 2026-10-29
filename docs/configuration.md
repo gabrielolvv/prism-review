@@ -2,6 +2,17 @@
 
 Prism Review reads `.prism-review.yml` from the repository root by default. Every option is optional; missing values fall back to the defaults shown below.
 
+## Rules by Area
+
+Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
+
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files)
+- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input)
+- **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
+- **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
+
 ## Where the Configuration Comes From
 
 The action reads the configuration from the **base commit** of the pull request through the GitHub contents API, not from the pull request itself. A pull request that edits the configuration is reviewed with the rules that were already merged, and the edit is reported by the `config-change` rule.
@@ -351,7 +362,7 @@ The `disabled-security-check` rule reports added lines that turn off a check mea
 
 Without certificate verification, anyone on the network path can read and change the traffic. Without signature checks, anyone can forge a token. CSRF protection is often turned off on purpose for an API or a signed webhook, so it is a warning.
 
-A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
+A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, import lines, such as `from ssl import CERT_NONE`, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
 
 ## Insecure Web Configuration
 
@@ -369,7 +380,7 @@ With every origin and credentials allowed, any website a signed-in user visits c
 
 - The CORS finding needs both halves: the origin and the credentials must be set on the same line, within 10 lines of each other, or, for Django, anywhere in the settings file. One of them must be added by the pull request. Every origin without credentials, as a public API uses, and credentials with a list of origins are not reported. A whole `cors({ ... })` call on one line pairs only with itself.
 - A bare `secure: false` is not read as a cookie setting, since SMTP clients and proxies use the same option. Only cookie calls, cookie options, and framework cookie settings count.
-- Django `DEBUG = True` is only reported in settings modules whose path does not name development, local, test, or CI settings, such as `settings/dev.py` or `settings_local.py`.
+- Django `DEBUG = True` is only reported in settings modules whose path does not name development, local, test, CI, example, sample, or demo settings, such as `settings/dev.py`, `settings_local.py`, or `examples/proj/settings.py`.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## Untrusted Input
@@ -386,7 +397,7 @@ The `untrusted-input` rule reports added lines that pass a value from the reques
 
 An open redirect lends your domain to phishing links, a request to a URL the client chose can reach internal services and cloud metadata endpoints, and a path with `../` can read or overwrite files outside the intended directory.
 
-- The request value and the call must be on the same line, as with `sql-injection`; a value stored in a variable first is not followed. Request values are those of Express and Koa (`req.query`, `req.params`, `req.body`, `req.headers`, `req.cookies`), Flask and Django (`request.args`, `request.form`, `request.json`, `request.GET`, `request.POST`), PHP (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`), Go (`r.URL.Query()`, `r.FormValue`), Rails (`params[...]`), ASP.NET Core (`Request.Query[...]`), and `searchParams.get(...)`.
+- The request value and the call must be on the same line, as with `sql-injection`; a value stored in a variable first is not followed. Request values are those of Express and Koa (`req.query`, `req.params`, `req.body`, `req.headers`, `req.cookies`), Flask and Django (`request.args`, `request.form`, `request.json`, `request.GET`, `request.POST`), PHP (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`), Go (`r.URL.Query()`, `r.FormValue`), Rails (`params[...]`, in Ruby files only, since elsewhere `params` is usually a function's own argument), ASP.NET Core (`Request.Query[...]`), and `searchParams.get(...)`.
 - A redirect or request whose target starts as text with a path on the same site or a fixed host, such as `` res.redirect(`/users/${req.params.id}`) `` or `` fetch(`https://api.example.com/users/${id}`) ``, only lets the request choose what follows, and is not reported. `` `/${...}` `` is, since it can become `//other-site`.
 - A line that also reduces or checks the value is not reported: `path.basename`, `basename`, `secure_filename`, `filepath.Base`, `Path.GetFileName`, or a `sanitize...` call for paths, and `url_has_allowed_host_and_scheme`, `is_safe_url`, `LocalRedirect`, or an allowed-hosts check for URLs.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
@@ -407,6 +418,7 @@ The `weak-crypto` rule reads added lines in source files and reports one warning
 MD5 and SHA-1 are fast, so a leaked hash of a password is quickly guessed. The broken ciphers have short keys or blocks, and ECB encrypts equal blocks the same way, which shows the shape of the data. `Math.random()` and Python's `random` can be predicted from a few outputs.
 
 - MD5, SHA-1, and the random generators are only reported on a line that names something secret: a word such as `password`, `passphrase`, `secret`, `token`, `nonce`, `salt`, `otp`, `apikey`, or `csrf`, or `api key`, `session id`, `reset code`, or `verification code`. Names are split on `_` and camelCase, so `resetToken` counts and `footprint`, `tokens`, and `tokenizer` do not. Checksums, ETags, cache keys, and jitter are not reported.
+- Minified bundles (`*.min.js`) and lines longer than 500 characters are skipped, since a whole library on one line puts a random call and a word such as `token` side by side by chance.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## SQL Injection
@@ -427,7 +439,7 @@ The `sql-injection` rule warns about added lines that build SQL by inserting val
 
 It also reports SQL built into a variable named like `sql`, `query`, `stmt`, or `statement`, such as `String sql = "SELECT ... " + id;`, since the variable is usually run on a later line.
 
-To keep text that only mentions SQL words out, the string has to look like SQL: `SELECT ... FROM`, `INSERT INTO`, `UPDATE ... SET`, `DELETE FROM`, `WHERE column =`, `ORDER BY`, `GROUP BY`, or `VALUES (`. ActiveRecord fragments such as `where("email = '#{email}'")` count without one. GraphQL queries and messages such as `` `email from ${sender}` `` are not reported, and neither are `exec` calls, which usually start a process and are covered by `risky-api`.
+To keep text that only mentions SQL words out, the string has to look like SQL: `SELECT ... FROM`, `INSERT INTO`, `UPDATE ... SET`, `DELETE FROM`, `WHERE column =`, `ORDER BY`, `GROUP BY`, or `VALUES (`. ActiveRecord fragments such as `where("email = '#{email}'")` count without one, when the interpolated string is the first argument; in `select_all(sql, "#{name} Load")`, the second argument only names the query in the log. GraphQL queries and messages such as `` `email from ${sender}` `` are not reported, and neither are `exec` calls, which usually start a process and are covered by `risky-api`.
 
 The finding is a warning, because the inserted value may be a constant or already escaped. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
@@ -477,11 +489,11 @@ The `destructive-migration` rule checks added lines in database migrations: file
 
 | Reported | Severity | Examples |
 | --- | --- | --- |
-| Drops a table | High | `DROP TABLE`, `drop_table`, `op.drop_table`, `dropTable`, `Schema::drop`, `DropTable`, `DeleteModel` |
-| Drops a column | High | `DROP COLUMN`, MySQL's `ALTER TABLE ... DROP name`, `remove_column`, `op.drop_column`, `dropColumn`, `removeColumn`, `RemoveField`, Ecto `remove` |
+| Drops a table | High | `DROP TABLE`, `drop_table`, `op.drop_table`, `dropTable`, `Schema::drop`, `DropTable`, Django `DeleteModel(...)` |
+| Drops a column | High | `DROP COLUMN`, MySQL's `ALTER TABLE ... DROP name`, `remove_column`, `op.drop_column`, `dropColumn`, `removeColumn`, Django `RemoveField(...)`, Ecto `remove` |
 | Removes every row | High | `TRUNCATE TABLE`, `DELETE FROM table;` without a `WHERE`, Knex `.truncate()` |
 | Changes a column definition | Warning | `ALTER COLUMN ... TYPE`, `MODIFY COLUMN`, `change_column`, `changeColumn`, `AlterColumn`, Laravel `->change()`, Knex `.alter()` |
-| Renames a table or column | Warning | `RENAME COLUMN ... TO`, `RENAME TO`, `sp_rename`, `rename_column`, `renameColumn`, `RenameField`, `RenameModel` |
+| Renames a table or column | Warning | `RENAME COLUMN ... TO`, `RENAME TO`, `sp_rename`, `rename_column`, `renameColumn`, Django `RenameField(...)` and `RenameModel(...)` |
 
 Dropped data cannot be brought back by rolling back the code, and a rename or type change breaks the running version of the application while the deploy rolls out. The finding lists what each file does, with its line numbers.
 
@@ -599,7 +611,7 @@ A file anyone can write lets any process on the machine or in the container chan
 
 - An octal mode counts as world-writable when its last digit has the write bit (2, 3, 6, or 7). `chmod 1777`, whose sticky bit keeps users from deleting each other's files, is the usual mode for a shared temporary directory and is not reported.
 - Only the setuid bit is reported. `chmod g+s` and modes such as `2775` set the setgid bit, which shared group directories use on purpose.
-- `chmod +w` without `u`, `g`, `o`, or `a` is limited by the umask and is not reported. Neither are modes held in variables, such as `chmod "$MODE"`, nor `mkdir` and file-creation calls, whose modes the umask limits.
+- `chmod +w` without `u`, `g`, `o`, or `a` is limited by the umask and is not reported. A umask call whose result is assigned or returned, such as `old = os.umask(0)`, reads the current umask to restore it, and is not reported either. Neither are modes held in variables, such as `chmod "$MODE"`, nor `mkdir` and file-creation calls, whose modes the umask limits.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## Credential Files
@@ -658,7 +670,7 @@ The `hidden-unicode` rule reports added lines, and file names, that contain char
 
 Patches over `security.maxPatchBytes` are still scanned, like they are for `secret-in-diff`.
 
-The message names each character by code point, and the comment shows hidden characters in file names as `\u{...}` escapes. A byte order mark at the very start of a file, the zero width joiners used by emoji and several scripts, the left-to-right, right-to-left, and Arabic letter marks, and the soft hyphen are not reported, because ordinary text uses them. Every file type is checked, documentation included.
+The message names each character by code point, and the comment shows hidden characters in file names as `\u{...}` escapes. A byte order mark at the very start of a file, the zero width joiners used by emoji and several scripts, the left-to-right, right-to-left, and Arabic letter marks, and the soft hyphen are not reported, because ordinary text uses them. Every file type is checked, documentation included. Translation catalogs (`.po`, `.pot`, `.xlf`, `.xliff`, `.strings`, `.stringsdict`, `.arb`) are only checked for tag characters, since right-to-left languages use direction controls and languages such as Khmer use zero width spaces between words.
 
 ## Secrets
 
@@ -764,11 +776,11 @@ When the findings in a comment come from more than one area, the comment opens t
 | Area | Rules |
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file` |
-| Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
-| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `destructive-migration` |
-| Code | `sql-injection`, `untrusted-input`, `insecure-web-config`, `weak-crypto`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
+| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input` |
 | Tests | `missing-tests`, `skipped-tests` |
-| Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
+| Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
 When the comment reaches its size limit, the most severe findings are kept, the counts still include every finding, and an area heading such as `Code (12 of 30 shown)` says how many are left out. Each finding in the JSON output has an `area` field with the area's id, such as `supply-chain`, and each rule in the SARIF report carries its area as a tag, which code scanning can filter on.
 

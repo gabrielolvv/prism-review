@@ -137,6 +137,8 @@ npm run analyze:fixture
 
 `npm test` compiles into `build/`. `npm run bundle` regenerates the committed `dist/` bundles that GitHub executes, so run it before committing source changes.
 
+To check a rule change for false positives, run every rule over a directory of real code, such as unpacked npm, PyPI, or RubyGems packages, as if a pull request added each file: `node scripts/scan-corpus.mjs <directory> report.json` prints how many files each rule reports, and the report shows the lines.
+
 [`docs/releasing.md`](docs/releasing.md) describes how to cut a release: pushing a version tag creates its GitHub release with the notes from `CHANGELOG.md`.
 
 ## Reviewing Before You Push
