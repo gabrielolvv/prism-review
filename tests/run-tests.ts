@@ -396,6 +396,13 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testInitFallsBackToTheMajorTag,
+  testInitFilesPassTheirOwnReview,
+  testInitLeavesExistingFilesUnlessForced,
+  testInitPinsTheReleaseCommit,
+  testStarterConfigKeepsTheDefaults
+} from "./unit/cli-init.test.js";
+import {
   testDefaultRules,
   testDependencyRiskRule,
   testSensitiveFilesRuleMatchesKeywordsAsWords,
@@ -431,6 +438,11 @@ const tests: Array<[string, Test]> = [
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
   ["showcase diff gets the review shown in the README image", testShowcaseDiffMatchesTheReadmeImage],
+  ["init pins the commit of the release", testInitPinsTheReleaseCommit],
+  ["init falls back to v0 without a release commit", testInitFallsBackToTheMajorTag],
+  ["init leaves existing files unless forced", testInitLeavesExistingFilesUnlessForced],
+  ["init writes a workflow that passes its own review", testInitFilesPassTheirOwnReview],
+  ["init's starter config keeps the defaults", testStarterConfigKeepsTheDefaults],
   ["sensitive files rule matches keywords as whole words", testSensitiveFilesRuleMatchesKeywordsAsWords],
   ["sensitive-files patterns stay high for every file", testSensitiveFilePatternsStayHighForEveryFile],
   ["redactSecrets masks token-like values", testRedactSecrets],

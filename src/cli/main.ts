@@ -14,14 +14,26 @@ import { renderMarkdown, type RenderOptions } from "../reporting/render-markdown
 import { renderSarif } from "../reporting/render-sarif.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { parseUnifiedDiff } from "../testing/parse-unified-diff.js";
+import { initRepository } from "./init.js";
+import { version } from "./version.js";
 
 const usage = [
   "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
+  "       prism-review init [--ref <ref>] [--force]",
   "",
+  "analyze reviews a diff:",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
   "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "",
+  "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
+  "current directory:",
+  "  --ref <ref>       Use the action at this tag or commit, such as v0, instead of pinning the",
+  "                    commit of this version's release.",
+  "  --force           Replace the files when they already exist.",
+  "",
+  "  --version         Print the version.",
   "",
   "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
   ""
@@ -44,6 +56,16 @@ async function main(): Promise<void> {
 
   if (command === "--help" || command === "-h") {
     process.stdout.write(usage);
+    return;
+  }
+
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`${version}\n`);
+    return;
+  }
+
+  if (command === "init") {
+    await init(args);
     return;
   }
 
@@ -93,6 +115,58 @@ async function main(): Promise<void> {
   if (failing.length > 0) {
     process.stderr.write(`${describeFailure(failing, config.check.failOn)}\n`);
     process.exitCode = 1;
+  }
+}
+
+async function init(args: string[]): Promise<void> {
+  let ref: string | undefined;
+  let force = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--help" || arg === "-h") {
+      process.stdout.write(usage);
+      return;
+    }
+    if (arg === "--force") {
+      force = true;
+    } else if (arg === "--ref") {
+      ref = args[index + 1];
+      if (ref === undefined || !/^[\w.\/-]{1,100}$/.test(ref)) {
+        throw new UsageError("--ref needs a tag, branch, or commit, such as v0.");
+      }
+      index += 1;
+    } else {
+      throw new UsageError(`Unknown option: ${arg}`);
+    }
+  }
+
+  // The workflow must land in the repository's own .github directory, not a subdirectory's.
+  if (!existsSync(".git")) {
+    throw new Error("Run prism-review init from the root of a Git repository.");
+  }
+
+  const result = await initRepository({ directory: ".", force, ref, version });
+  for (const path of result.written) {
+    process.stdout.write(`Created ${path}\n`);
+  }
+  for (const path of result.skipped) {
+    process.stdout.write(`Left ${path} unchanged because it exists; use --force to replace it.\n`);
+  }
+  if (ref === undefined && !result.uses.includes("#")) {
+    process.stdout.write(
+      "Could not look up this version's release commit, so the workflow uses gabrielolvv/prism-review@v0, which follows the latest 0.x release.\n"
+    );
+  }
+  if (result.written.length > 0) {
+    process.stdout.write(
+      [
+        "",
+        "Next: commit these files and open a pull request. Prism Review reviews that pull request too, with the default",
+        "configuration, since it reads .prism-review.yml from the base branch, and reports the new workflow and",
+        "configuration as high risk, as it does for every change to them. Once merged, your configuration applies.",
+        ""
+      ].join("\n")
+    );
   }
 }
 
