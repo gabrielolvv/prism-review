@@ -2,6 +2,19 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.44.0 - 2026-10-29
+
+### Added
+
+- `prism-review init` sets up a repository: it adds `.github/workflows/prism-review.yml`, pinned to the commit of the current release as the `unpinned-action` rule recommends, and a `.prism-review.yml` with the main options. It leaves existing files unchanged unless given `--force`, and `--ref v0` uses a tag instead of the pinned commit.
+- `prism-review --version` prints the version.
+- The CLI is ready for npm as `@gabrielolvv/prism-review`, so `npx @gabrielolvv/prism-review init` and `analyze` work without a clone. The package holds only the bundled CLI, which supports Node.js 22 and later. The Release workflow can publish each version with npm trusted publishing and provenance, once `docs/releasing.md`'s setup is done.
+
+### Changed
+
+- The workflows in the README and `examples/basic` grant `pull-requests: write` to the review job instead of the whole workflow, so Prism Review's own `workflow-risk` rule no longer warns about them.
+- The bundles target Node.js 22, and the CLI bundle starts with `#!/usr/bin/env node` so npm can run it.
+
 ## 0.43.1 - 2026-10-29
 
 ### Added

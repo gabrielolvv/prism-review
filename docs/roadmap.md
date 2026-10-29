@@ -64,6 +64,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `weak-crypto` rule for secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers (0.41.0).
 - `untrusted-input` rule for request values passed straight to redirects, outgoing requests, and file paths (0.42.0).
 - False positives measured on about 16,000 files from 39 popular packages and fixed in nine rules, with a script to repeat the check and an index of every rule by area.
+- README image of a review, comparison with other tools, `CONTRIBUTING.md`, and issue forms (0.43.1).
+- `prism-review init`, which sets up the workflow and configuration pinned to the release commit, `--version`, and the CLI on npm (0.44.0).
 
 ## Later
 
