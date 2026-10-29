@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Changed
+
+- `sensitive-files` reports files that only a built-in word in their path marks sensitive, such as `src/billing/charge.ts` or `src/rules/workflow-risk.ts`, as warnings instead of high-risk findings, and no longer reports documentation, test files, or fixtures for a word. Files matching `rules.sensitiveFiles.patterns`, which include workflows, `**/auth/**`, `**/permissions/**`, and `**/migrations/**` by default, are still high. With `check.failOn: high`, a pull request that only touches such word matches no longer fails; add a glob, such as `**/billing/**`, to keep an area high.
+
 ## 0.36.0 - 2026-10-29
 
 ### Added

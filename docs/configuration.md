@@ -147,7 +147,7 @@ The `missing-tests` rule reports a warning when a file matched by `sourceGlobs` 
 
 ### `rules.sensitiveFiles.patterns`
 
-The `sensitive-files` rule reports a high-risk finding for each changed file that matches one of these globs, or whose path contains a built-in sensitive word: `auth`, `permission`, `role`, `session`, `token`, `jwt`, `billing`, `payment`, `secret`, `migration`, `workflow`, or `Dockerfile`.
+The `sensitive-files` rule reports a high-risk finding for each changed file that matches one of these globs, and a warning for each other file whose path contains a built-in sensitive word: `auth`, `permission`, `role`, `session`, `token`, `jwt`, `billing`, `payment`, `secret`, `migration`, `workflow`, or `Dockerfile`. A glob is a choice the repository made, so it applies to every file; a word in a path is a weaker signal, so it is only a warning, and documentation (`.md`, `.rst`, `.txt`, and similar), test files matched by `rules.missingTests.testGlobs`, and fixture directories are not reported for it. To make a word match high, add a glob for it, such as `**/billing/**`.
 
 The path is split into words on `/`, `.`, `-`, `_`, and camelCase, and a word counts when it contains a sensitive word, so `src/errors/Unauthorized.ts`, `pkg/jwtauth/`, `src/accesstoken.ts`, and `db/migrations/` are reported. A short list of words that only look related is left out: `author` and its forms (but not `authorize`), `tokenize`, `parole`, and `secretary`. That keeps `docs/rule-authoring.md`, `AUTHORS`, and `src/tokenizer.ts` from being reported.
 
