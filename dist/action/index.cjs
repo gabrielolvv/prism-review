@@ -8263,11 +8263,11 @@ var init_memories = __esm({
             await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_recover).call(this, store, "the folder or its marker is gone");
             return;
           }
-          const remote = /* @__PURE__ */ new Map();
+          const remote2 = /* @__PURE__ */ new Map();
           for await (const [rel, item] of __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_listMemories).call(this, store.memoryStoreId)) {
-            remote.set(rel, item);
+            remote2.set(rel, item);
           }
-          __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_settleSent).call(this, store, remote);
+          __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_settleSent).call(this, store, remote2);
           if (Object.keys(local).length === 0 && store.baseline.size > 1) {
             await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_recover).call(this, store, "every memory file is gone at once");
             return;
@@ -8275,9 +8275,9 @@ var init_memories = __esm({
           const deletes = new DeletePass(__classPrivateFieldGet(this, _SessionMemoryStores_syncDeletions, "f"), Math.max(DELETE_CAP_FLOOR, Math.min(DELETE_CAP_CEILING, Math.floor(store.baseline.size / 4))), final);
           const pulls = [];
           const baseline = /* @__PURE__ */ new Map();
-          const paths = [.../* @__PURE__ */ new Set([...remote.keys(), ...Object.keys(local), ...store.baseline.keys()])].sort();
+          const paths = [.../* @__PURE__ */ new Set([...remote2.keys(), ...Object.keys(local), ...store.baseline.keys()])].sort();
           for (const rel of paths) {
-            const remoteItem = remote.get(rel);
+            const remoteItem = remote2.get(rel);
             const localSha = local[rel];
             const baseSha = store.baseline.get(rel);
             let sha;
@@ -8326,18 +8326,18 @@ var init_memories = __esm({
           }
           if (dirty.size === 0 || signal?.aborted)
             return;
-          const remote = /* @__PURE__ */ new Map();
+          const remote2 = /* @__PURE__ */ new Map();
           for await (const [rel, item] of __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_listMemories).call(this, store.memoryStoreId)) {
             if (signal?.aborted)
               return;
-            remote.set(rel, item);
+            remote2.set(rel, item);
           }
-          __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_settleSent).call(this, store, remote);
+          __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_settleSent).call(this, store, remote2);
           const uploads = [];
           for (const rel of [...dirty.keys()].sort()) {
             const localSha = dirty.get(rel);
             const baseSha = store.baseline.get(rel);
-            const existing = remote.get(rel);
+            const existing = remote2.get(rel);
             if (localSha === baseSha) {
               unsent.delete(rel);
               continue;
@@ -8375,9 +8375,9 @@ var init_memories = __esm({
         });
         await store.files.createRoot();
         await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_stampAndPull).call(this, store);
-      }, _SessionMemoryStores_settleSent = function _SessionMemoryStores_settleSent2(store, remote) {
+      }, _SessionMemoryStores_settleSent = function _SessionMemoryStores_settleSent2(store, remote2) {
         for (const [rel, sha] of store.sentShas) {
-          if (remote.get(rel)?.content_sha256 === sha)
+          if (remote2.get(rel)?.content_sha256 === sha)
             store.baseline.set(rel, sha);
         }
         store.sentShas.clear();
@@ -8407,12 +8407,12 @@ ${store.memoryStoreId}`);
        * file to write, `remote` the listed memory whose content `#pullAll` will
        * fetch and write there.
        */
-      async function _SessionMemoryStores_syncPath2(store, rel, remote, localSha, pulls) {
+      async function _SessionMemoryStores_syncPath2(store, rel, remote2, localSha, pulls) {
         const baseSha = store.baseline.get(rel);
         if (localSha !== void 0) {
           store.pendingDeletes.delete(rel);
         }
-        if (!remote) {
+        if (!remote2) {
           if (localSha === void 0) {
             store.pendingDeletes.delete(rel);
             return void 0;
@@ -8441,7 +8441,7 @@ ${store.memoryStoreId}`);
             return void 0;
           return await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_upload).call(this, store, rel, localSha, void 0);
         }
-        const remoteSha = remote.content_sha256;
+        const remoteSha = remote2.content_sha256;
         const remoteChanged = remoteSha !== baseSha;
         const locallyEdited = localSha !== void 0 && localSha !== baseSha && localSha !== remoteSha;
         const localChanged = !store.readOnly && locallyEdited;
@@ -8452,7 +8452,7 @@ ${store.memoryStoreId}`);
               memory_store_id: store.memoryStoreId
             });
             store.pendingDeletes.delete(rel);
-            pulls.push([rel, remote]);
+            pulls.push([rel, remote2]);
           }
           return baseSha;
         }
@@ -8465,13 +8465,13 @@ ${store.memoryStoreId}`);
               memory_store_id: store.memoryStoreId
             });
           }
-          pulls.push([rel, remote]);
+          pulls.push([rel, remote2]);
           return baseSha;
         }
         if (localChanged) {
           if (store.refusedShas.get(rel) === localSha)
             return remoteSha;
-          return await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_upload).call(this, store, rel, localSha, remote) ?? remoteSha;
+          return await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_upload).call(this, store, rel, localSha, remote2) ?? remoteSha;
         }
         return remoteSha;
       }, _SessionMemoryStores_removeLocal = /**
@@ -8651,7 +8651,7 @@ ${store.memoryStoreId}`);
           return void 0;
         }
       }, _SessionMemoryStores_corroboratedDelete = /** Send the server delete only after the wait, the cap, and a fresh re-check all clear. */
-      async function _SessionMemoryStores_corroboratedDelete2(store, rel, remote, baseSha, deletes) {
+      async function _SessionMemoryStores_corroboratedDelete2(store, rel, remote2, baseSha, deletes) {
         if (deletes.mode === "disabled") {
           deletes.suppressed++;
           return baseSha;
@@ -8689,14 +8689,14 @@ ${store.memoryStoreId}`);
           });
           return baseSha;
         }
-        const sha = await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_deleteRemote).call(this, store, rel, remote, baseSha);
+        const sha = await __classPrivateFieldGet(this, _SessionMemoryStores_instances, "m", _SessionMemoryStores_deleteRemote).call(this, store, rel, remote2, baseSha);
         if (sha === void 0) {
           store.pendingDeletes.delete(rel);
         }
         return sha;
-      }, _SessionMemoryStores_deleteRemote = async function _SessionMemoryStores_deleteRemote2(store, rel, remote, baseSha) {
+      }, _SessionMemoryStores_deleteRemote = async function _SessionMemoryStores_deleteRemote2(store, rel, remote2, baseSha) {
         try {
-          await __classPrivateFieldGet(this, _SessionMemoryStores_client, "f").beta.memoryStores.memories.delete(remote.id, {
+          await __classPrivateFieldGet(this, _SessionMemoryStores_client, "f").beta.memoryStores.memories.delete(remote2.id, {
             memory_store_id: store.memoryStoreId,
             expected_content_sha256: baseSha
           });
@@ -22600,7 +22600,7 @@ var require_merge = __commonJS({
     var identity = require_identity();
     var Scalar = require_Scalar();
     var MERGE_KEY = "<<";
-    var merge2 = {
+    var merge3 = {
       identify: (value) => value === MERGE_KEY || typeof value === "symbol" && value.description === MERGE_KEY,
       default: "key",
       tag: "tag:yaml.org,2002:merge",
@@ -22610,7 +22610,7 @@ var require_merge = __commonJS({
       }),
       stringify: () => MERGE_KEY
     };
-    var isMergeKey = (ctx, key2) => (merge2.identify(key2) || identity.isScalar(key2) && (!key2.type || key2.type === Scalar.Scalar.PLAIN) && merge2.identify(key2.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge2.tag && tag.default);
+    var isMergeKey = (ctx, key2) => (merge3.identify(key2) || identity.isScalar(key2) && (!key2.type || key2.type === Scalar.Scalar.PLAIN) && merge3.identify(key2.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge3.tag && tag.default);
     function addMergeToJSMap(ctx, map, value) {
       const source = resolveAliasValue(ctx, value);
       if (identity.isSeq(source))
@@ -22649,7 +22649,7 @@ var require_merge = __commonJS({
     }
     exports2.addMergeToJSMap = addMergeToJSMap;
     exports2.isMergeKey = isMergeKey;
-    exports2.merge = merge2;
+    exports2.merge = merge3;
   }
 });
 
@@ -22658,15 +22658,15 @@ var require_addPairToJSMap = __commonJS({
   "node_modules/yaml/dist/nodes/addPairToJSMap.js"(exports2) {
     "use strict";
     var log = require_log();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var stringify2 = require_stringify();
     var identity = require_identity();
     var toJS = require_toJS();
     function addPairToJSMap(ctx, map, { key: key2, value }) {
       if (identity.isNode(key2) && key2.addToJSMap)
         key2.addToJSMap(ctx, map, value);
-      else if (merge2.isMergeKey(ctx, key2))
-        merge2.addMergeToJSMap(ctx, map, value);
+      else if (merge3.isMergeKey(ctx, key2))
+        merge3.addMergeToJSMap(ctx, map, value);
       else {
         const jsKey = toJS.toJS(key2, "", ctx);
         if (map instanceof Map) {
@@ -24057,7 +24057,7 @@ var require_schema3 = __commonJS({
     var bool = require_bool2();
     var float = require_float2();
     var int2 = require_int2();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var omap = require_omap();
     var pairs = require_pairs();
     var set = require_set();
@@ -24077,7 +24077,7 @@ var require_schema3 = __commonJS({
       float.floatExp,
       float.float,
       binary.binary,
-      merge2.merge,
+      merge3.merge,
       omap.omap,
       pairs.pairs,
       set.set,
@@ -24103,7 +24103,7 @@ var require_tags = __commonJS({
     var schema = require_schema();
     var schema$1 = require_schema2();
     var binary = require_binary();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var omap = require_omap();
     var pairs = require_pairs();
     var schema$2 = require_schema3();
@@ -24128,7 +24128,7 @@ var require_tags = __commonJS({
       intOct: int2.intOct,
       intTime: timestamp.intTime,
       map: map.map,
-      merge: merge2.merge,
+      merge: merge3.merge,
       null: _null3.nullTag,
       omap: omap.omap,
       pairs: pairs.pairs,
@@ -24138,7 +24138,7 @@ var require_tags = __commonJS({
     };
     var coreKnownTags = {
       "tag:yaml.org,2002:binary": binary.binary,
-      "tag:yaml.org,2002:merge": merge2.merge,
+      "tag:yaml.org,2002:merge": merge3.merge,
       "tag:yaml.org,2002:omap": omap.omap,
       "tag:yaml.org,2002:pairs": pairs.pairs,
       "tag:yaml.org,2002:set": set.set,
@@ -24147,7 +24147,7 @@ var require_tags = __commonJS({
     function getTags(customTags, schemaName, addMergeTag) {
       const schemaTags = schemas.get(schemaName);
       if (schemaTags && !customTags) {
-        return addMergeTag && !schemaTags.includes(merge2.merge) ? schemaTags.concat(merge2.merge) : schemaTags.slice();
+        return addMergeTag && !schemaTags.includes(merge3.merge) ? schemaTags.concat(merge3.merge) : schemaTags.slice();
       }
       let tags = schemaTags;
       if (!tags) {
@@ -24165,7 +24165,7 @@ var require_tags = __commonJS({
         tags = customTags(tags.slice());
       }
       if (addMergeTag)
-        tags = tags.concat(merge2.merge);
+        tags = tags.concat(merge3.merge);
       return tags.reduce((tags2, tag) => {
         const tagObj = typeof tag === "string" ? tagsByName[tag] : tag;
         if (!tagObj) {
@@ -24194,11 +24194,11 @@ var require_Schema = __commonJS({
     var tags = require_tags();
     var sortMapEntriesByKey = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
     var Schema = class _Schema {
-      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
+      constructor({ compat, customTags, merge: merge3, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
         this.compat = Array.isArray(compat) ? tags.getTags(compat, "compat") : compat ? tags.getTags(null, compat) : null;
         this.name = typeof schema === "string" && schema || "core";
         this.knownTags = resolveKnownTags ? tags.coreKnownTags : {};
-        this.tags = tags.getTags(customTags, this.name, merge2);
+        this.tags = tags.getTags(customTags, this.name, merge3);
         this.toStringOptions = toStringDefaults ?? null;
         Object.defineProperty(this, identity.MAP, { value: map.map });
         Object.defineProperty(this, identity.SCALAR, { value: string3.string });
@@ -28164,7 +28164,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse3(src, reviver, options) {
+    function parse4(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -28205,7 +28205,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document.Document(value, _replacer, options).toString(options);
     }
-    exports2.parse = parse3;
+    exports2.parse = parse4;
     exports2.parseAllDocuments = parseAllDocuments;
     exports2.parseDocument = parseDocument;
     exports2.stringify = stringify2;
@@ -29496,17 +29496,17 @@ var validateAsync = async (schema, value, _ctx) => {
   return result.issues.length === 0;
 };
 var _encode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return parse3(schema, value, ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var _decode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
-    return parse3(schema, value, _ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
@@ -30525,7 +30525,7 @@ function capSize(inst, size) {
   if (!caps.length)
     return;
   const cap = Math.min(...caps.map((c) => c[0]));
-  const parse3 = inst._zod.parse;
+  const parse4 = inst._zod.parse;
   inst._zod.parse = (payload, ctx) => {
     const n = size(payload.value);
     if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
@@ -30539,7 +30539,7 @@ function capSize(inst, size) {
         }
       }
     }
-    return parse3(payload, ctx);
+    return parse4(payload, ctx);
   };
 }
 var arraySize = (input) => Array.isArray(input) ? input.length : -1;
@@ -30721,7 +30721,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     return propValues;
   });
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const catchall = def.catchall;
   let value;
   const memo2 = globalConfig.memoizer;
@@ -30729,7 +30729,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject3(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -30865,7 +30865,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     return doc.compile();
   };
   let fastpass;
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const jit = !globalConfig.jitless;
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
@@ -30874,7 +30874,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject3(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -31554,7 +31554,7 @@ function isRecursive(inst, stack, resolve2) {
     }
     return answer;
   };
-  const merge2 = (answer) => {
+  const merge3 = (answer) => {
     if (answer > result)
       result = answer;
   };
@@ -31563,7 +31563,7 @@ function isRecursive(inst, stack, resolve2) {
   switch (kind) {
     case "object": {
       const raw = rawShape(def);
-      merge2(raw ? shape(raw, true) : ASSUMED);
+      merge3(raw ? shape(raw, true) : ASSUMED);
       check(def.catchall);
       break;
     }
@@ -31613,7 +31613,7 @@ function isRecursive(inst, stack, resolve2) {
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
       const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
-      merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
+      merge3(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
     // a leaf by choice: `parts` are regex fragments, not data positions
@@ -34773,11 +34773,11 @@ function expand(str, options = {}) {
   if (!str) {
     return [];
   }
-  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options;
+  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth: maxDepth2 = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options;
   if (str.slice(0, 2) === "{}") {
     str = "\\{\\}" + str.slice(2);
   }
-  return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
+  return expand_(escapeBraces(str), max, maxLength, maxDepth2, 0, maxRewrites, true).map(unescapeBraces);
 }
 function embrace(str) {
   return "{" + str + "}";
@@ -34855,8 +34855,8 @@ function expandSequence(body, isAlphaSequence, max, maxLength) {
   }
   return N;
 }
-function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
-  if (depth > maxDepth) {
+function expand_(str, max, maxLength, maxDepth2, depth, maxRewrites, isTop) {
+  if (depth > maxDepth2) {
     return [str];
   }
   let acc = [""];
@@ -34900,7 +34900,7 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
     } else {
       let n = parseCommaParts(m.body);
       if (n.length === 1 && n[0] !== void 0) {
-        n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
+        n = expand_(n[0], max, maxLength, maxDepth2, depth + 1, maxRewrites, false).map(embrace);
         if (n.length === 1) {
           acc = combine(acc, pre + n[0], [""], max, maxLength, dropEmpties && !m.post.length);
           if (!m.post.length)
@@ -34918,7 +34918,7 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
       values = [];
       let valuesLength = 0;
       outer: for (let j = 0; j < n.length; j++) {
-        const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
+        const expanded = expand_(n[j], max, maxLength, maxDepth2, depth + 1, maxRewrites, false);
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k];
           if (dropsEmpties && !v)
@@ -35275,7 +35275,7 @@ var AST = class {
     return c;
   }
   static #parseAST(str, ast, pos, opt, extDepth) {
-    const maxDepth = opt.maxExtglobRecursion ?? 2;
+    const maxDepth2 = opt.maxExtglobRecursion ?? 2;
     let escaping = false;
     let inBrace = false;
     let braceStart = -1;
@@ -35307,7 +35307,7 @@ var AST = class {
           acc2 += c;
           continue;
         }
-        const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i2) === "(" && extDepth <= maxDepth;
+        const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i2) === "(" && extDepth <= maxDepth2;
         if (doRecurse) {
           ast.push(acc2);
           acc2 = "";
@@ -35350,7 +35350,7 @@ var AST = class {
         continue;
       }
       const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i) === "(" && /* c8 ignore start - the maxDepth is sufficient here */
-      (extDepth <= maxDepth || ast && ast.#canAdoptType(c));
+      (extDepth <= maxDepth2 || ast && ast.#canAdoptType(c));
       if (doRecurse) {
         const depthAdd = ast && ast.#canAdoptType(c) ? 0 : 1;
         part.push(acc);
@@ -36925,19 +36925,17 @@ function isTestDataPath(path5) {
 var configChangeRule = {
   id: "config-change",
   seesIgnoredFiles: true,
-  description: "Flags pull requests that change the Prism Review configuration.",
-  run({ files, configPath }) {
+  description: "Flags pull requests that change the Prism Review configuration or a file it extends.",
+  run({ files, configPath, extendedConfigPaths = [] }) {
     const target = normalizeRepositoryPath(configPath);
-    return files.filter(
-      (file) => [file.path, file.previousPath].some(
-        (path5) => path5 !== void 0 && normalizeRepositoryPath(path5) === target
-      )
-    ).map((file) => ({
+    const extended2 = new Set(extendedConfigPaths.map(normalizeRepositoryPath));
+    const matches = (file, paths) => [file.path, file.previousPath].some((path5) => path5 !== void 0 && paths.has(normalizeRepositoryPath(path5)));
+    return files.filter((file) => matches(file, /* @__PURE__ */ new Set([target])) || matches(file, extended2)).map((file) => ({
       ruleId: "config-change",
       title: "Review configuration changed",
       severity: "high",
       file: file.path,
-      message: "This file is the Prism Review configuration, which controls how pull requests are reviewed.",
+      message: matches(file, /* @__PURE__ */ new Set([target])) ? "This file is the Prism Review configuration, which controls how pull requests are reviewed." : "The Prism Review configuration extends this file, which controls how pull requests are reviewed.",
       recommendation: "Confirm that thresholds, rule patterns, and redaction allowlist entries were not relaxed to hide findings."
     }));
   }
@@ -41790,6 +41788,7 @@ function analyzePullRequest(files, config2, options = {}) {
   const {
     rules = defaultRules,
     configPath = defaultConfigPath,
+    extendedConfigPaths = [],
     expectedFileCount,
     isGenerated = () => false,
     existingLockfiles
@@ -41805,6 +41804,7 @@ function analyzePullRequest(files, config2, options = {}) {
       files: rule.seesIgnoredFiles ? files : reviewed,
       config: config2,
       configPath,
+      extendedConfigPaths,
       expectedFileCount,
       changedPaths,
       ...existingLockfiles === void 0 ? {} : { existingLockfiles }
@@ -41902,7 +41902,8 @@ function createGitHubClient(token2, apiUrl = defaultGitHubApiUrl) {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token2}`,
+        // Without a token, as in the CLI, requests are anonymous and only read public repositories.
+        ...token2 === "" ? {} : { Authorization: `Bearer ${token2}` },
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28"
       },
@@ -42548,16 +42549,12 @@ async function fetchRepositoryFile(client, owner, repo, path5, ref) {
   return Buffer.from(content.content, "base64").toString("utf8");
 }
 
+// src/config/extends.ts
+var import_yaml2 = __toESM(require_dist2(), 1);
+
 // src/config/load-config.ts
 var import_yaml = __toESM(require_dist2(), 1);
-function parseConfig(raw, source) {
-  let parsed;
-  try {
-    parsed = (0, import_yaml.parse)(raw) ?? {};
-  } catch (error2) {
-    const message = error2 instanceof Error ? error2.message : String(error2);
-    throw invalidConfig(source, message);
-  }
+function parseConfigObject(parsed, source) {
   const result = prismConfigSchema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues.map(
@@ -42571,13 +42568,98 @@ function invalidConfig(source, details) {
   return new Error(`Invalid Prism Review configuration in ${source}: ${details}`);
 }
 
+// src/config/extends.ts
+var maxDepth = 5;
+var remote = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([\w.-]{1,100})\/([^@\s]{1,500})@([\w./-]{1,250})$/;
+var localPath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[^@\s\\]{1,500}$/;
+function parseExtends(value, source) {
+  const trimmed = value.trim();
+  const match2 = remote.exec(trimmed);
+  if (match2) {
+    const [, owner = "", repo = "", path5 = "", ref = ""] = match2;
+    return { kind: "remote", owner, repo, path: path5, ref };
+  }
+  if (localPath.test(trimmed)) {
+    return { kind: "local", path: trimmed.replace(/^\.\//, "") };
+  }
+  throw new Error(
+    `Invalid Prism Review configuration in ${source}: extends must be a path in this repository, such as .github/prism-review-base.yml, or owner/repo/path@ref, such as acme/policies/prism-review.yml@v2.`
+  );
+}
+async function resolveConfig(raw, source, read, path5) {
+  const extendedPaths = [];
+  const chain = path5 === void 0 ? [] : [targetKey({ kind: "local", path: path5.replace(/^\.\//, "") })];
+  const merged = await resolveObject(raw, source, read, chain, extendedPaths);
+  return { config: parseConfigObject(merged, source), extendedPaths };
+}
+async function resolveObject(raw, source, read, chain, extendedPaths) {
+  const object2 = parseYaml(raw, source);
+  const { extends: target, ...settings4 } = object2;
+  if (target === void 0) {
+    return settings4;
+  }
+  if (typeof target !== "string") {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends must be a string.`);
+  }
+  if (chain.length > maxDepth) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends goes more than ${maxDepth} files deep.`);
+  }
+  const parsed = parseExtends(target, source);
+  const key2 = targetKey(parsed);
+  if (chain.includes(key2)) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends ${target}, which extends it back.`);
+  }
+  const parent = await read(parsed);
+  if (parent === void 0) {
+    throw new Error(
+      `Invalid Prism Review configuration in ${source}: extends ${target}, which was not found${parsed.kind === "remote" ? " or the token cannot read it" : ""}.`
+    );
+  }
+  if (parsed.kind === "local") {
+    extendedPaths.push(parsed.path);
+  }
+  const base = await resolveObject(parent.raw, parent.source, read, [...chain, key2], extendedPaths);
+  return merge2(base, settings4);
+}
+function parseYaml(raw, source) {
+  let parsed;
+  try {
+    parsed = (0, import_yaml2.parse)(raw) ?? {};
+  } catch (error2) {
+    const message = error2 instanceof Error ? error2.message : String(error2);
+    throw new Error(`Invalid Prism Review configuration in ${source}: ${message}`);
+  }
+  if (!isObject2(parsed)) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: (root): Expected a mapping.`);
+  }
+  return parsed;
+}
+function merge2(base, override) {
+  const merged = { ...base };
+  for (const [key2, value] of Object.entries(override)) {
+    const current = merged[key2];
+    merged[key2] = isObject2(current) && isObject2(value) ? merge2(current, value) : value;
+  }
+  return merged;
+}
+function isObject2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function targetKey(target) {
+  return target.kind === "local" ? `local:${target.path}` : `${target.owner}/${target.repo}/${target.path}@${target.ref}`;
+}
+
 // src/github/load-base-config.ts
 async function loadBaseBranchConfig(client, owner, repo, configPath, baseSha) {
   const raw = await fetchRepositoryFile(client, owner, repo, configPath, baseSha);
   if (raw === void 0) {
     return void 0;
   }
-  return parseConfig(raw, `${configPath} at ${baseSha.slice(0, 7)}`);
+  return resolveConfig(raw, `${configPath} at ${baseSha.slice(0, 7)}`, async (target) => {
+    const file = target.kind === "local" ? await fetchRepositoryFile(client, owner, repo, target.path, baseSha) : await fetchRepositoryFile(client, target.owner, target.repo, target.path, target.ref);
+    const source = target.kind === "local" ? `${target.path} at ${baseSha.slice(0, 7)}` : `${target.owner}/${target.repo}/${target.path}@${target.ref}`;
+    return file === void 0 ? void 0 : { raw: file, source };
+  }, configPath);
 }
 
 // src/github/load-code-owners.ts
@@ -42985,7 +43067,7 @@ async function run() {
   if (!baseConfig) {
     console.log(`No ${inputs.configPath} on the base branch; using the default configuration.`);
   }
-  const config2 = baseConfig ?? defaultConfig;
+  const config2 = baseConfig?.config ?? defaultConfig;
   const baseSha = readBaseSha(pullRequest);
   const files = prepareChangedFiles(
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
@@ -43001,6 +43083,7 @@ async function run() {
   ) : void 0;
   const result = analyzePullRequest(files, config2, {
     configPath: inputs.configPath,
+    extendedConfigPaths: baseConfig?.extendedPaths,
     expectedFileCount: pullRequest.changed_files,
     isGenerated: generated?.isGenerated,
     existingLockfiles

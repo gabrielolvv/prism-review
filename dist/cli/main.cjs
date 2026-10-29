@@ -1697,7 +1697,7 @@ var require_merge = __commonJS({
     var identity = require_identity();
     var Scalar = require_Scalar();
     var MERGE_KEY = "<<";
-    var merge2 = {
+    var merge3 = {
       identify: (value) => value === MERGE_KEY || typeof value === "symbol" && value.description === MERGE_KEY,
       default: "key",
       tag: "tag:yaml.org,2002:merge",
@@ -1707,7 +1707,7 @@ var require_merge = __commonJS({
       }),
       stringify: () => MERGE_KEY
     };
-    var isMergeKey = (ctx, key) => (merge2.identify(key) || identity.isScalar(key) && (!key.type || key.type === Scalar.Scalar.PLAIN) && merge2.identify(key.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge2.tag && tag.default);
+    var isMergeKey = (ctx, key) => (merge3.identify(key) || identity.isScalar(key) && (!key.type || key.type === Scalar.Scalar.PLAIN) && merge3.identify(key.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge3.tag && tag.default);
     function addMergeToJSMap(ctx, map, value) {
       const source = resolveAliasValue(ctx, value);
       if (identity.isSeq(source))
@@ -1746,7 +1746,7 @@ var require_merge = __commonJS({
     }
     exports2.addMergeToJSMap = addMergeToJSMap;
     exports2.isMergeKey = isMergeKey;
-    exports2.merge = merge2;
+    exports2.merge = merge3;
   }
 });
 
@@ -1755,15 +1755,15 @@ var require_addPairToJSMap = __commonJS({
   "node_modules/yaml/dist/nodes/addPairToJSMap.js"(exports2) {
     "use strict";
     var log = require_log();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var stringify = require_stringify();
     var identity = require_identity();
     var toJS = require_toJS();
     function addPairToJSMap(ctx, map, { key, value }) {
       if (identity.isNode(key) && key.addToJSMap)
         key.addToJSMap(ctx, map, value);
-      else if (merge2.isMergeKey(ctx, key))
-        merge2.addMergeToJSMap(ctx, map, value);
+      else if (merge3.isMergeKey(ctx, key))
+        merge3.addMergeToJSMap(ctx, map, value);
       else {
         const jsKey = toJS.toJS(key, "", ctx);
         if (map instanceof Map) {
@@ -3154,7 +3154,7 @@ var require_schema3 = __commonJS({
     var bool = require_bool2();
     var float = require_float2();
     var int2 = require_int2();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var omap = require_omap();
     var pairs = require_pairs();
     var set = require_set();
@@ -3174,7 +3174,7 @@ var require_schema3 = __commonJS({
       float.floatExp,
       float.float,
       binary.binary,
-      merge2.merge,
+      merge3.merge,
       omap.omap,
       pairs.pairs,
       set.set,
@@ -3200,7 +3200,7 @@ var require_tags = __commonJS({
     var schema = require_schema();
     var schema$1 = require_schema2();
     var binary = require_binary();
-    var merge2 = require_merge();
+    var merge3 = require_merge();
     var omap = require_omap();
     var pairs = require_pairs();
     var schema$2 = require_schema3();
@@ -3225,7 +3225,7 @@ var require_tags = __commonJS({
       intOct: int2.intOct,
       intTime: timestamp.intTime,
       map: map.map,
-      merge: merge2.merge,
+      merge: merge3.merge,
       null: _null3.nullTag,
       omap: omap.omap,
       pairs: pairs.pairs,
@@ -3235,7 +3235,7 @@ var require_tags = __commonJS({
     };
     var coreKnownTags = {
       "tag:yaml.org,2002:binary": binary.binary,
-      "tag:yaml.org,2002:merge": merge2.merge,
+      "tag:yaml.org,2002:merge": merge3.merge,
       "tag:yaml.org,2002:omap": omap.omap,
       "tag:yaml.org,2002:pairs": pairs.pairs,
       "tag:yaml.org,2002:set": set.set,
@@ -3244,7 +3244,7 @@ var require_tags = __commonJS({
     function getTags(customTags, schemaName, addMergeTag) {
       const schemaTags = schemas.get(schemaName);
       if (schemaTags && !customTags) {
-        return addMergeTag && !schemaTags.includes(merge2.merge) ? schemaTags.concat(merge2.merge) : schemaTags.slice();
+        return addMergeTag && !schemaTags.includes(merge3.merge) ? schemaTags.concat(merge3.merge) : schemaTags.slice();
       }
       let tags = schemaTags;
       if (!tags) {
@@ -3262,7 +3262,7 @@ var require_tags = __commonJS({
         tags = customTags(tags.slice());
       }
       if (addMergeTag)
-        tags = tags.concat(merge2.merge);
+        tags = tags.concat(merge3.merge);
       return tags.reduce((tags2, tag) => {
         const tagObj = typeof tag === "string" ? tagsByName[tag] : tag;
         if (!tagObj) {
@@ -3291,11 +3291,11 @@ var require_Schema = __commonJS({
     var tags = require_tags();
     var sortMapEntriesByKey = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
     var Schema = class _Schema {
-      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
+      constructor({ compat, customTags, merge: merge3, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
         this.compat = Array.isArray(compat) ? tags.getTags(compat, "compat") : compat ? tags.getTags(null, compat) : null;
         this.name = typeof schema === "string" && schema || "core";
         this.knownTags = resolveKnownTags ? tags.coreKnownTags : {};
-        this.tags = tags.getTags(customTags, this.name, merge2);
+        this.tags = tags.getTags(customTags, this.name, merge3);
         this.toStringOptions = toStringDefaults ?? null;
         Object.defineProperty(this, identity.MAP, { value: map.map });
         Object.defineProperty(this, identity.SCALAR, { value: string3.string });
@@ -7261,7 +7261,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse3(src, reviver, options) {
+    function parse4(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -7302,7 +7302,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document.Document(value, _replacer, options).toString(options);
     }
-    exports2.parse = parse3;
+    exports2.parse = parse4;
     exports2.parseAllDocuments = parseAllDocuments;
     exports2.parseDocument = parseDocument;
     exports2.stringify = stringify;
@@ -7363,7 +7363,7 @@ var require_dist = __commonJS({
 
 // src/cli/main.ts
 var import_node_child_process = require("node:child_process");
-var import_node_fs3 = require("node:fs");
+var import_node_fs2 = require("node:fs");
 var import_node_path2 = require("node:path");
 
 // node_modules/balanced-match/dist/esm/index.js
@@ -7481,11 +7481,11 @@ function expand(str, options = {}) {
   if (!str) {
     return [];
   }
-  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options;
+  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth: maxDepth2 = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options;
   if (str.slice(0, 2) === "{}") {
     str = "\\{\\}" + str.slice(2);
   }
-  return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
+  return expand_(escapeBraces(str), max, maxLength, maxDepth2, 0, maxRewrites, true).map(unescapeBraces);
 }
 function embrace(str) {
   return "{" + str + "}";
@@ -7563,8 +7563,8 @@ function expandSequence(body, isAlphaSequence, max, maxLength) {
   }
   return N;
 }
-function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
-  if (depth > maxDepth) {
+function expand_(str, max, maxLength, maxDepth2, depth, maxRewrites, isTop) {
+  if (depth > maxDepth2) {
     return [str];
   }
   let acc = [""];
@@ -7608,7 +7608,7 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
     } else {
       let n = parseCommaParts(m.body);
       if (n.length === 1 && n[0] !== void 0) {
-        n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
+        n = expand_(n[0], max, maxLength, maxDepth2, depth + 1, maxRewrites, false).map(embrace);
         if (n.length === 1) {
           acc = combine(acc, pre + n[0], [""], max, maxLength, dropEmpties && !m.post.length);
           if (!m.post.length)
@@ -7626,7 +7626,7 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
       values = [];
       let valuesLength = 0;
       outer: for (let j = 0; j < n.length; j++) {
-        const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
+        const expanded = expand_(n[j], max, maxLength, maxDepth2, depth + 1, maxRewrites, false);
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k];
           if (dropsEmpties && !v)
@@ -7983,7 +7983,7 @@ var AST = class {
     return c;
   }
   static #parseAST(str, ast, pos, opt, extDepth) {
-    const maxDepth = opt.maxExtglobRecursion ?? 2;
+    const maxDepth2 = opt.maxExtglobRecursion ?? 2;
     let escaping = false;
     let inBrace = false;
     let braceStart = -1;
@@ -8015,7 +8015,7 @@ var AST = class {
           acc2 += c;
           continue;
         }
-        const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i2) === "(" && extDepth <= maxDepth;
+        const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i2) === "(" && extDepth <= maxDepth2;
         if (doRecurse) {
           ast.push(acc2);
           acc2 = "";
@@ -8058,7 +8058,7 @@ var AST = class {
         continue;
       }
       const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i) === "(" && /* c8 ignore start - the maxDepth is sufficient here */
-      (extDepth <= maxDepth || ast && ast.#canAdoptType(c));
+      (extDepth <= maxDepth2 || ast && ast.#canAdoptType(c));
       if (doRecurse) {
         const depthAdd = ast && ast.#canAdoptType(c) ? 0 : 1;
         part.push(acc);
@@ -10440,17 +10440,17 @@ var validateAsync = async (schema, value, _ctx) => {
   return result.issues.length === 0;
 };
 var _encode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return parse3(schema, value, ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var _decode = (_Err) => {
-  const parse3 = _parse(_Err);
+  const parse4 = _parse(_Err);
   const fn = (schema, value, _ctx, _params) => {
-    return parse3(schema, value, _ctx, finalizeParams(fn, _params));
+    return parse4(schema, value, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
@@ -11469,7 +11469,7 @@ function capSize(inst, size) {
   if (!caps.length)
     return;
   const cap = Math.min(...caps.map((c) => c[0]));
-  const parse3 = inst._zod.parse;
+  const parse4 = inst._zod.parse;
   inst._zod.parse = (payload, ctx) => {
     const n = size(payload.value);
     if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
@@ -11483,7 +11483,7 @@ function capSize(inst, size) {
         }
       }
     }
-    return parse3(payload, ctx);
+    return parse4(payload, ctx);
   };
 }
 var arraySize = (input) => Array.isArray(input) ? input.length : -1;
@@ -11665,7 +11665,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     return propValues;
   });
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const catchall = def.catchall;
   let value;
   const memo2 = globalConfig.memoizer;
@@ -11673,7 +11673,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject3(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -11809,7 +11809,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     return doc.compile();
   };
   let fastpass;
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const jit = !globalConfig.jitless;
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
@@ -11818,7 +11818,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject3(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -12498,7 +12498,7 @@ function isRecursive(inst, stack, resolve2) {
     }
     return answer;
   };
-  const merge2 = (answer) => {
+  const merge3 = (answer) => {
     if (answer > result)
       result = answer;
   };
@@ -12507,7 +12507,7 @@ function isRecursive(inst, stack, resolve2) {
   switch (kind) {
     case "object": {
       const raw = rawShape(def);
-      merge2(raw ? shape(raw, true) : ASSUMED);
+      merge3(raw ? shape(raw, true) : ASSUMED);
       check(def.catchall);
       break;
     }
@@ -12557,7 +12557,7 @@ function isRecursive(inst, stack, resolve2) {
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
       const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
-      merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
+      merge3(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
     // a leaf by choice: `parts` are regex fragments, not data positions
@@ -15787,19 +15787,17 @@ function isTestDataPath(path2) {
 var configChangeRule = {
   id: "config-change",
   seesIgnoredFiles: true,
-  description: "Flags pull requests that change the Prism Review configuration.",
-  run({ files, configPath }) {
+  description: "Flags pull requests that change the Prism Review configuration or a file it extends.",
+  run({ files, configPath, extendedConfigPaths = [] }) {
     const target = normalizeRepositoryPath(configPath);
-    return files.filter(
-      (file) => [file.path, file.previousPath].some(
-        (path2) => path2 !== void 0 && normalizeRepositoryPath(path2) === target
-      )
-    ).map((file) => ({
+    const extended2 = new Set(extendedConfigPaths.map(normalizeRepositoryPath));
+    const matches = (file, paths) => [file.path, file.previousPath].some((path2) => path2 !== void 0 && paths.has(normalizeRepositoryPath(path2)));
+    return files.filter((file) => matches(file, /* @__PURE__ */ new Set([target])) || matches(file, extended2)).map((file) => ({
       ruleId: "config-change",
       title: "Review configuration changed",
       severity: "high",
       file: file.path,
-      message: "This file is the Prism Review configuration, which controls how pull requests are reviewed.",
+      message: matches(file, /* @__PURE__ */ new Set([target])) ? "This file is the Prism Review configuration, which controls how pull requests are reviewed." : "The Prism Review configuration extends this file, which controls how pull requests are reviewed.",
       recommendation: "Confirm that thresholds, rule patterns, and redaction allowlist entries were not relaxed to hide findings."
     }));
   }
@@ -20714,6 +20712,7 @@ function analyzePullRequest(files, config2, options = {}) {
   const {
     rules = defaultRules,
     configPath = defaultConfigPath,
+    extendedConfigPaths = [],
     expectedFileCount,
     isGenerated = () => false,
     existingLockfiles
@@ -20729,6 +20728,7 @@ function analyzePullRequest(files, config2, options = {}) {
       files: rule.seesIgnoredFiles ? files : reviewed,
       config: config2,
       configPath,
+      extendedConfigPaths,
       expectedFileCount,
       changedPaths,
       ...existingLockfiles === void 0 ? {} : { existingLockfiles }
@@ -20849,8 +20849,80 @@ function attributeState(attribute) {
 }
 
 // src/github/client.ts
+var GitHubApiError = class extends Error {
+  constructor(status, details) {
+    super(`GitHub API request failed: ${status} ${details}`);
+    this.status = status;
+    this.name = "GitHubApiError";
+  }
+  status;
+};
+var defaultGitHubApiUrl = "https://api.github.com";
+var requestTimeoutMs = 15e3;
 var pageSize = 100;
 var maxPages = pullRequestFileLimit / pageSize;
+var maxErrorDetailLength = 300;
+function createGitHubClient(token2, apiUrl = defaultGitHubApiUrl) {
+  async function request(path2, options = {}) {
+    const response = await fetch(`${apiUrl}${path2}`, {
+      method: options.method ?? "GET",
+      headers: {
+        Accept: "application/vnd.github+json",
+        // Without a token, as in the CLI, requests are anonymous and only read public repositories.
+        ...token2 === "" ? {} : { Authorization: `Bearer ${token2}` },
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      body: options.body === void 0 ? void 0 : JSON.stringify(options.body),
+      signal: AbortSignal.timeout(requestTimeoutMs)
+    });
+    if (!response.ok) {
+      throw new GitHubApiError(
+        response.status,
+        truncate(await response.text(), maxErrorDetailLength)
+      );
+    }
+    if (response.status === 204) {
+      return void 0;
+    }
+    return await response.json();
+  }
+  async function paginate(path2) {
+    const items = [];
+    const separator = path2.includes("?") ? "&" : "?";
+    for (let page = 1; page <= maxPages; page += 1) {
+      const batch = await request(`${path2}${separator}per_page=${pageSize}&page=${page}`);
+      items.push(...batch);
+      if (batch.length < pageSize) {
+        break;
+      }
+    }
+    return items;
+  }
+  return { request, paginate };
+}
+function resolveGitHubApiUrl(value) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return defaultGitHubApiUrl;
+  }
+  let url;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  if (url.search || url.hash || url.username || url.password) {
+    throw new Error(`Invalid GITHUB_API_URL value: ${trimmed}`);
+  }
+  return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+}
+function truncate(value, maxLength) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
 
 // src/github/load-lockfiles.ts
 var maxDirectories = 20;
@@ -20887,23 +20959,12 @@ function describeFailure(failing, failOn, setting = "check.failOn") {
   return `Prism Review found ${failing.length} ${severities} finding(s), and ${setting} is "${failOn}".`;
 }
 
+// src/config/extends.ts
+var import_yaml2 = __toESM(require_dist(), 1);
+
 // src/config/load-config.ts
-var import_node_fs = require("node:fs");
 var import_yaml = __toESM(require_dist(), 1);
-function loadConfig(configPath) {
-  if (!configPath || !(0, import_node_fs.existsSync)(configPath)) {
-    return defaultConfig;
-  }
-  return parseConfig((0, import_node_fs.readFileSync)(configPath, "utf8"), configPath);
-}
-function parseConfig(raw, source) {
-  let parsed;
-  try {
-    parsed = (0, import_yaml.parse)(raw) ?? {};
-  } catch (error2) {
-    const message = error2 instanceof Error ? error2.message : String(error2);
-    throw invalidConfig(source, message);
-  }
+function parseConfigObject(parsed, source) {
   const result = prismConfigSchema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues.map(
@@ -20915,6 +20976,110 @@ function parseConfig(raw, source) {
 }
 function invalidConfig(source, details) {
   return new Error(`Invalid Prism Review configuration in ${source}: ${details}`);
+}
+
+// src/config/extends.ts
+var maxDepth = 5;
+var remote = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([\w.-]{1,100})\/([^@\s]{1,500})@([\w./-]{1,250})$/;
+var localPath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[^@\s\\]{1,500}$/;
+function parseExtends(value, source) {
+  const trimmed = value.trim();
+  const match2 = remote.exec(trimmed);
+  if (match2) {
+    const [, owner = "", repo = "", path2 = "", ref = ""] = match2;
+    return { kind: "remote", owner, repo, path: path2, ref };
+  }
+  if (localPath.test(trimmed)) {
+    return { kind: "local", path: trimmed.replace(/^\.\//, "") };
+  }
+  throw new Error(
+    `Invalid Prism Review configuration in ${source}: extends must be a path in this repository, such as .github/prism-review-base.yml, or owner/repo/path@ref, such as acme/policies/prism-review.yml@v2.`
+  );
+}
+async function resolveConfig(raw, source, read, path2) {
+  const extendedPaths = [];
+  const chain = path2 === void 0 ? [] : [targetKey({ kind: "local", path: path2.replace(/^\.\//, "") })];
+  const merged = await resolveObject(raw, source, read, chain, extendedPaths);
+  return { config: parseConfigObject(merged, source), extendedPaths };
+}
+async function resolveObject(raw, source, read, chain, extendedPaths) {
+  const object2 = parseYaml(raw, source);
+  const { extends: target, ...settings4 } = object2;
+  if (target === void 0) {
+    return settings4;
+  }
+  if (typeof target !== "string") {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends must be a string.`);
+  }
+  if (chain.length > maxDepth) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends goes more than ${maxDepth} files deep.`);
+  }
+  const parsed = parseExtends(target, source);
+  const key = targetKey(parsed);
+  if (chain.includes(key)) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: extends ${target}, which extends it back.`);
+  }
+  const parent = await read(parsed);
+  if (parent === void 0) {
+    throw new Error(
+      `Invalid Prism Review configuration in ${source}: extends ${target}, which was not found${parsed.kind === "remote" ? " or the token cannot read it" : ""}.`
+    );
+  }
+  if (parsed.kind === "local") {
+    extendedPaths.push(parsed.path);
+  }
+  const base = await resolveObject(parent.raw, parent.source, read, [...chain, key], extendedPaths);
+  return merge2(base, settings4);
+}
+function parseYaml(raw, source) {
+  let parsed;
+  try {
+    parsed = (0, import_yaml2.parse)(raw) ?? {};
+  } catch (error2) {
+    const message = error2 instanceof Error ? error2.message : String(error2);
+    throw new Error(`Invalid Prism Review configuration in ${source}: ${message}`);
+  }
+  if (!isObject2(parsed)) {
+    throw new Error(`Invalid Prism Review configuration in ${source}: (root): Expected a mapping.`);
+  }
+  return parsed;
+}
+function merge2(base, override) {
+  const merged = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const current = merged[key];
+    merged[key] = isObject2(current) && isObject2(value) ? merge2(current, value) : value;
+  }
+  return merged;
+}
+function isObject2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function targetKey(target) {
+  return target.kind === "local" ? `local:${target.path}` : `${target.owner}/${target.repo}/${target.path}@${target.ref}`;
+}
+
+// src/github/fetch-repository-file.ts
+async function fetchRepositoryFile(client, owner, repo, path2, ref) {
+  const encodedPath = path2.split("/").map(encodeURIComponent).join("/");
+  let content;
+  try {
+    content = await client.request(
+      `/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`
+    );
+  } catch (error2) {
+    if (error2 instanceof GitHubApiError && error2.status === 404) {
+      return void 0;
+    }
+    throw error2;
+  }
+  if (Array.isArray(content) || content.type !== "file") {
+    throw new Error(`${path2} is not a file at ${ref}.`);
+  }
+  if (content.encoding !== "base64" || content.content === void 0) {
+    throw new Error(`${path2} at ${ref} is too large to read through the contents API.`);
+  }
+  return Buffer.from(content.content, "base64").toString("utf8");
 }
 
 // src/rules/areas.ts
@@ -21692,7 +21857,7 @@ function detectStatus(lines) {
 }
 
 // src/cli/init.ts
-var import_node_fs2 = require("node:fs");
+var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 var workflowPath = ".github/workflows/prism-review.yml";
 var actionRepository = "gabrielolvv/prism-review";
@@ -21707,12 +21872,12 @@ async function initRepository(options) {
   const skipped = [];
   for (const [path2, content] of files) {
     const target = (0, import_node_path.join)(options.directory, path2);
-    if ((0, import_node_fs2.existsSync)(target) && !options.force) {
+    if ((0, import_node_fs.existsSync)(target) && !options.force) {
       skipped.push(path2);
       continue;
     }
-    (0, import_node_fs2.mkdirSync)((0, import_node_path.dirname)(target), { recursive: true });
-    (0, import_node_fs2.writeFileSync)(target, content);
+    (0, import_node_fs.mkdirSync)((0, import_node_path.dirname)(target), { recursive: true });
+    (0, import_node_fs.writeFileSync)(target, content);
     written.push(path2);
   }
   return { written, skipped, uses };
@@ -21790,7 +21955,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.53.0" : "development";
+var version2 = true ? "0.54.0" : "development";
 
 // src/cli/main.ts
 var usage = [
@@ -21852,26 +22017,27 @@ async function main() {
   if (sources2 !== 1) {
     throw new UsageError(sources2 === 0 ? "Missing --diff, --staged, or --base." : "Use only one of --diff, --staged, and --base.");
   }
-  if (options.config !== void 0 && !(0, import_node_fs3.existsSync)((0, import_node_path2.resolve)(options.config))) {
+  if (options.config !== void 0 && !(0, import_node_fs2.existsSync)((0, import_node_path2.resolve)(options.config))) {
     throw new Error(`Configuration file not found: ${options.config}`);
   }
   const configPath = options.config ?? defaultConfigPath;
-  const config2 = loadConfig((0, import_node_path2.resolve)(configPath));
+  const { config: config2, extendedPaths } = await loadLocalConfig(configPath);
   const diff = options.diff !== void 0 ? await readDiff(options.diff) : gitDiff(options.base);
   if (options.diff === void 0 && diff.trim() === "") {
     process.stdout.write("No changes to review.\n");
     return;
   }
   const files = prepareChangedFiles(parseDiff(diff), config2);
-  const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs3.readFileSync)(gitAttributesPath, "utf8")) : void 0;
+  const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs2.readFileSync)(gitAttributesPath, "utf8")) : void 0;
   const existingLockfiles = config2.rules.staleLockfiles.enabled ? await findLockfiles(
     files,
-    async (directory) => (0, import_node_fs3.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
+    async (directory) => (0, import_node_fs2.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
       (entry) => entry.isFile() ? [entry.name] : []
     )
   ).catch(() => void 0) : void 0;
   const result = analyzePullRequest(files, config2, {
     configPath,
+    extendedConfigPaths: extendedPaths,
     isGenerated: generated?.isGenerated,
     existingLockfiles
   });
@@ -21908,7 +22074,7 @@ async function init(args) {
       throw new UsageError(`Unknown option: ${arg}`);
     }
   }
-  if (!(0, import_node_fs3.existsSync)(".git")) {
+  if (!(0, import_node_fs2.existsSync)(".git")) {
     throw new Error("Run prism-review init from the root of a Git repository.");
   }
   const result = await initRepository({ directory: ".", force, ref, version: version2 });
@@ -21937,12 +22103,33 @@ async function init(args) {
     );
   }
 }
+async function loadLocalConfig(configPath) {
+  if (!isFile((0, import_node_path2.resolve)(configPath))) {
+    return { config: defaultConfig, extendedPaths: [] };
+  }
+  const client = createGitHubClient(
+    process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? "",
+    resolveGitHubApiUrl(process.env.GITHUB_API_URL)
+  );
+  return resolveConfig(
+    (0, import_node_fs2.readFileSync)((0, import_node_path2.resolve)(configPath), "utf8"),
+    configPath,
+    async (target) => {
+      if (target.kind === "local") {
+        return isFile(target.path) ? { raw: (0, import_node_fs2.readFileSync)(target.path, "utf8"), source: target.path } : void 0;
+      }
+      const raw = await fetchRepositoryFile(client, target.owner, target.repo, target.path, target.ref);
+      return raw === void 0 ? void 0 : { raw, source: `${target.owner}/${target.repo}/${target.path}@${target.ref}` };
+    },
+    configPath
+  );
+}
 function readLocalCodeOwners() {
   const path2 = codeOwnersPaths.find(isFile);
-  return path2 === void 0 ? void 0 : parseCodeOwners((0, import_node_fs3.readFileSync)(path2, "utf8"));
+  return path2 === void 0 ? void 0 : parseCodeOwners((0, import_node_fs2.readFileSync)(path2, "utf8"));
 }
 function isFile(path2) {
-  return (0, import_node_fs3.existsSync)(path2) && (0, import_node_fs3.statSync)(path2).isFile();
+  return (0, import_node_fs2.existsSync)(path2) && (0, import_node_fs2.statSync)(path2).isFile();
 }
 function render(result, format, options) {
   if (format === "text") {
@@ -21994,7 +22181,7 @@ function gitDiff(base) {
 }
 async function readDiff(source) {
   if (source !== "-") {
-    return (0, import_node_fs3.readFileSync)((0, import_node_path2.resolve)(source), "utf8");
+    return (0, import_node_fs2.readFileSync)((0, import_node_path2.resolve)(source), "utf8");
   }
   if (process.stdin.isTTY) {
     throw new UsageError("--diff - reads a diff from stdin; pipe one in, for example from `git diff`.");
