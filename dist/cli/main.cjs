@@ -16080,12 +16080,12 @@ var kinds = [
   {
     kind: "drops a table",
     destructive: true,
-    pattern: /\bdrop\s+(?:table|schema|database)\b|(?<!\w)(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel)\b|\bSchema::drop(?:IfExists)?\s*\(/i
+    pattern: /\bdrop\s+(?:table|schema|database)\b|(?<!\w)(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel(?=\s*\())|\bSchema::drop(?:IfExists)?\s*\(/i
   },
   {
     kind: "drops a column",
     destructive: true,
-    pattern: /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField)\b|^\s*remove\s+:/i
+    pattern: /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField(?=\s*\())|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -16100,7 +16100,7 @@ var kinds = [
   {
     kind: "renames a table or column",
     destructive: false,
-    pattern: /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<!\w)(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField|RenameModel)\b|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
+    pattern: /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<!\w)(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField(?=\s*\()|RenameModel(?=\s*\())|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
   }
 ];
 var migrationPath = /(?:^|\/)[^/]*(?:migrat|alembic)[^/]*\/|(?:^|\/)(?:V\d[^/]*__[^/]*|[^/]*\.up)\.sql$/i;
@@ -16263,6 +16263,7 @@ var csrf = {
 };
 var checks = [tls, token, csrf];
 var commentLine3 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
@@ -16277,7 +16278,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine3.test(content) || importLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -16378,6 +16379,8 @@ function findHiddenLines(patch) {
 
 // src/rules/hidden-unicode.ts
 var effect = "characters that are invisible or reorder text";
+var translationCatalog = /\.(?:po|pot|xlf|xliff|strings|stringsdict|arb)$/i;
+var tagLabel = "Unicode tag characters";
 var hiddenUnicodeRule = {
   id: "hidden-unicode",
   seesIgnoredFiles: true,
@@ -16388,10 +16391,8 @@ var hiddenUnicodeRule = {
     }
     return files.flatMap((file) => {
       const inPath = findHiddenCharacters(file.path);
-      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).map((found) => ({
-        line: found.line,
-        found
-      }));
+      const translation = translationCatalog.test(file.path);
+      const inLines = (file.hiddenLines ?? findHiddenLines(file.patch ?? "")).filter((found) => !translation || found.labels.includes(tagLabel)).map((found) => ({ line: found.line, found }));
       if (inPath.labels.length === 0 && inLines.length === 0) {
         return [];
       }
@@ -16674,7 +16675,7 @@ function joinParts(parts) {
 
 // src/analysis/manifest-dependencies.ts
 var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
-var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm"]);
+var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm", "tag", "registry"]);
 var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
 var npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);
 var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*([<>=!~][^;#]{0,100}|@[^;#]{0,200})?(?:[;#]|$)`);
@@ -17172,6 +17173,8 @@ var popularPackages = {
     "serve-static",
     "http-proxy",
     "cookie",
+    "cookies",
+    "mquery",
     "lru-cache",
     "uglify-js",
     "terser",
@@ -18596,6 +18599,9 @@ function kindsIn(content) {
   }
   for (const pattern of [shellUmask, umaskCall]) {
     for (const match2 of content.matchAll(pattern)) {
+      if (pattern === umaskCall && /(?:=|return)\s*$/.test(content.slice(0, match2.index).replace(/[\w.]+$/, ""))) {
+        continue;
+      }
       const digits = (match2[1] ?? "").replace(/^0o/, "");
       const others = Number(digits.at(-1) ?? "0");
       if ((others & 2) === 0) {
@@ -18674,7 +18680,7 @@ var flaskDebug = /\.run\s*\([^)]{0,500}\b(?:debug|use_debugger)\s*=\s*True\b/;
 var djangoDebug = /^\s*DEBUG\s*=\s*True\b/;
 var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
-var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci)(?:[\/_.-]|$)/i;
+var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
 var commentLine9 = /^\s*(?:#|\/\/|\*)/;
 var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -18765,6 +18771,8 @@ var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|
 var ecbMode = /\bMODE_ECB\b|\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
 var commentLine10 = /^\s*(?:#|\/\/|\*|--)/;
+var minified = /\.min\.(?:js|mjs|cjs)$/i;
+var maxLineLength = 500;
 var documentation6 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
@@ -18775,11 +18783,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation6.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation6.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine10.test(content) ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine10.test(content) && content.length <= maxLineLength ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -18825,11 +18833,13 @@ var labels6 = {
   ssrf: "requests a URL from the request, which can reach internal services",
   path: "reads or writes a file path from the request, which can leave the intended directory"
 };
-var requestValue = /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|headers|cookies|url)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|META|FILES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE|SERVER\[\s*["']HTTP_)|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\(|Header\.Get\()|\bparams\[|\bRequest\.(?:Query|Form|Headers|Cookies)\[|\bsearchParams\.get\(/;
+var requestValue = /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|headers|cookies|url)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|META|FILES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE|SERVER\[\s*["']HTTP_)|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\(|Header\.Get\()|\bRequest\.(?:Query|Form|Headers|Cookies)\[|\bsearchParams\.get\(/;
+var railsParams = /(?<![\w.@])params\[/;
+var rubyFile = /\.(?:rb|erb|rake)$/i;
 var sinks = [
   [
     "redirect",
-    /\b(?:res|reply|ctx|response)\.redirect\s*\(|(?:^|[^\w.])redirect\s*\(|\bHttpResponseRedirect\s*\(|\bheader\s*\(\s*["']Location:|\bhttp\.Redirect\s*\(|\bredirect_to\b|\bRedirect(?:Permanent)?\s*\(|\.location(?:\.href)?\s*=/
+    /\b(?:res|reply|ctx|response)\.redirect\s*\(|(?:^|[^\w.])redirect\s*\(|\bHttpResponseRedirect\s*\(|\bheader\s*\(\s*["']Location:|\bhttp\.Redirect\s*\(|\bredirect_to\b(?!\s*=)|\bRedirect(?:Permanent)?\s*\(|\.location(?:\.href)?\s*=/
   ],
   [
     "ssrf",
@@ -18860,8 +18870,10 @@ var untrustedInputRule = {
       if (file.patch === void 0 || documentation7.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
+      const ruby = rubyFile.test(file.path);
+      const fromRequest = (content) => requestValue.test(content) || ruby && railsParams.test(content);
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine11.test(content) && requestValue.test(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine11.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -19850,7 +19862,7 @@ function findBuiltSql(patch, patterns2) {
     const target = call ? { name: call[1] ?? "", argument: content.slice(call.index + call[0].length) } : void 0;
     const checked = target ?? (pendingCall === void 0 ? void 0 : { name: pendingCall, argument: content });
     pendingCall = target !== void 0 && target.argument.trim() === "" ? target.name : void 0;
-    if (added && checked !== void 0 && checked.argument.trim() !== "" && patterns2.some((pattern) => pattern.test(checked.argument)) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /#\{/.test(checked.argument))) {
+    if (added && checked !== void 0 && checked.argument.trim() !== "" && patterns2.some((pattern) => pattern.test(checked.argument)) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument))) {
       found.push(line);
     }
   }
