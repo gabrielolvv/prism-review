@@ -74,6 +74,8 @@ rules:
     enabled: true
   sqlInjection:
     enabled: true
+  insecureWebConfig:
+    enabled: true
   workflowRisk:
     enabled: true
   unpinnedActions:
@@ -346,6 +348,25 @@ The `disabled-security-check` rule reports added lines that turn off a check mea
 Without certificate verification, anyone on the network path can read and change the traffic. Without signature checks, anyone can forge a token. CSRF protection is often turned off on purpose for an API or a signed webhook, so it is a warning.
 
 A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
+
+## Insecure Web Configuration
+
+### `rules.insecureWebConfig.enabled`
+
+The `insecure-web-config` rule reads added lines in source and settings files, and reports one finding per file:
+
+| Reported | Severity | Examples |
+| --- | --- | --- |
+| CORS that allows every origin, or sends back the request's own, together with credentials | High | Express `cors({ origin: true, credentials: true })`, the `Access-Control-Allow-Origin` header set to `*` or `req.headers.origin` with `Access-Control-Allow-Credentials: true`, Django `CORS_ALLOW_ALL_ORIGINS = True` with `CORS_ALLOW_CREDENTIALS = True`, Flask-CORS `origins="*"` with `supports_credentials=True`, Spring `allowedOriginPatterns("*")` with `allowCredentials(true)`, ASP.NET Core `SetIsOriginAllowed(_ => true)` with `AllowCredentials()` |
+| A cookie with HttpOnly or Secure turned off | Warning | `httpOnly: false`, `SESSION_COOKIE_SECURE = False`, `CSRF_COOKIE_SECURE = False`, `SESSION_COOKIE_HTTPONLY = False`, `set_cookie(..., httponly=False)`, `res.cookie(..., { secure: false })`, Java `setHttpOnly(false)`, .NET `HttpOnly = false` |
+| A debug mode in production | Warning | Flask `app.run(debug=True)`, which serves the Werkzeug debugger and its console; Django `DEBUG = True` in a settings module; Rails `config.consider_all_requests_local = true` in `config/environments/production.rb` |
+
+With every origin and credentials allowed, any website a signed-in user visits can read responses meant for that user. A cookie without HttpOnly can be read by any injected script, and one without Secure travels over plain HTTP. Debug pages show code, settings, and stack traces, and the Werkzeug debugger runs Python for whoever opens it.
+
+- The CORS finding needs both halves: the origin and the credentials must be set on the same line, within 10 lines of each other, or, for Django, anywhere in the settings file. One of them must be added by the pull request. Every origin without credentials, as a public API uses, and credentials with a list of origins are not reported. A whole `cors({ ... })` call on one line pairs only with itself.
+- A bare `secure: false` is not read as a cookie setting, since SMTP clients and proxies use the same option. Only cookie calls, cookie options, and framework cookie settings count.
+- Django `DEBUG = True` is only reported in settings modules whose path does not name development, local, test, or CI settings, such as `settings/dev.py` or `settings_local.py`.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## SQL Injection
 
@@ -704,7 +725,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
 | Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `destructive-migration` |
-| Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
+| Code | `sql-injection`, `insecure-web-config`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
 

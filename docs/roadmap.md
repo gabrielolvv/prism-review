@@ -58,7 +58,9 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Workflow permissions: write scopes granted to every job at the top of a workflow, and new workflows that set no permissions (0.36.0).
 - `sensitive-files` keeps high for configured paths and warns for files that only a word in their path marks sensitive, leaving out documentation, tests, and fixtures (0.37.0).
 - `kubernetes-rbac` rule for bindings to cluster-admin, roles granted to everyone, wildcard verbs and resources, and the escalate, bind, and impersonate verbs (0.38.0).
-- `file-permissions` rule for world-writable modes, the setuid bit, and an open umask, in shell, Dockerfiles, and code.
+- `file-permissions` rule for world-writable modes, the setuid bit, and an open umask, in shell, Dockerfiles, and code (0.39.0).
+- Marketplace-ready README, `SECURITY.md`, and listing checklist (0.39.1).
+- `insecure-web-config` rule for CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production.
 
 ## Later
 
