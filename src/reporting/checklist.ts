@@ -32,6 +32,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "weak-crypto": "Are secrets hashed with a password hash, encrypted with an authenticated cipher, and made with a cryptographic random generator?",
   "xml-external-entities": "Does every XML parser that turns on DTDs or external entities read only trusted documents?",
   "mass-assignment": "Does each form, serializer, or model write accept only the fields a user may change?",
+  redos: "Can a user send the text these regular expressions read, and is its length limited?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",

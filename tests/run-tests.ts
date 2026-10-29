@@ -407,6 +407,13 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testAmbiguousGroupFindsNestedRepetition,
+  testRedosCanBeDisabled,
+  testRedosReadsEachLanguage,
+  testRedosReportsOneFindingPerFile,
+  testRedosSkipsOtherCode
+} from "./unit/redos.test.js";
+import {
   testMassAssignmentCanBeDisabled,
   testMassAssignmentReadsEachFramework,
   testMassAssignmentReportsOneFindingPerFile,
@@ -689,6 +696,11 @@ const tests: Array<[string, Test]> = [
   ["mass-assignment skips listed fields", testMassAssignmentSkipsListedFields],
   ["mass-assignment skips tests and docs", testMassAssignmentSkipsTestsAndDocs],
   ["mass-assignment can be disabled", testMassAssignmentCanBeDisabled],
+  ["ambiguousGroup finds nested repetition", testAmbiguousGroupFindsNestedRepetition],
+  ["redos reports one finding per file", testRedosReportsOneFindingPerFile],
+  ["redos reads each language", testRedosReadsEachLanguage],
+  ["redos skips other code", testRedosSkipsOtherCode],
+  ["redos can be disabled", testRedosCanBeDisabled],
   ["hardcoded-jwt-secret reports one finding per file", testHardcodedJwtSecretReportsOneFindingPerFile],
   ["hardcoded-jwt-secret reads each library", testHardcodedJwtSecretReadsEachLibrary],
   ["hardcoded-jwt-secret skips keys from elsewhere", testHardcodedJwtSecretSkipsKeysFromElsewhere],

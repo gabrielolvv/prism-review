@@ -18,6 +18,7 @@ export const ruleIds: readonly string[] = [
   "untrusted-input",
   "xml-external-entities",
   "mass-assignment",
+  "redos",
   "remote-script",
   "workflow-risk",
   "unpinned-action",

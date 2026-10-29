@@ -24,6 +24,7 @@ import { insecureWebConfigRule } from "./insecure-web-config.js";
 import { weakCryptoRule } from "./weak-crypto.js";
 import { xmlExternalEntitiesRule } from "./xml-external-entities.js";
 import { massAssignmentRule } from "./mass-assignment.js";
+import { redosRule } from "./redos.js";
 import { untrustedInputRule } from "./untrusted-input.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
@@ -54,6 +55,7 @@ export const defaultRules: Rule[] = [
   untrustedInputRule,
   xmlExternalEntitiesRule,
   massAssignmentRule,
+  redosRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,
