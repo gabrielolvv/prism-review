@@ -6,6 +6,8 @@ export type AnalysisContext = {
   files: ChangedFile[];
   config: PrismConfig;
   configPath: string;
+  // Files in this repository that the configuration extends.
+  extendedConfigPaths?: readonly string[];
   // How many files the pull request changes, when the caller knows; GitHub may return fewer.
   expectedFileCount?: number;
   // Every path the pull request changes, old paths of renames and ignored files included.

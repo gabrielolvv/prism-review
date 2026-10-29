@@ -786,6 +786,36 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI follows extends to a file in the repository",
+    () => {
+      const repo = join(workDir, "extends");
+      mkdirSync(join(repo, ".github"), { recursive: true });
+      writeFileSync(join(repo, ".prism-review.yml"), "extends: .github/prism-review-base.yml\ncomment:\n  includeLowSeverity: false\n");
+      writeFileSync(join(repo, ".github/prism-review-base.yml"), "check:\n  failOn: high\n");
+      const cli = (diff: string) =>
+        spawnSync(process.execPath, [cliEntry, "analyze", "--diff", "-", "--format", "text"], {
+          cwd: repo,
+          encoding: "utf8",
+          input: diff,
+          env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT }
+        });
+
+      // check.failOn comes from the extended file.
+      const risky = cli(riskyDiff);
+      assert.equal(risky.status, 1);
+      assert.match(risky.stderr, /check\.failOn is "high"/);
+
+      // Changing the extended file changes later reviews, so it is reported like the configuration.
+      const base = cli(["diff --git a/.github/prism-review-base.yml b/.github/prism-review-base.yml", "--- a/.github/prism-review-base.yml", "+++ b/.github/prism-review-base.yml", "@@ -1,2 +1,2 @@", " check:", "-  failOn: high", "+  failOn: never", ""].join("\n"));
+      assert.match(base.stdout, /\.github\/prism-review-base\.yml {2}Review configuration changed \[config-change\]/);
+
+      writeFileSync(join(repo, ".prism-review.yml"), "extends: missing.yml\n");
+      const missing = cli(riskyDiff);
+      assert.equal(missing.status, 1);
+      assert.match(missing.stderr, /extends missing\.yml, which was not found\./);
+    }
+  ],
+  [
     "the pre-commit hook runs the CLI with its own arguments",
     () => {
       const [hook] = parseYaml(readFileSync(".pre-commit-hooks.yaml", "utf8"));

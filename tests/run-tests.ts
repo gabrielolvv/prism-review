@@ -344,8 +344,10 @@ import {
   testReadInputsRejectsPathsOutsideRepository
 } from "./unit/inputs.test.js";
 import {
+  testLoadBaseBranchConfigFollowsExtends,
   testLoadBaseBranchConfigNamesBaseCommitInErrors,
   testLoadBaseBranchConfigParsesBaseFile,
+  testLoadBaseBranchConfigRejectsBadExtends,
   testLoadBaseBranchConfigReturnsUndefinedWhenMissing
 } from "./unit/load-base-config.test.js";
 import {
@@ -408,6 +410,12 @@ import {
   testBlanketSuppressionRuleIgnoresTargetedSuppressions,
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
+import {
+  testConfigChangeReportsExtendedFiles,
+  testParseExtendsReadsBothForms,
+  testResolveConfigLimitsTheDepth,
+  testResolveConfigRejectsInvalidMergedSettings
+} from "./unit/config-extends.test.js";
 import {
   testAmbiguousGroupFindsNestedRepetition,
   testRedosCanBeDisabled,
@@ -832,7 +840,13 @@ const tests: Array<[string, Test]> = [
   ["readInputs rejects config paths outside the repository", testReadInputsRejectsPathsOutsideRepository],
   ["loadBaseBranchConfig parses the base branch file", testLoadBaseBranchConfigParsesBaseFile],
   ["loadBaseBranchConfig returns undefined when the file is missing", testLoadBaseBranchConfigReturnsUndefinedWhenMissing],
-  ["loadBaseBranchConfig names the base commit in errors", testLoadBaseBranchConfigNamesBaseCommitInErrors]
+  ["loadBaseBranchConfig names the base commit in errors", testLoadBaseBranchConfigNamesBaseCommitInErrors],
+  ["loadBaseBranchConfig follows extends", testLoadBaseBranchConfigFollowsExtends],
+  ["loadBaseBranchConfig rejects bad extends", testLoadBaseBranchConfigRejectsBadExtends],
+  ["parseExtends reads paths in this and other repositories", testParseExtendsReadsBothForms],
+  ["resolveConfig limits how deep extends goes", testResolveConfigLimitsTheDepth],
+  ["resolveConfig validates the merged settings", testResolveConfigRejectsInvalidMergedSettings],
+  ["config-change reports files the configuration extends", testConfigChangeReportsExtendedFiles]
 ];
 
 for (const [name, test] of tests) {

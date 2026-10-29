@@ -49,7 +49,7 @@ async function run(): Promise<void> {
     console.log(`No ${inputs.configPath} on the base branch; using the default configuration.`);
   }
 
-  const config = baseConfig ?? defaultConfig;
+  const config = baseConfig?.config ?? defaultConfig;
   const baseSha = readBaseSha(pullRequest);
   const files = prepareChangedFiles(
     await fetchPullRequestFiles(client, owner, repo, pullRequest.number),
@@ -67,6 +67,7 @@ async function run(): Promise<void> {
     : undefined;
   const result = analyzePullRequest(files, config, {
     configPath: inputs.configPath,
+    extendedConfigPaths: baseConfig?.extendedPaths,
     expectedFileCount: pullRequest.changed_files,
     isGenerated: generated?.isGenerated,
     existingLockfiles
