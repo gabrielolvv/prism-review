@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -143,6 +143,8 @@ rules:
   credentialFiles:
     enabled: true
   hardcodedJwtSecret:
+    enabled: true
+  secretLogging:
     enabled: true
   lockfileSources:
     enabled: true
@@ -747,6 +749,29 @@ Anyone who can read the code, or a copy of it, can sign tokens the application a
 - The key must be written in the call itself; a key stored in a variable first is not followed. Template literals and f-strings that insert a value, and public keys or certificates (`-----BEGIN PUBLIC KEY-----`), which only verify tokens, are not reported.
 - Comment lines, Python doctest examples (`>>> ...`), documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
+## Secret Logging
+
+### `rules.secretLogging.enabled`
+
+The `secret-logging` rule reads added lines in source files and reports one warning per file where a log or console call writes a value named like a secret:
+
+| Language | Calls read |
+| --- | --- |
+| JavaScript and TypeScript | `console.log`, `info`, `warn`, `error`, `debug`, `trace`; `logger.*`, `log.*`, `this.logger.*`, `winston.*`, `pino.*`, `bunyan.*` |
+| Python | `logging.*`, `logger.*`, `self.logger.*`, `app.logger.*`, `current_app.logger.*` |
+| Ruby | `logger.*`, `Rails.logger.*`, with or without parentheses |
+| Go | `log.Print*`, `log.Fatal*`, `log.Panic*`, `logger.Info`, `logger.Infof`, and the other levels |
+| Java and Kotlin | `log.*`, `logger.*`, `LOG.*`, `LOGGER.*`, `System.out.println`, `System.err.println` |
+| C# | `_logger.LogInformation`, `LogDebug`, `LogWarning`, `LogError`, `LogTrace`, `LogCritical`, `Console.WriteLine` |
+| PHP | `error_log(...)`, `Log::info(...)` and the other levels |
+
+A value is named like a secret when a word of a name in its arguments is `password`, `passwd`, `passphrase`, `secret`, `token`, `apikey`, `credential`, `credentials`, `authorization`, `privatekey`, or `cvv`, or two words are `api key`, `private key`, `access key`, `client secret`, `card number`, or `session id`, as in `user.password`, `req.headers.authorization`, `process.env.API_TOKEN`, `` `Bearer ${accessToken}` ``, or `f"key={api_key}"`. Names are split on `_` and camelCase, so `tokenizer` and `tokens` do not count.
+
+- Text inside quotes is not a value: `logger.warn("Invalid password")` is not reported, but a value it inserts, such as `${token}`, `{token}` in an f-string, or `#{token}` in Ruby, is.
+- Names that describe a secret rather than hold it are not reported, such as `passwordLength`, `tokenType`, `hasToken`, `secretName`, `password.length`, `apiKey.slice(-4)`, or `token.getPrincipal()`.
+- The values are found before redaction, which rewrites text such as `f"token={token}"`, and only their line numbers are kept.
+- Comment lines, documentation, TypeScript declaration files (`.d.ts`), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
 ## Unpinned Actions
 
 ### `rules.unpinnedActions.allowedOwners`
@@ -882,7 +907,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
