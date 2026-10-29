@@ -15384,6 +15384,7 @@ var ruleIds = [
   "privileged-container",
   "dockerfile-risk",
   "public-exposure",
+  "insecure-infrastructure",
   "sensitive-files",
   "config-change",
   "review-control-change",
@@ -15497,6 +15498,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     privilegedContainers: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    insecureInfrastructure: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     publicExposure: object({
@@ -18283,9 +18287,128 @@ function joinLabels3(labels2) {
   return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
 }
 
+// src/rules/insecure-infrastructure.ts
+var terraformFile = /\.(?:tf|tf\.json|hcl)$/i;
+var templateFile = /\.(?:json|ya?ml)$/i;
+var settings = [
+  {
+    label: "allows every action in an IAM policy",
+    high: true,
+    // `actions` in a policy document, `Action` in jsonencode(), and `"Action"` in heredoc JSON.
+    terraform: /\bactions\s*=\s*\[\s*"\*(?::\*)?"\s*\]|(?:\bAction|"Action")\s*[=:]\s*(?:\[\s*)?"\*(?::\*)?"\s*(?:\]|,|$)/,
+    cloudFormation: /["']?\bAction["']?\s*:\s*(?:\[\s*)?["']\*(?::\*)?["']\s*(?:\]|,|$)|^\s*Action\s*:\s*\*\s*$/
+  },
+  {
+    label: "turns off encryption",
+    high: false,
+    terraform: /\b(?:encrypted|storage_encrypted|at_rest_encryption_enabled|transit_encryption_enabled|enable_https_traffic_only|https_traffic_only_enabled|encryption_enabled)\s*=\s*false\b/,
+    cloudFormation: /\b(?:Encrypted|StorageEncrypted|AtRestEncryptionEnabled|TransitEncryptionEnabled|KmsEncrypted)["']?\s*:\s*["']?false\b/
+  },
+  {
+    label: "allows TLS 1.0 or 1.1",
+    high: false,
+    terraform: /\b(?:min_tls_version|minimum_tls_version|minimal_tls_version)\s*=\s*"(?:TLS)?_?1[._][01]"/i
+  },
+  {
+    label: "turns off audit logging",
+    high: false,
+    terraform: /\b(?:enable_logging|enable_log_file_validation)\s*=\s*false\b/,
+    cloudFormation: /\b(?:IsLogging|EnableLogFileValidation)["']?\s*:\s*["']?false\b/
+  },
+  {
+    label: "allows the instance metadata service without a token (IMDSv1)",
+    high: false,
+    terraform: /\bhttp_tokens\s*=\s*"optional"/,
+    cloudFormation: /\bHttpTokens["']?\s*:\s*["']?optional\b/
+  }
+];
+var allowsEverything = settings[0];
+var commentLine6 = /^\s*(?:#|\/\/)/;
+var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
+var statementReach = 15;
+var insecureInfrastructureRule = {
+  id: "insecure-infrastructure",
+  description: "Flags IAM policies that allow every action, and turned-off encryption, TLS, audit logging, and IMDSv2.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.insecureInfrastructure.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const terraform = terraformFile.test(file.path);
+      if (file.patch === void 0 || !terraform && !templateFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findSettings2(patchLines(file.patch), terraform);
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = settings.filter((setting) => found.some((match2) => match2.setting === setting));
+      const high = listed.some((setting) => setting.high);
+      const { text, plural } = describeLines(found.map((match2) => match2.line));
+      return [
+        {
+          ruleId: "insecure-infrastructure",
+          title: high ? "Policy allows every action" : "Infrastructure protection turned off",
+          severity: high ? "high" : "warning",
+          file: file.path,
+          line: Math.min(...found.map((match2) => match2.line)),
+          lines: found.map((match2) => match2.line),
+          message: `${text} ${plural ? "change" : "changes"} infrastructure so that it ${joinLabels4(listed.map((setting) => setting.label))}.`,
+          recommendation: 'Grant only the actions a role needs, keep encryption at rest and in transit on, require TLS 1.2 or later, keep audit logs on, and require IMDSv2 tokens with http_tokens = "required".'
+        }
+      ];
+    });
+  }
+};
+function findSettings2(lines, terraform) {
+  const found = [];
+  for (const [index, { line, content, added }] of lines.entries()) {
+    if (!added || commentLine6.test(content)) {
+      continue;
+    }
+    for (const setting of settings) {
+      const pattern = terraform ? setting.terraform : setting.cloudFormation;
+      if (pattern === void 0 || !pattern.test(content)) {
+        continue;
+      }
+      if (setting === allowsEverything && nearestEffect(lines, index) === "Deny") {
+        continue;
+      }
+      found.push({ line, setting });
+    }
+  }
+  return found;
+}
+function nearestEffect(lines, index) {
+  let first = index;
+  while (first > 0 && !lines[first]?.startsHunk) {
+    first -= 1;
+  }
+  let last = index;
+  while (last + 1 < lines.length && !lines[last + 1]?.startsHunk) {
+    last += 1;
+  }
+  for (let distance = 0; distance <= statementReach; distance += 1) {
+    for (const candidate of [index - distance, index + distance]) {
+      if (candidate < first || candidate > last) {
+        continue;
+      }
+      const match2 = effect2.exec(lines[candidate]?.content ?? "")?.[1];
+      if (match2 !== void 0) {
+        return match2;
+      }
+    }
+  }
+  return void 0;
+}
+function joinLabels4(labels2) {
+  return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
+}
+
 // src/rules/public-exposure.ts
 var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
-var settings = [
+var settings2 = [
   [
     "makes a storage bucket public",
     /\bacl\s*[=:]\s*["']public-read(?:-write)?["']|\bAccessControl["']?\s*:\s*["']?PublicRead(?:Write)?\b|\b(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b|\b(?:BlockPublicAcls|BlockPublicPolicy|IgnorePublicAcls|RestrictPublicBuckets)["']?\s*:\s*["']?false\b|\b(?:allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b/
@@ -18315,7 +18438,7 @@ var publicExposureRule = {
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
       const labels2 = [
-        ...settings.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
+        ...settings2.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
       ];
@@ -18329,7 +18452,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels4(labels2)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels5(labels2)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -18376,7 +18499,7 @@ function findExposure(patch, yaml) {
     if (!added) {
       continue;
     }
-    for (const [label, pattern] of settings) {
+    for (const [label, pattern] of settings2) {
       if (pattern.test(content)) {
         found.push({ line, label });
       }
@@ -18428,7 +18551,7 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels4(labels2) {
+function joinLabels5(labels2) {
   return labels2.length > 1 ? `${labels2.slice(0, -1).join(", ")}, and ${labels2.at(-1)}` : labels2[0] ?? "";
 }
 
@@ -18445,7 +18568,7 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine6 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine7 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation3 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -18509,7 +18632,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine6.test(content)) {
+    if (commentLine7.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -19134,7 +19257,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine7 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine8 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -19176,7 +19299,7 @@ function findBuiltSql(patch, patterns2) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine7.test(content)) {
+    if (commentLine8.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -19210,6 +19333,7 @@ var defaultRules = [
   privilegedContainerRule,
   dockerfileRiskRule,
   publicExposureRule,
+  insecureInfrastructureRule,
   sensitiveFilesRule,
   configChangeRule,
   reviewControlChangeRule,
@@ -19520,6 +19644,7 @@ var ruleAreas = {
   "privileged-container": "infrastructure",
   "dockerfile-risk": "infrastructure",
   "public-exposure": "infrastructure",
+  "insecure-infrastructure": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
   "risky-api": "code",
@@ -19589,6 +19714,7 @@ var ruleQuestions = {
   "privileged-container": "Does each container need the privileges it is given?",
   "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
+  "insecure-infrastructure": "Does each role need every action it is granted, and is turning off encryption, TLS 1.2, audit logs, or IMDSv2 intended?",
   "destructive-migration": "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
   "sql-injection": "Is every value in the flagged queries passed as a parameter?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
@@ -19647,6 +19773,7 @@ var ruleSections = {
   "privileged-container": "Privileged Containers",
   "dockerfile-risk": "Dockerfile Risk",
   "public-exposure": "Public Exposure",
+  "insecure-infrastructure": "Insecure Infrastructure",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",
