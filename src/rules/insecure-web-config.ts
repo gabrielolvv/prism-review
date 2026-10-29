@@ -4,12 +4,13 @@ import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
-type Kind = "cors" | "cookie" | "debug";
+type Kind = "cors" | "cookie" | "samesite" | "debug";
 
 // In the order the message lists them.
 const labels: Record<Kind, string> = {
   cors: "lets any website read responses sent with the user's cookies, by allowing every origin together with credentials",
   cookie: "lets scripts read, or plain HTTP carry, a cookie, by turning off HttpOnly or Secure",
+  samesite: "lets other websites send a cookie with the requests they make, by setting SameSite to None",
   debug: "turns on a debug mode that shows internals, or runs code, for whoever triggers an error"
 };
 
@@ -46,11 +47,21 @@ const cookieFlags = [
   /\.setHttpOnly\s*\(\s*false\s*\)|\b\w*cookie\w*\.setSecure\s*\(\s*false\s*\)/i,
   /\bHttpOnly\s*=\s*false\b/
 ];
+// SameSite=None sends the cookie with requests from other sites, which CSRF relies on: Express and
+// cookie libraries, Django and Flask, Rails, ASP.NET Core, Spring, and PHP.
+const sameSiteNone = [
+  /\bsameSite\s*:\s*(?:["']none["']|false\b)/i,
+  /\b(?:SESSION|CSRF|LANGUAGE)_COOKIE_SAMESITE\s*=\s*["']None["']/,
+  /\bsame_site\s*[:=]>?\s*:none\b|\bcookies_same_site_protection\s*=\s*:none\b/,
+  /\bSameSite\s*=\s*SameSiteMode\.None\b/,
+  /\.(?:setSameSite|sameSite)\s*\(\s*"None"\s*\)|\bsame-site\s*[=:]\s*none\b/i,
+  /["']samesite["']\s*=>\s*["']None["']|\bsession\.cookie_samesite\s*=\s*["']?None\b/i
+];
 const flaskDebug = /\.run\s*\([^)]{0,500}\b(?:debug|use_debugger)\s*=\s*True\b/;
 const djangoDebug = /^\s*DEBUG\s*=\s*True\b/;
 const railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 
-// Settings modules, but not the ones meant for development or tests.
+// Settings modules and app entry points, but not the ones meant for development, examples, or tests.
 const djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 const developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 const railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
@@ -97,7 +108,7 @@ export const insecureWebConfigRule: Rule = {
           lines,
           message: `${text} ${plural ? "change" : "changes"} web configuration in a way that ${joinLabels(listed.map((kind) => labels[kind]))}.`,
           recommendation:
-            "List the origins allowed to send credentials, keep HttpOnly and Secure on session and authentication cookies, and turn debug modes on only in development settings."
+            "List the origins allowed to send credentials, keep HttpOnly, Secure, and SameSite Lax or Strict on session and authentication cookies, and turn debug modes on only in development settings."
         }
       ];
     });
@@ -128,7 +139,8 @@ function findSettings(path: string, patch: string): Array<{ line: number; kind: 
     }
   }
 
-  const djangoProduction = djangoSettings.test(path) && !developmentPath.test(path);
+  const development = developmentPath.test(path);
+  const djangoProduction = djangoSettings.test(path) && !development;
   for (const { line, content, added } of lines) {
     if (!added) {
       continue;
@@ -136,8 +148,12 @@ function findSettings(path: string, patch: string): Array<{ line: number; kind: 
     if (cookieFlags.some((pattern) => pattern.test(content))) {
       found.push({ line, kind: "cookie" });
     }
+    if (sameSiteNone.some((pattern) => pattern.test(content))) {
+      found.push({ line, kind: "samesite" });
+    }
     if (
-      flaskDebug.test(content) ||
+      // Example and development apps, such as Flask-AppBuilder's `examples/*/run.py`, run in debug mode on purpose.
+      (!development && flaskDebug.test(content)) ||
       (djangoProduction && djangoDebug.test(content)) ||
       (railsProduction.test(path) && railsLocalErrors.test(content))
     ) {
