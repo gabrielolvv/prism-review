@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `weak-crypto` rule. It warns about secrets hashed with MD5 or SHA-1, DES, 3DES, RC4, RC2, and Blowfish ciphers, ECB mode, including Java's `Cipher.getInstance("AES")`, and tokens, passwords, salts, or one-time codes made with `Math.random()`, Python's `random`, or PHP's `rand()`. Hashes and random numbers are only reported on lines that name a secret, so checksums and jitter are not. `rules.weakCrypto.enabled` turns it off.
+
 ## 0.40.0 - 2026-10-29
 
 ### Added

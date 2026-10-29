@@ -60,7 +60,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `kubernetes-rbac` rule for bindings to cluster-admin, roles granted to everyone, wildcard verbs and resources, and the escalate, bind, and impersonate verbs (0.38.0).
 - `file-permissions` rule for world-writable modes, the setuid bit, and an open umask, in shell, Dockerfiles, and code (0.39.0).
 - Marketplace-ready README, `SECURITY.md`, and listing checklist (0.39.1).
-- `insecure-web-config` rule for CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production.
+- `insecure-web-config` rule for CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production (0.40.0).
+- `weak-crypto` rule for secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.
 
 ## Later
 

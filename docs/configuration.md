@@ -76,6 +76,8 @@ rules:
     enabled: true
   insecureWebConfig:
     enabled: true
+  weakCrypto:
+    enabled: true
   workflowRisk:
     enabled: true
   unpinnedActions:
@@ -366,6 +368,24 @@ With every origin and credentials allowed, any website a signed-in user visits c
 - The CORS finding needs both halves: the origin and the credentials must be set on the same line, within 10 lines of each other, or, for Django, anywhere in the settings file. One of them must be added by the pull request. Every origin without credentials, as a public API uses, and credentials with a list of origins are not reported. A whole `cors({ ... })` call on one line pairs only with itself.
 - A bare `secure: false` is not read as a cookie setting, since SMTP clients and proxies use the same option. Only cookie calls, cookie options, and framework cookie settings count.
 - Django `DEBUG = True` is only reported in settings modules whose path does not name development, local, test, or CI settings, such as `settings/dev.py` or `settings_local.py`.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
+## Weak Cryptography
+
+### `rules.weakCrypto.enabled`
+
+The `weak-crypto` rule reads added lines in source files and reports one warning per file:
+
+| Reported | Examples |
+| --- | --- |
+| A secret hashed with MD5 or SHA-1 | `createHash("md5").update(password)`, `hashlib.sha1(user_password...)`, `md5($password)`, `MessageDigest.getInstance("SHA-1")` on a line about a token |
+| A broken cipher | DES, 3DES, RC4, RC2, or Blowfish: `createCipheriv("des-ede3-cbc", ...)`, `Cipher.getInstance("DESede/...")`, `DES3.new(...)`, Go `des.NewTripleDESCipher`, .NET `TripleDES.Create()` |
+| ECB mode | `AES.MODE_ECB`, `"AES/ECB/..."`, `createCipheriv("aes-128-ecb", ...)`, `modes.ECB()`, `CipherMode.ECB`, and Java `Cipher.getInstance("AES")`, which uses ECB by default |
+| A secret made with a random generator not meant for security | `Math.random()`, Python `random.choice`, `random.randint`, and similar, PHP `rand()` and `mt_rand()`, on a line about a token, password, salt, nonce, or one-time code |
+
+MD5 and SHA-1 are fast, so a leaked hash of a password is quickly guessed. The broken ciphers have short keys or blocks, and ECB encrypts equal blocks the same way, which shows the shape of the data. `Math.random()` and Python's `random` can be predicted from a few outputs.
+
+- MD5, SHA-1, and the random generators are only reported on a line that names something secret: a word such as `password`, `passphrase`, `secret`, `token`, `nonce`, `salt`, `otp`, `apikey`, or `csrf`, or `api key`, `session id`, `reset code`, or `verification code`. Names are split on `_` and camelCase, so `resetToken` counts and `footprint`, `tokens`, and `tokenizer` do not. Checksums, ETags, cache keys, and jitter are not reported.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## SQL Injection
@@ -725,7 +745,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
 | Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `destructive-migration` |
-| Code | `sql-injection`, `insecure-web-config`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
+| Code | `sql-injection`, `insecure-web-config`, `weak-crypto`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
 
