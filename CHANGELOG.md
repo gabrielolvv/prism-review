@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.45.0 - 2026-10-29
+
+### Added
+
+- `xml-external-entities` rule: warns about XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts (XXE). It reads lxml and Python's SAX parser, Java's DocumentBuilderFactory, SAXParserFactory, XMLInputFactory, and TransformerFactory, PHP's libxml, .NET's XmlReaderSettings and XmlDocument, libxmljs, Nokogiri, and libxml-ruby. On about 1,500 files from XML and SAML libraries, such as defusedxml, zeep, python3-saml, ruby-saml, Nokogiri, and xml2js, it reports only defusedxml's own example of the unsafe PHP flag.
+
 ## 0.44.0 - 2026-10-29
 
 ### Added
