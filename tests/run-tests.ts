@@ -6,6 +6,7 @@ import {
   testMinifiedBundlesAreNotReadAsWeakCrypto,
   testPopularPackagesNamedLikeOthersAreNotLookalikes,
   testPublishConfigIsNotADependency,
+  testPackageMetadataIsNotADependency,
   testPythonNamesAreNotReadAsRailsInput,
   testReadingTheUmaskIsNotReported,
   testTranslationCatalogsMayUseDirectionMarks
@@ -614,6 +615,7 @@ const tests: Array<[string, Test]> = [
   ["reading the umask is not reported", testReadingTheUmaskIsNotReported],
   ["example projects are not production settings", testExampleProjectsAreNotProductionSettings],
   ["publishConfig is not a dependency", testPublishConfigIsNotADependency],
+  ["package.json metadata such as repository.url is not a dependency", testPackageMetadataIsNotADependency],
   ["popular packages named like others are not lookalikes", testPopularPackagesNamedLikeOthersAreNotLookalikes],
   ["translation catalogs may use direction marks", testTranslationCatalogsMayUseDirectionMarks],
   ["migration operations count only as calls", testMigrationOperationsCountOnlyAsCalls],
