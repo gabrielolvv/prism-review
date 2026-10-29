@@ -75,6 +75,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `mass-assignment` rule for requests that can set every field of a model (0.51.0).
 - `redos` rule for regular expressions that can take exponential time (0.52.0).
 - SameSite=None cookies in `insecure-web-config` (0.53.0).
+- `extends` for configuration shared across repositories (0.54.0).
 
 ## Later
 
