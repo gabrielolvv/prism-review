@@ -289,6 +289,7 @@ import {
   testParseConfigLabelsRootErrors,
   testParseConfigReportsSourceAndField,
   testParseConfigReportsYamlErrors,
+  testParseConfigFillsNestedDefaults,
   testParseConfigTreatsEmptyFileAsDefaults
 } from "./unit/load-config.test.js";
 import {
@@ -615,6 +616,7 @@ const tests: Array<[string, Test]> = [
   ["config rejects invalid allowlist patterns", testConfigRejectsInvalidAllowlistPattern],
   ["prepareChangedFiles applies the redaction allowlist", testPrepareChangedFilesAppliesAllowlist],
   ["parseConfig applies defaults to partial config", testParseConfigAppliesDefaults],
+  ["parseConfig fills the defaults of nested sections", testParseConfigFillsNestedDefaults],
   ["parseConfig treats an empty file as defaults", testParseConfigTreatsEmptyFileAsDefaults],
   ["parseConfig reports the source and field of invalid values", testParseConfigReportsSourceAndField],
   ["parseConfig labels errors at the document root", testParseConfigLabelsRootErrors],

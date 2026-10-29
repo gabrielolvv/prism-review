@@ -1,14 +1,14 @@
-import { z } from "zod";
+import * as z from "zod";
 import { ruleIds } from "../rules/ids.js";
 
 const knownRuleIds = new Set(ruleIds);
 
 // Per-rule severity, or "off" to drop a rule's findings. Unknown ids are an error, so a typo
 // cannot silently leave a rule at its default.
-const severityMap = z.record(z.enum(["off", "info", "warning", "high"])).superRefine((overrides, context) => {
+const severityMap = z.record(z.string(), z.enum(["off", "info", "warning", "high"])).superRefine((overrides, context) => {
   for (const id of Object.keys(overrides)) {
     if (!knownRuleIds.has(id)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown rule "${id}".` });
+      context.addIssue({ code: "custom", message: `Unknown rule "${id}".` });
     }
   }
 });
@@ -21,9 +21,9 @@ export const prismConfigSchema = z.object({
           maxFiles: z.number().int().positive().default(25),
           maxChangedLines: z.number().int().positive().default(800)
         })
-        .default({})
+        .prefault({})
     })
-    .default({}),
+    .prefault({}),
   rules: z
     .object({
       missingTests: z
@@ -50,7 +50,7 @@ export const prismConfigSchema = z.object({
               "**/*Tests.swift"
             ])
         })
-        .default({}),
+        .prefault({}),
       sensitiveFiles: z
         .object({
           enabled: z.boolean().default(true),
@@ -63,7 +63,7 @@ export const prismConfigSchema = z.object({
               "**/migrations/**"
             ])
         })
-        .default({}),
+        .prefault({}),
       dependencyRisk: z
         .object({
           enabled: z.boolean().default(true),
@@ -83,96 +83,96 @@ export const prismConfigSchema = z.object({
               "Cargo.lock"
             ])
         })
-        .default({}),
+        .prefault({}),
       secretInDiff: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       skippedTests: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       blanketSuppression: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       riskyApis: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       remoteScripts: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       disabledSecurityChecks: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       sqlInjection: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       hiddenUnicode: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       workflowRisk: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       unpinnedActions: z
         .object({
           enabled: z.boolean().default(true),
           // Owners whose actions may be used by tag, compared without case. GitHub's own by default.
           allowedOwners: z.array(z.string().min(1).max(100)).default(["actions", "github"])
         })
-        .default({}),
+        .prefault({}),
       destructiveMigration: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       privilegedContainers: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       publicExposure: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       credentialFiles: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       riskyDependencyVersions: z
         .object({
           enabled: z.boolean().default(true)
         })
-        .default({}),
+        .prefault({}),
       lookalikeDependencies: z
         .object({
           enabled: z.boolean().default(true),
           // Dependency names known to be the intended packages, though they look like popular ones.
           allowed: z.array(z.string().min(1).max(214)).max(500).default([])
         })
-        .default({}),
+        .prefault({}),
       lockfileSources: z
         .object({
           enabled: z.boolean().default(true),
@@ -181,9 +181,9 @@ export const prismConfigSchema = z.object({
             .array(z.string().max(500).refine(isRegistryUrl, "Must be an http or https URL, such as https://npm.pkg.github.com/."))
             .default([])
         })
-        .default({})
+        .prefault({})
     })
-    .default({}),
+    .prefault({}),
   security: z
     .object({
       maxPatchBytes: z.number().int().positive().default(200_000),
@@ -199,9 +199,9 @@ export const prismConfigSchema = z.object({
             )
             .default([])
         })
-        .default({})
+        .prefault({})
     })
-    .default({}),
+    .prefault({}),
   comment: z
     .object({
       mode: z.enum(["upsert", "append"]).default("upsert"),
@@ -213,11 +213,11 @@ export const prismConfigSchema = z.object({
       // Lists the dependencies the pull request adds, removes, or moves to another version.
       dependencyChanges: z.boolean().default(true)
     })
-    .default({}),
+    .prefault({}),
   ignorePaths: z.array(z.string()).default([]),
   // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
   ignoreGenerated: z.boolean().default(true),
-  severity: severityMap.default({}),
+  severity: severityMap.prefault({}),
   // Severity for findings in matching files, applied after `severity`; later entries win.
   overrides: z
     .array(
@@ -231,13 +231,13 @@ export const prismConfigSchema = z.object({
     .object({
       failOn: z.enum(["never", "warning", "high"]).default("never")
     })
-    .default({}),
+    .prefault({}),
   annotations: z
     .object({
       enabled: z.boolean().default(false),
       includeLowSeverity: z.boolean().default(false)
     })
-    .default({}),
+    .prefault({}),
   // Line findings as pull request review comments on the changed lines.
   reviewComments: z
     .object({
@@ -245,7 +245,7 @@ export const prismConfigSchema = z.object({
       includeLowSeverity: z.boolean().default(false),
       maxComments: z.number().int().min(1).max(100).default(25)
     })
-    .default({}),
+    .prefault({}),
   // An advisory summary written by a language model from the redacted diff. Off unless enabled,
   // and it needs the `ai-api-key` input, since it sends the diff to the provider's API.
   ai: z
@@ -257,7 +257,7 @@ export const prismConfigSchema = z.object({
       maxInputCharacters: z.number().int().min(1_000).max(500_000).default(100_000),
       timeoutSeconds: z.number().int().min(10).max(600).default(120)
     })
-    .default({})
+    .prefault({})
 });
 
 function isRegularExpression(source: string): boolean {
