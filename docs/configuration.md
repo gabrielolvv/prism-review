@@ -93,6 +93,8 @@ rules:
     enabled: true
   kubernetesRbac:
     enabled: true
+  filePermissions:
+    enabled: true
   credentialFiles:
     enabled: true
   lockfileSources:
@@ -519,6 +521,25 @@ Whoever controls a pod with such a service account controls the cluster, and `sy
 
 Inline lists, such as `verbs: ["get", "list"]`, and block lists, with one `- item` per line, are both read. Roles that list their verbs and resources, bindings to other roles, YAML files that are not RBAC, comment lines, documentation directories, test files matched by `rules.missingTests.testGlobs`, and fixture directories are not reported.
 
+## File Permissions
+
+### `rules.filePermissions.enabled`
+
+The `file-permissions` rule reads added lines in scripts, Dockerfiles, workflows, and source files, and reports one warning per file:
+
+| Reported | Examples |
+| --- | --- |
+| A mode that lets every user write | `chmod 777`, `chmod -R 666`, `chmod o+w`, `chmod a+rwx`, `COPY --chmod=777`, `os.chmod(path, 0o777)`, `fs.chmodSync(p, 0o666)`, `os.Chmod(name, 0777)` |
+| The setuid bit | `chmod u+s`, `chmod +s`, `chmod 4755` |
+| A umask that leaves new files writable by every user | `umask 000`, `umask 0`, `os.umask(0)`, `process.umask(0o000)` |
+
+A file anyone can write lets any process on the machine or in the container change what runs or what is read, and a setuid program runs with its owner's rights, usually root, for whoever starts it.
+
+- An octal mode counts as world-writable when its last digit has the write bit (2, 3, 6, or 7). `chmod 1777`, whose sticky bit keeps users from deleting each other's files, is the usual mode for a shared temporary directory and is not reported.
+- Only the setuid bit is reported. `chmod g+s` and modes such as `2775` set the setgid bit, which shared group directories use on purpose.
+- `chmod +w` without `u`, `g`, `o`, or `a` is limited by the umask and is not reported. Neither are modes held in variables, such as `chmod "$MODE"`, nor `mkdir` and file-creation calls, whose modes the umask limits.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -682,7 +703,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
-| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `destructive-migration` |
+| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `destructive-migration` |
 | Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
