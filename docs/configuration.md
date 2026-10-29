@@ -78,6 +78,8 @@ rules:
     enabled: true
   weakCrypto:
     enabled: true
+  untrustedInput:
+    enabled: true
   workflowRisk:
     enabled: true
   unpinnedActions:
@@ -368,6 +370,25 @@ With every origin and credentials allowed, any website a signed-in user visits c
 - The CORS finding needs both halves: the origin and the credentials must be set on the same line, within 10 lines of each other, or, for Django, anywhere in the settings file. One of them must be added by the pull request. Every origin without credentials, as a public API uses, and credentials with a list of origins are not reported. A whole `cors({ ... })` call on one line pairs only with itself.
 - A bare `secure: false` is not read as a cookie setting, since SMTP clients and proxies use the same option. Only cookie calls, cookie options, and framework cookie settings count.
 - Django `DEBUG = True` is only reported in settings modules whose path does not name development, local, test, or CI settings, such as `settings/dev.py` or `settings_local.py`.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
+## Untrusted Input
+
+### `rules.untrustedInput.enabled`
+
+The `untrusted-input` rule reports added lines that pass a value from the request straight to a redirect, an outgoing request, or a file path, and reports one warning per file:
+
+| Reported | Examples |
+| --- | --- |
+| An open redirect | `res.redirect(req.query.next)`, Flask `redirect(request.args.get("next"))`, PHP `header("Location: " . $_GET["to"])`, Go `http.Redirect(w, r, r.FormValue("to"), ...)`, Rails `redirect_to params[:return_to]` |
+| Server-side request forgery | `fetch(req.body.url)`, `axios.get(req.query.url)`, `requests.get(request.GET["url"])`, `urlopen(...)`, Go `http.Get(r.URL.Query().Get("target"))`, `curl_init($_GET["url"])`, .NET `GetStringAsync(Request.Query["url"])` |
+| Path traversal | `res.sendFile(path.join(dir, req.params.name))`, `fs.readFile(req.query.file)`, Python `open(os.path.join(root, request.form["file"]))`, PHP `include $_GET["page"]`, Go `os.Open(filepath.Join(root, r.FormValue("name")))` |
+
+An open redirect lends your domain to phishing links, a request to a URL the client chose can reach internal services and cloud metadata endpoints, and a path with `../` can read or overwrite files outside the intended directory.
+
+- The request value and the call must be on the same line, as with `sql-injection`; a value stored in a variable first is not followed. Request values are those of Express and Koa (`req.query`, `req.params`, `req.body`, `req.headers`, `req.cookies`), Flask and Django (`request.args`, `request.form`, `request.json`, `request.GET`, `request.POST`), PHP (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`), Go (`r.URL.Query()`, `r.FormValue`), Rails (`params[...]`), ASP.NET Core (`Request.Query[...]`), and `searchParams.get(...)`.
+- A redirect or request whose target starts as text with a path on the same site or a fixed host, such as `` res.redirect(`/users/${req.params.id}`) `` or `` fetch(`https://api.example.com/users/${id}`) ``, only lets the request choose what follows, and is not reported. `` `/${...}` `` is, since it can become `//other-site`.
+- A line that also reduces or checks the value is not reported: `path.basename`, `basename`, `secure_filename`, `filepath.Base`, `Path.GetFileName`, or a `sanitize...` call for paths, and `url_has_allowed_host_and_scheme`, `is_safe_url`, `LocalRedirect`, or an allowed-hosts check for URLs.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
 ## Weak Cryptography
@@ -745,7 +766,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
 | Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `destructive-migration` |
-| Code | `sql-injection`, `insecure-web-config`, `weak-crypto`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
+| Code | `sql-injection`, `untrusted-input`, `insecure-web-config`, `weak-crypto`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
 

@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `untrusted-input` rule. It warns about request values passed straight to a redirect (open redirect), an outgoing request (server-side request forgery), or a file path (path traversal), on the same line, in Express, Koa, Flask, Django, PHP, Go, Rails, and ASP.NET Core. Targets that start with a fixed path or host, and lines that reduce or check the value, are not reported. `rules.untrustedInput.enabled` turns it off.
+
 ## 0.41.0 - 2026-10-29
 
 ### Added
