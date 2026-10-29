@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.49.0 - 2026-10-29
+
+### Added
+
+- `--format text` prints a compact review for a terminal: the risk level and summary, then one entry per finding, most severe first, with its severity, `path:line`, title, rule, and message. It is the default when the output is a terminal, and is colored unless `NO_COLOR` is set; `FORCE_COLOR=1` colors it in a pipe. Control, invisible, and bidirectional characters in file names and finding text are printed as escapes, so a pull request cannot send escape sequences to the terminal.
+
+### Changed
+
+- The pre-commit hook prints text instead of Markdown. Piped or redirected output stays Markdown unless `--format` says otherwise.
+
 ## 0.48.0 - 2026-10-29
 
 ### Fixed
