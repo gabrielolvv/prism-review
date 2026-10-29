@@ -87,11 +87,63 @@ export function testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled(): vo
   assert.ok(!analyzePullRequest([action], config).findings.some((finding) => finding.ruleId === "workflow-risk"));
 }
 
+export function testWorkflowRiskReportsTopLevelWritePermissions(): void {
+  const [finding] = workflowFindings([
+    file(".github/workflows/release.yml", [
+      "on: push",
+      "permissions:",
+      "  contents: write",
+      "  id-token: write",
+      "  pull-requests: read",
+      "jobs:",
+      "  publish:",
+      "    permissions:",
+      "      packages: write",
+      "    runs-on: ubuntu-latest"
+    ])
+  ]);
+
+  // Job-level writes are where they belong; only the workflow-wide ones are reported.
+  assert.equal(finding?.severity, "warning");
+  assert.deepEqual(finding?.lines, [3, 4]);
+  assert.equal(finding?.message, "Lines 3, 4 add risky workflow configuration: write permissions for every job (contents, id-token).");
+
+  // The inline form, and a hunk that starts inside the top-level block, which git names in its context.
+  const inline = workflowFindings([file(".github/workflows/a.yml", ["permissions: { contents: write, issues: read }"])]);
+  assert.match(inline[0]?.message ?? "", /write permissions for every job \(contents\)/);
+  const inside: ChangedFile = {
+    path: ".github/workflows/b.yml",
+    status: "modified",
+    additions: 1,
+    deletions: 0,
+    patch: "@@ -3,2 +3,3 @@ permissions:\n   contents: read\n+  id-token: write\n jobs:"
+  };
+  assert.deepEqual(workflowFindings([inside])[0]?.lines, [4]);
+
+  // Read-only and empty top-level permissions, and composite actions, are not reported.
+  assert.deepEqual(workflowFindings([file(".github/workflows/c.yml", ["permissions:", "  contents: read", "permissions: {}"])]), []);
+  assert.deepEqual(workflowFindings([file("action.yml", ["permissions:", "  contents: write"])]), []);
+}
+
+export function testWorkflowRiskReportsNewWorkflowsWithoutPermissions(): void {
+  const lines = ["on: push", "jobs:", "  test:", "    runs-on: ubuntu-latest", "    steps:", "      - run: npm test"];
+
+  const [finding] = workflowFindings([file(".github/workflows/ci.yml", lines, "added")]);
+  assert.deepEqual(finding?.lines, [1]);
+  assert.match(finding?.message ?? "", /a new workflow that sets no permissions, so its jobs get the repository's default token permissions/);
+
+  // An existing workflow may set them outside the diff; a job-level key and a reusable workflow count as set.
+  assert.deepEqual(workflowFindings([file(".github/workflows/ci.yml", lines)]), []);
+  assert.deepEqual(workflowFindings([file(".github/workflows/ci.yml", [...lines, "    permissions:", "      contents: read"], "added")]), []);
+  assert.deepEqual(workflowFindings([file(".github/workflows/reusable.yml", ["on:", "  workflow_call:", ...lines.slice(1)], "added")]), []);
+}
+
 function workflowFindings(files: ChangedFile[]) {
   return analyzePullRequest(files, defaultConfig).findings.filter((finding) => finding.ruleId === "workflow-risk");
 }
 
-function file(path: string, lines: string[]): ChangedFile {
+// Lines added to an existing workflow, whose permissions may be set outside the diff.
+function file(path: string, lines: string[], status: ChangedFile["status"] = "modified"): ChangedFile {
   const patch = [`@@ -0,0 +1,${lines.length} @@`, ...lines.map((line) => `+${line}`)].join("\n");
-  return { path, status: "added", additions: lines.length, deletions: 0, patch };
+  return { path, status, additions: lines.length, deletions: 0, patch };
 }
