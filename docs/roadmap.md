@@ -72,6 +72,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Fewer false positives in `destructive-migration`, `sql-injection`, and every rule that skips tests, which now include `test/`, `tests/`, and `spec/` directories (0.48.0).
 - `--format text` for terminals and the pre-commit hook (0.49.0).
 - False positives measured on about 18,600 files from popular Go modules and Java libraries and fixed in seven rules (0.50.0).
+- `mass-assignment` rule for requests that can set every field of a model (0.51.0).
 
 ## Later
 
