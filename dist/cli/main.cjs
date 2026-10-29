@@ -15386,6 +15386,7 @@ var ruleIds = [
   "public-exposure",
   "insecure-infrastructure",
   "kubernetes-rbac",
+  "file-permissions",
   "sensitive-files",
   "config-change",
   "review-control-change",
@@ -15499,6 +15500,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     privilegedContainers: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    filePermissions: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     kubernetesRbac: object({
@@ -16269,7 +16273,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels3 = listed.map((check) => check.label);
+      const labels4 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -16278,7 +16282,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels3)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels4)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -16294,8 +16298,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels(labels3) {
-  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+function joinLabels(labels4) {
+  return labels4.length > 1 ? `${labels4.slice(0, -1).join(", ")}, and ${labels4.at(-1)}` : labels4[0] ?? "";
 }
 
 // src/analysis/hidden-characters.ts
@@ -16328,7 +16332,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels3 = /* @__PURE__ */ new Set();
+  const labels4 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -16340,15 +16344,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels3.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels4.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels3.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels4.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels3.add("Unicode tag characters");
+      labels4.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels3], reordersText };
+  return { labels: [...labels4], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -16387,9 +16391,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels3 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels4 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels3.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels4.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -18104,7 +18108,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels3 = listed.map((kind) => kind.label);
+      const labels4 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -18113,7 +18117,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels3)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels4)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -18148,8 +18152,8 @@ function findSettings(patch) {
   }
   return found;
 }
-function joinLabels2(labels3) {
-  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+function joinLabels2(labels4) {
+  return labels4.length > 1 ? `${labels4.slice(0, -1).join(", ")}, and ${labels4.at(-1)}` : labels4[0] ?? "";
 }
 
 // src/rules/dockerfile-risk.ts
@@ -18287,8 +18291,8 @@ function isSecretName(name) {
   }
   return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
-function joinLabels3(labels3) {
-  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+function joinLabels3(labels4) {
+  return labels4.length > 1 ? `${labels4.slice(0, -1).join(", ")}, and ${labels4.at(-1)}` : labels4[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
@@ -18406,8 +18410,8 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels4(labels3) {
-  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+function joinLabels4(labels4) {
+  return labels4.length > 1 ? `${labels4.slice(0, -1).join(", ")}, and ${labels4.at(-1)}` : labels4[0] ?? "";
 }
 
 // src/rules/kubernetes-rbac.ts
@@ -18520,6 +18524,107 @@ function joinLabels5(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
+// src/rules/file-permissions.ts
+var labels3 = {
+  "world-writable": "makes files writable by every user",
+  setuid: "sets the setuid bit, so a program runs with its owner's rights",
+  "open-umask": "sets a umask that leaves new files writable by every user"
+};
+var shellChmod = /\bchmod\s+(?:(?:-[A-Za-z]{1,10}|--[\w-]{1,30}(?:=\S{1,200})?)\s+){0,5}([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$|[;&|)'"])/g;
+var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
+var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
+var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
+var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
+var commentLine8 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var filePermissionsRule = {
+  id: "file-permissions",
+  description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.filePermissions.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = patchLines(file.patch).flatMap(
+        ({ line, content, added }) => added && !commentLine8.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+      );
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = Object.keys(labels3).filter((kind) => found.some((match2) => match2.kind === kind));
+      const lines = [...new Set(found.map((match2) => match2.line))];
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "file-permissions",
+          title: "Unsafe file permissions",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...lines),
+          lines,
+          message: `${text} ${plural ? "change" : "changes"} file permissions in a way that ${joinLabels6(listed.map((kind) => labels3[kind]))}.`,
+          recommendation: "Grant the owner and group what they need, such as 755 for programs and 644 or 640 for data, keep the setuid bit off, and keep a umask of 022 or stricter. Shared temporary directories can use 1777, whose sticky bit stops users from deleting each other's files."
+        }
+      ];
+    });
+  }
+};
+function kindsIn(content) {
+  const kinds3 = /* @__PURE__ */ new Set();
+  for (const pattern of [shellChmod, dockerChmod, chmodCall]) {
+    for (const match2 of content.matchAll(pattern)) {
+      for (const kind of modeKinds(match2[1] ?? "")) {
+        kinds3.add(kind);
+      }
+    }
+  }
+  for (const pattern of [shellUmask, umaskCall]) {
+    for (const match2 of content.matchAll(pattern)) {
+      const digits = (match2[1] ?? "").replace(/^0o/, "");
+      const others = Number(digits.at(-1) ?? "0");
+      if ((others & 2) === 0) {
+        kinds3.add("open-umask");
+      }
+    }
+  }
+  return [...kinds3];
+}
+function modeKinds(mode) {
+  const octal = /^(?:0o)?([0-7]{1,4})$/.exec(mode)?.[1];
+  if (octal !== void 0) {
+    const digits = octal.padStart(3, "0");
+    const special = digits.length === 4 ? Number(digits[0]) : 0;
+    const others = Number(digits.at(-1));
+    return [
+      // The sticky bit, as in 1777 for /tmp, keeps a shared directory safe to write to.
+      ...(others & 2) !== 0 && (special & 1) === 0 ? ["world-writable"] : [],
+      ...(special & 4) !== 0 ? ["setuid"] : []
+    ];
+  }
+  const kinds3 = [];
+  for (const clause of mode.split(",")) {
+    const parts = /^([ugoa]*)([+=])([rwxXst]*)$/.exec(clause);
+    if (parts === null) {
+      continue;
+    }
+    const [, who = "", , permissions = ""] = parts;
+    if (/[oa]/.test(who) && permissions.includes("w")) {
+      kinds3.push("world-writable");
+    }
+    if ((who === "" || /[ua]/.test(who)) && permissions.includes("s")) {
+      kinds3.push("setuid");
+    }
+  }
+  return kinds3;
+}
+function joinLabels6(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
+}
+
 // src/rules/public-exposure.ts
 var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
 var settings2 = [
@@ -18551,7 +18656,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels3 = [
+      const labels4 = [
         ...settings2.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -18566,7 +18671,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels6(labels3)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels7(labels4)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -18665,8 +18770,8 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels6(labels3) {
-  return labels3.length > 1 ? `${labels3.slice(0, -1).join(", ")}, and ${labels3.at(-1)}` : labels3[0] ?? "";
+function joinLabels7(labels4) {
+  return labels4.length > 1 ? `${labels4.slice(0, -1).join(", ")}, and ${labels4.at(-1)}` : labels4[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -18682,8 +18787,8 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine8 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation4 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine9 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -18694,7 +18799,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation5.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -18746,7 +18851,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine8.test(content)) {
+    if (commentLine9.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -19000,7 +19105,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation6 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -19010,7 +19115,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation5.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation6.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -19182,7 +19287,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels3 = [
+      const labels4 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label)),
         ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
@@ -19197,7 +19302,7 @@ var workflowRiskRule = {
           file: file.path,
           line: Math.min(...lines),
           lines: [...new Set(lines)].sort((left, right) => left - right),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels3.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels4.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
@@ -19426,8 +19531,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine9 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation6 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine10 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation7 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -19437,7 +19542,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation6.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation7.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => pattern)];
@@ -19468,7 +19573,7 @@ function findBuiltSql(patch, patterns2) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine9.test(content)) {
+    if (commentLine10.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -19504,6 +19609,7 @@ var defaultRules = [
   publicExposureRule,
   insecureInfrastructureRule,
   kubernetesRbacRule,
+  filePermissionsRule,
   sensitiveFilesRule,
   configChangeRule,
   reviewControlChangeRule,
@@ -19816,6 +19922,7 @@ var ruleAreas = {
   "public-exposure": "infrastructure",
   "insecure-infrastructure": "infrastructure",
   "kubernetes-rbac": "infrastructure",
+  "file-permissions": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
   "risky-api": "code",
@@ -19885,6 +19992,7 @@ var ruleQuestions = {
   "privileged-container": "Does each container need the privileges it is given?",
   "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
+  "file-permissions": "Does any file need to be writable by every user, or run with its owner's rights?",
   "kubernetes-rbac": "Does each service account need the roles it is bound to, and nothing cluster-wide?",
   "insecure-infrastructure": "Does each role need every action it is granted, and is turning off encryption, TLS 1.2, audit logs, or IMDSv2 intended?",
   "destructive-migration": "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",
@@ -19947,6 +20055,7 @@ var ruleSections = {
   "public-exposure": "Public Exposure",
   "insecure-infrastructure": "Insecure Infrastructure",
   "kubernetes-rbac": "Kubernetes RBAC",
+  "file-permissions": "File Permissions",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",
