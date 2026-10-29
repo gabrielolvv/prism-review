@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { z } from "zod";
+import * as z from "zod";
 import type { ChangedFile } from "../analysis/changed-file.js";
 import type { Finding } from "../analysis/finding.js";
 import { isHiddenCodePoint } from "../analysis/hidden-characters.js";
