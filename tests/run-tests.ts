@@ -1,4 +1,9 @@
 import {
+  testKubernetesRbacReportsClusterWideGrants,
+  testKubernetesRbacReportsWildcardsAndEscalation,
+  testKubernetesRbacSkipsNarrowRolesAndOtherFiles
+} from "./unit/kubernetes-rbac.test.js";
+import {
   testInsecureInfrastructureReportsTemplatesAndPolicies,
   testInsecureInfrastructureReportsTerraform,
   testInsecureInfrastructureSkipsSafeSettings
@@ -557,6 +562,9 @@ const tests: Array<[string, Test]> = [
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
   ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
+  ["kubernetes-rbac reports cluster-wide grants", testKubernetesRbacReportsClusterWideGrants],
+  ["kubernetes-rbac reports wildcards and escalation verbs", testKubernetesRbacReportsWildcardsAndEscalation],
+  ["kubernetes-rbac skips narrow roles and other files", testKubernetesRbacSkipsNarrowRolesAndOtherFiles],
   ["insecure-infrastructure reports Terraform settings", testInsecureInfrastructureReportsTerraform],
   ["insecure-infrastructure reports templates and policy documents", testInsecureInfrastructureReportsTemplatesAndPolicies],
   ["insecure-infrastructure skips safe settings", testInsecureInfrastructureSkipsSafeSettings],

@@ -22,6 +22,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "dockerfile-risk": "Dockerfile Risk",
   "public-exposure": "Public Exposure",
   "insecure-infrastructure": "Insecure Infrastructure",
+  "kubernetes-rbac": "Kubernetes RBAC",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",

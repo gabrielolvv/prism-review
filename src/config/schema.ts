@@ -151,6 +151,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      kubernetesRbac: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       insecureInfrastructure: z
         .object({
           enabled: z.boolean().default(true)
