@@ -74,7 +74,15 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 
 ## Quick Start
 
-Create `.github/workflows/prism-review.yml`:
+From the root of your repository, run:
+
+```bash
+npx @gabrielolvv/prism-review init
+```
+
+It adds the workflow below, pinned to the commit of the current release, and a `.prism-review.yml` with the main options. Commit both and open a pull request: Prism Review reviews it, and reports the new workflow and configuration as high risk, as it does for every change to them.
+
+To set it up by hand, create `.github/workflows/prism-review.yml`:
 
 ```yaml
 name: Prism Review
@@ -85,11 +93,13 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: gabrielolvv/prism-review@v0
         with:
@@ -123,12 +133,14 @@ Set `sarif-file` to also write the review as SARIF, and upload it with `github/c
 ```yaml
 permissions:
   contents: read
-  pull-requests: write
-  security-events: write
 
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
     steps:
       # upload-sarif matches results to files in the checkout; nothing from it is run.
       - uses: actions/checkout@v4
@@ -166,19 +178,19 @@ To check a rule change for false positives, run every rule over a directory of r
 The CLI reviews any unified diff, so you can see the review before opening a pull request:
 
 ```bash
-git diff origin/main...HEAD | node dist/cli/main.cjs analyze --diff -
+git diff origin/main...HEAD | npx @gabrielolvv/prism-review analyze --diff -
 ```
 
-It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. It also exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
+The CLI needs Node.js 22 or later. From a clone of this repository, `node dist/cli/main.cjs` runs the same program. It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. It also exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
 
 ```sh
 #!/bin/sh
-git diff origin/main...HEAD | node path/to/prism-review/dist/cli/main.cjs analyze --diff - > /dev/null
+git diff origin/main...HEAD | npx --yes @gabrielolvv/prism-review analyze --diff - > /dev/null
 ```
 
 `--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
 
-Run `node dist/cli/main.cjs --help` for every option.
+Run `npx @gabrielolvv/prism-review --help` for every option.
 
 ## Configuration
 
