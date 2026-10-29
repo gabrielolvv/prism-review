@@ -83,6 +83,8 @@ rules:
       - "github"
   destructiveMigration:
     enabled: true
+  dockerfileRisk:
+    enabled: true
   privilegedContainers:
     enabled: true
   publicExposure:
@@ -432,6 +434,25 @@ Anything that escapes a privileged container, or reaches the Docker socket, cont
 
 Hardened settings are not reported: `privileged: false`, `drop: [ALL]` and `ALL` under `drop:` or `cap_drop:`, and other capabilities such as `NET_BIND_SERVICE`. A client setting such as `DOCKER_HOST: unix:///var/run/docker.sock` is not a mount and is not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A Helm template that sets a value from `{{ .Values... }}` is checked where the value is set, such as `values.yaml`.
 
+## Dockerfile Risk
+
+### `rules.dockerfileRisk.enabled`
+
+The `dockerfile-risk` rule reads added instructions in `Dockerfile`, `Containerfile`, `Dockerfile.*`, and `*.dockerfile` files, and reports one warning per file that lists what it found:
+
+| Reported | Examples | Why |
+| --- | --- | --- |
+| A base image without a version tag, or with `latest` | `FROM node`, `FROM python:latest` | The next build can pull a different image, with different code and vulnerabilities, without any change to the file. |
+| A remote `ADD` without a checksum | `ADD https://example.com/tool.tar.gz /opt/` | Whoever controls the URL decides what goes into the image. |
+| A secret in `ENV` or `ARG` | `ENV DB_PASSWORD=...`, `ARG NPM_TOKEN` | `ENV` values are stored in the image, and build arguments in its history, where anyone who can pull it can read them. |
+| A final `USER` that runs as root | `USER root`, `USER 0` | The container's processes run as root, which makes any escape worse. |
+
+- A tag such as `node:20-alpine` or a digest such as `python@sha256:...` pins the image. `FROM scratch`, an image from a variable such as `${BASE_IMAGE}`, and a stage named with `AS` earlier in the diff are not reported. A registry port, as in `registry:5000/app:1.4`, is not taken for a tag.
+- `ADD --checksum=sha256:...` and local sources are not reported. Downloads in `RUN` commands are checked by `remote-script`.
+- A variable counts as a secret when a word of its name is `password`, `passwd`, `secret`, `token`, `apikey`, `credential`, or `credentials`, or two words are `api key`, `private key`, `access key`, or `secret key`, as in Docker's own `SecretsUsedInArgOrEnv` check. Names that end in a word for where the secret is, such as `TOKEN_FILE` or `SECRET_PATH`, and names with `public`, such as `GPG_PUBLIC_KEY`, are not reported. Words inside quoted values are not names.
+- `USER root` is reported only when no later `USER` line shows in the diff, so switching to root to install packages and back is not reported. A later `USER` outside the lines the diff shows is not seen.
+- Lines continued with a trailing `\` are read as one instruction, reported on its first line. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
+
 ## Public Exposure
 
 ### `rules.publicExposure.enabled`
@@ -613,7 +634,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
-| Infrastructure | `privileged-container`, `public-exposure`, `destructive-migration` |
+| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `destructive-migration` |
 | Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |

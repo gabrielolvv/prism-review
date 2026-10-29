@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `dockerfile-risk` rule. It warns about Dockerfile base images without a version tag or with `latest`, remote `ADD` downloads without `--checksum`, secrets passed through `ENV` or `ARG`, which the image and its history keep, and a final `USER root`. It reads `Dockerfile`, `Containerfile`, `Dockerfile.*`, and `*.dockerfile`, joins continued lines, and can be turned off with `rules.dockerfileRisk.enabled`.
+
 ## 0.33.0 - 2026-10-29
 
 ### Security
