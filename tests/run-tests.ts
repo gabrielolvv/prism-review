@@ -1,4 +1,9 @@
 import {
+  testInsecureWebConfigReportsCookiesAndDebug,
+  testInsecureWebConfigReportsCorsWithCredentials,
+  testInsecureWebConfigSkipsSafeSettings
+} from "./unit/insecure-web-config.test.js";
+import {
   testFilePermissionsReportsCodeCalls,
   testFilePermissionsReportsShellAndDocker,
   testFilePermissionsSkipsSafeModes
@@ -567,6 +572,9 @@ const tests: Array<[string, Test]> = [
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
   ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
+  ["insecure-web-config reports CORS with credentials", testInsecureWebConfigReportsCorsWithCredentials],
+  ["insecure-web-config reports cookies and debug modes", testInsecureWebConfigReportsCookiesAndDebug],
+  ["insecure-web-config skips safe settings", testInsecureWebConfigSkipsSafeSettings],
   ["file-permissions reports shell and Docker modes", testFilePermissionsReportsShellAndDocker],
   ["file-permissions reports chmod and umask calls in code", testFilePermissionsReportsCodeCalls],
   ["file-permissions skips safe modes and other files", testFilePermissionsSkipsSafeModes],
