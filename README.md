@@ -1,14 +1,18 @@
 # Prism Review
 
+[![CI](https://github.com/gabrielolvv/prism-review/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielolvv/prism-review/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/gabrielolvv/prism-review)](https://github.com/gabrielolvv/prism-review/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Prism Review is a GitHub Action that reviews pull requests for risk signals before a human reviewer starts.
 
-It combines deterministic, testable rules with a clean reporting layer so teams can catch missing tests, sensitive file changes, large diffs, dependency changes, and security-sensitive modifications earlier.
+It reads the diff through the GitHub API, without checking out or running the pull request's code, and posts one comment that groups what deserves a closer look: credentials and hidden characters, supply-chain changes such as lookalike or downgraded dependencies, risky infrastructure such as public buckets, cluster-admin bindings, or unpinned images, risky code such as SQL built from strings, and missing or skipped tests. Every rule is deterministic and tested, so the same diff always gets the same review.
 
 ## Why This Exists
 
 Human code review is expensive attention. Prism Review does not try to replace reviewers. It prepares the review by pointing out the areas that deserve extra care.
 
-The first version is intentionally deterministic. Optional AI review can be added later as an advisory layer, but the core product remains predictable, testable, and useful without paid APIs.
+The rules are deterministic, so the review is predictable, testable, and useful without paid APIs. An optional AI summary, off by default, can add advisory context written from the redacted diff, but it cannot change the risk level, the findings, or the check.
 
 ## Features
 
@@ -75,7 +79,7 @@ jobs:
 
 No checkout step is needed. The action reads the pull request and its configuration through the GitHub API, so pull request code never lands on the runner.
 
-`@v0` follows the latest 0.x release. To lock the version, pin the commit of a release tag instead, such as `gabrielolvv/prism-review@<commit-sha> # v0.9.0`; the `unpinned-action` rule recommends the same for every third-party action.
+`@v0` follows the latest 0.x release. To lock the version, pin the commit of a release tag instead, such as `gabrielolvv/prism-review@<commit-sha> # v0.39.0`; the `unpinned-action` rule recommends the same for every third-party action.
 
 The review is also written to the job summary on the run page. For a pull request from a fork, GitHub gives `pull_request` workflows a read-only token, so the comment cannot be posted; the action then logs a warning instead of failing, and the review stays in the job summary. Other 403 errors still fail the run.
 
@@ -234,6 +238,8 @@ flowchart TD
     K --> F
     F --> G["Rule Modules"]
     G --> H["Markdown Renderer"]
+    P -.->|"optional, redacted diff"| S["AI Summary"]
+    S -.-> H
     H --> I["Comment Publisher"]
 ```
 
@@ -300,6 +306,10 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 - Add GitHub App mode with queue-based processing and organization-level analytics
 
 See [`docs/roadmap.md`](docs/roadmap.md) for details and shipped items.
+
+## Security
+
+To report a vulnerability in Prism Review itself, see [`SECURITY.md`](SECURITY.md).
 
 ## License
 

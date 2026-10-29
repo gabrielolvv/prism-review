@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.39.1 - 2026-10-29
+
+### Documentation
+
+- The README describes what the review covers today, including the optional AI summary, shows CI, release, and license badges, and pins its example to a current release.
+- `SECURITY.md` says how to report a vulnerability privately and what counts as one, for the Marketplace listing and the repository's Security tab.
+- `docs/releasing.md` lists what to set up before the first Marketplace listing, such as the repository description, topics, and private vulnerability reporting, and how to publish each release there.
+
 ## 0.39.0 - 2026-10-29
 
 ### Added

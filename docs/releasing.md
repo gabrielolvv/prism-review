@@ -34,10 +34,21 @@ Create older releases with `--latest=false`, so the newest release stays marked 
 
 ## GitHub Marketplace
 
-`action.yml` has the `branding` the Marketplace needs: the `shield` icon on `purple`. To list the action:
+The listing shows the README, the `name`, `description`, and `branding` from `action.yml` (the `shield` icon on `purple`), the license, and the security policy in `SECURITY.md`.
 
-1. Make sure the repository is public, and that the name in `action.yml`, `Prism Review`, is not already taken on the Marketplace. If it is, choose another name.
-2. Open the release on GitHub, choose **Edit**, and select **Publish this Action to the GitHub Marketplace**. The first time, GitHub asks you to accept the Marketplace Developer Agreement, and your account needs two-factor authentication.
-3. Pick the categories, such as **Code quality** and **Security**, and update the release. The form checks the remaining requirements and names any that are not met.
+### Before the First Listing
 
-GitHub's guide on [publishing actions in GitHub Marketplace](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/publish-in-github-marketplace) lists the current requirements. Once listed, each new release can be published the same way.
+1. The repository is public, and `action.yml` is the only action metadata file, at the root.
+2. The name in `action.yml`, `Prism Review`, is not already used by a Marketplace action, a GitHub user or organization, or a Marketplace category. Search the Marketplace for it; if it is taken, choose another name in `action.yml` and the README.
+3. Your account has two-factor authentication turned on.
+4. In **Settings > General**, the repository has a description, such as "Reviews pull requests for risk signals before human review", and topics such as `github-actions`, `code-review`, `security`, `supply-chain`, and `pull-requests`.
+5. In **Settings > Code security**, **Private vulnerability reporting** is turned on, so the link in `SECURITY.md` works.
+
+### Listing a Release
+
+1. Push the version tag as above. The Release workflow creates the release.
+2. Open the release, choose **Edit**, and select **Publish this Action to the GitHub Marketplace**. The first time, GitHub asks you to accept the Marketplace Developer Agreement.
+3. Choose a primary category, such as **Security**, and a second one, such as **Code quality**, and select **Update release**. The form checks the requirements and names any that are not met.
+4. Move `v0` to the release commit, so `@v0` users get the listed version.
+
+A release the workflow creates is not listed on its own. Publish each release you want on the Marketplace from its edit page; the listing shows the latest one published there. GitHub's guide on [publishing actions in GitHub Marketplace](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/publish-in-github-marketplace) has the current requirements.
