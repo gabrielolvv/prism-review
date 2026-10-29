@@ -47,7 +47,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, dependencies named like popular packages or moved to older or unbounded versions, manifests changed without their lockfile, unpinned third-party actions, and scripts piped from the internet into a shell
 - Flags infrastructure risks: privileged containers, the Docker socket, unpinned or root Dockerfile images and secrets baked into them, sensitive ports open to the internet, public buckets and databases, IAM policies that allow every action, Kubernetes roles bound to cluster-admin or to everyone, world-writable or setuid files, encryption or audit logging turned off, and destructive database migrations
-- Flags code that turns off TLS, token, or CSRF checks, SQL built from values instead of parameters, CORS that lets any site send credentials, insecure cookies, debug modes in production, weak cryptography, XML parsers that resolve external entities, mass assignment from the whole request, and request values passed straight to redirects, outgoing requests, or file paths
+- Flags code that turns off TLS, token, or CSRF checks, SQL built from values instead of parameters, CORS that lets any site send credentials, insecure cookies, debug modes in production, weak cryptography, XML parsers that resolve external entities, mass assignment from the whole request, regular expressions open to ReDoS, and request values passed straight to redirects, outgoing requests, or file paths
 - Loads its configuration from the pull request base commit, so a PR cannot relax its own review
 - Posts or updates a single PR comment, or appends one per run, and writes the review to the job summary
 - Groups findings by area, such as secrets, supply chain, infrastructure, and code, with a count for each area
@@ -206,7 +206,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.51.0
+    rev: v0.52.0
     hooks:
       - id: prism-review
 ```
@@ -241,7 +241,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.51.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.52.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -364,6 +364,7 @@ flowchart TD
 | `lockfile-source` | High or Warning | Flags lockfile entries and registry settings that download packages from hosts outside the allowed registries, over plain HTTP, or without TLS verification, and warns about Git sources, go.mod replaces, and extra pip indexes. |
 | `untrusted-input` | Warning | Flags values from the request passed straight to redirects (open redirect), outgoing requests (SSRF), and file paths (path traversal), in Express, Flask, Django, PHP, Go, Rails, and ASP.NET Core. |
 | `weak-crypto` | Warning | Flags secrets hashed with MD5 or SHA-1, DES, 3DES, RC4, RC2, and Blowfish ciphers, ECB mode, and tokens or passwords made with `Math.random()` or Python's `random`. |
+| `redos` | Warning | Flags regular expressions with a repeated group that can match the same text in many ways, such as `(\w+\s?)*` or `([a-z]+\.?)+`, which can take exponential time on a crafted input, in JavaScript, Python, Ruby, Java, C#, and PHP. |
 | `mass-assignment` | Warning | Flags code that lets a request set every field of a model: Rails' `permit!`, Django's `fields = "__all__"`, Laravel's empty `$guarded`, and models created or updated from the whole request body, such as `User.create(req.body)` or `User(**request.json)`. |
 | `xml-external-entities` | Warning | Flags XML parser settings that turn on DTDs or external entities (XXE) in Python, Java, PHP, .NET, Node.js, and Ruby, such as `resolve_entities=True` or `disallow-doctype-decl` set to `false`. |
 | `insecure-web-config` | High or Warning | Flags CORS that allows every origin, or reflects it, together with credentials (high), and warns about cookies with HttpOnly or Secure turned off and debug modes in production settings. |
