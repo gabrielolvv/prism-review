@@ -37552,6 +37552,7 @@ var csrf = {
 var checks = [tls, token, csrf];
 var commentLine4 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
+var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation2 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
@@ -37566,7 +37567,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine4.test(content) || importLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine4.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -39110,7 +39111,8 @@ function oneEditApart(left, right) {
       }
     }
     if (differences.length === 1) {
-      return true;
+      const [index2 = 0] = differences;
+      return !(/\d/.test(left[index2] ?? "") && /\d/.test(right[index2] ?? ""));
     }
     const [first = 0, second = 0] = differences;
     return differences.length === 2 && second === first + 1 && left[first] === right[second] && left[second] === right[first];
@@ -39932,7 +39934,8 @@ var cookieFlags = [
   /\b(?:SESSION|CSRF)_COOKIE_(?:SECURE|HTTPONLY)\s*=\s*False\b/,
   /\bset_cookie\s*\([^)]{0,500}\b(?:httponly|secure)\s*=\s*False\b/,
   /\b(?:res|response|reply)\.cookie\s*\([^)]{0,500}\b(?:httpOnly|secure)\s*:\s*false\b/,
-  /\.set(?:HttpOnly|Secure)\s*\(\s*false\s*\)/,
+  // Java's Cookie. `setSecure(false)` on anything else, such as Tomcat's request, is not about a cookie.
+  /\.setHttpOnly\s*\(\s*false\s*\)|\b\w*cookie\w*\.setSecure\s*\(\s*false\s*\)/i,
   /\bHttpOnly\s*=\s*false\b/
 ];
 var flaskDebug = /\.run\s*\([^)]{0,500}\b(?:debug|use_debugger)\s*=\s*True\b/;
@@ -40027,7 +40030,7 @@ var secretPairs2 = [
 ];
 var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)["']|\bcreateHash\(\s*["'](?:md5|sha1)["']|\bMessageDigest\.getInstance\(\s*"(?:MD5|SHA-?1)"|\b(?:md5|sha1)\s*\(\s*\$|\bDigest::(?:MD5|SHA1)\b|\b(?:MD5|SHA1)\.(?:Create|HashData)\(|\b(?:md5|sha1)\.(?:Sum|New)\(/;
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
-var ecbMode = /\bMODE_ECB\b|\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
+var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
 var commentLine11 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
@@ -40513,7 +40516,13 @@ var languages2 = [
         "eval",
         /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*\(?\s*(?:["'`]|<<[~-]?|%[qQ]?[({[]|(?!do\b)[a-z_@$][\w@$]*)|\bKernel\.eval\b/
       ],
-      ["shell command", /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      // A command and its arguments as separate strings or a splat, as in `system("git", "status")` or
+      // `system("git", *args)`, run without a shell; a single string goes through one, even with
+      // options such as `exception: true` after it.
+      [
+        "shell command",
+        /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*(?:`|(["'])(?:\\.|(?!\1).)*\1(?!\s*,\s*["'*]))/
+      ],
       // Backticks only run a command outside a string literal.
       ["interpolated shell command", /%x[({[]|^[^"'`]*(?:(?:"[^"]*"|'[^']*')[^"'`]*)*`[^`]*#\{/],
       ["Marshal.load", /\bMarshal\.load\b/],
@@ -40624,10 +40633,11 @@ function isAllowlisted(candidate, allowlist) {
 }
 
 // src/security/detect-secrets.ts
-var detectedFormats = [
-  ...credentialFormats,
-  { kind: "private key", pattern: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g }
-];
+var privateKeyHeader = /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g;
+var detectedFormats = [...credentialFormats, { kind: "private key", pattern: privateKeyHeader }];
+var keyMaterial = /[A-Za-z0-9+/]{40,}/;
+var materialWindow = 6;
+var documentedExample = /^AKIA[0-9A-Z]{9}EXAMPLE$/;
 function detectSecrets(files, allowlist = []) {
   return files.map((file) => ({
     ...file,
@@ -40635,14 +40645,26 @@ function detectSecrets(files, allowlist = []) {
   }));
 }
 function findAddedSecrets(patch, allowlist = []) {
-  return addedLines(patch).flatMap(
-    ({ line, content }) => matchingKinds(content, allowlist).map((kind) => ({ line, kind }))
+  const lines = addedLines(patch);
+  return lines.flatMap(
+    ({ line, content }, index) => matchingKinds(content, allowlist).filter((kind) => kind !== "private key" || hasKeyMaterial(lines, index)).map((kind) => ({ line, kind }))
   );
 }
 function matchingKinds(content, allowlist) {
   return detectedFormats.filter(
-    ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist))
+    ({ pattern }) => [...content.matchAll(pattern)].some(([match2]) => !isAllowlisted(match2, allowlist) && !documentedExample.test(match2))
   ).map(({ kind }) => kind);
+}
+function hasKeyMaterial(lines, index) {
+  const header = lines[index];
+  if (header === void 0) {
+    return false;
+  }
+  const afterHeader = header.content.slice(header.content.lastIndexOf("-----") + 5);
+  if (keyMaterial.test(afterHeader)) {
+    return true;
+  }
+  return lines.slice(index + 1, index + 1 + materialWindow).some(({ line, content }) => line - header.line <= materialWindow && keyMaterial.test(content));
 }
 
 // src/rules/secret-in-diff.ts
@@ -41125,7 +41147,7 @@ var builtString = [
   // Ruby interpolation
 ];
 var quotedText = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
-var quotedValue = /^\s*(?:(?:[\w$]+\.)*(?:quote_name|quote_table_name|quote_column_name|quoteTable|quoteIdentifiers?|quote_ident|quoteName|escapeId|escapeIdentifier|escapeLiteral|escape_string|escape|quote|sanitize_sql\w*)\s*\([^]*\)|(?:quoted|escaped)[\w$]*)\s*$/;
+var quotedValue = /^\s*(?:(?:[\w$]+\.)*(?:quote|escape|sanitize_sql)[\w$]*\s*\([^]*\)|(?:quoted|escaped)[\w$]*|(?:[\w$]+\.)*[A-Z][A-Z0-9_]*)\s*$/;
 var templateValue = /\$\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 var rubyValue = /#\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 var languageStrings = [
@@ -41193,7 +41215,7 @@ function builds(argument, patterns2) {
   if (matched.length === 0) {
     return false;
   }
-  const readable = [builtString[1], builtString[3], builtString[6]].map((entry) => entry?.pattern);
+  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry) => entry?.pattern);
   if (!matched.every(({ pattern }) => readable.includes(pattern))) {
     return true;
   }
@@ -41201,6 +41223,9 @@ function builds(argument, patterns2) {
   const percent = /["']\s*%\s*/.exec(masked);
   if (percent !== null) {
     values.push(...percentOperands(argument.slice(percent.index + percent[0].length)));
+  }
+  if (builtString[4]?.pattern.test(masked)) {
+    values.push(...concatenated(argument, masked));
   }
   return !(values.length > 0 && values.every((value) => quotedValue.test(value)));
 }
@@ -41243,6 +41268,31 @@ function percentOperands(text) {
   }
   items.push(current);
   return items.filter((item) => item.trim() !== "");
+}
+function concatenated(argument, masked) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index <= masked.length; index += 1) {
+    const char = masked[index] ?? "+";
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      if (depth === 0) {
+        parts.push(argument.slice(start, index));
+        start = masked.length;
+        break;
+      }
+      depth -= 1;
+    } else if ((char === "+" || char === ";" || char === ",") && depth === 0) {
+      parts.push(argument.slice(start, index));
+      start = index + 1;
+      if (char !== "+") {
+        break;
+      }
+    }
+  }
+  return parts.map((part) => part.trim()).filter((part) => part !== "" && !/^(["'`]).*\1$/s.test(part));
 }
 
 // src/rules/index.ts
