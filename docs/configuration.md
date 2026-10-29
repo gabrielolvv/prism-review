@@ -225,7 +225,7 @@ Local packages (`file:`, workspaces, a go.mod `replace` with a local path or the
 
 ## Lookalike Dependencies
 
-The `lookalike-dependency` rule reads the dependencies added in manifests and reports a warning when a name is one character away from a widely used package in the same registry: one character added, removed, or replaced, or two neighbors swapped, such as `expresss`, `lodahs`, or `reqeusts`. Typosquatters publish such names to catch a mistyped install. The names are compared with a list bundled with Prism Review, so no network call is made.
+The `lookalike-dependency` rule reads the dependencies added in manifests and reports a warning when a name is one character away from a widely used package in the same registry: one character added, removed, or replaced, or two neighbors swapped, such as `expresss`, `lodahs`, or `reqeusts`. A digit replaced by another, as in `rxjava2` and `rxjava3`, is usually another major version in the name, and is not reported. Typosquatters publish such names to catch a mistyped install. The names are compared with a list bundled with Prism Review, so no network call is made.
 
 | Registry | Files | Read from |
 | --- | --- | --- |
@@ -347,7 +347,7 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | JavaScript, TypeScript | `eval(...)` and `window.eval(...)`, `new Function(...)`, `exec` and `execSync` from `child_process` (bare, or as `cp.`, `childProcess.`, or `child_process.`), a `shell: true` option, `dangerouslySetInnerHTML`, assignments to `innerHTML` or `outerHTML`, `document.write` | `pattern.exec(input)`, `execFile(...)`, `textContent =`, comparisons such as `innerHTML === x` |
 | Python | `eval(...)`, `exec(...)`, `pickle`, `marshal`, and `shelve` loads, `yaml.load` and `yaml.load_all` without a safe loader on the same line, `yaml.unsafe_load`, `shell=True`, `os.system`, `os.popen` | `model.eval()`, `yaml.safe_load`, `yaml.load(..., Loader=yaml.SafeLoader)`, `json.loads`, `shell=False` |
 | Go | `exec.Command` that runs a shell with a command string, such as `sh -c`, `/bin/bash -lc`, `cmd /C`, or `powershell -Command`, and `template.HTML(...)` | `exec.Command("git", "status")` |
-| Ruby | `eval`, `instance_eval`, `class_eval`, and `module_eval` with a string, heredoc, or variable, `system`, `exec`, and `spawn` with a string, including `Kernel.` and `Process.` calls, `%x(...)` and backticks with interpolation outside a string literal, `Marshal.load`, `YAML.unsafe_load`, `.html_safe`, `raw(...)` | `calculator.eval(...)`, `def eval`, `class_eval do ... end`, `YAML.safe_load` |
+| Ruby | `eval`, `instance_eval`, `class_eval`, and `module_eval` with a string, heredoc, or variable, `system`, `exec`, and `spawn` with a single command string, including `Kernel.` and `Process.` calls, but not with the command and its arguments as separate strings, which run without a shell, `%x(...)` and backticks with interpolation outside a string literal, `Marshal.load`, `YAML.unsafe_load`, `.html_safe`, `raw(...)` | `calculator.eval(...)`, `def eval`, `class_eval do ... end`, `YAML.safe_load` |
 | Java, Kotlin | `Runtime.getRuntime().exec(...)`, `ProcessBuilder` that runs a shell with a command string, `ObjectInputStream`, `XMLDecoder` | `new ProcessBuilder("git", "status")` |
 | C# | `Process.Start` or `ProcessStartInfo.FileName` with `cmd`, `powershell`, `sh`, or `bash`, `BinaryFormatter` and the other unsafe .NET deserializers, `Html.Raw(...)` | `Process.Start("git", "status")`, `JsonSerializer.Deserialize`, `Html.Encode` |
 | Swift | a `Process` that runs `/bin/sh`, `/bin/bash`, or `/bin/zsh`, `NSKeyedUnarchiver.unarchiveObject`, `NSUnarchiver`, `evaluateJavaScript` with string interpolation | `/usr/bin/git`, `JSONDecoder`, `evaluateJavaScript` with a fixed string |
@@ -369,7 +369,7 @@ The `disabled-security-check` rule reports added lines that turn off a check mea
 
 Without certificate verification, anyone on the network path can read and change the traffic. Without signature checks, anyone can forge a token. CSRF protection is often turned off on purpose for an API or a signed webhook, so it is a warning.
 
-A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, import lines, such as `from ssl import CERT_NONE`, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
+A Python `verify=False` on a line that mentions `jwt` is counted as a token check, as older PyJWT calls use it; other attributes named `verify`, such as `self.verify = False`, are not reported. `curl -k` and `wget --no-check-certificate` to `localhost` or `127.0.0.1`, as in a health check against the container's own self-signed certificate, are not reported either. Comment lines, import lines, such as `from ssl import CERT_NONE`, lines that define the switch, such as golang-jwt's `func (p *Parser) ParseUnverified(` or HttpClient's `public class NoopHostnameVerifier`, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped, since tests often talk to local servers with self-signed certificates.
 
 ## Insecure Web Configuration
 
@@ -380,7 +380,7 @@ The `insecure-web-config` rule reads added lines in source and settings files, a
 | Reported | Severity | Examples |
 | --- | --- | --- |
 | CORS that allows every origin, or sends back the request's own, together with credentials | High | Express `cors({ origin: true, credentials: true })`, the `Access-Control-Allow-Origin` header set to `*` or `req.headers.origin` with `Access-Control-Allow-Credentials: true`, Django `CORS_ALLOW_ALL_ORIGINS = True` with `CORS_ALLOW_CREDENTIALS = True`, Flask-CORS `origins="*"` with `supports_credentials=True`, Spring `allowedOriginPatterns("*")` with `allowCredentials(true)`, ASP.NET Core `SetIsOriginAllowed(_ => true)` with `AllowCredentials()` |
-| A cookie with HttpOnly or Secure turned off | Warning | `httpOnly: false`, `SESSION_COOKIE_SECURE = False`, `CSRF_COOKIE_SECURE = False`, `SESSION_COOKIE_HTTPONLY = False`, `set_cookie(..., httponly=False)`, `res.cookie(..., { secure: false })`, Java `setHttpOnly(false)`, .NET `HttpOnly = false` |
+| A cookie with HttpOnly or Secure turned off | Warning | `httpOnly: false`, `SESSION_COOKIE_SECURE = False`, `CSRF_COOKIE_SECURE = False`, `SESSION_COOKIE_HTTPONLY = False`, `set_cookie(..., httponly=False)`, `res.cookie(..., { secure: false })`, Java `setHttpOnly(false)` and `setSecure(false)` on a variable named like a cookie, .NET `HttpOnly = false` |
 | A debug mode in production | Warning | Flask `app.run(debug=True)`, which serves the Werkzeug debugger and its console; Django `DEBUG = True` in a settings module; Rails `config.consider_all_requests_local = true` in `config/environments/production.rb` |
 
 With every origin and credentials allowed, any website a signed-in user visits can read responses meant for that user. A cookie without HttpOnly can be read by any injected script, and one without Secure travels over plain HTTP. Debug pages show code, settings, and stack traces, and the Werkzeug debugger runs Python for whoever opens it.
@@ -419,7 +419,7 @@ The `weak-crypto` rule reads added lines in source files and reports one warning
 | --- | --- |
 | A secret hashed with MD5 or SHA-1 | `createHash("md5").update(password)`, `hashlib.sha1(user_password...)`, `md5($password)`, `MessageDigest.getInstance("SHA-1")` on a line about a token |
 | A broken cipher | DES, 3DES, RC4, RC2, or Blowfish: `createCipheriv("des-ede3-cbc", ...)`, `Cipher.getInstance("DESede/...")`, `DES3.new(...)`, Go `des.NewTripleDESCipher`, .NET `TripleDES.Create()` |
-| ECB mode | `AES.MODE_ECB`, `"AES/ECB/..."`, `createCipheriv("aes-128-ecb", ...)`, `modes.ECB()`, `CipherMode.ECB`, and Java `Cipher.getInstance("AES")`, which uses ECB by default |
+| ECB mode | `AES.MODE_ECB`, `"AES/ECB/..."`, `createCipheriv("aes-128-ecb", ...)`, `modes.ECB()`, `CipherMode.ECB`, and Java `Cipher.getInstance("AES")`, which uses ECB by default; not Java's `"RSA/ECB/..."`, since RSA has no block mode |
 | A secret made with a random generator not meant for security | `Math.random()`, Python `random.choice`, `random.randint`, and similar, PHP `rand()` and `mt_rand()`, on a line about a token, password, salt, nonce, or one-time code |
 
 MD5 and SHA-1 are fast, so a leaked hash of a password is quickly guessed. The broken ciphers have short keys or blocks, and ECB encrypts equal blocks the same way, which shows the shape of the data. `Math.random()` and Python's `random` can be predicted from a few outputs.
@@ -463,11 +463,11 @@ The `sql-injection` rule warns about added lines that build SQL by inserting val
 | C# | `FromSqlRaw($"... {name}")`, `new SqlCommand("..." + x)` | `FromSqlInterpolated`, parameters |
 | Ruby | `where("email = '#{email}'")`, `find_by_sql("... #{x}")` | `where("email = ?", email)`, `where(email: email)` |
 
-It also reports SQL built into a variable named like `sql`, `query`, `stmt`, or `statement`, such as `String sql = "SELECT ... " + id;`, since the variable is usually run on a later line.
+It also reports SQL built into a variable named like `sql`, `query`, `stmt`, or `statement`, such as `String sql = "SELECT ... " + id;`, since the variable is usually run on a later line. Concatenation counts only when a joined value is not a constant, such as Java's `TABLE_NAME`, or a quoting call, so `"DELETE FROM " + TABLE_NAME + " WHERE " + ID_FILTER` is not reported.
 
 To keep text that only mentions SQL words out, the string has to look like SQL: `SELECT ... FROM`, `INSERT INTO`, `UPDATE ... SET`, `DELETE FROM`, `WHERE column =`, `ORDER BY`, `GROUP BY`, or `VALUES (`. ActiveRecord fragments such as `where("email = '#{email}'")` count without one, when the interpolated string is the first argument; in `select_all(sql, "#{name} Load")`, the second argument only names the query in the log. GraphQL queries and messages such as `` `email from ${sender}` `` are not reported, and neither are `exec` calls, which usually start a process and are covered by `risky-api`.
 
-A template literal, Ruby string, or Python `%` whose every inserted value goes through the database's quoting, such as `quote_name(...)`, `quote_table_name(...)`, `this.quoteTable(...)`, `escapeId(...)`, or `escape(...)`, or is a variable named like `quotedTable`, is not reported. `%`, `+`, and `.format` inside a string, as in the placeholder template `"%(field)s = VALUES(%(field)s)"`, do not count as building it.
+A template literal, Ruby string, Python `%`, or concatenation whose every inserted value goes through the database's quoting, a call whose name starts with `quote` or `escape`, such as `quote_name(...)`, `this.quoteTable(...)`, or `database.escapeTableName(...)`, or is a variable named like `quotedTable` or a constant, is not reported. `%`, `+`, and `.format` inside a string, as in the placeholder template `"%(field)s = VALUES(%(field)s)"`, do not count as building it.
 
 The finding is a warning, because the inserted value may be a constant or already escaped. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
@@ -729,8 +729,8 @@ The `secret-in-diff` rule reports a high-risk finding, with the line number, whe
 
 - GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`)
 - OpenAI-style API keys (`sk-`)
-- AWS access key IDs (`AKIA`)
-- Private key headers (`-----BEGIN ... PRIVATE KEY-----`, including PGP key blocks)
+- AWS access key IDs (`AKIA`), except AWS's documented example, `AKIAIOSFODNN7EXAMPLE`
+- Private keys: a `-----BEGIN ... PRIVATE KEY-----` header, including PGP key blocks, followed by base64 key material on the same line or within the next six lines. A header alone, such as the constant a TLS library writes keys with, is not a key.
 
 Removed and unchanged lines are not reported. Patches over `security.maxPatchBytes` are still scanned for these formats, because a credential in a large vendored or generated file is still a leak. Broader patterns, such as long base64 strings and `password: ...` assignments, are still redacted but not reported, because lockfile hashes and type declarations would make them noisy.
 
