@@ -2,6 +2,26 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.50.0 - 2026-10-29
+
+### Fixed
+
+False positives found by running every rule over about 18,600 files from 20 popular Go modules and 18 Java libraries, such as gin, gRPC, pgx, golang-jwt, Spring, Hibernate, Tomcat, Netty, and Liquibase:
+
+- `secret-in-diff` reports a private key header only when base64 key material follows it, on the same line or within the next six lines, so the header constants TLS libraries such as Netty and Tomcat write keys with are not reported. AWS's documented example key ID, `AKIAIOSFODNN7EXAMPLE`, is not reported either.
+- `sql-injection` reads concatenation the way it reads interpolation: SQL joined only with constants, such as `TABLE_NAME`, or calls whose names start with `quote` or `escape`, such as Liquibase's `escapeTableName(...)`, is not reported.
+- `risky-api` does not report Ruby's `system`, `exec`, and `spawn` given the command and its arguments as separate strings, which run without a shell.
+- `disabled-security-check` skips the lines that define a switch, such as golang-jwt's `func (p *Parser) ParseUnverified(` and HttpClient's `public class NoopHostnameVerifier`.
+- `weak-crypto` no longer reads Java's `"RSA/ECB/..."` transformations as ECB mode.
+- `insecure-web-config` reports `setSecure(false)` only on a variable named like a cookie, so Tomcat's `request.setSecure(false)` is not reported.
+- `lookalike-dependency` does not report a name that differs from a popular one by a digit, such as `rxjava2` and `rxjava3`, which is usually another major version.
+
+On that corpus, `secret-in-diff` reports 33 files instead of 39, `sql-injection` 14 instead of 19, `risky-api` 9 instead of 13, `weak-crypto` 1 instead of 2, and `insecure-web-config` and `lookalike-dependency` none. On the earlier corpus of npm, PyPI, and RubyGems packages, `secret-in-diff` reports one file less, and the other rules are unchanged.
+
+### Changed
+
+- The README's pre-commit and GitLab CI examples pin this release, and a test keeps them on the version in `package.json`.
+
 ## 0.49.0 - 2026-10-29
 
 ### Added
