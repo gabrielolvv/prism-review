@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.53.0 - 2026-10-29
+
+### Added
+
+- `insecure-web-config` warns about cookies with SameSite set to None, which other websites send with their requests, as cross-site request forgery needs: `sameSite: "none"` or `false` in Express and cookie libraries, Django's `SESSION_COOKIE_SAMESITE = "None"` and `CSRF_COOKIE_SAMESITE = "None"`, Rails' `same_site: :none` and `cookies_same_site_protection = :none`, ASP.NET Core's `SameSiteMode.None`, Spring's `sameSite("None")` and `server.servlet.session.cookie.same-site=none`, and PHP's `'samesite' => 'None'` and `session.cookie_samesite`.
+
+### Fixed
+
+- `insecure-web-config` no longer reports Flask's `app.run(debug=True)` in example, demo, sample, development, and test paths, as it already did not for Django's `DEBUG = True`. On Flask-AppBuilder, it reported 15 example apps.
+
 ## 0.52.0 - 2026-10-29
 
 ### Added
