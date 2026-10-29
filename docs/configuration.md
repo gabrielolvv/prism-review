@@ -121,7 +121,7 @@ ignoreGenerated: true
 severity: {}
 ```
 
-Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Number must be greater than 0`.
+Invalid values fail the run with the file and the field that was rejected, for example `Invalid Prism Review configuration in .prism-review.yml at 1a2b3c4: risk.largeDiff.maxFiles: Too small: expected number to be >0`.
 
 ## Large Diff
 
