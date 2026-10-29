@@ -18,6 +18,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "workflow-risk": "Can someone who opens a pull request or an issue change what the workflows run, or reach their secrets?",
   "remote-script": "Is each downloaded script checked against a known checksum or signature before it runs?",
   "privileged-container": "Does each container need the privileges it is given?",
+  "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
   "destructive-migration":
     "Is the affected data backed up, and can the migration be rolled back while the previous release is still running?",

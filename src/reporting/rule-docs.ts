@@ -19,6 +19,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "unpinned-action": "Unpinned Actions",
   "destructive-migration": "Destructive Migrations",
   "privileged-container": "Privileged Containers",
+  "dockerfile-risk": "Dockerfile Risk",
   "public-exposure": "Public Exposure",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",

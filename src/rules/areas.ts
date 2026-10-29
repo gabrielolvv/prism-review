@@ -25,6 +25,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "workflow-risk": "supply-chain",
   "remote-script": "supply-chain",
   "privileged-container": "infrastructure",
+  "dockerfile-risk": "infrastructure",
   "public-exposure": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",

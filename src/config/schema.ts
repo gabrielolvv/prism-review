@@ -141,6 +141,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      dockerfileRisk: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       privilegedContainers: z
         .object({
           enabled: z.boolean().default(true)
