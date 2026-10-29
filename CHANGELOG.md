@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `workflow-risk` warns about write scopes under a workflow's top-level `permissions:`, such as `contents: write` or `id-token: write`, which every job gets, and about new workflows that set no permissions and so get the repository's default token permissions. Job-level writes, read scopes, and reusable workflows are not reported.
+
 ## 0.35.0 - 2026-10-29
 
 ### Added

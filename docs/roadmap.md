@@ -54,13 +54,8 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Scoped npm packages in the dependency checks (0.32.0).
 - zod 4, which fixes GHSA-mrhx-c7xc-m3w5 (0.33.0).
 - `dockerfile-risk` rule for unpinned base images, unchecked remote `ADD`, secrets in `ENV` or `ARG`, and a final `USER root` (0.34.0).
-- `insecure-infrastructure` rule for IAM policies that allow every action, and encryption, TLS 1.2, audit logging, or IMDSv2 turned off in Terraform and CloudFormation.
-
-## Near Term
-
-### Check workflow permissions in more detail
-
-`workflow-risk` reports `permissions: write-all`. Reporting workflows that add write permissions or `id-token: write` without a step that needs them, and jobs that inherit broad default permissions, would tighten what a compromised step can do.
+- `insecure-infrastructure` rule for IAM policies that allow every action, and encryption, TLS 1.2, audit logging, or IMDSv2 turned off in Terraform and CloudFormation (0.35.0).
+- Workflow permissions: write scopes granted to every job at the top of a workflow, and new workflows that set no permissions.
 
 ## Later
 

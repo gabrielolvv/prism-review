@@ -392,6 +392,10 @@ The `workflow-risk` rule checks added lines in `.github/workflows/*.yml` and in 
 | A `pull_request_target` trigger | Warning | The run has a writable token and the repository's secrets. |
 | A `ref:` that checks out the pull request head or `refs/pull/...` | Warning | Combined with `pull_request_target`, it runs untrusted code with those secrets. |
 | `permissions: write-all` | Warning | Every job gets every write permission. |
+| A write scope under the workflow's top-level `permissions:`, such as `contents: write` or `id-token: write`, also in the `{ contents: write }` form | Warning | It applies to every job, so any step in any job can push code or mint cloud credentials. Grant it to the job that needs it. |
+| A new workflow with no `permissions:` key at all | Warning | Its jobs get the repository's default token permissions, which are read and write in repositories created before February 2023 unless changed in the settings. |
+
+Write scopes under a job's own `permissions:` are not reported, and neither are `read` scopes or `permissions: {}`. A hunk that starts inside the top-level block is recognized from the `permissions:` line git shows as its context. Only new workflow files are checked for a missing `permissions:` key, since a diff of an existing workflow may not show it, and reusable workflows run with `workflow_call` are not, since they cannot get more than their caller grants. Composite actions have no permissions of their own.
 
 Only `run` and `script` values, including `|` and `>` blocks, are scripts. Every other value is data and is not reported: `TITLE: ${{ github.event.issue.title }}` under `env:`, an action input under `with:`, a step `name:`, `run-name:`, and `if:` conditions, followed by `run: echo "$TITLE"`. When a hunk starts inside a block, the unchanged lines GitHub shows around it are used to tell which block an added line belongs to.
 
