@@ -68,6 +68,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Reviews local diffs from the command line, for example in a pre-push hook
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus end-to-end runs of the bundled action and CLI
 - Ships as a self-contained bundle, so no dependency install happens on the runner
+- Also runs as a CLI on staged changes or a branch, as a pre-commit hook, and in GitLab CI
 - Uses minimal GitHub permissions
 - Works on GitHub Enterprise Server through the API URL the runner provides
 - Avoids executing repository code or relying on broad action helper packages
@@ -175,22 +176,64 @@ To check a rule change for false positives, run every rule over a directory of r
 
 ## Reviewing Before You Push
 
-The CLI reviews any unified diff, so you can see the review before opening a pull request:
+The CLI runs the same review on your machine or in another CI system, before a pull request exists:
 
 ```bash
-git diff origin/main...HEAD | npx @gabrielolvv/prism-review analyze --diff -
+npx @gabrielolvv/prism-review analyze --staged                 # what is staged for the next commit
+npx @gabrielolvv/prism-review analyze --base origin/main       # this branch since it left main
+git diff HEAD~3 | npx @gabrielolvv/prism-review analyze --diff -   # any unified diff
 ```
 
-The CLI needs Node.js 22 or later. From a clone of this repository, `node dist/cli/main.cjs` runs the same program. It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`. It also exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. That makes it usable as a Git hook, for example in `.git/hooks/pre-push`:
+The CLI needs Node.js 22 or later. It reads `.prism-review.yml` from the current directory, or the file passed with `--config`, and exits with status 1 when a finding reaches `check.failOn`, or the level given with `--fail-on`. With `--staged` or `--base`, it runs `git diff` itself, without colors or external diff tools, and passes when there is nothing to review. With `--diff`, it exits with status 1, rather than passing, when the input is empty, colored, or not `git diff` output. Quoted file names and the `diff.mnemonicPrefix` and `diff.noprefix` settings are understood. From a clone of this repository, `node dist/cli/main.cjs` runs the same program.
+
+`--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. The exit status works the same way in every format. Run `npx @gabrielolvv/prism-review --help` for every option.
+
+### pre-commit
+
+With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-commit-config.yaml`, pinned to a release:
+
+```yaml
+repos:
+  - repo: https://github.com/gabrielolvv/prism-review
+    rev: v0.47.0
+    hooks:
+      - id: prism-review
+```
+
+It reviews the staged changes and blocks the commit on high-risk findings, printing the review. By default, every change to a workflow, a migration, or an auth directory is high risk through `sensitive-files`, as is any change to `.prism-review.yml`. To be warned without being blocked for those, lower them with `severity` in `.prism-review.yml`. For a single commit, `SKIP=prism-review git commit` skips the hook. To review the whole branch before each push instead, replace the arguments:
+
+```yaml
+      - id: prism-review
+        args: [--base, origin/main, --fail-on, high]
+        stages: [pre-push]
+```
+
+### Git Hook
+
+Without pre-commit, a plain Git hook works the same way, for example in `.git/hooks/pre-push`:
 
 ```sh
 #!/bin/sh
-git diff origin/main...HEAD | npx --yes @gabrielolvv/prism-review analyze --diff - > /dev/null
+npx --yes @gabrielolvv/prism-review analyze --base origin/main --fail-on high > /dev/null
 ```
 
-`--format json` prints the review as JSON for scripts, with each finding's area and the dependency changes, and `--format sarif` prints SARIF 2.1.0 for code scanning and other SARIF viewers. `check.failOn` sets the exit status the same way in every format.
+### GitLab CI
 
-Run `npx @gabrielolvv/prism-review --help` for every option.
+In GitLab, run it on merge requests against the target branch. [`examples/gitlab/.gitlab-ci.yml`](examples/gitlab/.gitlab-ci.yml) has the job:
+
+```yaml
+prism-review:
+  image: node:22
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - npx --yes @gabrielolvv/prism-review@0.47.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+```
+
+The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
 
 ## Configuration
 
