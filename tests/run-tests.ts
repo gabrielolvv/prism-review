@@ -2,6 +2,7 @@ import {
   testActiveRecordLogNamesAreNotSql,
   testAnotherMajorVersionIsNotALookalike,
   testDefiningASwitchDoesNotTurnAChecksOff,
+  testExampleAppsMayRunInDebugMode,
   testExampleProjectsAreNotProductionSettings,
   testImportsDoNotTurnOffChecks,
   testMigrationFrameworkCodeIsNotAMigration,
@@ -32,6 +33,7 @@ import {
 } from "./unit/weak-crypto.test.js";
 import {
   testInsecureWebConfigReportsCookiesAndDebug,
+  testInsecureWebConfigReportsSameSiteNone,
   testInsecureWebConfigReportsCorsWithCredentials,
   testInsecureWebConfigSkipsSafeSettings
 } from "./unit/insecure-web-config.test.js";
@@ -679,6 +681,7 @@ const tests: Array<[string, Test]> = [
   ["defining a switch does not turn a check off", testDefiningASwitchDoesNotTurnAChecksOff],
   ["RSA transformations are not ECB", testRsaTransformationsAreNotEcb],
   ["only cookies are insecure cookies", testOnlyCookiesAreInsecureCookies],
+  ["example apps may run in debug mode", testExampleAppsMayRunInDebugMode],
   ["another major version is not a lookalike", testAnotherMajorVersionIsNotALookalike],
   ["untrusted-input reports each kind", testUntrustedInputReportsEachKind],
   ["untrusted-input reads other frameworks", testUntrustedInputReadsOtherFrameworks],
@@ -714,6 +717,7 @@ const tests: Array<[string, Test]> = [
   ["text output without findings", testRenderTextWithoutFindings],
   ["insecure-web-config reports CORS with credentials", testInsecureWebConfigReportsCorsWithCredentials],
   ["insecure-web-config reports cookies and debug modes", testInsecureWebConfigReportsCookiesAndDebug],
+  ["insecure-web-config reports SameSite=None cookies", testInsecureWebConfigReportsSameSiteNone],
   ["insecure-web-config skips safe settings", testInsecureWebConfigSkipsSafeSettings],
   ["file-permissions reports shell and Docker modes", testFilePermissionsReportsShellAndDocker],
   ["file-permissions reports chmod and umask calls in code", testFilePermissionsReportsCodeCalls],

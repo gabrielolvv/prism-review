@@ -74,3 +74,31 @@ export function testInsecureWebConfigSkipsSafeSettings(): void {
   assert.deepEqual(findings([added("tests/test_settings.py", lines)]), []);
   assert.deepEqual(findings([added("app/settings.py", lines)], prismConfigSchema.parse({ rules: { insecureWebConfig: { enabled: false } } })), []);
 }
+
+export function testInsecureWebConfigReportsSameSiteNone(): void {
+  const cases: Array<[string, string]> = [
+    ["src/server.ts", 'app.use(session({ secret, cookie: { secure: true, sameSite: "none" } }));'],
+    ["src/auth.ts", "res.cookie('session', id, { httpOnly: true, sameSite: false });"],
+    ["proj/settings.py", 'SESSION_COOKIE_SAMESITE = "None"'],
+    ["app/config.py", "CSRF_COOKIE_SAMESITE = 'None'"],
+    ["config/initializers/session_store.rb", "Rails.application.config.session_store :cookie_store, key: '_app', same_site: :none"],
+    ["config/application.rb", "config.action_dispatch.cookies_same_site_protection = :none"],
+    ["Startup.cs", "options.Cookie.SameSite = SameSiteMode.None;"],
+    ["src/main/java/Cookies.java", 'ResponseCookie cookie = ResponseCookie.from("session", id).sameSite("None").build();'],
+    ["src/main/resources/application.properties", "server.servlet.session.cookie.same-site=none"],
+    ["src/login.php", "setcookie('session', $id, ['secure' => true, 'samesite' => 'None']);"]
+  ];
+  for (const [path, line] of cases) {
+    const [finding] = findings([added(path, [line])]);
+    assert.equal(finding?.severity, "warning", `${path}: ${line}`);
+    assert.match(finding?.message ?? "", /by setting SameSite to None\.$/, `${path}: ${line}`);
+  }
+
+  const safe = [
+    'app.use(session({ cookie: { sameSite: "lax" } }));',
+    'SESSION_COOKIE_SAMESITE = "Strict"',
+    "options.Cookie.SameSite = SameSiteMode.Lax;",
+    "same_site: :strict"
+  ];
+  assert.deepEqual(findings([added("src/settings.ts", safe)]), []);
+}

@@ -250,3 +250,10 @@ export function testAnotherMajorVersionIsNotALookalike(): void {
   assert.ok(!analyzePullRequest([pom("rxjava", "io.reactivex.rxjava2")], defaultConfig).findings.some((finding) => finding.ruleId === "lookalike-dependency"));
   assert.ok(analyzePullRequest([pom("commons-lamg3", "org.apache.commons")], defaultConfig).findings.some((finding) => finding.ruleId === "lookalike-dependency"));
 }
+
+export function testExampleAppsMayRunInDebugMode(): void {
+  // Flask-AppBuilder's examples start their apps with the debugger on.
+  const run = ['app.run(host="0.0.0.0", port=8080, debug=True)'];
+  assert.ok(!ruleIds("examples/quickhowto/run.py", run).includes("insecure-web-config"));
+  assert.ok(ruleIds("app/run.py", run).includes("insecure-web-config"));
+}
