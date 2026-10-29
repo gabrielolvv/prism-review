@@ -49,6 +49,8 @@ const cases: Array<[path: string, prefix: string, repeated: string, context?: st
   ["app.py", "app.run(", "a, "],
   ["src/crypto.ts", 'createCipheriv("', "a-"],
   ["src/token.ts", "const resetToken = ", "aB_"],
+  ["src/routes.ts", "res.redirect(req.query.next + ", "`/a"],
+  ["src/proxy.ts", "fetch(req.body.url, ", "'https://a"],
   ["infra/main.tf", "", 'Action = ["'],
   ["infra/main.tf", "min_tls_version = \"", "TLS"],
   ["policy.json", "", '"Action": ['],
