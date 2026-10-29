@@ -206,7 +206,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.53.0
+    rev: v0.54.0
     hooks:
       - id: prism-review
 ```
@@ -241,7 +241,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.53.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.54.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -301,6 +301,16 @@ ai:
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for every option.
+
+To share one configuration across repositories, extend it from a file in another repository at a tag or commit, and keep only the differences in each one:
+
+```yaml
+extends: acme/policies/prism-review.yml@v2
+check:
+  failOn: high
+```
+
+The extended file can also be in the same repository. See [`extends`](docs/configuration.md#extends) for how settings merge and which token reads private repositories.
 
 ### Acknowledging a Finding
 
@@ -384,7 +394,7 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 ## Security Model
 
 - Repository code is never executed, and no checkout is needed.
-- Configuration is read from the base commit, not from the pull request.
+- Configuration is read from the base commit, not from the pull request, and so are the files it extends in the same repository; a pull request that changes them is reported as high risk.
 - Pull request content is treated as untrusted input.
 - The action uses minimal GitHub token permissions.
 - In the default `upsert` mode, an HTML marker keeps a single bot comment instead of spamming. Comments written by people are never edited, even when they contain the marker.
