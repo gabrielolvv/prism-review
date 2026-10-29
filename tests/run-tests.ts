@@ -400,6 +400,13 @@ import {
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
 import {
+  testRenderTextColorsOnlyWhenAsked,
+  testRenderTextListsFindingsBySeverity,
+  testRenderTextShowsControlCharactersFromThePullRequest,
+  testRenderTextShowsInfoFindingsWhenAsked,
+  testRenderTextWithoutFindings
+} from "./unit/render-text.test.js";
+import {
   testHardcodedJwtSecretCanBeDisabled,
   testHardcodedJwtSecretReadsEachLibrary,
   testHardcodedJwtSecretReportsOneFindingPerFile,
@@ -659,6 +666,11 @@ const tests: Array<[string, Test]> = [
   ["hardcoded-jwt-secret sees keys that redaction hid", testHardcodedJwtSecretSeesRedactedKeys],
   ["hardcoded-jwt-secret skips tests and docs", testHardcodedJwtSecretSkipsTestsAndDocs],
   ["hardcoded-jwt-secret can be disabled", testHardcodedJwtSecretCanBeDisabled],
+  ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
+  ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
+  ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
+  ["text output shows control characters from the pull request", testRenderTextShowsControlCharactersFromThePullRequest],
+  ["text output without findings", testRenderTextWithoutFindings],
   ["insecure-web-config reports CORS with credentials", testInsecureWebConfigReportsCorsWithCredentials],
   ["insecure-web-config reports cookies and debug modes", testInsecureWebConfigReportsCookiesAndDebug],
   ["insecure-web-config skips safe settings", testInsecureWebConfigSkipsSafeSettings],

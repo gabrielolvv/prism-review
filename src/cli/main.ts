@@ -13,6 +13,7 @@ import { defaultRules } from "../rules/index.js";
 import { renderJson } from "../reporting/render-json.js";
 import { renderMarkdown, type RenderOptions } from "../reporting/render-markdown.js";
 import { renderSarif } from "../reporting/render-sarif.js";
+import { renderText } from "../reporting/render-text.js";
 import { prepareChangedFiles } from "../security/prepare-changed-files.js";
 import { parseUnifiedDiff } from "../testing/parse-unified-diff.js";
 import { initRepository } from "./init.js";
@@ -20,7 +21,7 @@ import { version } from "./version.js";
 
 const usage = [
   "Usage: prism-review analyze (--diff <path|-> | --staged | --base <ref>) [--config <path>]",
-  "                            [--format markdown|json|sarif] [--fail-on never|warning|high]",
+  "                            [--format text|markdown|json|sarif] [--fail-on never|warning|high]",
   "       prism-review init [--ref <ref>] [--force]",
   "",
   "analyze reviews a diff:",
@@ -30,7 +31,9 @@ const usage = [
   "  --base <ref>      Review the changes on this branch since it left <ref>, such as origin/main,",
   "                    as `git diff <ref>...HEAD` shows them.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
-  "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "  --format <format> text, one line per finding, the default in a terminal; markdown, the pull",
+  "                    request comment, the default otherwise; json; or sarif for code scanning.",
+  "                    text is colored in a terminal, unless NO_COLOR is set, or when FORCE_COLOR is.",
   "  --fail-on <level> Exit with status 1 on findings of this severity, instead of check.failOn.",
   "",
   "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
@@ -45,7 +48,7 @@ const usage = [
   ""
 ].join("\n");
 
-const formats = ["markdown", "json", "sarif"] as const;
+const formats = ["text", "markdown", "json", "sarif"] as const;
 type Format = (typeof formats)[number];
 
 const failOnLevels = ["never", "warning", "high"] as const;
@@ -56,7 +59,7 @@ type CliOptions = {
   staged: boolean;
   base?: string;
   config?: string;
-  format: Format;
+  format?: Format;
   failOn?: FailOn;
   help: boolean;
 };
@@ -128,7 +131,9 @@ async function main(): Promise<void> {
     existingLockfiles
   });
   const codeOwners = config.comment.codeOwners ? readLocalCodeOwners() : undefined;
-  process.stdout.write(`${render(result, options.format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
+  // A person at a terminal gets the compact text; a pipe or a file gets the Markdown it always got.
+  const format = options.format ?? (process.stdout.isTTY ? "text" : "markdown");
+  process.stdout.write(`${render(result, format, { ...config.comment, ownersOf: codeOwners?.ownersOf })}\n`);
 
   const failOn = options.failOn ?? config.check.failOn;
   const failing = failingFindings(result, failOn);
@@ -201,6 +206,9 @@ function isFile(path: string): boolean {
 }
 
 function render(result: ReviewResult, format: Format, options: RenderOptions): string {
+  if (format === "text") {
+    return renderText(result, { includeLowSeverity: options.includeLowSeverity, color: useColor() });
+  }
   if (format === "json") {
     return renderJson(result);
   }
@@ -208,6 +216,16 @@ function render(result: ReviewResult, format: Format, options: RenderOptions): s
     return renderSarif(result, defaultRules);
   }
   return renderMarkdown(result, options);
+}
+
+// https://no-color.org: a non-empty NO_COLOR turns colors off; FORCE_COLOR turns them on in a pipe,
+// such as pre-commit's.
+function useColor(): boolean {
+  if ((process.env.NO_COLOR ?? "") !== "") {
+    return false;
+  }
+  const forced = process.env.FORCE_COLOR;
+  return forced !== undefined && forced !== "" ? forced !== "0" && forced !== "false" : process.stdout.isTTY === true;
 }
 
 // The CLI is meant to gate pushes, so input it cannot review is an error, never an empty
@@ -268,7 +286,7 @@ async function readDiff(source: string): Promise<string> {
 }
 
 function parseArgs(args: string[]): CliOptions {
-  const options: CliOptions = { format: "markdown", staged: false, help: false };
+  const options: CliOptions = { staged: false, help: false };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -314,7 +332,7 @@ function parseArgs(args: string[]): CliOptions {
         options.config = value;
       } else if (arg === "--format") {
         if (!formats.includes(value as Format)) {
-          throw new UsageError(`Unknown format: ${value}. Use markdown, json, or sarif.`);
+          throw new UsageError(`Unknown format: ${value}. Use text, markdown, json, or sarif.`);
         }
         options.format = value as Format;
       } else {
