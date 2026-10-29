@@ -53,7 +53,13 @@ const languages: Language[] = [
         "eval",
         /(?<![.\w:])(?:eval|instance_eval|class_eval|module_eval)\b\s*\(?\s*(?:["'`]|<<[~-]?|%[qQ]?[({[]|(?!do\b)[a-z_@$][\w@$]*)|\bKernel\.eval\b/
       ],
-      ["shell command", /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*["'`]/],
+      // A command and its arguments as separate strings or a splat, as in `system("git", "status")` or
+      // `system("git", *args)`, run without a shell; a single string goes through one, even with
+      // options such as `exception: true` after it.
+      [
+        "shell command",
+        /(?:(?<![.\w:])|(?<=\b(?:Kernel|Process)\.))(?:system|exe[c]|spawn)\b\s*[(\s]\s*(?:`|(["'])(?:\\.|(?!\1).)*\1(?!\s*,\s*["'*]))/
+      ],
       // Backticks only run a command outside a string literal.
       ["interpolated shell command", /%x[({[]|^[^"'`]*(?:(?:"[^"]*"|'[^']*')[^"'`]*)*`[^`]*#\{/],
       ["Marshal.load", /\bMarshal\.load\b/],

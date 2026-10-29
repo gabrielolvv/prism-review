@@ -72,6 +72,9 @@ const checks = [tls, token, csrf];
 const commentLine = /^\s*(?:#|\/\/|\/\*|\*)/;
 // Importing a constant such as CERT_NONE turns nothing off; using it does.
 const importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
+// A library that defines the switch, such as golang-jwt's `func (p *Parser) ParseUnverified(` or
+// HttpClient's `public class NoopHostnameVerifier`, does not turn a check off by doing so.
+const definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 const documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 
 export const disabledSecurityCheckRule: Rule = {
@@ -95,7 +98,7 @@ export const disabledSecurityCheckRule: Rule = {
       }
 
       const found = addedLines(file.patch).flatMap(({ line, content }) =>
-        commentLine.test(content) || importLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        commentLine.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];

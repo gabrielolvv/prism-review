@@ -30,10 +30,11 @@ const builtString: Array<{ pattern: RegExp; operator?: true }> = [
 const quotedText = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
 
 // Values that pass through a function that quotes an identifier or escapes a value for SQL, such as
-// Django's `quote_name(...)`, Sequelize's `this.quoteTable(...)`, or Rails' `quote_table_name(...)`,
-// and variables named for the result, such as `quotedTable`.
+// Django's `quote_name(...)`, Sequelize's `this.quoteTable(...)`, Rails' `quote_table_name(...)`, or
+// Liquibase's `database.escapeTableName(...)`; variables named for the result, such as `quotedTable`;
+// and constants, such as Java's `TABLE_NAME` or `SQLiteTable.SQLITE_SEQUENCE`.
 const quotedValue =
-  /^\s*(?:(?:[\w$]+\.)*(?:quote_name|quote_table_name|quote_column_name|quoteTable|quoteIdentifiers?|quote_ident|quoteName|escapeId|escapeIdentifier|escapeLiteral|escape_string|escape|quote|sanitize_sql\w*)\s*\([^]*\)|(?:quoted|escaped)[\w$]*)\s*$/;
+  /^\s*(?:(?:[\w$]+\.)*(?:quote|escape|sanitize_sql)[\w$]*\s*\([^]*\)|(?:quoted|escaped)[\w$]*|(?:[\w$]+\.)*[A-Z][A-Z0-9_]*)\s*$/;
 const templateValue = /\$\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 const rubyValue = /#\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 // PHP and C# interpolate in their own string syntax, which means something else elsewhere.
@@ -127,10 +128,10 @@ function builds(argument: string, patterns: Array<{ pattern: RegExp; operator?: 
   if (matched.length === 0) {
     return false;
   }
-  // Interpolation that only inserts quoted identifiers or escaped values is not reported: template
-  // literals, Ruby strings, and Python's `%` operator. Other ways of building the text, such as
-  // concatenation, are not read that closely.
-  const readable = [builtString[1], builtString[3], builtString[6]].map((entry) => entry?.pattern);
+  // Interpolation that only inserts quoted identifiers, escaped values, or constants is not reported:
+  // template literals, Ruby strings, Python's `%` operator, and concatenation. Other ways of building
+  // the text, such as format functions, are not read that closely.
+  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry) => entry?.pattern);
   if (!matched.every(({ pattern }) => readable.includes(pattern))) {
     return true;
   }
@@ -138,6 +139,9 @@ function builds(argument: string, patterns: Array<{ pattern: RegExp; operator?: 
   const percent = /["']\s*%\s*/.exec(masked);
   if (percent !== null) {
     values.push(...percentOperands(argument.slice(percent.index + percent[0].length)));
+  }
+  if (builtString[4]?.pattern.test(masked)) {
+    values.push(...concatenated(argument, masked));
   }
   return !(values.length > 0 && values.every((value) => quotedValue.test(value)));
 }
@@ -183,4 +187,33 @@ function percentOperands(text: string): string[] {
   }
   items.push(current);
   return items.filter((item) => item.trim() !== "");
+}
+
+// The parts joined with `+` that are not string literals. A line that ends with `+` continues on
+// the next one, whose parts are read there.
+function concatenated(argument: string, masked: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index <= masked.length; index += 1) {
+    const char = masked[index] ?? "+";
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      // A bracket that closes the call the text is passed to ends the expression.
+      if (depth === 0) {
+        parts.push(argument.slice(start, index));
+        start = masked.length;
+        break;
+      }
+      depth -= 1;
+    } else if ((char === "+" || char === ";" || char === ",") && depth === 0) {
+      parts.push(argument.slice(start, index));
+      start = index + 1;
+      if (char !== "+") {
+        break;
+      }
+    }
+  }
+  return parts.map((part) => part.trim()).filter((part) => part !== "" && !/^(["'`]).*\1$/s.test(part));
 }
