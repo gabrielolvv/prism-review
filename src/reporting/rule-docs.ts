@@ -17,6 +17,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
   "untrusted-input": "Untrusted Input",
+  "xml-external-entities": "XML External Entities",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",
