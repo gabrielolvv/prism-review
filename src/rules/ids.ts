@@ -19,6 +19,7 @@ export const ruleIds: readonly string[] = [
   "privileged-container",
   "dockerfile-risk",
   "public-exposure",
+  "insecure-infrastructure",
   "sensitive-files",
   "config-change",
   "review-control-change",
