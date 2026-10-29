@@ -51,7 +51,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Composer and NuGet manifests in the dependency checks, with `composer.lock` and per-project `packages.lock.json` (0.29.0).
 - Maven and Gradle builds in the dependency checks: `pom.xml` dependency blocks, Gradle build scripts, and version catalogs, with `gradle.lockfile` (0.30.0).
 - An optional AI summary written from the redacted diff, behind a provider interface, with a validated reply, a fallback that publishes the review without it, and prompt-injection fixtures checked against what the model is sent and what the comment shows (0.31.0).
-- Scoped npm packages in the dependency checks.
+- Scoped npm packages in the dependency checks (0.32.0).
 
 ## Later
 

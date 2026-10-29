@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Security
+
+- zod is upgraded from 3.25 to 4.6.7, which fixes GHSA-mrhx-c7xc-m3w5, unbounded memory use when validating oversized constrained collections. The configuration comes from the base commit, so a pull request could not reach it, but the bundled action carried the vulnerable version. Every configuration parses to the same values as before.
+
+### Changed
+
+- Invalid configuration messages use zod 4's wording, such as `risk.largeDiff.maxFiles: Too small: expected number to be >0`. The file and the field are named as before.
+
 ## 0.32.0 - 2026-10-27
 
 ### Fixed
