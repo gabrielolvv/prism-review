@@ -1,0 +1,22 @@
+name: Feature or new rule
+description: Suggest a new rule, an option, or another improvement.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should a reviewer be warned about?
+      description: The risk or the review step this would help with, and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: A diff, or a few lines of code or configuration, that should be reported, and one that should not.
+      render: diff
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How do you handle it today?
+      description: Other tools or checks you use for this, if any.

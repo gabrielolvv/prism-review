@@ -8,11 +8,31 @@ Prism Review is a GitHub Action that reviews pull requests for risk signals befo
 
 It reads the diff through the GitHub API, without checking out or running the pull request's code, and posts one comment that groups what deserves a closer look: credentials and hidden characters, supply-chain changes such as lookalike or downgraded dependencies, risky infrastructure such as public buckets, cluster-admin bindings, or unpinned images, risky code such as SQL built from strings, and missing or skipped tests. Every rule is deterministic and tested, so the same diff always gets the same review.
 
+<p align="center">
+  <img src="docs/images/review-comment.png" alt="A Prism Review comment on a pull request: risk level High, 14 findings in 6 areas, starting with an API key added in src/payments/webhook.ts and a workflow that runs the pull request title in a script under pull_request_target" width="720">
+</p>
+
+The comment above reviews [`fixtures/diffs/showcase.diff`](fixtures/diffs/showcase.diff), a pull request that adds a payment webhook, a preview workflow, two dependencies, and Dockerfile changes. Run `node dist/cli/main.cjs analyze --diff fixtures/diffs/showcase.diff` to see all of it.
+
 ## Why This Exists
 
 Human code review is expensive attention. Prism Review does not try to replace reviewers. It prepares the review by pointing out the areas that deserve extra care.
 
 The rules are deterministic, so the review is predictable, testable, and useful without paid APIs. An optional AI summary, off by default, can add advisory context written from the redacted diff, but it cannot change the risk level, the findings, or the check.
+
+## How It Compares
+
+Prism Review works alongside code scanners rather than replacing them. It reads only the diff, so it needs no build, no checkout, and no setup beyond one workflow file, and it reports on the parts of a pull request that scanners of source code usually skip: workflows, lockfiles, Dockerfiles, Kubernetes and Terraform files, CODEOWNERS, and tests.
+
+| | Prism Review | CodeQL | Semgrep | Danger |
+| --- | --- | --- | --- | --- |
+| What it reads | The pull request diff | The whole codebase, built into a database | The whole codebase, or the changed files | The pull request, through a Dangerfile you write |
+| Finds bugs by following data across files | No | Yes | In its paid tiers | No |
+| Built-in checks for workflows, lockfiles, containers, and infrastructure | Yes | Workflows only | Through rule packs | No, you write each check |
+| Runs pull request code or needs a checkout | No | Yes, to build compiled languages | Needs a checkout | Runs the Dangerfile |
+| Output | One grouped comment with a reviewer checklist, plus annotations and SARIF | Code scanning alerts | Code scanning alerts or comments | Comments you write |
+
+Use CodeQL or Semgrep to find injection bugs that cross functions and files, and Prism Review to point a reviewer at what a pull request changes and why it deserves a closer look.
 
 ## Features
 
@@ -311,6 +331,10 @@ See [`docs/sample-review-comment.md`](docs/sample-review-comment.md) for a full 
 - Add GitHub App mode with queue-based processing and organization-level analytics
 
 See [`docs/roadmap.md`](docs/roadmap.md) for details and shipped items.
+
+## Contributing
+
+Reports of false positives and missed findings are welcome: each one becomes a test. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to report one, set up the project, and add a rule.
 
 ## Security
 
