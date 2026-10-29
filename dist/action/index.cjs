@@ -40070,6 +40070,10 @@ function list(targets) {
 
 // src/rules/workflow-risk.ts
 var workflowFile2 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowOnly = /^\.github\/workflows\//;
+var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
+var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
+var writeScope = /^\s+([\w-]{1,50})\s*:\s*["']?write\b/;
 var untrustedPaths = [
   "github.head_ref",
   "github.event.issue.title",
@@ -40119,14 +40123,25 @@ var workflowRiskRule = {
     return files.filter((file) => file.patch !== void 0 && workflowFile2.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
-      const lines = [...injections.map(({ line }) => line), ...flagged.map(({ line }) => line)];
+      const workflow = workflowOnly.test(file.path);
+      const writes = workflow ? findTopLevelWrites(file.patch ?? "") : [];
+      const scopes = [...new Set(writes.flatMap(({ scopes: scopes2 }) => scopes2))];
+      const unset = workflow && file.status === "added" && setsNoPermissions(file.patch ?? "");
+      const lines = [
+        ...injections.map(({ line }) => line),
+        ...flagged.map(({ line }) => line),
+        ...writes.map(({ line }) => line),
+        ...unset ? [1] : []
+      ];
       if (lines.length === 0) {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
       const labels2 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
-        ...new Set(flagged.map(({ label }) => label))
+        ...new Set(flagged.map(({ label }) => label)),
+        ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
+        ...unset ? ["a new workflow that sets no permissions, so its jobs get the repository's default token permissions"] : []
       ];
       const { text, plural } = describeLines(lines);
       return [
@@ -40136,13 +40151,44 @@ var workflowRiskRule = {
           severity: contexts.length > 0 ? "high" : "warning",
           file: file.path,
           line: Math.min(...lines),
+          lines: [...new Set(lines)].sort((left, right) => left - right),
           message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels2.join(", ")}.`,
-          recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and grant only the permissions each job needs."
+          recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
     });
   }
 };
+function findTopLevelWrites(patch) {
+  const found = [];
+  let inBlock = false;
+  for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
+    if (startsHunk) {
+      inBlock = topLevelPermissions.test(hunkContext ?? "");
+    }
+    if (/^\s*(?:#.*)?$/.test(content)) {
+      continue;
+    }
+    if (!/^\s/.test(content)) {
+      inBlock = topLevelPermissions.test(content);
+      const inline = inlineTopLevelPermissions.exec(content)?.[1];
+      const scopes = [...(inline ?? "").matchAll(/([\w-]{1,50})\s*:\s*["']?write\b/g)].map((match2) => match2[1] ?? "");
+      if (added && scopes.length > 0) {
+        found.push({ line, scopes });
+      }
+      continue;
+    }
+    const scope = inBlock ? writeScope.exec(content)?.[1] : void 0;
+    if (added && scope !== void 0) {
+      found.push({ line, scopes: [scope] });
+    }
+  }
+  return found;
+}
+function setsNoPermissions(patch) {
+  const content = patchLines(patch).map((entry) => entry.content);
+  return !content.some((text) => /^\s*permissions\s*:/.test(text)) && !content.some((text) => /\bworkflow_call\b/.test(text) && !/^\s*#/.test(text));
+}
 function findInjections(patch) {
   const found = [];
   let block;
