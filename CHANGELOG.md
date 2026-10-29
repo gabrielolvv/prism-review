@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Added
+
+- `file-permissions` rule. It warns about `chmod` modes and calls that make files writable by every user, such as `777`, `o+w`, `COPY --chmod=777`, or `os.chmod(path, 0o666)`, about the setuid bit, and about a `umask` that leaves new files writable by every user. `chmod 1777` for shared temporary directories and setgid directories are not reported. `rules.filePermissions.enabled` turns it off.
+
 ## 0.38.0 - 2026-10-29
 
 ### Added
