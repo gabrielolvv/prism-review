@@ -3,7 +3,8 @@
 - id: prism-review
   name: Prism Review
   description: Reviews the staged changes for credentials, risky workflows, lookalike dependencies, and other risk signals.
-  entry: prism-review analyze
+  # Text output fits the hook's log better than the Markdown of the pull request comment.
+  entry: prism-review analyze --format text
   # The default reviews what is staged and blocks the commit on high-risk findings. A project can
   # replace the args, for example with [--base, origin/main] and `stages: [pre-push]`.
   args: [--staged, --fail-on, high]

@@ -756,13 +756,43 @@ const scenarios: Array<[string, () => void]> = [
     }
   ],
   [
+    "the CLI prints text for a terminal, colored unless NO_COLOR is set",
+    () => {
+      const cli = (args: string[], env: Record<string, string> = {}) =>
+        spawnSync(process.execPath, [cliEntry, "analyze", "--diff", "-", ...args], {
+          cwd: workDir,
+          encoding: "utf8",
+          input: riskyDiff,
+          env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT, ...env }
+        });
+      const escape = String.fromCharCode(27);
+
+      // A pipe keeps the Markdown it always got.
+      assert.match(cli([]).stdout, /^## Prism Review$/m);
+
+      const text = cli(["--format", "text"]);
+      assert.equal(text.status, 0, text.stderr);
+      assert.match(text.stdout, /^Prism Review: high risk\. Reviewed 2 changed file\(s\)/);
+      assert.match(text.stdout, /^high {5}src\/auth\/session\.ts {2}Sensitive file changed \[sensitive-files\]$/m);
+      assert.ok(!text.stdout.includes(escape));
+
+      assert.ok(cli(["--format", "text"], { FORCE_COLOR: "1" }).stdout.includes(`${escape}[1;31m`));
+      assert.ok(!cli(["--format", "text"], { FORCE_COLOR: "1", NO_COLOR: "1" }).stdout.includes(escape));
+      assert.ok(!cli(["--format", "text"], { FORCE_COLOR: "0" }).stdout.includes(escape));
+
+      const unknown = cli(["--format", "html"]);
+      assert.equal(unknown.status, 1);
+      assert.match(unknown.stderr, /Unknown format: html\. Use text, markdown, json, or sarif\./);
+    }
+  ],
+  [
     "the pre-commit hook runs the CLI with its own arguments",
     () => {
       const [hook] = parseYaml(readFileSync(".pre-commit-hooks.yaml", "utf8"));
       assert.equal(hook.id, "prism-review");
       assert.equal(hook.language, "node");
       assert.equal(hook.pass_filenames, false);
-      assert.equal(hook.entry, `${Object.keys(JSON.parse(readFileSync("package.json", "utf8")).bin)[0]} analyze`);
+      assert.equal(hook.entry, `${Object.keys(JSON.parse(readFileSync("package.json", "utf8")).bin)[0]} analyze --format text`);
       assert.deepEqual(hook.args, ["--staged", "--fail-on", "high"]);
     }
   ]
