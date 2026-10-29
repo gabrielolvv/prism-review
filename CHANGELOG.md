@@ -2,6 +2,28 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+False positives found by running every rule over about 16,000 files from 39 popular npm, PyPI, and RubyGems packages, such as Django, Express, Rails, requests, and Ansible:
+
+- `weak-crypto` skips minified bundles (`*.min.js`) and lines over 500 characters, where a random call and a word such as `token` meet by chance.
+- `untrusted-input` reads `params[...]` as request input in Ruby files only, so an Ansible module's `module.params[...]` is not reported, and no longer reads a Python variable named `redirect_to` as Rails' `redirect_to`.
+- `file-permissions` no longer reports `old = os.umask(0)`, which reads the current umask to restore it.
+- `insecure-web-config` treats Django settings under `examples/`, `samples/`, and `demos/` as development settings.
+- `hidden-unicode` only checks translation catalogs (`.po`, `.xliff`, `.strings`, and similar) for tag characters, since right-to-left and Khmer translations use direction marks and zero width spaces on purpose.
+- `destructive-migration` counts Django's `RemoveField`, `DeleteModel`, `RenameField`, and `RenameModel` only as calls, not in imports, `isinstance` checks, or docstrings.
+- `sql-injection` counts an ActiveRecord fragment only when the interpolated string is the first argument, so the log name in `select_all(sql, "#{name} Load")` is not reported.
+- `disabled-security-check` skips import lines, such as `from ssl import CERT_NONE`.
+- `package.json`'s `publishConfig.tag` and `publishConfig.registry` are no longer read as dependencies.
+- `lookalike-dependency` knows the npm packages `cookies` and `mquery`, which were reported as lookalikes of `cookie` and `query`.
+
+### Added
+
+- `scripts/scan-corpus.mjs` runs every rule over a directory of real code and counts the files each rule reports, to find false positives before a release.
+- `docs/configuration.md` opens with an index of every rule by area. The table of areas, which missed several rules, is now complete, and a test keeps both in sync with the rules.
+
 ## 0.42.0 - 2026-10-29
 
 ### Added
