@@ -37753,7 +37753,18 @@ function joinParts(parts) {
 
 // src/analysis/manifest-dependencies.ts
 var packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
+var npmDependencySections = /* @__PURE__ */ new Set([
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+  "overrides",
+  "resolutions"
+]);
 var npmFields = /* @__PURE__ */ new Set(["version", "node", "npm", "tag", "registry"]);
+var npmMetadataFields = /* @__PURE__ */ new Set(["url", "homepage", "repository", "bugs", "funding"]);
+var npmOpen = /^\s*(?:"([^"]{1,214})"\s*:\s*)?[{[]\s*$/;
+var npmClose = /^\s*[}\]]\s*,?\s*$/;
 var npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
 var npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);
 var requirementLine = new RegExp(`^\\s*(${packageName})\\s*(?:\\[[^\\]]{0,100}\\])?\\s*([<>=!~][^;#]{0,100}|@[^;#]{0,200})?(?:[;#]|$)`);
@@ -37789,9 +37800,27 @@ var manifests = [
   {
     ecosystem: "npm",
     files: /(?:^|\/)package\.json$/,
-    entries(content) {
+    // `"name": "version"` in a dependencies object. The section holds the keys of the objects and
+    // arrays a line is in, one per line, with "" for those without a key, as far as the hunk shows.
+    entries(content, section) {
       const [matched, name = "", version2 = ""] = npmEntry.exec(content) ?? [];
-      return matched !== void 0 && !npmFields.has(name) && npmVersion.test(version2) ? [{ name, version: version2 }] : [];
+      if (matched === void 0 || npmFields.has(name) || !npmVersion.test(version2)) {
+        return [];
+      }
+      const enclosing = section.split("\n").filter(Boolean).at(-1);
+      if (enclosing === void 0) {
+        return npmMetadataFields.has(name) ? [] : [{ name, version: version2 }];
+      }
+      return npmDependencySections.has(enclosing) ? [{ name, version: version2 }] : [];
+    },
+    section(content, current) {
+      const opened = npmOpen.exec(content);
+      if (opened) {
+        return current === "" ? `
+${opened[1] ?? ""}` : `${current}
+${opened[1] ?? ""}`;
+      }
+      return npmClose.test(content) ? current.slice(0, Math.max(0, current.lastIndexOf("\n"))) : void 0;
     }
   },
   {
@@ -37936,27 +37965,31 @@ function declaredDependencies(path5, patch) {
   let oldLine;
   let newLine = 0;
   const sectionOf = manifest.section ?? ((content) => tableHeader.exec(content)?.[1]?.trim());
-  let section = "";
+  let oldSection = "";
+  let newSection = "";
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader3.exec(line);
     if (header) {
       oldLine = Number(header[1]);
       newLine = Number(header[2]);
-      section = sectionOf(header[3] ?? "") ?? "";
+      oldSection = newSection = sectionOf(header[3] ?? "", "") ?? "";
       continue;
     }
     if (oldLine === void 0 || line.startsWith("\\")) {
       continue;
     }
     const content = line.slice(1);
-    section = sectionOf(content) ?? section;
     if (line.startsWith("+")) {
-      added.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: newLine })));
+      newSection = sectionOf(content, newSection) ?? newSection;
+      added.push(...manifest.entries(content, newSection).map((entry) => ({ ...entry, line: newLine })));
       newLine += 1;
     } else if (line.startsWith("-")) {
-      removed.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
+      oldSection = sectionOf(content, oldSection) ?? oldSection;
+      removed.push(...manifest.entries(content, oldSection).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
       oldLine += 1;
     } else {
+      newSection = sectionOf(content, newSection) ?? newSection;
+      oldSection = sectionOf(content, oldSection) ?? oldSection;
       newLine += 1;
       oldLine += 1;
     }
