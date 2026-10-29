@@ -70,6 +70,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `hardcoded-jwt-secret` rule for JSON Web Tokens signed or verified with a key written in the code (0.46.0).
 - `analyze --staged`, `--base`, and `--fail-on`, a pre-commit hook, and a GitLab CI example (0.47.0).
 - Fewer false positives in `destructive-migration`, `sql-injection`, and every rule that skips tests, which now include `test/`, `tests/`, and `spec/` directories (0.48.0).
+- `--format text` for terminals and the pre-commit hook (0.49.0).
 
 ## Later
 
