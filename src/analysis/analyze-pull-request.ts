@@ -11,6 +11,7 @@ import { dependencyChanges } from "./manifest-dependencies.js";
 export type AnalyzeOptions = {
   rules?: Rule[];
   configPath?: string;
+  extendedConfigPaths?: readonly string[];
   expectedFileCount?: number;
   // Files marked `linguist-generated` or `linguist-vendored`, which are left out like `ignorePaths`.
   isGenerated?: (path: string) => boolean;
@@ -26,6 +27,7 @@ export function analyzePullRequest(
   const {
     rules = defaultRules,
     configPath = defaultConfigPath,
+    extendedConfigPaths = [],
     expectedFileCount,
     isGenerated = () => false,
     existingLockfiles
@@ -42,6 +44,7 @@ export function analyzePullRequest(
         files: rule.seesIgnoredFiles ? files : reviewed,
         config,
         configPath,
+        extendedConfigPaths,
         expectedFileCount,
         changedPaths,
         ...(existingLockfiles === undefined ? {} : { existingLockfiles })

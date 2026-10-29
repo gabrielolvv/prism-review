@@ -6,8 +6,10 @@ import { codeOwnersPaths, parseCodeOwners, type CodeOwners } from "../analysis/c
 import { gitAttributesPath, parseGitAttributes } from "../analysis/git-attributes.js";
 import { findLockfiles } from "../github/load-lockfiles.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
-import { loadConfig } from "../config/load-config.js";
-import { defaultConfigPath } from "../config/schema.js";
+import { resolveConfig } from "../config/extends.js";
+import { defaultConfig, defaultConfigPath, type PrismConfig } from "../config/schema.js";
+import { createGitHubClient, resolveGitHubApiUrl } from "../github/client.js";
+import { fetchRepositoryFile } from "../github/fetch-repository-file.js";
 import type { ReviewResult } from "../analysis/finding.js";
 import { defaultRules } from "../rules/index.js";
 import { renderJson } from "../reporting/render-json.js";
@@ -106,7 +108,7 @@ async function main(): Promise<void> {
   }
 
   const configPath = options.config ?? defaultConfigPath;
-  const config = loadConfig(resolve(configPath));
+  const { config, extendedPaths } = await loadLocalConfig(configPath);
   const diff = options.diff !== undefined ? await readDiff(options.diff) : gitDiff(options.base);
   // Nothing staged, or a branch with no changes, is nothing to review rather than bad input.
   if (options.diff === undefined && diff.trim() === "") {
@@ -127,6 +129,7 @@ async function main(): Promise<void> {
     : undefined;
   const result = analyzePullRequest(files, config, {
     configPath,
+    extendedConfigPaths: extendedPaths,
     isGenerated: generated?.isGenerated,
     existingLockfiles
   });
@@ -193,6 +196,31 @@ async function init(args: string[]): Promise<void> {
       ].join("\n")
     );
   }
+}
+
+// The configuration and the files it extends: those in the repository from the current directory, as
+// its root, and those in other repositories through the GitHub API, with GITHUB_TOKEN or GH_TOKEN when
+// one is set, so private repositories can be read.
+async function loadLocalConfig(configPath: string): Promise<{ config: PrismConfig; extendedPaths: string[] }> {
+  if (!isFile(resolve(configPath))) {
+    return { config: defaultConfig, extendedPaths: [] };
+  }
+  const client = createGitHubClient(
+    process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? "",
+    resolveGitHubApiUrl(process.env.GITHUB_API_URL)
+  );
+  return resolveConfig(
+    readFileSync(resolve(configPath), "utf8"),
+    configPath,
+    async (target) => {
+      if (target.kind === "local") {
+        return isFile(target.path) ? { raw: readFileSync(target.path, "utf8"), source: target.path } : undefined;
+      }
+      const raw = await fetchRepositoryFile(client, target.owner, target.repo, target.path, target.ref);
+      return raw === undefined ? undefined : { raw, source: `${target.owner}/${target.repo}/${target.path}@${target.ref}` };
+    },
+    configPath
+  );
 }
 
 // The CODEOWNERS file in the current directory, found the way GitHub looks for it.

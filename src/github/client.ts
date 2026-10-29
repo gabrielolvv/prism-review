@@ -35,7 +35,8 @@ export function createGitHubClient(
       method: options.method ?? "GET",
       headers: {
         Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
+        // Without a token, as in the CLI, requests are anonymous and only read public repositories.
+        ...(token === "" ? {} : { Authorization: `Bearer ${token}` }),
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28"
       },

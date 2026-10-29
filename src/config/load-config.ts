@@ -1,14 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { defaultConfig, prismConfigSchema, type PrismConfig } from "./schema.js";
-
-export function loadConfig(configPath?: string): PrismConfig {
-  if (!configPath || !existsSync(configPath)) {
-    return defaultConfig;
-  }
-
-  return parseConfig(readFileSync(configPath, "utf8"), configPath);
-}
+import { prismConfigSchema, type PrismConfig } from "./schema.js";
 
 export function parseConfig(raw: string, source: string): PrismConfig {
   let parsed: unknown;
@@ -19,6 +10,11 @@ export function parseConfig(raw: string, source: string): PrismConfig {
     throw invalidConfig(source, message);
   }
 
+  return parseConfigObject(parsed, source);
+}
+
+// Validates parsed settings, such as those `resolveConfig` merges from several files.
+export function parseConfigObject(parsed: unknown, source: string): PrismConfig {
   const result = prismConfigSchema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues.map(
