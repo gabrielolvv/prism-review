@@ -2,6 +2,20 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.48.0 - 2026-10-29
+
+### Fixed
+
+False positives that remained on the corpus of about 16,000 files from 39 popular packages:
+
+- The default `rules.missingTests.testGlobs` include the `test/`, `tests/`, and `spec/` directories and Django's `tests.py`, so Mocha's `test/*.js`, pytest helpers, and RSpec support files count as tests. Rules that skip test files, such as `risky-api` and `destructive-migration`, now skip them, and `skipped-tests` and `missing-tests` count them as tests. `risky-api` reports 95 files instead of 116.
+- `destructive-migration` reads code files only when they are named the way migration tools name them, starting with a number or timestamp, or in Alembic's `versions/` directory, so migration framework code such as Django's `autodetector.py` is not read as a migration. It also skips class and method definitions, `raise` lines, and Ruby symbols such as `:remove_column`. It reports 1 file instead of 18: Django's own `contenttypes` migration, which does remove a field.
+- `sql-injection` no longer reads `%`, `+`, or `.format` inside a string as building it, so a placeholder template such as `"%(field)s = VALUES(%(field)s)"` is not reported, and skips template literals, Ruby strings, and Python `%` whose every inserted value goes through the database's quoting, such as `quote_name(...)` or `this.quoteTable(...)`. It reports 11 files instead of 15.
+
+### Changed
+
+- With the wider test globs, `skipped-tests` checks more test files. On the corpus it reports 25 more files, all Django `tests.py` files with `skipIf` or `skipUnless` markers, which the rule reports by design.
+
 ## 0.47.0 - 2026-10-29
 
 ### Added
