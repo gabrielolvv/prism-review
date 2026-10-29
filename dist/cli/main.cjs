@@ -15429,10 +15429,14 @@ var prismConfigSchema = object({
         "**/*.test.*",
         "**/*.spec.*",
         "**/__tests__/**",
+        // Test directories, such as Mocha's test/, pytest's and Cargo's tests/, and RSpec's spec/.
+        "**/test/**",
+        "**/tests/**",
+        "**/spec/**",
         "**/test_*.py",
         "**/*_test.py",
+        "**/tests.py",
         "**/*_test.go",
-        "**/tests/**/*.rs",
         "**/*_spec.rb",
         "**/*_test.rb",
         "**/src/test/**",
@@ -16224,12 +16228,12 @@ var kinds = [
   {
     kind: "drops a table",
     destructive: true,
-    pattern: /\bdrop\s+(?:table|schema|database)\b|(?<!\w)(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel(?=\s*\())|\bSchema::drop(?:IfExists)?\s*\(/i
+    pattern: /\bdrop\s+(?:table|schema|database)\b|(?<![\w:])(?:drop_table|drop_join_table|dropTable|dropTableIfExists|DropTable|DeleteModel(?=\s*\())|\bSchema::drop(?:IfExists)?\s*\(/i
   },
   {
     kind: "drops a column",
     destructive: true,
-    pattern: /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<!\w)(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField(?=\s*\())|^\s*remove\s+:/i
+    pattern: /\bdrop\s+column\b|\balter\s+table\b.{0,300}?\bdrop\s+(?!(?:column|constraint|index|key|primary|foreign|check|default|not|partition|identity|expression|period|system|table|trigger)\b)["`[]?\w|(?<![\w:])(?:remove_columns?|remove_reference|remove_belongs_to|remove_timestamps|drop_column|dropColumns?|DropColumn|removeColumn|RemoveField(?=\s*\())|^\s*remove\s+:/i
   },
   {
     kind: "removes every row",
@@ -16239,20 +16243,22 @@ var kinds = [
   {
     kind: "changes a column definition",
     destructive: false,
-    pattern: /\balter\s+column\s+["`[]?[\w.]+["`\]]?\s+(?!(?:set|drop|add|reset|restart|options)\b)\w|\b(?:modify|change)\s+column\b|(?<!\w)(?:change_column(?!_)|changeColumn|AlterColumn)\b|->change\s*\(\s*\)|\.alter\s*\(\s*\)|\balter_column\s*\([^)]*\btype_\s*=|^\s*modify\s+:/i
+    pattern: /\balter\s+column\s+["`[]?[\w.]+["`\]]?\s+(?!(?:set|drop|add|reset|restart|options)\b)\w|\b(?:modify|change)\s+column\b|(?<![\w:])(?:change_column(?!_)|changeColumn|AlterColumn)\b|->change\s*\(\s*\)|\.alter\s*\(\s*\)|\balter_column\s*\([^)]*\btype_\s*=|^\s*modify\s+:/i
   },
   {
     kind: "renames a table or column",
     destructive: false,
-    pattern: /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<!\w)(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField(?=\s*\()|RenameModel(?=\s*\())|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
+    pattern: /\brename\s+(?:(?:column|table)\s+)?(?:[\w."`[\]]+\s+)?to\b|\bsp_rename\b|(?<![\w:])(?:rename_table|rename_column|renameTable|renameColumn|RenameTable|RenameColumn|RenameField(?=\s*\()|RenameModel(?=\s*\())|\bSchema::rename\s*\(|^\s*rename\s+table\s*\(|\balter_column\s*\([^)]*\bnew_column_name\s*=/i
   }
 ];
 var migrationPath = /(?:^|\/)[^/]*(?:migrat|alembic)[^/]*\/|(?:^|\/)(?:V\d[^/]*__[^/]*|[^/]*\.up)\.sql$/i;
 var migrationFile = /\.(?:sql|rb|py|[cm]?[jt]s|php|cs|go|java|kt|exs?)$/i;
+var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
 var commentLine3 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
   id: "destructive-migration",
@@ -16263,7 +16269,7 @@ var destructiveMigrationRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !migrationPath.test(file.path) || !migrationFile.test(file.path) || rollbackFile.test(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !migrationPath.test(file.path) || !migrationFile.test(file.path) || !/\.sql$/i.test(file.path) && !migrationName.test(file.path) || rollbackFile.test(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findChanges(file.path, file.patch);
@@ -16309,7 +16315,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine3.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine3.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -20027,21 +20033,25 @@ var sqlVariable = /\b\w*(?:sql|query|stmt|statement)\w*\s*(?::\s*[\w<>[\]]+\s*)?
 var fragmentCall = /^(?:where|order|having|joins|find_by_sql|select_all|select_one|select_value)$/;
 var sqlKeyword = /\bselect\s.{1,500}?\bfrom\b|\binsert\s+into\b|\bupdate\s+[\w."`[\]]+\s+set\b|\bdelete\s+from\b|\bwhere\s+[\w."`[\]]+\s*(?:[=<>!]|like\b|in\b|is\b)|\b(?:order|group)\s+by\b|\bvalues\s*\(/i;
 var builtString = [
-  /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/,
+  { pattern: /(?:^|[(\s,])(?:[rR]?[fF]|[fF][rR])["']/ },
   // Python f-string, also inside text(...)
-  /["']\s*%\s*[\w(]/,
+  { pattern: /["']\s*%\s*[\w(]/, operator: true },
   // Python "... %s" % value
-  /["']\.format\(/,
+  { pattern: /["']\.format\(/, operator: true },
   // Python and C# .format()
-  /`[^`]*\$\{/,
+  { pattern: /`[^`]*\$\{/ },
   // JavaScript template literal
-  /["'`]\s*\+\s*[\w$(]|[\w)\]]\s*\+\s*["'`]/,
+  { pattern: /["'`]\s*\+\s*[\w$(]|[\w)\]]\s*\+\s*["'`]/, operator: true },
   // concatenation
-  /\b(?:fmt\.Sprintf|String\.format|sprintf)\s*\(/,
+  { pattern: /\b(?:fmt\.Sprintf|String\.format|sprintf)\s*\(/ },
   // Go, Java, PHP
-  /"[^"]*#\{/
+  { pattern: /"[^"]*#\{/ }
   // Ruby interpolation
 ];
+var quotedText = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
+var quotedValue = /^\s*(?:(?:[\w$]+\.)*(?:quote_name|quote_table_name|quote_column_name|quoteTable|quoteIdentifiers?|quote_ident|quoteName|escapeId|escapeIdentifier|escapeLiteral|escape_string|escape|quote|sanitize_sql\w*)\s*\([^]*\)|(?:quoted|escaped)[\w$]*)\s*$/;
+var templateValue = /\$\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+var rubyValue = /#\{((?:[^{}]|\{[^{}]*\})*)\}/g;
 var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
@@ -20060,7 +20070,7 @@ var sqlInjectionRule = {
       if (file.patch === void 0 || documentation12.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => pattern)];
+      const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
       const lines = findBuiltSql(file.patch, patterns2);
       if (lines.length === 0) {
         return [];
@@ -20095,11 +20105,68 @@ function findBuiltSql(patch, patterns2) {
     const target = call ? { name: call[1] ?? "", argument: content.slice(call.index + call[0].length) } : void 0;
     const checked = target ?? (pendingCall === void 0 ? void 0 : { name: pendingCall, argument: content });
     pendingCall = target !== void 0 && target.argument.trim() === "" ? target.name : void 0;
-    if (added && checked !== void 0 && checked.argument.trim() !== "" && patterns2.some((pattern) => pattern.test(checked.argument)) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument))) {
+    if (added && checked !== void 0 && checked.argument.trim() !== "" && builds(checked.argument, patterns2) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument))) {
       found.push(line);
     }
   }
   return found;
+}
+function builds(argument, patterns2) {
+  const masked = argument.replace(quotedText, (text) => `${text[0]}${"x".repeat(text.length - 2)}${text[0]}`);
+  const matched = patterns2.filter(({ pattern, operator }) => pattern.test(operator ? masked : argument));
+  if (matched.length === 0) {
+    return false;
+  }
+  const readable = [builtString[1], builtString[3], builtString[6]].map((entry) => entry?.pattern);
+  if (!matched.every(({ pattern }) => readable.includes(pattern))) {
+    return true;
+  }
+  const values = [...argument.matchAll(templateValue), ...argument.matchAll(rubyValue)].map((match2) => match2[1] ?? "");
+  const percent = /["']\s*%\s*/.exec(masked);
+  if (percent !== null) {
+    values.push(...percentOperands(argument.slice(percent.index + percent[0].length)));
+  }
+  return !(values.length > 0 && values.every((value) => quotedValue.test(value)));
+}
+function percentOperands(text) {
+  const items = [];
+  let depth = 0;
+  let current = "";
+  for (const char of text) {
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      if (depth === 0) {
+        break;
+      }
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      break;
+    }
+    current += char;
+  }
+  const operand = current.trim();
+  const tuple = /^\((.*)\)$/s.exec(operand)?.[1];
+  if (tuple === void 0) {
+    items.push(operand);
+    return items;
+  }
+  depth = 0;
+  current = "";
+  for (const char of tuple) {
+    if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      items.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  items.push(current);
+  return items.filter((item) => item.trim() !== "");
 }
 
 // src/rules/index.ts
@@ -21232,7 +21299,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.47.0" : "development";
+var version2 = true ? "0.48.0" : "development";
 
 // src/cli/main.ts
 var usage = [
