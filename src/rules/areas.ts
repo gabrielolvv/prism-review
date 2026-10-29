@@ -16,6 +16,7 @@ export type Area = (typeof areas)[number]["id"];
 export const ruleAreas: Readonly<Record<string, Area>> = {
   "secret-in-diff": "secrets",
   "credential-file": "secrets",
+  "hardcoded-jwt-secret": "secrets",
   "dependency-risk": "supply-chain",
   "lockfile-source": "supply-chain",
   "lookalike-dependency": "supply-chain",
