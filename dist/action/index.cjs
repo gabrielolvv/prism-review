@@ -5738,17 +5738,17 @@ var require_sha256 = __commonJS({
       exports3.HMAC = HMAC;
       function hash(data) {
         var h = new Hash().update(data);
-        var digest = h.digest();
+        var digest2 = h.digest();
         h.clean();
-        return digest;
+        return digest2;
       }
       exports3.hash = hash;
       exports3["default"] = hash;
       function hmac(key2, data) {
         var h = new HMAC(key2).update(data);
-        var digest = h.digest();
+        var digest2 = h.digest();
         h.clean();
-        return digest;
+        return digest2;
       }
       exports3.hmac = hmac;
       function fillBuffer(buffer, hmac2, info, counter) {
@@ -7510,13 +7510,13 @@ async function extractSkillArchive(resp, dest) {
   }
 }
 async function extractArgs(cmd, archive, stage, special, excludeFile) {
-  const patterns2 = special.map((name) => name.replace(/[*?[\\]/g, "\\$&"));
+  const patterns3 = special.map((name) => name.replace(/[*?[\\]/g, "\\$&"));
   if (cmd === "unzip") {
-    return ["-oq", archive, "-d", stage, ...patterns2.length > 0 ? ["-x", ...patterns2] : []];
+    return ["-oq", archive, "-d", stage, ...patterns3.length > 0 ? ["-x", ...patterns3] : []];
   }
-  if (patterns2.length === 0)
+  if (patterns3.length === 0)
     return ["-xf", archive, "-C", stage];
-  await fs3.writeFile(excludeFile, patterns2.join("\n") + "\n", { flag: "wx", mode: 384 });
+  await fs3.writeFile(excludeFile, patterns3.join("\n") + "\n", { flag: "wx", mode: 384 });
   return ["-xf", archive, "-C", stage, "-X", excludeFile];
 }
 async function readHead(file, n) {
@@ -7634,7 +7634,7 @@ async function openRegularFile(relPath, dest) {
   return handle;
 }
 async function hashFile(full) {
-  const digest = crypto.createHash("sha256");
+  const digest2 = crypto.createHash("sha256");
   const handle = await openRegularFile(path.basename(full), full);
   const buf = new Uint8Array(1024 * 1024);
   try {
@@ -7642,12 +7642,12 @@ async function hashFile(full) {
       const { bytesRead } = await handle.read(buf, 0, buf.length);
       if (bytesRead === 0)
         break;
-      digest.update(buf.subarray(0, bytesRead));
+      digest2.update(buf.subarray(0, bytesRead));
     }
   } finally {
     await handle.close();
   }
-  return digest.digest("hex");
+  return digest2.digest("hex");
 }
 async function filenamesInDir(root, under, base) {
   if (!await requireDir(under, base))
@@ -30926,8 +30926,8 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
   });
   defineLazyInternal(inst, "pattern", (zod) => {
     if (zod.def.options.every((o) => o._zod.pattern)) {
-      const patterns2 = zod.def.options.map((o) => o._zod.pattern);
-      return new RegExp(`^(${patterns2.map((p) => cleanRegex(p.source)).join("|")})$`);
+      const patterns3 = zod.def.options.map((o) => o._zod.pattern);
+      return new RegExp(`^(${patterns3.map((p) => cleanRegex(p.source)).join("|")})$`);
     }
     return void 0;
   });
@@ -33098,7 +33098,7 @@ var exactPattern = (p) => exactPatterns.get(p) ?? p;
 var stringProcessor = (schema, ctx, _json, _params) => {
   const json = _json;
   json.type = "string";
-  const { minimum, maximum, format, patterns: patterns2, contentEncoding, laxFormat } = aggregateChecks(schema);
+  const { minimum, maximum, format, patterns: patterns3, contentEncoding, laxFormat } = aggregateChecks(schema);
   if (typeof minimum === "number")
     json.minLength = minimum;
   if (typeof maximum === "number")
@@ -33113,8 +33113,8 @@ var stringProcessor = (schema, ctx, _json, _params) => {
   }
   if (contentEncoding)
     json.contentEncoding = contentEncoding;
-  if (patterns2 && patterns2.size > 0) {
-    const patternList = [...patterns2].map(exactPattern);
+  if (patterns3 && patterns3.size > 0) {
+    const patternList = [...patterns3].map(exactPattern);
     if (patternList.length === 1)
       json.pattern = patternList[0].source;
     else if (patternList.length > 1) {
@@ -33357,14 +33357,14 @@ var recordProcessor = (schema, ctx, _json, params) => {
   const def = schema._zod.def;
   json.type = "object";
   const keyType = def.keyType;
-  const patterns2 = aggregateChecks(keyType).patterns;
-  if (def.mode === "loose" && patterns2 && patterns2.size > 0) {
+  const patterns3 = aggregateChecks(keyType).patterns;
+  if (def.mode === "loose" && patterns3 && patterns3.size > 0) {
     const valueSchema = processSchema(def.valueType, ctx, {
       ...params,
       path: [...params.path, "patternProperties", "*"]
     });
     json.patternProperties = {};
-    for (const pattern of patterns2) {
+    for (const pattern of patterns3) {
       assignProp(json.patternProperties, exactPattern(pattern).source, valueSchema);
     }
   } else {
@@ -34455,9 +34455,9 @@ function patchLines(patch) {
 function addedLines(patch) {
   return patchLines(patch).filter((line) => line.added).map(({ line, content }) => ({ line, content }));
 }
-function matchAddedLines(patch, patterns2, ignoreLine) {
+function matchAddedLines(patch, patterns3, ignoreLine) {
   return addedLines(patch).flatMap(
-    ({ line, content }) => ignoreLine?.test(content) ? [] : patterns2.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
+    ({ line, content }) => ignoreLine?.test(content) ? [] : patterns3.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line, label }))
   );
 }
 
@@ -34491,7 +34491,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels7 = /* @__PURE__ */ new Set();
+  const labels8 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -34503,15 +34503,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels7.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels8.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels7.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels8.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels7.add("Unicode tag characters");
+      labels8.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels7], reordersText };
+  return { labels: [...labels8], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -36557,6 +36557,7 @@ var ruleIds = [
   "weak-crypto",
   "untrusted-input",
   "xml-external-entities",
+  "mass-assignment",
   "remote-script",
   "workflow-risk",
   "unpinned-action",
@@ -36670,6 +36671,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     xmlExternalEntities: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    massAssignment: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     insecureWebConfig: object({
@@ -37575,7 +37579,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels7 = listed.map((check) => check.label);
+      const labels8 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -37584,7 +37588,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels7)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels(labels8)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -37600,8 +37604,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/hidden-unicode.ts
@@ -37631,9 +37635,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels7 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels8 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels7.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels8.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -39384,7 +39388,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels7 = listed.map((kind) => kind.label);
+      const labels8 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -39393,7 +39397,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels7)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels2(labels8)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -39428,8 +39432,8 @@ function findSettings(patch) {
   }
   return found;
 }
-function joinLabels2(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels2(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/dockerfile-risk.ts
@@ -39567,8 +39571,8 @@ function isSecretName(name) {
   }
   return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
-function joinLabels3(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels3(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
@@ -39686,8 +39690,8 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels4(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels4(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/kubernetes-rbac.ts
@@ -40145,8 +40149,86 @@ var xmlExternalEntitiesRule = {
   }
 };
 
-// src/rules/untrusted-input.ts
+// src/rules/mass-assignment.ts
 var labels6 = {
+  "permit-all": "permits every request parameter",
+  "all-fields": "lets a form or serializer write every model field",
+  unguarded: "makes every model attribute mass assignable",
+  "whole-request": "passes the whole request body to a model"
+};
+var patterns = [
+  // Rails strong parameters: `params.require(:user).permit!` and `params.to_unsafe_h`, but not after
+  // `.slice(...)`, which already kept only the listed keys, as Devise does.
+  ["permit-all", /^(?!.*\.slice\s*\().*(?:\.permi[t]!|\bparams\.to_unsafe_h(?:ash)?\b)/],
+  // Laravel: an empty `$guarded` list, or `Model::unguard()`.
+  ["unguarded", /\$guarded\s*=\s*(?:\[\s*\]|array\(\s*\))|\b\w+::unguard\s*\(\s*\)/],
+  // Express with Mongoose, Sequelize, Prisma, or TypeORM: the body as the data of a write, or copied
+  // onto a model.
+  [
+    "whole-request",
+    /\.(?:create|insert|insertOne|insertMany|update|updateOne|updateMany|findByIdAndUpdate|findOneAndUpdate|upsert|build|save|merge|set)\s*\(\s*(?:[^,()]{1,200},\s*)?(?:\{\s*\.\.\.\s*)?(?:req|request|ctx\.request)\.body\s*\}?\s*[,)]|\bObject\.assign\s*\(\s*\w[\w.]*\s*,\s*(?:req|request|ctx\.request)\.body\s*\)|\bnew\s+[A-Z]\w*\s*\(\s*(?:req|request|ctx\.request)\.body\s*\)|\bdata\s*:\s*(?:req|request|ctx\.request)\.body\b/
+  ],
+  // Flask and Django: every field of the request as keyword arguments, such as `User(**request.json)`.
+  ["whole-request", /\*\*\s*request\.(?:json|form|args|values|data|POST|GET|get_json\(\s*\))/],
+  // ASP.NET MVC: TryUpdateModel without a list of properties binds every one of them.
+  ["whole-request", /\bTryUpdateModel(?:Async)?(?:<[^>]{1,100}>)?\s*\(\s*\w+\s*\)/]
+];
+var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
+var allFields = /^\s*fields\s*=\s*["']__all__["']/;
+var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
+var commentLine13 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var massAssignmentRule = {
+  id: "mass-assignment",
+  description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
+  run({ files, config: config2 }) {
+    if (!config2.rules.massAssignment.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || documentation9.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
+      const found = lines.flatMap(({ line, content, added }) => {
+        if (!added || commentLine13.test(content)) {
+          return [];
+        }
+        const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
+        if (/\.py$/.test(file.path) && !filters && allFields.test(content)) {
+          kinds3.push("all-fields");
+        }
+        return [...new Set(kinds3)].map((kind) => ({ line, kind }));
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const listed = Object.keys(labels6).filter((kind) => found.some((match2) => match2.kind === kind));
+      const numbers = [...new Set(found.map((match2) => match2.line))];
+      const { text, plural } = describeLines(numbers);
+      return [
+        {
+          ruleId: "mass-assignment",
+          title: "Mass assignment",
+          severity: "warning",
+          file: file.path,
+          line: Math.min(...numbers),
+          lines: numbers,
+          message: `${text} ${plural ? "let" : "lets"} a request set fields it should not, such as a role or an owner: the code ${joinLabels9(listed.map((kind) => labels6[kind]))}.`,
+          recommendation: "List the fields a request may set: permit(:name, :email) in Rails, an explicit fields list in Django forms and serializers, $fillable in Laravel, and picking the expected properties from the body before a create or update."
+        }
+      ];
+    });
+  }
+};
+function joinLabels9(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
+}
+
+// src/rules/untrusted-input.ts
+var labels7 = {
   redirect: "redirects to a URL from the request, which can send users to any site",
   ssrf: "requests a URL from the request, which can reach internal services",
   path: "reads or writes a file path from the request, which can leave the intended directory"
@@ -40174,8 +40256,8 @@ var guarded = {
   path: /\b(?:path\.basename|basename|secure_filename|filepath\.Base|Path\.GetFileName|File\.basename|sanitize\w*)\s*\(/
 };
 var fixedTarget = /^\s*\(?\s*(["'`])(?:\/(?![\/$])|https?:\/\/[\w.-]+(?:[:/?]|\1))/;
-var commentLine13 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine14 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var untrustedInputRule = {
   id: "untrusted-input",
   description: "Flags request values passed straight to redirects, outgoing requests, and file paths.",
@@ -40185,18 +40267,18 @@ var untrustedInputRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation9.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const ruby = rubyFile.test(file.path);
       const fromRequest = (content) => requestValue.test(content) || ruby && railsParams.test(content);
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine13.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine14.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
       }
-      const listed = Object.keys(labels6).filter((kind) => found.some((match2) => match2.kind === kind));
+      const listed = Object.keys(labels7).filter((kind) => found.some((match2) => match2.kind === kind));
       const lines = [...new Set(found.map((match2) => match2.line))];
       const { text, plural } = describeLines(lines);
       return [
@@ -40207,7 +40289,7 @@ var untrustedInputRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "pass" : "passes"} a value from the request straight to code that ${joinLabels9(listed.map((kind) => labels6[kind]))}.`,
+          message: `${text} ${plural ? "pass" : "passes"} a value from the request straight to code that ${joinLabels10(listed.map((kind) => labels7[kind]))}.`,
           recommendation: "Check the value against a list of allowed hosts, paths, or redirect targets first. Redirect only to relative paths on your own site, fetch only hosts you expect, and reduce file names with a function such as path.basename before joining them to a directory."
         }
       ];
@@ -40221,7 +40303,7 @@ function reaches(content, kind, sink) {
   }
   return kind === "path" || !fixedTarget.test(content.slice(match2.index + match2[0].length));
 }
-function joinLabels9(items) {
+function joinLabels10(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
@@ -40256,7 +40338,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels7 = [
+      const labels8 = [
         ...settings3.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -40271,7 +40353,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels10(labels7)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels11(labels8)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -40370,14 +40452,14 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels10(labels7) {
-  return labels7.length > 1 ? `${labels7.slice(0, -1).join(", ")}, and ${labels7.at(-1)}` : labels7[0] ?? "";
+function joinLabels11(labels8) {
+  return labels8.length > 1 ? `${labels8.slice(0, -1).join(", ")}, and ${labels8.at(-1)}` : labels8[0] ?? "";
 }
 
 // src/rules/remote-script.ts
 var downloader = String.raw`(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)`;
 var shell = String.raw`(?:(?:(?:ba|z|da|k)?sh|iex|Invoke-Expression)\b|(?:python[23]?|node|perl|ruby)(?:\s+-)?\s*(?:$|[;&|)]))`;
-var patterns = [
+var patterns2 = [
   // `curl ... | sh`, `wget -qO- ... | sudo -E bash -`, `... | sudo env A=1 bash`, `irm ... | iex`
   new RegExp(String.raw`\b${downloader}\b[^|;&\n]{0,2000}\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+(?:-\S+\s+|\w+=\S*\s+)*)?${shell}`, "i"),
   // `bash <(curl ...)`, `source <(curl ...)`
@@ -40387,8 +40469,8 @@ var patterns = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine14 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine15 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -40399,11 +40481,11 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
-        if (!patterns.some((pattern) => pattern.test(unquoted(content)))) {
+        if (!patterns2.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
         const url = firstUrl2.exec(content);
@@ -40451,7 +40533,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine14.test(content)) {
+    if (commentLine15.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -40724,7 +40806,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -40734,7 +40816,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation11.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation12.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -40906,7 +40988,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels7 = [
+      const labels8 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label)),
         ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
@@ -40921,7 +41003,7 @@ var workflowRiskRule = {
           file: file.path,
           line: Math.min(...lines),
           lines: [...new Set(lines)].sort((left, right) => left - right),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels7.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels8.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
@@ -41154,8 +41236,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine15 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -41165,11 +41247,11 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation12.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation13.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
-      const patterns2 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
-      const lines = findBuiltSql(file.patch, patterns2);
+      const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
+      const lines = findBuiltSql(file.patch, patterns3);
       if (lines.length === 0) {
         return [];
       }
@@ -41189,29 +41271,29 @@ var sqlInjectionRule = {
     });
   }
 };
-function findBuiltSql(patch, patterns2) {
+function findBuiltSql(patch, patterns3) {
   const found = [];
   let pendingCall;
   for (const { line, content, added, startsHunk } of patchLines(patch)) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine15.test(content)) {
+    if (commentLine16.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
     const target = call ? { name: call[1] ?? "", argument: content.slice(call.index + call[0].length) } : void 0;
     const checked = target ?? (pendingCall === void 0 ? void 0 : { name: pendingCall, argument: content });
     pendingCall = target !== void 0 && target.argument.trim() === "" ? target.name : void 0;
-    if (added && checked !== void 0 && checked.argument.trim() !== "" && builds(checked.argument, patterns2) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument))) {
+    if (added && checked !== void 0 && checked.argument.trim() !== "" && builds(checked.argument, patterns3) && (sqlKeyword.test(checked.argument) || fragmentCall.test(checked.name) && /^\s*\(?\s*"[^"]*#\{/.test(checked.argument))) {
       found.push(line);
     }
   }
   return found;
 }
-function builds(argument, patterns2) {
+function builds(argument, patterns3) {
   const masked = argument.replace(quotedText, (text) => `${text[0]}${"x".repeat(text.length - 2)}${text[0]}`);
-  const matched = patterns2.filter(({ pattern, operator }) => pattern.test(operator ? masked : argument));
+  const matched = patterns3.filter(({ pattern, operator }) => pattern.test(operator ? masked : argument));
   if (matched.length === 0) {
     return false;
   }
@@ -41313,6 +41395,7 @@ var defaultRules = [
   weakCryptoRule,
   untrustedInputRule,
   xmlExternalEntitiesRule,
+  massAssignmentRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,
@@ -41627,6 +41710,7 @@ var ruleAreas = {
   "insecure-web-config": "code",
   "weak-crypto": "code",
   "xml-external-entities": "code",
+  "mass-assignment": "code",
   "untrusted-input": "code",
   "risky-api": "code",
   "disabled-security-check": "code",
@@ -41669,6 +41753,7 @@ var ruleQuestions = {
   "untrusted-input": "Is each redirect target, outgoing URL, and file path from the request checked against what is allowed?",
   "weak-crypto": "Are secrets hashed with a password hash, encrypted with an authenticated cipher, and made with a cryptographic random generator?",
   "xml-external-entities": "Does every XML parser that turns on DTDs or external entities read only trusted documents?",
+  "mass-assignment": "Does each form, serializer, or model write accept only the fields a user may change?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
@@ -41724,6 +41809,7 @@ var ruleSections = {
   "weak-crypto": "Weak Cryptography",
   "untrusted-input": "Untrusted Input",
   "xml-external-entities": "XML External Entities",
+  "mass-assignment": "Mass Assignment",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",
