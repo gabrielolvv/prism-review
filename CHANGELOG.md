@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.46.0 - 2026-10-29
+
+### Added
+
+- `hardcoded-jwt-secret` rule: warns about JSON Web Tokens signed or verified with a key written in the code, such as `jwt.sign(payload, "change-me")`, which `secret-in-diff` misses since the key has no known format. It reads jsonwebtoken, PyJWT, ruby-jwt, firebase/php-jwt, java-jwt, jjwt, golang-jwt, and .NET's `SymmetricSecurityKey`, and skips keys from variables or the environment, interpolated strings, and public keys. The keys are found before redaction, which rewrites lines such as `const token = jwt.sign(...)` because of the variable's name. On about 800 files from JWT libraries, such as jsonwebtoken, jose, PyJWT, Authlib, ruby-jwt, and devise-jwt, it reports nothing after skipping Python doctest examples.
+
 ## 0.45.0 - 2026-10-29
 
 ### Added
