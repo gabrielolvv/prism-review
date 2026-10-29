@@ -1,0 +1,49 @@
+name: False positive or missed finding
+description: A rule reported something it should not have, or missed something it should have found.
+labels: ["rules"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Each one becomes a test. Remove credentials and private code from anything you paste here. To report a vulnerability in Prism Review itself, follow SECURITY.md instead.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened?
+      options:
+        - A rule reported something it should not have (false positive)
+        - A rule missed something it should have found
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule
+      description: The rule id from the comment, such as `weak-crypto`. Leave it empty for a missed finding with no rule yet.
+      placeholder: weak-crypto
+  - type: textarea
+    id: diff
+    attributes:
+      label: Smallest diff that shows it
+      description: Output of `git diff`, cut down to the lines that matter. `node dist/cli/main.cjs analyze --diff -` reviews it locally.
+      render: diff
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Why the line is safe, or why it deserves a finding.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release or commit you use, such as `v0.43.0`.
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: The relevant part of `.prism-review.yml`, if you changed the defaults.
+      render: yaml
