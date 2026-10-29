@@ -18,6 +18,7 @@ import { privilegedContainerRule } from "./privileged-container.js";
 import { dockerfileRiskRule } from "./dockerfile-risk.js";
 import { insecureInfrastructureRule } from "./insecure-infrastructure.js";
 import { kubernetesRbacRule } from "./kubernetes-rbac.js";
+import { filePermissionsRule } from "./file-permissions.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -50,6 +51,7 @@ export const defaultRules: Rule[] = [
   publicExposureRule,
   insecureInfrastructureRule,
   kubernetesRbacRule,
+  filePermissionsRule,
   sensitiveFilesRule,
   configChangeRule,
   reviewControlChangeRule,

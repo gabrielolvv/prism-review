@@ -1,4 +1,9 @@
 import {
+  testFilePermissionsReportsCodeCalls,
+  testFilePermissionsReportsShellAndDocker,
+  testFilePermissionsSkipsSafeModes
+} from "./unit/file-permissions.test.js";
+import {
   testKubernetesRbacReportsClusterWideGrants,
   testKubernetesRbacReportsWildcardsAndEscalation,
   testKubernetesRbacSkipsNarrowRolesAndOtherFiles
@@ -562,6 +567,9 @@ const tests: Array<[string, Test]> = [
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
   ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
+  ["file-permissions reports shell and Docker modes", testFilePermissionsReportsShellAndDocker],
+  ["file-permissions reports chmod and umask calls in code", testFilePermissionsReportsCodeCalls],
+  ["file-permissions skips safe modes and other files", testFilePermissionsSkipsSafeModes],
   ["kubernetes-rbac reports cluster-wide grants", testKubernetesRbacReportsClusterWideGrants],
   ["kubernetes-rbac reports wildcards and escalation verbs", testKubernetesRbacReportsWildcardsAndEscalation],
   ["kubernetes-rbac skips narrow roles and other files", testKubernetesRbacSkipsNarrowRolesAndOtherFiles],

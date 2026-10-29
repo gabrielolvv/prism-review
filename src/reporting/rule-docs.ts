@@ -23,6 +23,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-exposure": "Public Exposure",
   "insecure-infrastructure": "Insecure Infrastructure",
   "kubernetes-rbac": "Kubernetes RBAC",
+  "file-permissions": "File Permissions",
   "sensitive-files": "Sensitive Files",
   "config-change": "Rules Without Options",
   "review-control-change": "Review Control Changes",
