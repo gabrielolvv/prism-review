@@ -68,6 +68,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `prism-review init`, which sets up the workflow and configuration pinned to the release commit, `--version`, and the CLI on npm (0.44.0).
 - `xml-external-entities` rule for XML parsers that turn on DTDs or external entities (0.45.0).
 - `hardcoded-jwt-secret` rule for JSON Web Tokens signed or verified with a key written in the code (0.46.0).
+- `analyze --staged`, `--base`, and `--fail-on`, a pre-commit hook, and a GitLab CI example (0.47.0).
 
 ## Later
 

@@ -2,6 +2,15 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.47.0 - 2026-10-29
+
+### Added
+
+- `prism-review analyze --staged` reviews the changes staged for the next commit, and `--base <ref>` reviews a branch since it left `<ref>`, such as `origin/main`. Both run `git diff` without colors or external diff tools, and pass when there is nothing to review.
+- `--fail-on never|warning|high` sets the CLI's exit status, taking precedence over `check.failOn`.
+- `.pre-commit-hooks.yaml`, so the [pre-commit](https://pre-commit.com) framework can run Prism Review on staged changes and block commits with high-risk findings, or on a branch before each push.
+- A GitLab CI job in `examples/gitlab/.gitlab-ci.yml` that reviews merge requests against their target branch, and README sections on pre-commit, Git hooks, and GitLab CI.
+
 ## 0.46.0 - 2026-10-29
 
 ### Added
