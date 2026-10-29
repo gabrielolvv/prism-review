@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.54.0 - 2026-10-29
+
+### Added
+
+- `extends` in `.prism-review.yml` reads another configuration first and lays this one over it, so an organization can keep one set of rules for many repositories. It takes a file in the same repository, read from the pull request's base commit, or `owner/repo/path@ref` in another repository, read with the action's token. Mappings merge key by key, and lists and values replace the extended ones; files can extend each other up to five deep. A file that cannot be read fails the run instead of falling back to the defaults.
+- `config-change` reports pull requests that change a file the configuration extends in the same repository, as it does for the configuration itself.
+- The CLI follows `extends` too, reading other repositories through the GitHub API with `GITHUB_TOKEN` or `GH_TOKEN` when one is set.
+
 ## 0.53.0 - 2026-10-29
 
 ### Added
