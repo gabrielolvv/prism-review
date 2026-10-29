@@ -20,6 +20,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "privileged-container": "Does each container need the privileges it is given?",
   "dockerfile-risk": "Is each image pinned, run as a non-root user, and built without secrets in ENV or ARG?",
   "public-exposure": "Is everything opened to the internet meant to be public?",
+  "file-permissions": "Does any file need to be writable by every user, or run with its owner's rights?",
   "kubernetes-rbac": "Does each service account need the roles it is bound to, and nothing cluster-wide?",
   "insecure-infrastructure":
     "Does each role need every action it is granted, and is turning off encryption, TLS 1.2, audit logs, or IMDSv2 intended?",

@@ -21,6 +21,7 @@ export const ruleIds: readonly string[] = [
   "public-exposure",
   "insecure-infrastructure",
   "kubernetes-rbac",
+  "file-permissions",
   "sensitive-files",
   "config-change",
   "review-control-change",
