@@ -27,6 +27,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "privileged-container": "infrastructure",
   "dockerfile-risk": "infrastructure",
   "public-exposure": "infrastructure",
+  "insecure-infrastructure": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
   "risky-api": "code",

@@ -1,4 +1,9 @@
 import {
+  testInsecureInfrastructureReportsTemplatesAndPolicies,
+  testInsecureInfrastructureReportsTerraform,
+  testInsecureInfrastructureSkipsSafeSettings
+} from "./unit/insecure-infrastructure.test.js";
+import {
   testDockerfileRiskOnlyReadsDockerfiles,
   testDockerfileRiskReadsContinuedLinesAndContext,
   testDockerfileRiskReportsEachKind,
@@ -546,6 +551,9 @@ const tests: Array<[string, Test]> = [
   ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
   ["Gradle dependencies are read", testGradleDependenciesAreRead],
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
+  ["insecure-infrastructure reports Terraform settings", testInsecureInfrastructureReportsTerraform],
+  ["insecure-infrastructure reports templates and policy documents", testInsecureInfrastructureReportsTemplatesAndPolicies],
+  ["insecure-infrastructure skips safe settings", testInsecureInfrastructureSkipsSafeSettings],
   ["dockerfile-risk reports each kind of risk", testDockerfileRiskReportsEachKind],
   ["dockerfile-risk skips safe instructions", testDockerfileRiskSkipsSafeInstructions],
   ["dockerfile-risk reads continued lines and context", testDockerfileRiskReadsContinuedLinesAndContext],
