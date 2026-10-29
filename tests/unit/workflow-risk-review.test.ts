@@ -107,7 +107,8 @@ function workflowFindings(files: ChangedFile[]) {
   return analyzePullRequest(files, defaultConfig).findings.filter((finding) => finding.ruleId === "workflow-risk");
 }
 
-function file(path: string, lines: string[]): ChangedFile {
+// Lines added to an existing workflow, whose permissions may be set outside the diff.
+function file(path: string, lines: string[], status: ChangedFile["status"] = "modified"): ChangedFile {
   const patch = [`@@ -0,0 +1,${lines.length} @@`, ...lines.map((line) => `+${line}`)].join("\n");
-  return { path, status: "added", additions: lines.length, deletions: 0, patch };
+  return { path, status, additions: lines.length, deletions: 0, patch };
 }

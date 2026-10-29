@@ -94,7 +94,9 @@ import {
   testWorkflowRiskRuleReportsScriptInjectionAsHigh,
   testWorkflowRiskRuleReportsRiskyTriggersAndPermissions,
   testWorkflowRiskRuleIgnoresSafePatterns,
-  testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled
+  testWorkflowRiskRuleChecksCompositeActionsAndCanBeDisabled,
+  testWorkflowRiskReportsNewWorkflowsWithoutPermissions,
+  testWorkflowRiskReportsTopLevelWritePermissions
 } from "./unit/workflow-risk.test.js";
 import {
   testWorkflowRiskRuleTreatsEveryMappingValueAsData,
@@ -551,6 +553,8 @@ const tests: Array<[string, Test]> = [
   ["Maven dependencies are read across lines", testMavenDependenciesAreReadAcrossLines],
   ["Gradle dependencies are read", testGradleDependenciesAreRead],
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
+  ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
+  ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
   ["insecure-infrastructure reports Terraform settings", testInsecureInfrastructureReportsTerraform],
   ["insecure-infrastructure reports templates and policy documents", testInsecureInfrastructureReportsTemplatesAndPolicies],
   ["insecure-infrastructure skips safe settings", testInsecureInfrastructureSkipsSafeSettings],

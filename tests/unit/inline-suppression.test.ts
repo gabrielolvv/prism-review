@@ -66,9 +66,11 @@ export function testInlineSuppressionCannotHideSecurityRules(): void {
   const result = analyzePullRequest(
     [
       file(".env", [`DATABASE_PASSWORD=hunter2-prod  # ${ignore} credential-file -- it is fine`]),
-      file(".github/workflows/ci.yml", [
-        `      - uses: tj-actions/changed-files@v45  # ${ignore} unpinned-action -- trusted`
-      ])
+      // A line added to an existing workflow.
+      {
+        ...file(".github/workflows/ci.yml", [`      - uses: tj-actions/changed-files@v45  # ${ignore} unpinned-action -- trusted`]),
+        status: "modified"
+      }
     ],
     defaultConfig
   );
