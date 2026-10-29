@@ -235,7 +235,7 @@ const scenarios: Array<[string, () => void]> = [
       assert.equal(failing.status, 1, failing.stderr);
       assert.equal(writes.length, 1);
       assert.equal(writes[0]?.method, "PATCH");
-      assert.match(failing.stderr, /Prism Review found 2 high-risk finding\(s\), and check\.failOn is "high"\./);
+      assert.match(failing.stderr, /Prism Review found 1 high-risk finding\(s\), and check\.failOn is "high"\./);
 
       // dry-run prints the review instead of posting it, and the job still fails.
       const dryRun = runAction(
@@ -384,9 +384,10 @@ const scenarios: Array<[string, () => void]> = [
 
       assert.equal(run.status, 0, run.stderr);
       assert.match(outputs, /^risk-level=high$/m);
-      assert.match(outputs, /^high-count=2$/m);
-      // Two high, two warning (large diff, missing tests), and one info finding.
-      assert.match(outputs, /^warning-count=2$/m);
+      assert.match(outputs, /^high-count=1$/m);
+      // One high (the configuration change), three warnings (large diff, missing tests, and
+      // src/billing/charge.ts, which only a word in its path marks sensitive), and one info finding.
+      assert.match(outputs, /^warning-count=3$/m);
       assert.match(outputs, /^finding-count=5$/m);
       assert.match(readFileSync(summaryPath, "utf8"), /^## Prism Review$/m);
     }
@@ -539,7 +540,8 @@ const scenarios: Array<[string, () => void]> = [
       const update = run.requests.find((request) => request.method === "PATCH" && request.path === "/repos/acme/widgets/issues/comments/30");
       const body = update?.body?.body ?? "";
       assert.match(body, /^Since the previous review: 1 new finding\(s\), 1 no longer reported \(`secret-in-diff` \(1\)\)\.$/m);
-      assert.match(body, /^#### High - Sensitive file changed \(new\)$/m);
+      // Only a word in its path marks src/billing/charge.ts sensitive, so it is a warning.
+      assert.match(body, /^#### Warning - Sensitive file changed \(new\)$/m);
       // .gitattributes on the base commit marks src/gen as generated.
       assert.match(body, /^Reviewed 1 changed file\(s\), 1 more marked generated or vendored in \.gitattributes\./m);
       assert.doesNotMatch(body, /src\/gen\/client\.ts/);
@@ -548,7 +550,7 @@ const scenarios: Array<[string, () => void]> = [
       assert.match(body, /^- Have the code owners of the flagged files, `@acme\/payments`, reviewed the change\?$/m);
       assert.match(body, /^#### Warning - Source changed without tests$/m);
       // The comment records this run's findings for the next one.
-      assert.match(body, /\n<!-- prism-review-state v1 sensitive-files:[0-9a-f]{12} missing-tests:[0-9a-f]{12} -->$/);
+      assert.match(body, /\n<!-- prism-review-state v1 missing-tests:[0-9a-f]{12} sensitive-files:[0-9a-f]{12} -->$/);
     }
   ],
   [

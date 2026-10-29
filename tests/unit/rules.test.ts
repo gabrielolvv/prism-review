@@ -50,7 +50,6 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
     "src/user_roles.ts",
     "src/jwtVerify.ts",
     "src/PaymentIntent.ts",
-    "docs/repayments-faq.md",
     "services/billing-service/index.ts",
     "src/accessTokens.ts",
     "Dockerfile",
@@ -66,7 +65,12 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
     "src/tokenize.ts",
     "src/console.ts",
     "src/parole.ts",
-    "docs/secretary.md"
+    "docs/secretary.md",
+    // Documentation, tests, and fixtures only describe a sensitive area.
+    "docs/repayments-faq.md",
+    "tests/unit/workflow-risk.test.ts",
+    "src/auth/session.test.ts",
+    "test/fixtures/secrets.yml"
   ];
   const config = prismConfigSchema.parse({ rules: { sensitiveFiles: { patterns: [] } } });
 
@@ -76,6 +80,18 @@ export function testSensitiveFilesRuleMatchesKeywordsAsWords(): void {
     .map((finding) => finding.file ?? "");
 
   assert.deepEqual([...sensitive].sort(), [...flagged].sort());
+  // A word in the path is a warning; a configured pattern is high.
+  assert.ok(result.findings.filter((finding) => finding.ruleId === "sensitive-files").every((finding) => finding.severity === "warning"));
+}
+
+export function testSensitiveFilePatternsStayHighForEveryFile(): void {
+  const result = analyzePullRequest(["src/auth/login.ts", "tests/auth/login.test.ts", "src/billing/charge.ts"].map(changedFile), defaultConfig);
+  const severities = Object.fromEntries(
+    result.findings.filter((finding) => finding.ruleId === "sensitive-files").map((finding) => [finding.file, finding.severity])
+  );
+
+  // `**/auth/**` is a default pattern, so even a test under it is high; billing only matches a word.
+  assert.deepEqual(severities, { "src/auth/login.ts": "high", "tests/auth/login.test.ts": "high", "src/billing/charge.ts": "warning" });
 }
 
 function changedFile(path: string): ChangedFile {

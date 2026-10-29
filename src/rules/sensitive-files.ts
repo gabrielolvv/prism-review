@@ -1,4 +1,5 @@
 import { minimatch } from "minimatch";
+import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 
 const sensitiveWords = [
@@ -20,6 +21,7 @@ const sensitiveWords = [
 // tokenize, parole, secretary. Everything else that contains one, such as "Unauthorized",
 // "reauth", "jwtauth", or "accesstoken", still counts.
 const unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
+const documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 
 export const sensitiveFilesRule: Rule = {
   id: "sensitive-files",
@@ -30,24 +32,35 @@ export const sensitiveFilesRule: Rule = {
       return [];
     }
 
-    return files
-      .filter(
-        (file) =>
-          // A pattern without a slash matches the file name in any directory, as in .gitignore.
-          ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true })) ||
-          hasSensitiveWord(file.path)
-      )
-      .map((file) => ({
-        ruleId: "sensitive-files",
-        title: "Sensitive file changed",
-        severity: "high" as const,
-        file: file.path,
-        message: "This file touches an area that commonly affects security, deployment, data integrity, or access control.",
-        recommendation:
-          "Ask for focused review from someone familiar with this area and verify rollback or mitigation steps."
-      }));
+    const testGlobs = config.rules.missingTests.testGlobs;
+    // Tests, documentation, and fixtures describe an area without changing how it behaves.
+    const describesOnly = (path: string) =>
+      documentation.test(path) || isTestDataPath(path) || testGlobs.some((glob) => minimatch(path, glob));
+
+    return files.flatMap((file) => {
+      // A pattern without a slash matches the file name in any directory, as in .gitignore.
+      if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
+        return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
+      }
+      // A word in the path is a weaker signal than a pattern the repository chose.
+      if (hasSensitiveWord(file.path) && !describesOnly(file.path)) {
+        return [finding(file.path, "warning", "This file's path names an area that commonly affects security, deployment, data integrity, or access control.")];
+      }
+      return [];
+    });
   }
 };
+
+function finding(file: string, severity: "high" | "warning", message: string) {
+  return {
+    ruleId: "sensitive-files",
+    title: "Sensitive file changed",
+    severity,
+    file,
+    message,
+    recommendation: "Ask for focused review from someone familiar with this area and verify rollback or mitigation steps."
+  };
+}
 
 function hasSensitiveWord(path: string): boolean {
   return pathWords(path).some(
