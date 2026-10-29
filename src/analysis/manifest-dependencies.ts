@@ -13,8 +13,8 @@ type Manifest = {
   files: RegExp;
   // The dependencies a line declares. `section` is the current TOML table or go.mod block.
   entries: (content: string, section: string) => Entry[];
-  // The section a line opens or closes, if any; TOML table headers by default.
-  section?: (content: string) => string | undefined;
+  // The section a line opens or closes, if any, given the current one; TOML table headers by default.
+  section?: (content: string, current: string) => string | undefined;
   // Reads the whole patch instead of line by line, for formats that spread one dependency over
   // several lines.
   parse?: (patch: string) => { added: DeclaredDependency[]; removed: DeclaredDependency[] };
@@ -32,9 +32,26 @@ export type DependencyChange = {
 };
 
 const packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
+// The package.json objects that list dependencies. pnpm's `overrides` sits inside `pnpm`, so it is
+// matched by its own name.
+const npmDependencySections = new Set([
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+  "overrides",
+  "resolutions"
+]);
 // npm keys whose values look like versions but are not dependencies, such as `engines.node` or
 // `publishConfig.tag` and `publishConfig.registry`.
 const npmFields = new Set(["version", "node", "npm", "tag", "registry"]);
+// Package metadata whose values are URLs, which npm also accepts as dependency versions. Popular
+// packages have some of these names, such as `url`, so they count inside a dependencies object.
+const npmMetadataFields = new Set(["url", "homepage", "repository", "bugs", "funding"]);
+// A line that opens an object or array written over several lines, such as `"dependencies": {` or a
+// bare `{` in an array, and one that closes it.
+const npmOpen = /^\s*(?:"([^"]{1,214})"\s*:\s*)?[{[]\s*$/;
+const npmClose = /^\s*[}\]]\s*,?\s*$/;
 const npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
 // npm names may have a scope, such as `@types/node`.
 const npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);
@@ -73,10 +90,25 @@ const manifests: Manifest[] = [
   {
     ecosystem: "npm",
     files: /(?:^|\/)package\.json$/,
-    entries(content) {
-      // `"name": "version"` in a dependencies object.
+    // `"name": "version"` in a dependencies object. The section holds the keys of the objects and
+    // arrays a line is in, one per line, with "" for those without a key, as far as the hunk shows.
+    entries(content, section) {
       const [matched, name = "", version = ""] = npmEntry.exec(content) ?? [];
-      return matched !== undefined && !npmFields.has(name) && npmVersion.test(version) ? [{ name, version }] : [];
+      if (matched === undefined || npmFields.has(name) || !npmVersion.test(version)) {
+        return [];
+      }
+      const enclosing = section.split("\n").filter(Boolean).at(-1);
+      if (enclosing === undefined) {
+        return npmMetadataFields.has(name) ? [] : [{ name, version }];
+      }
+      return npmDependencySections.has(enclosing) ? [{ name, version }] : [];
+    },
+    section(content, current) {
+      const opened = npmOpen.exec(content);
+      if (opened) {
+        return current === "" ? `\n${opened[1] ?? ""}` : `${current}\n${opened[1] ?? ""}`;
+      }
+      return npmClose.test(content) ? current.slice(0, Math.max(0, current.lastIndexOf("\n"))) : undefined;
     }
   },
   {
@@ -229,14 +261,17 @@ export function declaredDependencies(path: string, patch: string): { added: Decl
   let oldLine: number | undefined;
   let newLine = 0;
   const sectionOf = manifest.section ?? ((content: string) => tableHeader.exec(content)?.[1]?.trim());
-  let section = "";
+  // The old and new files each have their own sections: a removed `"dependencies": {` does not
+  // enclose the lines added after it.
+  let oldSection = "";
+  let newSection = "";
   for (const line of patch.split(/\r?\n/)) {
     const header = hunkHeader.exec(line);
     if (header) {
       oldLine = Number(header[1]);
       newLine = Number(header[2]);
       // Git shows the enclosing line after `@@`, such as `require (` for a hunk inside a go.mod block.
-      section = sectionOf(header[3] ?? "") ?? "";
+      oldSection = newSection = sectionOf(header[3] ?? "", "") ?? "";
       continue;
     }
     // Lines before the first hunk are git headers such as `+++ b/path`.
@@ -245,14 +280,17 @@ export function declaredDependencies(path: string, patch: string): { added: Decl
     }
 
     const content = line.slice(1);
-    section = sectionOf(content) ?? section;
     if (line.startsWith("+")) {
-      added.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: newLine })));
+      newSection = sectionOf(content, newSection) ?? newSection;
+      added.push(...manifest.entries(content, newSection).map((entry) => ({ ...entry, line: newLine })));
       newLine += 1;
     } else if (line.startsWith("-")) {
-      removed.push(...manifest.entries(content, section).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
+      oldSection = sectionOf(content, oldSection) ?? oldSection;
+      removed.push(...manifest.entries(content, oldSection).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
       oldLine += 1;
     } else {
+      newSection = sectionOf(content, newSection) ?? newSection;
+      oldSection = sectionOf(content, oldSection) ?? oldSection;
       newLine += 1;
       oldLine += 1;
     }

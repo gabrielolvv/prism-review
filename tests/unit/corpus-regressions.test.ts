@@ -47,6 +47,57 @@ export function testPublishConfigIsNotADependency(): void {
   assert.deepEqual(dependencyChanges([manifest]), []);
 }
 
+export function testPackageMetadataIsNotADependency(): void {
+  // Prism Review's own package.json, when it gained its repository and homepage.
+  const metadata = added("package.json", [
+    '  "homepage": "https://github.com/gabrielolvv/prism-review#readme",',
+    '  "repository": {',
+    '    "type": "git",',
+    '    "url": "git+https://github.com/gabrielolvv/prism-review.git"',
+    "  },",
+    '  "bugs": "https://github.com/gabrielolvv/prism-review/issues",',
+    '  "engines": {',
+    '    "node": ">=22",',
+    '    "custom-runtime": "^1.0.0"',
+    "  },",
+    // axios's bundle size limits.
+    '  "bundlesize": [',
+    "    {",
+    '      "path": "./dist/axios.min.js",',
+    '      "threshold": "5kB"',
+    "    }",
+    "  ],"
+  ]);
+  assert.deepEqual(dependencyChanges([metadata]), []);
+
+  // This release's own change, which turned `dependencies` into package metadata.
+  const replaced: ChangedFile = {
+    path: "package.json",
+    status: "modified",
+    additions: 4,
+    deletions: 2,
+    patch: [
+      "@@ -26,4 +26,6 @@",
+      '   "license": "MIT",',
+      '-  "dependencies": {',
+      '+  "repository": {',
+      '+    "url": "git+https://github.com/gabrielolvv/prism-review.git"',
+      "+  },",
+      '+  "homepage": "https://github.com/gabrielolvv/prism-review#readme",',
+      '+  "devDependencies": {',
+      '     "zod": "^4.6.7"'
+    ].join("\n")
+  };
+  assert.deepEqual(dependencyChanges([replaced]), []);
+
+  // Inside a dependencies object, `url` is the npm package of that name.
+  const dependencies = added("package.json", ['  "dependencies": {', '    "url": "^0.11.0",', '    "custom-runtime": "^1.0.0"', "  },"]);
+  assert.deepEqual(
+    dependencyChanges([dependencies]).map((change) => change.name),
+    ["url", "custom-runtime"]
+  );
+}
+
 export function testPopularPackagesNamedLikeOthersAreNotLookalikes(): void {
   const manifest = added("package.json", ['  "dependencies": {', '    "cookies": "~0.9.0",', '    "mquery": "5.0.0"', "  }"]);
   assert.ok(!analyzePullRequest([manifest], defaultConfig).findings.some((finding) => finding.ruleId === "lookalike-dependency"));
