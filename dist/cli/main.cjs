@@ -7362,6 +7362,7 @@ var require_dist = __commonJS({
 });
 
 // src/cli/main.ts
+var import_node_child_process = require("node:child_process");
 var import_node_fs3 = require("node:fs");
 var import_node_path2 = require("node:path");
 
@@ -20380,9 +20381,9 @@ function failingFindings(result, failOn) {
   }
   return result.findings.filter((finding2) => isAtLeast(finding2.severity, failOn));
 }
-function describeFailure(failing, failOn) {
+function describeFailure(failing, failOn, setting = "check.failOn") {
   const severities = failOn === "high" ? "high-risk" : "warning or high-risk";
-  return `Prism Review found ${failing.length} ${severities} finding(s), and check.failOn is "${failOn}".`;
+  return `Prism Review found ${failing.length} ${severities} finding(s), and ${setting} is "${failOn}".`;
 }
 
 // src/config/load-config.ts
@@ -21231,18 +21232,23 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.46.0" : "development";
+var version2 = true ? "0.47.0" : "development";
 
 // src/cli/main.ts
 var usage = [
-  "Usage: prism-review analyze --diff <path|-> [--config <path>] [--format markdown|json|sarif]",
+  "Usage: prism-review analyze (--diff <path|-> | --staged | --base <ref>) [--config <path>]",
+  "                            [--format markdown|json|sarif] [--fail-on never|warning|high]",
   "       prism-review init [--ref <ref>] [--force]",
   "",
   "analyze reviews a diff:",
   "  --diff <path|->   Unified diff to review, such as the output of `git diff`. Use - to read stdin.",
   "                    --fixture is accepted as an alias.",
+  "  --staged          Review the changes staged for the next commit, as `git diff --cached` shows them.",
+  "  --base <ref>      Review the changes on this branch since it left <ref>, such as origin/main,",
+  "                    as `git diff <ref>...HEAD` shows them.",
   "  --config <path>   Configuration file. Defaults to .prism-review.yml when it exists.",
   "  --format <format> markdown (default), json, or sarif for GitHub code scanning.",
+  "  --fail-on <level> Exit with status 1 on findings of this severity, instead of check.failOn.",
   "",
   "init adds .github/workflows/prism-review.yml and .prism-review.yml to the repository in the",
   "current directory:",
@@ -21252,10 +21258,11 @@ var usage = [
   "",
   "  --version         Print the version.",
   "",
-  "Example: git diff origin/main...HEAD | prism-review analyze --diff -",
+  "Example: prism-review analyze --base origin/main --fail-on high",
   ""
 ].join("\n");
 var formats = ["markdown", "json", "sarif"];
+var failOnLevels = ["never", "warning", "high"];
 var UsageError = class extends Error {
 };
 async function main() {
@@ -21281,15 +21288,21 @@ async function main() {
     process.stdout.write(usage);
     return;
   }
-  if (!options.diff) {
-    throw new UsageError("Missing required --diff option.");
+  const sources = [options.diff !== void 0, options.staged, options.base !== void 0].filter(Boolean).length;
+  if (sources !== 1) {
+    throw new UsageError(sources === 0 ? "Missing --diff, --staged, or --base." : "Use only one of --diff, --staged, and --base.");
   }
   if (options.config !== void 0 && !(0, import_node_fs3.existsSync)((0, import_node_path2.resolve)(options.config))) {
     throw new Error(`Configuration file not found: ${options.config}`);
   }
   const configPath = options.config ?? defaultConfigPath;
   const config2 = loadConfig((0, import_node_path2.resolve)(configPath));
-  const files = prepareChangedFiles(parseDiff(await readDiff(options.diff)), config2);
+  const diff = options.diff !== void 0 ? await readDiff(options.diff) : gitDiff(options.base);
+  if (options.diff === void 0 && diff.trim() === "") {
+    process.stdout.write("No changes to review.\n");
+    return;
+  }
+  const files = prepareChangedFiles(parseDiff(diff), config2);
   const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs3.readFileSync)(gitAttributesPath, "utf8")) : void 0;
   const existingLockfiles = config2.rules.staleLockfiles.enabled ? await findLockfiles(
     files,
@@ -21305,9 +21318,10 @@ async function main() {
   const codeOwners = config2.comment.codeOwners ? readLocalCodeOwners() : void 0;
   process.stdout.write(`${render(result, options.format, { ...config2.comment, ownersOf: codeOwners?.ownersOf })}
 `);
-  const failing = failingFindings(result, config2.check.failOn);
+  const failOn = options.failOn ?? config2.check.failOn;
+  const failing = failingFindings(result, failOn);
   if (failing.length > 0) {
-    process.stderr.write(`${describeFailure(failing, config2.check.failOn)}
+    process.stderr.write(`${describeFailure(failing, failOn, options.failOn === void 0 ? "check.failOn" : "--fail-on")}
 `);
     process.exitCode = 1;
   }
@@ -21393,6 +21407,20 @@ function parseDiff(diff) {
   }
   return files;
 }
+function gitDiff(base) {
+  const range2 = base === void 0 ? ["--cached"] : [`${base}...HEAD`];
+  const result = (0, import_node_child_process.spawnSync)("git", ["diff", "--no-color", "--no-ext-diff", ...range2], {
+    encoding: "utf8",
+    maxBuffer: 512 * 1024 * 1024
+  });
+  if (result.error !== void 0) {
+    throw new Error(`Could not run git: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`git diff failed: ${result.stderr.trim().split("\n")[0] ?? ""}`);
+  }
+  return result.stdout;
+}
 async function readDiff(source) {
   if (source !== "-") {
     return (0, import_node_fs3.readFileSync)((0, import_node_path2.resolve)(source), "utf8");
@@ -21407,11 +21435,33 @@ async function readDiff(source) {
   return Buffer.concat(chunks).toString("utf8");
 }
 function parseArgs(args) {
-  const options = { format: "markdown", help: false };
+  const options = { format: "markdown", staged: false, help: false };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--help" || arg === "-h") {
       options.help = true;
+      continue;
+    }
+    if (arg === "--staged") {
+      options.staged = true;
+      continue;
+    }
+    if (arg === "--base") {
+      const value = args[index + 1];
+      if (value === void 0 || value.startsWith("-") || /\s/.test(value)) {
+        throw new UsageError("--base needs a branch, tag, or commit, such as origin/main.");
+      }
+      options.base = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--fail-on") {
+      const value = args[index + 1];
+      if (!failOnLevels.includes(value)) {
+        throw new UsageError("--fail-on needs never, warning, or high.");
+      }
+      options.failOn = value;
+      index += 1;
       continue;
     }
     if (arg === "--diff" || arg === "--fixture" || arg === "--config" || arg === "--format") {

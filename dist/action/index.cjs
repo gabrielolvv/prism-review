@@ -41376,9 +41376,9 @@ function failingFindings(result, failOn) {
   }
   return result.findings.filter((finding2) => isAtLeast(finding2.severity, failOn));
 }
-function describeFailure(failing, failOn) {
+function describeFailure(failing, failOn, setting = "check.failOn") {
   const severities = failOn === "high" ? "high-risk" : "warning or high-risk";
-  return `Prism Review found ${failing.length} ${severities} finding(s), and check.failOn is "${failOn}".`;
+  return `Prism Review found ${failing.length} ${severities} finding(s), and ${setting} is "${failOn}".`;
 }
 
 // src/github/client.ts
