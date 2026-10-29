@@ -361,6 +361,7 @@ import {
   testDefaultRules,
   testDependencyRiskRule,
   testSensitiveFilesRuleMatchesKeywordsAsWords,
+  testSensitiveFilePatternsStayHighForEveryFile,
   testPatternsWithoutASlashMatchAtAnyDepth
 } from "./unit/rules.test.js";
 import {
@@ -391,6 +392,7 @@ const tests: Array<[string, Test]> = [
   ["default rules flag sensitive files and missing tests", testDefaultRules],
   ["dependency risk rule flags manifest and lockfile changes", testDependencyRiskRule],
   ["sensitive files rule matches keywords as whole words", testSensitiveFilesRuleMatchesKeywordsAsWords],
+  ["sensitive-files patterns stay high for every file", testSensitiveFilePatternsStayHighForEveryFile],
   ["redactSecrets masks token-like values", testRedactSecrets],
   ["findAddedSecrets numbers lines in the new file", testFindAddedSecretsNumbersLinesInTheNewFile],
   ["findAddedSecrets skips git headers", testFindAddedSecretsSkipsGitHeaders],
