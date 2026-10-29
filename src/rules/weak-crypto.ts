@@ -33,6 +33,10 @@ const ecbMode =
 const weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
 
 const commentLine = /^\s*(?:#|\/\/|\*|--)/;
+// Minified bundles put a whole library on one line, where a random call and a word such as `token`
+// meet by chance.
+const minified = /\.min\.(?:js|mjs|cjs)$/i;
+const maxLineLength = 500;
 const documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 
 export const weakCryptoRule: Rule = {
@@ -49,6 +53,7 @@ export const weakCryptoRule: Rule = {
       if (
         file.patch === undefined ||
         documentation.test(file.path) ||
+        minified.test(file.path) ||
         isTestDataPath(file.path) ||
         testGlobs.some((glob) => minimatch(file.path, glob))
       ) {
@@ -56,7 +61,7 @@ export const weakCryptoRule: Rule = {
       }
 
       const found = patchLines(file.patch).flatMap(({ line, content, added }) =>
-        added && !commentLine.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        added && !commentLine.test(content) && content.length <= maxLineLength ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];

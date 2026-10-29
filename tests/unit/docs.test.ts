@@ -36,3 +36,14 @@ export function testEveryRuleLinksToItsDocumentation(): void {
   assert.equal(headingAnchor("Where the Configuration Comes From"), "where-the-configuration-comes-from");
   assert.equal(ruleDocsUrl("custom-rule"), undefined);
 }
+
+export function testConfigurationDocsListEveryRuleByArea(): void {
+  const docs = readFileSync("docs/configuration.md", "utf8");
+  const index = docs.slice(docs.indexOf("## Rules by Area"), docs.indexOf("## Where the Configuration Comes From"));
+  const areaTable = docs.slice(docs.indexOf("| Area | Rules |"), docs.indexOf("When the comment reaches its size limit"));
+
+  for (const rule of defaultRules) {
+    assert.ok(index.includes(`[\`${rule.id}\`](#`), `the rule index is missing ${rule.id}`);
+    assert.ok(areaTable.includes(`\`${rule.id}\``), `the area table is missing ${rule.id}`);
+  }
+}

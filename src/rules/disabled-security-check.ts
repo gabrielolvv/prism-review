@@ -70,6 +70,8 @@ const csrf: Check = {
 const checks = [tls, token, csrf];
 
 const commentLine = /^\s*(?:#|\/\/|\/\*|\*)/;
+// Importing a constant such as CERT_NONE turns nothing off; using it does.
+const importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 const documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 
 export const disabledSecurityCheckRule: Rule = {
@@ -93,7 +95,7 @@ export const disabledSecurityCheckRule: Rule = {
       }
 
       const found = addedLines(file.patch).flatMap(({ line, content }) =>
-        commentLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        commentLine.test(content) || importLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];

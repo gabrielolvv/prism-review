@@ -32,8 +32,9 @@ export type DependencyChange = {
 };
 
 const packageName = "[A-Za-z0-9][A-Za-z0-9._-]{0,213}";
-// npm keys whose values look like versions but are not dependencies, such as `engines.node`.
-const npmFields = new Set(["version", "node", "npm"]);
+// npm keys whose values look like versions but are not dependencies, such as `engines.node` or
+// `publishConfig.tag` and `publishConfig.registry`.
+const npmFields = new Set(["version", "node", "npm", "tag", "registry"]);
 const npmVersion = /^(?:[\^~<>=]{0,2}\s?v?\d|\*$|x$|latest$|next$|npm:|workspace:|file:|link:|git[+:]|github:|https?:)/i;
 // npm names may have a scope, such as `@types/node`.
 const npmEntry = new RegExp(`^\\s*"((?:@${packageName}\\/)?${packageName})"\\s*:\\s*"([^"]{0,200})"`);

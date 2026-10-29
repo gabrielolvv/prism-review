@@ -16,12 +16,16 @@ const labels: Record<Kind, string> = {
 // Values the person sending the request chooses: Express and Koa, Flask and Django, PHP, Go's
 // net/http, Rails, ASP.NET Core, and Next.js search parameters.
 const requestValue =
-  /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|headers|cookies|url)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|META|FILES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE|SERVER\[\s*["']HTTP_)|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\(|Header\.Get\()|\bparams\[|\bRequest\.(?:Query|Form|Headers|Cookies)\[|\bsearchParams\.get\(/;
+  /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|headers|cookies|url)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|META|FILES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE|SERVER\[\s*["']HTTP_)|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\(|Header\.Get\()|\bRequest\.(?:Query|Form|Headers|Cookies)\[|\bsearchParams\.get\(/;
+// Rails' `params[...]`. In other languages, `params` is usually a function's own argument, such as
+// an Ansible module's options.
+const railsParams = /(?<![\w.@])params\[/;
+const rubyFile = /\.(?:rb|erb|rake)$/i;
 
 const sinks: Array<[Kind, RegExp]> = [
   [
     "redirect",
-    /\b(?:res|reply|ctx|response)\.redirect\s*\(|(?:^|[^\w.])redirect\s*\(|\bHttpResponseRedirect\s*\(|\bheader\s*\(\s*["']Location:|\bhttp\.Redirect\s*\(|\bredirect_to\b|\bRedirect(?:Permanent)?\s*\(|\.location(?:\.href)?\s*=/
+    /\b(?:res|reply|ctx|response)\.redirect\s*\(|(?:^|[^\w.])redirect\s*\(|\bHttpResponseRedirect\s*\(|\bheader\s*\(\s*["']Location:|\bhttp\.Redirect\s*\(|\bredirect_to\b(?!\s*=)|\bRedirect(?:Permanent)?\s*\(|\.location(?:\.href)?\s*=/
   ],
   [
     "ssrf",
@@ -67,8 +71,10 @@ export const untrustedInputRule: Rule = {
         return [];
       }
 
+      const ruby = rubyFile.test(file.path);
+      const fromRequest = (content: string) => requestValue.test(content) || (ruby && railsParams.test(content));
       const found = patchLines(file.patch).flatMap(({ line, content, added }) =>
-        added && !commentLine.test(content) && requestValue.test(content)
+        added && !commentLine.test(content) && fromRequest(content)
           ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind }))
           : []
       );

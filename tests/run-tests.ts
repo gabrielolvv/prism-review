@@ -1,4 +1,16 @@
 import {
+  testActiveRecordLogNamesAreNotSql,
+  testExampleProjectsAreNotProductionSettings,
+  testImportsDoNotTurnOffChecks,
+  testMigrationOperationsCountOnlyAsCalls,
+  testMinifiedBundlesAreNotReadAsWeakCrypto,
+  testPopularPackagesNamedLikeOthersAreNotLookalikes,
+  testPublishConfigIsNotADependency,
+  testPythonNamesAreNotReadAsRailsInput,
+  testReadingTheUmaskIsNotReported,
+  testTranslationCatalogsMayUseDirectionMarks
+} from "./unit/corpus-regressions.test.js";
+import {
   testUntrustedInputReadsOtherFrameworks,
   testUntrustedInputReportsEachKind,
   testUntrustedInputSkipsFixedTargetsAndGuards
@@ -281,6 +293,7 @@ import {
 import {
   testConfigurationDocsNameEveryRule,
   testEveryRuleLinksToItsDocumentation,
+  testConfigurationDocsListEveryRuleByArea,
   testReadmeListsEveryRule
 } from "./unit/docs.test.js";
 import {
@@ -582,6 +595,16 @@ const tests: Array<[string, Test]> = [
   ["Maven and Gradle go through the dependency rules", testMavenAndGradleGoThroughTheDependencyRules],
   ["workflow-risk reports write permissions for every job", testWorkflowRiskReportsTopLevelWritePermissions],
   ["workflow-risk reports new workflows that set no permissions", testWorkflowRiskReportsNewWorkflowsWithoutPermissions],
+  ["minified bundles are not read as weak cryptography", testMinifiedBundlesAreNotReadAsWeakCrypto],
+  ["Python names are not read as Rails input", testPythonNamesAreNotReadAsRailsInput],
+  ["reading the umask is not reported", testReadingTheUmaskIsNotReported],
+  ["example projects are not production settings", testExampleProjectsAreNotProductionSettings],
+  ["publishConfig is not a dependency", testPublishConfigIsNotADependency],
+  ["popular packages named like others are not lookalikes", testPopularPackagesNamedLikeOthersAreNotLookalikes],
+  ["translation catalogs may use direction marks", testTranslationCatalogsMayUseDirectionMarks],
+  ["migration operations count only as calls", testMigrationOperationsCountOnlyAsCalls],
+  ["ActiveRecord log names are not SQL", testActiveRecordLogNamesAreNotSql],
+  ["imports do not turn off checks", testImportsDoNotTurnOffChecks],
   ["untrusted-input reports each kind", testUntrustedInputReportsEachKind],
   ["untrusted-input reads other frameworks", testUntrustedInputReadsOtherFrameworks],
   ["untrusted-input skips fixed targets and guarded values", testUntrustedInputSkipsFixedTargetsAndGuards],
@@ -623,6 +646,7 @@ const tests: Array<[string, Test]> = [
   ["plan line comments keeps resolved comments quiet and caps the count", testPlanLineCommentsKeepsResolvedCommentsQuietAndCapsTheCount],
   ["render line comment escapes finding text", testRenderLineCommentEscapesFindingText],
   ["README lists every rule", testReadmeListsEveryRule],
+  ["configuration docs list every rule by area", testConfigurationDocsListEveryRuleByArea],
   ["configuration docs name every rule", testConfigurationDocsNameEveryRule],
   ["every rule links to its documentation", testEveryRuleLinksToItsDocumentation],
   ["risky-api rule reports risky calls in each language", testRiskyApiRuleReportsEachLanguage],

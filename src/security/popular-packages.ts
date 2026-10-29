@@ -24,7 +24,7 @@ export const popularPackages: Readonly<Record<Ecosystem, readonly string[]>> = {
     "regenerator-runtime", "immer", "immutable", "mobx", "zustand", "formik", "crypto-js",
     "node-forge", "ethers", "web3", "archiver", "adm-zip", "form-data", "mime", "mime-types",
     "iconv-lite", "string-width", "strip-ansi", "ansi-regex", "kleur", "picocolors", "execa",
-    "cross-spawn", "shelljs", "compression", "serve-static", "http-proxy", "cookie", "lru-cache",
+    "cross-spawn", "shelljs", "compression", "serve-static", "http-proxy", "cookie", "cookies", "mquery", "lru-cache",
     "uglify-js", "terser", "cssnano", "css-loader", "style-loader", "file-loader", "ts-loader",
     "html-webpack-plugin", "lerna", "gulp", "grunt", "browserify", "vitest", "nock", "msw",
     "underscore.string", "qrcode", "pdfkit", "puppeteer-core", "discord.js", "openai", "cuid"
