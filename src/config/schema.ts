@@ -114,6 +114,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      insecureWebConfig: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       sqlInjection: z
         .object({
           enabled: z.boolean().default(true)

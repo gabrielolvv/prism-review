@@ -14,6 +14,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "blanket-suppression": "Blanket Suppressions",
   "risky-api": "Risky APIs",
   "sql-injection": "SQL Injection",
+  "insecure-web-config": "Insecure Web Configuration",
   "remote-script": "Remote Scripts",
   "workflow-risk": "Workflow Risk",
   "unpinned-action": "Unpinned Actions",

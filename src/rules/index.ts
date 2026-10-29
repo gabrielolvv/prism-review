@@ -19,6 +19,7 @@ import { dockerfileRiskRule } from "./dockerfile-risk.js";
 import { insecureInfrastructureRule } from "./insecure-infrastructure.js";
 import { kubernetesRbacRule } from "./kubernetes-rbac.js";
 import { filePermissionsRule } from "./file-permissions.js";
+import { insecureWebConfigRule } from "./insecure-web-config.js";
 import { publicExposureRule } from "./public-exposure.js";
 import { remoteScriptRule } from "./remote-script.js";
 import { riskyApiRule } from "./risky-api.js";
@@ -42,6 +43,7 @@ export const defaultRules: Rule[] = [
   blanketSuppressionRule,
   riskyApiRule,
   sqlInjectionRule,
+  insecureWebConfigRule,
   remoteScriptRule,
   workflowRiskRule,
   unpinnedActionRule,

@@ -32,6 +32,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "file-permissions": "infrastructure",
   "destructive-migration": "infrastructure",
   "sql-injection": "code",
+  "insecure-web-config": "code",
   "risky-api": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
