@@ -1,11 +1,17 @@
 {
-  "name": "prism-review",
+  "name": "@gabrielolvv/prism-review",
   "version": "0.43.1",
-  "description": "A GitHub Action that reviews pull requests for risk signals before human review.",
+  "description": "Reviews pull requests for risky changes before a human does: workflows, dependencies, infrastructure, secrets, code, and tests. A GitHub Action and a CLI.",
   "type": "module",
-  "private": true,
   "bin": {
     "prism-review": "./dist/cli/main.cjs"
+  },
+  "files": [
+    "dist/cli/main.cjs",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -20,18 +26,30 @@
     "github-action",
     "pull-request",
     "code-review",
-    "developer-tools",
+    "security",
+    "supply-chain-security",
+    "static-analysis",
+    "cli",
     "ci"
   ],
-  "author": "",
+  "author": "Gabriel Oliveira",
   "license": "MIT",
-  "dependencies": {
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrielolvv/prism-review.git"
+  },
+  "homepage": "https://github.com/gabrielolvv/prism-review#readme",
+  "bugs": {
+    "url": "https://github.com/gabrielolvv/prism-review/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
     "@anthropic-ai/sdk": "0.133.0",
     "minimatch": "^10.0.1",
     "yaml": "^2.8.0",
-    "zod": "^4.6.7"
-  },
-  "devDependencies": {
+    "zod": "^4.6.7",
     "@types/node": "^24.0.14",
     "esbuild": "^0.28.2",
     "typescript": "^5.8.3"

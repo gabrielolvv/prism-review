@@ -45,3 +45,30 @@ jobs:
           fi
           node scripts/release-notes.mjs "$TAG" > "$RUNNER_TEMP/release-notes.md"
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --latest="$LATEST"
+
+  npm:
+    # Publishes the CLI to npm with trusted publishing, once the release exists. It runs only when
+    # the repository variable NPM_PUBLISH is true; docs/releasing.md describes the setup.
+    needs: release
+    if: github.event_name == 'push' && vars.NPM_PUBLISH == 'true'
+    # npm exchanges the workflow's OIDC token for a short-lived publish token, so no npm token is
+    # stored, and records provenance that links the package to this workflow run.
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Install scripts are skipped, since this job can mint a publish token; esbuild works without its own.
+      - name: Check the committed CLI bundle
+        run: |
+          npm ci --ignore-scripts
+          npm run bundle
+          git diff --exit-code -- dist
+      # Trusted publishing needs npm 11.5.1 or later, which current Node.js 24 releases include.
+      - name: Publish
+        run: npm publish --provenance --access public --ignore-scripts
