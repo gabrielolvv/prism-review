@@ -89,6 +89,8 @@ rules:
     enabled: true
   publicExposure:
     enabled: true
+  insecureInfrastructure:
+    enabled: true
   credentialFiles:
     enabled: true
   lockfileSources:
@@ -471,6 +473,28 @@ The ports come from the block the source range is in: an `ingress { }` block, a 
 
 Public web ports such as 80 and 443, private ranges such as `10.0.0.0/8`, routes to `0.0.0.0/0` with no ports, `egress` blocks and outbound rules, and rules that deny traffic are not reported. Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A value set through a variable, such as `cidr_blocks = var.allowed_cidrs`, is only checked where the variable gets a literal value in a reviewed file.
 
+## Insecure Infrastructure
+
+### `rules.insecureInfrastructure.enabled`
+
+The `insecure-infrastructure` rule reads added lines in Terraform (`.tf`, `.tf.json`, `.hcl`), CloudFormation templates, and IAM policy documents (`.json`, `.yaml`, `.yml`), and reports one finding per file:
+
+| Reported | Severity | Terraform | CloudFormation and policy documents |
+| --- | --- | --- | --- |
+| A policy that allows every action | High | `actions = ["*"]`, `Action = "*"` in `jsonencode()`, `"Action": "*"` in heredoc JSON | `"Action": "*"`, `Action: '*'`, `"*:*"` |
+| Encryption turned off | Warning | `encrypted`, `storage_encrypted`, `at_rest_encryption_enabled`, `transit_encryption_enabled`, `encryption_enabled`, `enable_https_traffic_only`, or `https_traffic_only_enabled` set to `false` | `Encrypted`, `StorageEncrypted`, `AtRestEncryptionEnabled`, `TransitEncryptionEnabled`, or `KmsEncrypted` set to `false` |
+| TLS 1.0 or 1.1 allowed | Warning | `min_tls_version`, `minimum_tls_version`, or `minimal_tls_version` set to `TLS1_0`, `TLS1_1`, `1.0`, or `1.1` | |
+| Audit logging turned off | Warning | `enable_logging` or `enable_log_file_validation` set to `false` | `IsLogging` or `EnableLogFileValidation` set to `false` |
+| IMDSv1 allowed | Warning | `http_tokens = "optional"` | `HttpTokens: optional` |
+
+A role that may do anything turns any bug in what uses it into control of the account. Unencrypted storage and old TLS expose data at rest and in transit, a stopped trail hides what happens next, and IMDSv1 lets a server-side request forgery read the instance's credentials.
+
+- A statement whose nearest `Effect` is `Deny`, as in a guardrail that denies every action, is not reported. Actions scoped to a service, such as `s3:*`, and `Resource: "*"` on its own are not reported either.
+- Terraform settings are only read in Terraform files, and CloudFormation settings use CloudFormation's capitalized names, so an application's YAML configuration with a key such as `encrypted` is not read.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped. A setting whose value comes from a variable, such as `storage_encrypted = var.encrypted`, is not read.
+
+`public-exposure` covers what is opened to the internet: ports, public buckets and databases, and `allUsers`.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -634,7 +658,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file` |
 | Supply Chain | `dependency-risk`, `lockfile-source`, `unpinned-action`, `workflow-risk`, `remote-script` |
-| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `destructive-migration` |
+| Infrastructure | `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `destructive-migration` |
 | Code | `sql-injection`, `risky-api`, `disabled-security-check`, `hidden-unicode`, `blanket-suppression` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `oversized-patch`, `sensitive-files`, `config-change`, `review-control-change` |
