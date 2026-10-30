@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -110,6 +110,8 @@ rules:
   nosqlInjection:
     enabled: true
   templateInjection:
+    enabled: true
+  prototypePollution:
     enabled: true
   remoteScripts:
     enabled: true
@@ -508,6 +510,21 @@ These are not reported:
 - Templates read from files or written as fixed text, and Python's `string.Template`, which only substitutes values.
 - A name assigned from the request and then reassigned from something else.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Prototype Pollution
+
+### `rules.prototypePollution.enabled`
+
+The `prototype-pollution` rule reads added lines in JavaScript and TypeScript files and reports one warning per file with either of these. Both let input such as `{"__proto__": {"isAdmin": true}}`, which `JSON.parse` returns as an ordinary key, add properties to `Object.prototype` and so to every object in the process.
+
+- A recursive merge, extend, assign, or clone function the patch adds, named with a word such as `merge`, `extend`, `assign`, `deep`, `clone`, `copy`, `defaults`, or `mixin`, that loops over an object's keys, writes into its target by key, and goes down into one of the target's keys, by calling a copy function on `target[key]` or storing a call to itself in `target[key]`, without checking for the keys `constructor` or `prototype` or calling a helper such as `isSafeKey`. The target is the first parameter, or `arguments[0]` in jQuery-style functions. Skipping only `__proto__` is not enough: `{"constructor": {"prototype": ...}}` reaches the same place.
+- An assignment through two keys, such as `config[section][key] = value`, where a key comes from the request, directly or through a name assigned from it up to 30 lines before. Checking either key against `__proto__` is enough here.
+
+These are not reported:
+
+- Merges that write into a new object, such as `const out = {}`, or into a copy, such as `target = { ...target }`, and shallow copies that do not go down into the target's keys.
+- Calls to maintained libraries, such as lodash's `merge` and `set`, jQuery's `extend`, or deepmerge, whose current versions skip these keys. Keep them up to date.
+- Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1056,7 +1073,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
