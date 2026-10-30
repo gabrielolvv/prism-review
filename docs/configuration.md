@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -145,6 +145,8 @@ rules:
   hardcodedJwtSecret:
     enabled: true
   secretLogging:
+    enabled: true
+  urlCredentials:
     enabled: true
   lockfileSources:
     enabled: true
@@ -772,6 +774,23 @@ A value is named like a secret when a word of a name in its arguments is `passwo
 - The values are found before redaction, which rewrites text such as `f"token={token}"`, and only their line numbers are kept.
 - Comment lines, documentation, TypeScript declaration files (`.d.ts`), test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
+## URL Credentials
+
+### `rules.urlCredentials.enabled`
+
+The `url-credentials` rule reads added lines in every text file and reports one high-risk finding per file with a URL that has a password in it, such as `postgres://app:<password>@db.acme.io/app`, `mongodb+srv://admin:<password>@cluster0.mongodb.net`, `redis://:<password>@cache.acme.io:6379`, `jdbc:mysql://root:<password>@10.0.4.12/orders`, or `https://deploy:<password>@github.com/acme/app.git`. These are often written into code, Docker Compose files, Helm values, or Spring properties.
+
+These are not reported, since they do not hold a real password:
+
+- Template syntax that fills in the password, such as `${DB_PASSWORD}`, `$DB_PASSWORD`, `{{ .Values.password }}`, `{password}`, `<password>`, `%s`, or `%(password)s`.
+- Placeholders and local development defaults, such as `password`, `pass`, `secret`, `changeme`, `postgres`, `root`, `guest`, `****`, a password equal to the user name, as in `postgres:postgres`, and documentation pairs such as `scott:tiger`.
+- Passwords of one to three characters, as in `u:p@dsn`.
+- Hosts such as `localhost`, `127.0.0.1`, `host.docker.internal`, `example.com`, `*.example`, `*.test`, `*.invalid`, `host`, or `hostname`.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+- Environment files such as `.env.production`, and package manager files such as `.npmrc`, which `credential-file` reads.
+
+The URLs are found before redaction, and redaction then replaces each reported password, so the review shows `postgres://app:[REDACTED]@db.acme.io/app`. Passwords matched by `security.redaction.allowlist` are neither reported nor redacted. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
+
 ## Unpinned Actions
 
 ### `rules.unpinnedActions.allowedOwners`
@@ -907,7 +926,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
