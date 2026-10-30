@@ -23,6 +23,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "template-injection": "Template Injection",
   "prototype-pollution": "Prototype Pollution",
   "ldap-xpath-injection": "LDAP and XPath Injection",
+  "upload-filename": "Upload File Names",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

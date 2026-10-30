@@ -49,6 +49,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "template-injection": "code",
   "prototype-pollution": "code",
   "ldap-xpath-injection": "code",
+  "upload-filename": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

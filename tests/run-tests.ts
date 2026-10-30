@@ -477,6 +477,13 @@ import {
   testLdapXpathInjectionSkipsTestsAndOtherFiles
 } from "./unit/ldap-xpath-injection.test.js";
 import {
+  testUploadFilenameCanBeDisabled,
+  testUploadFilenameReadsEachFramework,
+  testUploadFilenameReportsOneFindingPerFile,
+  testUploadFilenameSkipsReducedAndGeneratedNames,
+  testUploadFilenameSkipsTestsAndDocs
+} from "./unit/upload-filename.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -832,6 +839,11 @@ const tests: Array<[string, Test]> = [
   ["ldap-xpath-injection skips escaped and bound values", testLdapXpathInjectionSkipsEscapedAndBoundValues],
   ["ldap-xpath-injection skips tests and other files", testLdapXpathInjectionSkipsTestsAndOtherFiles],
   ["ldap-xpath-injection can be disabled", testLdapXpathInjectionCanBeDisabled],
+  ["upload-filename reports one finding per file", testUploadFilenameReportsOneFindingPerFile],
+  ["upload-filename reads each framework", testUploadFilenameReadsEachFramework],
+  ["upload-filename skips reduced and generated names", testUploadFilenameSkipsReducedAndGeneratedNames],
+  ["upload-filename skips tests and docs", testUploadFilenameSkipsTestsAndDocs],
+  ["upload-filename can be disabled", testUploadFilenameCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
