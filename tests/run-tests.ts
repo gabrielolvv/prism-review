@@ -498,6 +498,13 @@ import {
   testLogInjectionSkipsTestsAndOtherFiles
 } from "./unit/log-injection.test.js";
 import {
+  testStaticIvCanBeDisabled,
+  testStaticIvReadsEachLibrary,
+  testStaticIvReportsOneFindingPerFile,
+  testStaticIvSkipsRandomIvs,
+  testStaticIvSkipsTestsAndDocs
+} from "./unit/static-iv.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -868,6 +875,11 @@ const tests: Array<[string, Test]> = [
   ["log-injection skips cleaned and structured values", testLogInjectionSkipsCleanedAndStructuredValues],
   ["log-injection skips tests and other files", testLogInjectionSkipsTestsAndOtherFiles],
   ["log-injection can be disabled", testLogInjectionCanBeDisabled],
+  ["static-iv reports one finding per file", testStaticIvReportsOneFindingPerFile],
+  ["static-iv reads each library", testStaticIvReadsEachLibrary],
+  ["static-iv skips random IVs", testStaticIvSkipsRandomIvs],
+  ["static-iv skips tests and docs", testStaticIvSkipsTestsAndDocs],
+  ["static-iv can be disabled", testStaticIvCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
