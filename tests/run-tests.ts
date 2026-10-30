@@ -470,6 +470,13 @@ import {
   testPrototypePollutionSkipsTestsAndOtherFiles
 } from "./unit/prototype-pollution.test.js";
 import {
+  testLdapXpathInjectionCanBeDisabled,
+  testLdapXpathInjectionReadsEachLanguage,
+  testLdapXpathInjectionReportsOneFindingPerFile,
+  testLdapXpathInjectionSkipsEscapedAndBoundValues,
+  testLdapXpathInjectionSkipsTestsAndOtherFiles
+} from "./unit/ldap-xpath-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -820,6 +827,11 @@ const tests: Array<[string, Test]> = [
   ["prototype-pollution skips guarded and shallow copies", testPrototypePollutionSkipsGuardedAndShallowCopies],
   ["prototype-pollution skips tests and other files", testPrototypePollutionSkipsTestsAndOtherFiles],
   ["prototype-pollution can be disabled", testPrototypePollutionCanBeDisabled],
+  ["ldap-xpath-injection reports one finding per file", testLdapXpathInjectionReportsOneFindingPerFile],
+  ["ldap-xpath-injection reads each language", testLdapXpathInjectionReadsEachLanguage],
+  ["ldap-xpath-injection skips escaped and bound values", testLdapXpathInjectionSkipsEscapedAndBoundValues],
+  ["ldap-xpath-injection skips tests and other files", testLdapXpathInjectionSkipsTestsAndOtherFiles],
+  ["ldap-xpath-injection can be disabled", testLdapXpathInjectionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

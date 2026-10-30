@@ -20,6 +20,7 @@ export const ruleIds: readonly string[] = [
   "nosql-injection",
   "template-injection",
   "prototype-pollution",
+  "ldap-xpath-injection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
