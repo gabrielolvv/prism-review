@@ -37,6 +37,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   redos: "Can a user send the text these regular expressions read, and is its length limited?",
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
+  "unescaped-html": "Is every value written into the page without escaping either fixed text or sanitized first?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

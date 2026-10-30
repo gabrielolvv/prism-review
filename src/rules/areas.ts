@@ -42,6 +42,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   redos: "code",
   "untrusted-input": "code",
   "risky-api": "code",
+  "unescaped-html": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

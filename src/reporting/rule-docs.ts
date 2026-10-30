@@ -16,6 +16,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "skipped-tests": "Skipped Tests",
   "blanket-suppression": "Blanket Suppressions",
   "risky-api": "Risky APIs",
+  "unescaped-html": "Unescaped HTML",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
