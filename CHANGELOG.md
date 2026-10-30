@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.58.0 - 2026-10-30
+
+### Added
+
+- `timing-unsafe-comparison` rule: warns about signatures, HMACs, tokens, and API keys compared with `==`, `===`, `equals`, `bytes.Equal`, or `strcmp`, which stop at the first difference and let an attacker find the expected value by timing the check, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Constant-time comparisons, checks for a missing token or its length or type, fixed values and enum members, lexer, page, and cancellation tokens, OpenID nonces, `equals` methods, and lexer and parser files are not reported. The comparisons are found before redaction. On about 45,000 files of library code, it reports 23 files, about half of them real, such as Tomcat's AJP secret check, Spring Security's remember-me and digest checks, the Werkzeug debugger's PIN check, next-auth's CSRF check, and pysaml2's cookie signatures.
+
 ## 0.57.0 - 2026-10-30
 
 ### Added
