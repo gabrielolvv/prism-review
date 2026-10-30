@@ -419,6 +419,14 @@ import {
   testSecretLoggingSkipsTestsDocsAndOtherFiles
 } from "./unit/secret-logging.test.js";
 import {
+  testUrlCredentialsCanBeDisabled,
+  testUrlCredentialsReadsEachKindOfFile,
+  testUrlCredentialsRedactsThePassword,
+  testUrlCredentialsReportsOneFindingPerFile,
+  testUrlCredentialsSkipsExamplesAndReferences,
+  testUrlCredentialsSkipsTestsDocsAndCredentialFiles
+} from "./unit/url-credentials.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -732,6 +740,12 @@ const tests: Array<[string, Test]> = [
   ["secret-logging skips tests, docs, and other files", testSecretLoggingSkipsTestsDocsAndOtherFiles],
   ["secret-logging can be disabled", testSecretLoggingCanBeDisabled],
   ["secret-logging sees lines that redaction rewrites", testSecretLoggingSeesLinesRedactionRewrites],
+  ["url-credentials reports one finding per file", testUrlCredentialsReportsOneFindingPerFile],
+  ["url-credentials reads each kind of file", testUrlCredentialsReadsEachKindOfFile],
+  ["url-credentials skips examples and references", testUrlCredentialsSkipsExamplesAndReferences],
+  ["url-credentials skips tests, docs, and credential files", testUrlCredentialsSkipsTestsDocsAndCredentialFiles],
+  ["url-credentials can be disabled", testUrlCredentialsCanBeDisabled],
+  ["url-credentials redacts the password", testUrlCredentialsRedactsThePassword],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
