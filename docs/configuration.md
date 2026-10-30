@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -120,6 +120,8 @@ rules:
   reflectedXss:
     enabled: true
   logInjection:
+    enabled: true
+  staticIv:
     enabled: true
   remoteScripts:
     enabled: true
@@ -622,6 +624,32 @@ These are not reported:
 - Values with line breaks removed or quoted on the same line: `.replace(/[\r\n]/g, "")`, `repr()`, `%r`, `!r`, Go's `%q`, `strconv.Quote`, `JSON.stringify`, `json.dumps`, `StringEscapeUtils.escapeJava`, `Encode.forJava`, or a helper named `sanitize`, `escape`, `encode`, `clean`, or `strip`.
 - The request's URL, method, path, and headers, which cannot hold a raw line break, and route parameters, which are usually IDs the router matched.
 - Names that only appear inside the text of a string, comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Static IVs
+
+### `rules.staticIv.enabled`
+
+The `static-iv` rule reports one warning per file where data is encrypted or decrypted with an IV or nonce that is the same every time. With CBC, a fixed IV shows which messages start with the same bytes. With GCM, CTR, or ChaCha20, reusing a nonce with the same key reveals the XOR of the plaintexts, and with GCM lets anyone who sees two messages forge new ones.
+
+| Library | IV read |
+| --- | --- |
+| Node.js crypto | the third argument of `createCipheriv` and `createDecipheriv` |
+| WebCrypto | the `iv` of `crypto.subtle.encrypt` and `decrypt`, including the shorthand `{ name: "AES-GCM", iv }` |
+| pyca/cryptography | the argument of `modes.CBC`, `GCM`, `CTR`, `CFB`, `OFB`, and `XTS` |
+| PyCryptodome | the third argument of `AES.new`, `DES3.new`, and `ChaCha20.new`, and `iv=` or `nonce=` |
+| Java and Kotlin | `new IvParameterSpec(...)` and the second argument of `new GCMParameterSpec(...)` |
+| Go | the second argument of `cipher.NewCBCEncrypter`, `NewCTR`, `NewCFBEncrypter`, and `NewOFB`, and the nonce of an AEAD's `Seal` and `Open` |
+| .NET | `.IV = ...` and the second argument of `CreateEncryptor` and `CreateDecryptor` |
+| PHP | the fifth argument of `openssl_encrypt` and `openssl_decrypt`, and the nonce of `sodium_crypto_secretbox` |
+| Ruby | `cipher.iv = ...` |
+
+An IV counts as fixed when it is text, as in `"1234567890123456"` or `"...".getBytes()`; a byte literal, as in `b"..."`, `Buffer.from("...")`, `[]byte("...")`, or `Encoding.UTF8.GetBytes("...")`; a list of numbers; or a zeroed buffer, as in `Buffer.alloc(16)`, `new Uint8Array(12)`, `new byte[16]`, `make([]byte, 16)`, `bytes(16)`, or `b"\x00" * 16`. A name counts when it is assigned one of these up to 60 lines before and never filled with random bytes in between, as Java's `private static final byte[] IV = "...".getBytes()` is.
+
+These are not reported:
+
+- IVs made or filled with random bytes: `crypto.randomBytes`, `getRandomValues`, `randomFill`, `os.urandom`, `secrets.token_bytes`, `get_random_bytes`, `SecureRandom.nextBytes`, `io.ReadFull(rand.Reader, ...)`, `rand.Read`, `RandomNumberGenerator`, `GenerateIV()`, `random_bytes`, `openssl_random_pseudo_bytes`, `random_iv`, and the like, and calls that let the library pick one, such as `AES.new(key, AES.MODE_GCM)`.
+- IVs read back from the ciphertext when decrypting, such as `input.slice(0, 16)` or `Arrays.copyOfRange(data, 0, 16)`.
+- Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1170,7 +1198,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
