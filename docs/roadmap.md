@@ -84,6 +84,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `nosql-injection` rule for request values in MongoDB filters (0.60.0).
 - `template-injection` rule for templates compiled from request input (0.61.0).
 - `prototype-pollution` rule for unguarded recursive merges and nested request keys (0.62.0).
+- `ldap-xpath-injection` rule for LDAP filters and XPath expressions built from text (0.63.0).
 
 ## Later
 
