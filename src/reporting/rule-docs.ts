@@ -24,6 +24,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "prototype-pollution": "Prototype Pollution",
   "ldap-xpath-injection": "LDAP and XPath Injection",
   "upload-filename": "Upload File Names",
+  "reflected-xss": "Reflected XSS",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

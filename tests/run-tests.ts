@@ -484,6 +484,13 @@ import {
   testUploadFilenameSkipsTestsAndDocs
 } from "./unit/upload-filename.test.js";
 import {
+  testReflectedXssCanBeDisabled,
+  testReflectedXssReadsEachFramework,
+  testReflectedXssReportsOneFindingPerFile,
+  testReflectedXssSkipsEscapedAndNonHtmlResponses,
+  testReflectedXssSkipsTestsAndDocs
+} from "./unit/reflected-xss.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -844,6 +851,11 @@ const tests: Array<[string, Test]> = [
   ["upload-filename skips reduced and generated names", testUploadFilenameSkipsReducedAndGeneratedNames],
   ["upload-filename skips tests and docs", testUploadFilenameSkipsTestsAndDocs],
   ["upload-filename can be disabled", testUploadFilenameCanBeDisabled],
+  ["reflected-xss reports one finding per file", testReflectedXssReportsOneFindingPerFile],
+  ["reflected-xss reads each framework", testReflectedXssReadsEachFramework],
+  ["reflected-xss skips escaped and non-HTML responses", testReflectedXssSkipsEscapedAndNonHtmlResponses],
+  ["reflected-xss skips tests and docs", testReflectedXssSkipsTestsAndDocs],
+  ["reflected-xss can be disabled", testReflectedXssCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
