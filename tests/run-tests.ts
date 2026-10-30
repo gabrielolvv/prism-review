@@ -434,6 +434,14 @@ import {
   testUnescapedHtmlSkipsTextAndEscapedValues
 } from "./unit/unescaped-html.test.js";
 import {
+  testTimingUnsafeComparisonCanBeDisabled,
+  testTimingUnsafeComparisonReadsEachLanguage,
+  testTimingUnsafeComparisonReportsOneFindingPerFile,
+  testTimingUnsafeComparisonSeesLinesRedactionRewrites,
+  testTimingUnsafeComparisonSkipsOtherComparisons,
+  testTimingUnsafeComparisonSkipsTestsAndLanguageTooling
+} from "./unit/timing-unsafe-comparison.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -758,6 +766,12 @@ const tests: Array<[string, Test]> = [
   ["unescaped-html skips text and escaped values", testUnescapedHtmlSkipsTextAndEscapedValues],
   ["unescaped-html skips tests, docs, and other files", testUnescapedHtmlSkipsTestsDocsAndOtherFiles],
   ["unescaped-html can be disabled", testUnescapedHtmlCanBeDisabled],
+  ["timing-unsafe-comparison reports one finding per file", testTimingUnsafeComparisonReportsOneFindingPerFile],
+  ["timing-unsafe-comparison reads each language", testTimingUnsafeComparisonReadsEachLanguage],
+  ["timing-unsafe-comparison skips other comparisons", testTimingUnsafeComparisonSkipsOtherComparisons],
+  ["timing-unsafe-comparison skips tests and language tooling", testTimingUnsafeComparisonSkipsTestsAndLanguageTooling],
+  ["timing-unsafe-comparison can be disabled", testTimingUnsafeComparisonCanBeDisabled],
+  ["timing-unsafe-comparison sees lines that redaction rewrites", testTimingUnsafeComparisonSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
