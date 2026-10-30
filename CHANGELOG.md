@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.67.0 - 2026-10-30
+
+### Added
+
+- `static-iv` rule: warns about encryption with an IV or nonce that is the same every time, such as `createCipheriv("aes-256-cbc", key, Buffer.alloc(16))`, `new IvParameterSpec("1234567890123456".getBytes())`, `modes.CBC(b"\x00" * 16)`, or a Go nonce from `make([]byte, 12)` passed to `gcm.Seal` without `io.ReadFull(rand.Reader, ...)`. It reads Node.js crypto, WebCrypto, pyca/cryptography, PyCryptodome, Java, Go, .NET, PHP OpenSSL and libsodium, and Ruby OpenSSL, and follows names assigned a fixed value unless they are filled with random bytes. On 22 encryption wrappers, such as cryptr, simple-encryptor, iron, django-cryptography, and spring-security-crypto, all of which make random IVs, and on about 81,000 files of other library code, it reports none.
+
 ## 0.66.0 - 2026-10-30
 
 ### Added
