@@ -42,6 +42,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "postmessage-origin": "Does every cross-window message name its target origin, and every handler check `event.origin`?",
   "nosql-injection": "Is every request value cast to text, or matched with `$eq`, before it reaches a MongoDB filter?",
   "template-injection": "Are templates kept in files or fixed text, with request values passed only as variables?",
+  "prototype-pollution": "Do merges and assignments by key skip `__proto__`, `constructor`, and `prototype`?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

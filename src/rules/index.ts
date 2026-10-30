@@ -10,6 +10,7 @@ import { timingUnsafeComparisonRule } from "./timing-unsafe-comparison.js";
 import { postMessageOriginRule } from "./postmessage-origin.js";
 import { nosqlInjectionRule } from "./nosql-injection.js";
 import { templateInjectionRule } from "./template-injection.js";
+import { prototypePollutionRule } from "./prototype-pollution.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -63,6 +64,7 @@ export const defaultRules: Rule[] = [
   postMessageOriginRule,
   nosqlInjectionRule,
   templateInjectionRule,
+  prototypePollutionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

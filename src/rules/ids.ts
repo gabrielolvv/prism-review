@@ -19,6 +19,7 @@ export const ruleIds: readonly string[] = [
   "postmessage-origin",
   "nosql-injection",
   "template-injection",
+  "prototype-pollution",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

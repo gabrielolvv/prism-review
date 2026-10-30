@@ -21,6 +21,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "postmessage-origin": "postMessage Origin",
   "nosql-injection": "NoSQL Injection",
   "template-injection": "Template Injection",
+  "prototype-pollution": "Prototype Pollution",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
