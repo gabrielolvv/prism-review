@@ -25,6 +25,7 @@ export const ruleIds: readonly string[] = [
   "reflected-xss",
   "log-injection",
   "static-iv",
+  "plaintext-password",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
