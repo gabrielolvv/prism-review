@@ -82,6 +82,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `timing-unsafe-comparison` rule for secrets compared in variable time (0.58.0).
 - `postmessage-origin` rule for cross-window messages without an origin check (0.59.0).
 - `nosql-injection` rule for request values in MongoDB filters (0.60.0).
+- `template-injection` rule for templates compiled from request input (0.61.0).
 
 ## Later
 
