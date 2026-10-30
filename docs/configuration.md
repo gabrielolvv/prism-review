@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -124,6 +124,8 @@ rules:
   staticIv:
     enabled: true
   plaintextPassword:
+    enabled: true
+  adminRouteAuth:
     enabled: true
   remoteScripts:
     enabled: true
@@ -670,6 +672,27 @@ These are not reported:
 - Hashed fields and other fields about a password, such as `passwordHash`, `password_digest`, `encrypted_password`, `confirmPassword`, `passwordConfirmation`, `oldPassword`, `newPassword`, `password.length`, or `passwordPolicy`.
 - Fields of the request or a form compared with each other, as in `req.body.password !== req.body.confirmPassword`, checks such as `user.password === undefined` or `typeof user.password !== "string"`, and equals methods that compare `self.password` with `other.password`.
 - Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Admin Route Access
+
+### `rules.adminRouteAuth.enabled`
+
+The `admin-route-auth` rule reports one warning per file that registers a route for administration or internal tools with no authentication or role check in sight. Anyone who finds the URL, which is often easy to guess, can use it.
+
+A route counts when its path starts with `/admin`, `/administrator`, `/superadmin`, `/superuser`, `/backoffice`, `/staff`, `/internal`, `/manage`, `/management`, or `/sudo`, optionally after `/api` and a version such as `/v1`, and nothing checks the caller:
+
+| Framework | Routes read | Checks that count |
+| --- | --- | --- |
+| Express, Koa, Fastify, Hono | `app`, `router`, `server`, `fastify`, and `api` `.get`, `.post`, `.put`, `.patch`, `.delete`, `.all`, `.use`, `.route` | middleware before the handler named for a check, such as `requireAdmin`, `authenticate`, `passport.authenticate(...)`, `isLoggedIn`, `checkRole(...)`, or `ensureAuth` |
+| Flask and Quart | `@app.route`, `@bp.route`, `@app.get`, and the like | decorators such as `@login_required`, `@roles_required`, `@jwt_required`, `@admin_required`, or `@permission_required` |
+| Go | `http.HandleFunc`, and `GET`, `POST`, `Group`, `Handle`, and the like in gin, echo, chi, and fiber | middleware or a wrapper named for a check, such as `requireAdmin(handler)` or `AuthRequired()` |
+| Laravel | `Route::get`, `post`, `resource`, and the like | `->middleware('auth')` on the route, or an enclosing `Route::middleware([...])->group(...)` |
+
+A check also counts when it covers the whole file, such as `router.use(authenticate)`, `app.use('/admin', requireAdmin, adminRouter)`, a gin group created with an auth middleware, Flask's `@bp.before_request`, Rails' `before_action`, or Fastify's `onRequest` hook, or when the first lines of the handler check the user, such as `if (!req.user?.isAdmin) return res.status(403).end()` or `if not current_user.is_admin: abort(403)`.
+
+A new file shows everything that could protect its routes. In a changed file, protection may sit outside the patch, such as a router mounted behind an auth middleware in another file, so an unguarded admin route only counts there when another route in the patch is guarded.
+
+Spring, Django, and Rails usually protect routes in central configuration, such as a `SecurityFilterChain`, `admin.site`, or a base controller, so their routes are not read. Test files matched by `rules.missingTests.testGlobs`, fixture directories, and comment lines are skipped.
 
 ## Disabled Security Checks
 
@@ -1218,7 +1241,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 

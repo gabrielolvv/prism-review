@@ -55,6 +55,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Flags request values written into the text of a log line, where a line break can forge entries, such as ``logger.info(`Failed login for ${req.body.username}`)``
 - Flags encryption with a fixed IV or nonce, such as `createCipheriv(alg, key, Buffer.alloc(16))` or `new IvParameterSpec(new byte[16])`
 - Flags passwords compared with the stored password directly, such as `user.password === req.body.password`, which means passwords are stored in plain text
+- Flags admin and internal routes registered without an authentication or role check, in Express, Flask, Go routers, and Laravel
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, dependencies named like popular packages or moved to older or unbounded versions, manifests changed without their lockfile, unpinned third-party actions, and scripts piped from the internet into a shell
@@ -218,7 +219,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.68.0
+    rev: v0.69.0
     hooks:
       - id: prism-review
 ```
@@ -253,7 +254,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.68.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.69.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -394,6 +395,7 @@ flowchart TD
 | `log-injection` | Warning | Flags request values from query strings, bodies, forms, and cookies written into the text of a log or console line, directly or through a name assigned from one, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Structured fields, whole request objects, values cleaned of line breaks or quoted (`%r`, `%q`, `JSON.stringify`), URLs, and headers are skipped. |
 | `static-iv` | Warning | Flags encryption with an IV or nonce that is the same every time: text, a byte literal, a zeroed buffer, or a name assigned one and never filled with random bytes, in Node.js crypto, WebCrypto, pyca/cryptography, PyCryptodome, Java, Go, .NET, PHP OpenSSL and libsodium, and Ruby OpenSSL. |
 | `plaintext-password` | High | Flags a stored password field, such as `user.password`, `row["password"]`, `$user->password`, or `user.getPassword()`, compared with `==`, `===`, `equals`, or `strcmp` against the password a user typed, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Hashed fields, confirmation fields, and lines that hash or verify are skipped. |
+| `admin-route-auth` | Warning | Flags routes under `/admin`, `/internal`, `/backoffice`, `/staff`, or `/manage` registered with no authentication or role middleware, decorator, group, or check in the handler, in Express, Koa, Fastify, Flask, Go routers, and Laravel. In a changed file, a route only counts when another route in the patch is guarded. |
 | `lookalike-dependency` | Warning | Flags added dependencies named one character away from a popular npm, PyPI, RubyGems, crates.io, Go, Packagist, NuGet, or Maven package, such as `expresss` or `reqeusts`, a common typosquatting trick. |
 | `risky-dependency-version` | Warning | Flags dependencies moved to an older version, and versions changed to accept any future release, such as `*`, `latest`, or `>=2.0` with no upper bound. |
 | `stale-lockfile` | Warning | Flags manifests whose dependencies change while the lockfile that pins them, such as `package-lock.json` or `Cargo.lock`, is not updated. |
