@@ -89,6 +89,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `reflected-xss` rule for request values written into HTML responses (0.65.0).
 - `log-injection` rule for request values written into log text (0.66.0).
 - `static-iv` rule for encryption with a fixed IV or nonce (0.67.0).
+- `plaintext-password` rule for passwords compared in plain text (0.68.0).
 
 ## Later
 

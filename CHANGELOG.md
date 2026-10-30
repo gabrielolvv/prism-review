@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.68.0 - 2026-10-30
+
+### Added
+
+- `plaintext-password` rule: reports, as high risk, a stored password field compared directly with the password a user typed, such as `user.password === req.body.password`, `row["password"] != password`, `$user["password"] == $_POST["password"]`, or `user.getPassword().equals(password)`, which means passwords are stored in plain text. It reads JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Lines that hash or verify, hashed and confirmation fields, form fields compared with each other, presence checks, and equals methods are not reported. On about 83,000 files of library code, it reports one: mongodb-rest, which checks logins against passwords kept in plain text.
+
 ## 0.67.0 - 2026-10-30
 
 ### Added
