@@ -36564,6 +36564,7 @@ var ruleIds = [
   "upload-filename",
   "reflected-xss",
   "log-injection",
+  "static-iv",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -36770,6 +36771,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     logInjection: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    staticIv: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -39128,6 +39132,190 @@ function findInjectedLogs(path5, patch) {
   return found;
 }
 
+// src/rules/static-iv.ts
+var sinks4 = [
+  // Node.js crypto.
+  { files: /\.(?:[cm]?[jt]sx?)$/i, call: /\bcreate(?:Cipher|Decipher)iv\s*\(/g, argument: 2 },
+  // pyca/cryptography modes and PyCryptodome.
+  { files: /\.py$/i, call: /\bmodes\.(?:CBC|GCM|CTR|CFB|CFB8|OFB|XTS)\s*\(/g, argument: 0 },
+  { files: /\.py$/i, call: /\b(?:AES|DES3|ChaCha20|ChaCha20_Poly1305|Salsa20)\.new\s*\(/g, argument: 2 },
+  // Java's javax.crypto.
+  { files: /\.(?:java|kt|scala)$/i, call: /\bnew\s+IvParameterSpec\s*\(/g, argument: 0 },
+  { files: /\.(?:java|kt|scala)$/i, call: /\bnew\s+GCMParameterSpec\s*\(/g, argument: 1 },
+  // Go's crypto/cipher, and an AEAD's Seal and Open.
+  { files: /\.go$/i, call: /\bcipher\.New(?:CBC(?:En|De)crypter|CTR|CFB(?:En|De)crypter|OFB)\s*\(/g, argument: 1 },
+  { files: /\.go$/i, call: /\b(?:gcm|aead|aesgcm|aesGCM|chacha|ccm)\.(?:Seal|Open)\s*\(/gi, argument: 1 },
+  // .NET.
+  { files: /\.cs$/i, call: /\.IV\s*=(?!=)/g, argument: "assigned" },
+  { files: /\.cs$/i, call: /\.Create(?:En|De)cryptor\s*\(/g, argument: 1 },
+  // PHP's OpenSSL and libsodium.
+  { files: /\.php$/i, call: /\bopenssl_(?:en|de)crypt\s*\(/g, argument: 4 },
+  { files: /\.php$/i, call: /\bsodium_crypto_secretbox(?:_open)?\s*\(/g, argument: 1 },
+  // Ruby's OpenSSL::Cipher.
+  { files: /\.rb$/i, call: /\.iv\s*=(?!=)/g, argument: "assigned" }
+];
+var keyedIv = /(?:^|[,({\s])(?:iv|nonce|initialization_vector)\s*[=:](?!=)\s*/g;
+var shorthandIv = /[{,]\s*(iv|nonce)\s*(?=[,}])/g;
+var keyedFiles = /\.(?:py|[cm]?[jt]sx?)$/i;
+var keyedContext = /\bsubtle\.(?:en|de)crypt\s*\(|\bAES-(?:GCM|CBC|CTR)\b|\.new\s*\(|\bCipher\s*\(|\bmodes\./;
+var fixedValue = new RegExp(
+  [
+    String.raw`^[bBrRuU]{0,2}["'\`]`,
+    String.raw`^"[^"]*"\s*\.\s*(?:getBytes|encode|toByteArray)\s*\(`,
+    String.raw`^Buffer\.(?:from\s*\(\s*["'\`[]|alloc\s*\(\s*\d+\s*\))`,
+    String.raw`^new\s+(?:Uint8Array|Buffer)\s*\(\s*(?:\d+|\[)`,
+    String.raw`^new\s+byte\s*\[\s*\w*\s*\](?:\s*\{)?`,
+    String.raw`^byteArrayOf\s*\(|^ByteArray\s*\(\s*\d+\s*\)`,
+    String.raw`^make\s*\(\s*\[\]byte\s*,`,
+    String.raw`^\[\]byte\s*(?:\(\s*"|\{)`,
+    String.raw`^(?:Encoding\.\w+|System\.Text\.Encoding\.\w+)\.GetBytes\s*\(\s*"`,
+    String.raw`^bytes\s*\(\s*(?:\d+|\[)`,
+    String.raw`^bytearray\s*\(\s*\d+\s*\)`,
+    String.raw`^b?["']\\x00["']\s*\*`,
+    String.raw`^str_repeat\s*\(`,
+    String.raw`^\[\s*(?:0x)?\d`,
+    String.raw`^\{\s*(?:\(byte\)\s*)?(?:0x)?\d`
+  ].join("|")
+);
+var randomFill = /\b(?:randomFill(?:Sync)?|getRandomValues|ReadFull|rand\.Read|nextBytes|RAND_bytes|urandom|token_bytes|get_random_bytes|random_bytes|openssl_random_pseudo_bytes|randombytes_buf|random_iv|RandomNumberGenerator|GenerateIV|randomBytes|SecureRandom|generateIv|random_key)\b/;
+var assignment8 = /^\s*(?:(?:const|let|var|final|private|public|protected|static|readonly|val|byte\[\]|\[\]byte|var)\s+)*(?:byte\s*\[\]\s+)?\$?([A-Za-z_][\w]*)\s*(?::\s*[\w<>[\]]+\s*)?(?::=|=)(?!=)\s*(.*?);?\s*$/;
+var reach7 = 60;
+var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var skippedFile9 = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
+var maxLineLength14 = 1e3;
+var staticIvRule = {
+  id: "static-iv",
+  description: "Flags encryption with an IV or nonce that is the same every time.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.staticIv.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const fileSinks = sinks4.filter((sink) => sink.files.test(file.path));
+      const keyed = keyedFiles.test(file.path);
+      if (fileSinks.length === 0 && !keyed || file.patch === void 0 || documentation9.test(file.path) || skippedFile9.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = findStaticIvs(patchLines(file.patch), fileSinks, keyed);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "static-iv",
+          title: "Encryption with a fixed IV or nonce",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "encrypt" : "encrypts"} with an IV or nonce that is the same every time. With CBC, this shows which messages start the same; with GCM or ChaCha20, reusing a nonce with the same key reveals the plaintexts and lets messages be forged.`,
+          recommendation: "Make a new random IV or nonce for every message, such as `crypto.randomBytes(12)`, `os.urandom(12)`, `SecureRandom.nextBytes`, or `io.ReadFull(rand.Reader, nonce)`, and store it next to the ciphertext. It does not need to be secret."
+        }
+      ];
+    });
+  }
+};
+function findStaticIvs(lines, fileSinks, keyed) {
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (!added || content.length > maxLineLength14 || commentLine16.test(content) || randomFill.test(content)) {
+      return;
+    }
+    const ivs = [];
+    for (const sink of fileSinks) {
+      sink.call.lastIndex = 0;
+      for (const match2 of content.matchAll(sink.call)) {
+        const rest = content.slice(match2.index + match2[0].length);
+        const value = sink.argument === "assigned" ? rest.replace(/;\s*$/, "") : splitArguments2(rest)[sink.argument];
+        if (value !== void 0) {
+          ivs.push(value.replace(/^\s*(?:iv|nonce|IV)\s*[=:]\s*/, ""));
+        }
+      }
+    }
+    if (keyed && keyedContext.test(content)) {
+      keyedIv.lastIndex = 0;
+      for (const match2 of content.matchAll(keyedIv)) {
+        ivs.push(splitArguments2(content.slice(match2.index + match2[0].length))[0] ?? "");
+      }
+      shorthandIv.lastIndex = 0;
+      for (const match2 of content.matchAll(shorthandIv)) {
+        ivs.push(match2[1] ?? "");
+      }
+    }
+    if (ivs.some((iv) => isFixed(iv.trim(), lines, index))) {
+      found.push(line);
+    }
+  });
+  return found;
+}
+function isFixed(iv, lines, index) {
+  if (iv === "" || randomFill.test(iv)) {
+    return false;
+  }
+  if (fixedValue.test(iv)) {
+    return true;
+  }
+  const name = /^\$?([A-Za-z_][\w]*)\s*$/.exec(iv)?.[1];
+  const current = lines[index];
+  if (name === void 0 || current === void 0) {
+    return false;
+  }
+  const uses = new RegExp(`(?<![\\w$.])\\$?${name}(?![\\w$])`);
+  for (let at = index - 1; at >= 0; at -= 1) {
+    const earlier = lines[at];
+    if (earlier === void 0 || current.line - earlier.line > reach7) {
+      return false;
+    }
+    if (randomFill.test(earlier.content) && uses.test(earlier.content)) {
+      return false;
+    }
+    const assigned = assignment8.exec(earlier.content);
+    if (assigned?.[1] === name) {
+      return fixedValue.test((assigned[2] ?? "").trim()) && !randomFill.test(assigned[2] ?? "");
+    }
+  }
+  return false;
+}
+function splitArguments2(text) {
+  const args = [];
+  let depth = 0;
+  let quote;
+  let current = "";
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index] ?? "";
+    if (quote !== void 0) {
+      current += char;
+      if (char === "\\") {
+        current += text[index + 1] ?? "";
+        index += 1;
+      } else if (char === quote) {
+        quote = void 0;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+    } else if ("([{".includes(char)) {
+      depth += 1;
+    } else if (")]}".includes(char)) {
+      if (depth === 0) {
+        break;
+      }
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      args.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  args.push(current);
+  return args;
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -39195,7 +39383,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine16 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine17 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -39253,7 +39441,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine16.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine17.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -39350,10 +39538,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine17 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine18 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -39363,11 +39551,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation9.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine17.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine18.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -41163,8 +41351,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine18 = /^\s*#/;
-var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine19 = /^\s*#/;
+var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -41174,7 +41362,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation10.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findSettings(file.patch);
@@ -41207,7 +41395,7 @@ function findSettings(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine18.test(content)) {
+    if (commentLine19.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -41241,7 +41429,7 @@ var labels6 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine19 = /^\s*#/;
+var commentLine20 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -41317,7 +41505,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine19.test(content)) {
+    if (commentLine20.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -41407,7 +41595,7 @@ var settings = [
   }
 ];
 var allowsEverything = settings[0];
-var commentLine20 = /^\s*(?:#|\/\/)/;
+var commentLine21 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -41448,7 +41636,7 @@ var insecureInfrastructureRule = {
 function findSettings2(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine20.test(content)) {
+    if (!added || commentLine21.test(content)) {
       continue;
     }
     for (const setting of settings) {
@@ -41499,7 +41687,7 @@ var labels7 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation11 = /(?:^|\/)docs?\//i;
+var documentation12 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -41507,7 +41695,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine21 = /^\s*#/;
+var commentLine22 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -41517,7 +41705,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation11.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation12.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -41556,7 +41744,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine21.test(content) || content.trim() === "") {
+    if (commentLine22.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -41611,8 +41799,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine22 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine23 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -41622,11 +41810,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation12.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation13.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine22.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine23.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -41753,8 +41941,8 @@ var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
-var commentLine23 = /^\s*(?:#|\/\/|\*)/;
-var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine24 = /^\s*(?:#|\/\/|\*)/;
+var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var insecureWebConfigRule = {
   id: "insecure-web-config",
   description: "Flags CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production.",
@@ -41764,7 +41952,7 @@ var insecureWebConfigRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation13.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation14.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findSettings3(file.path, file.patch);
@@ -41791,7 +41979,7 @@ var insecureWebConfigRule = {
   }
 };
 function findSettings3(path5, patch) {
-  const lines = patchLines(patch).filter(({ content }) => !commentLine23.test(content));
+  const lines = patchLines(patch).filter(({ content }) => !commentLine24.test(content));
   const found = [];
   const origins = lines.filter(({ content }) => anyOrigin.some((pattern) => pattern.test(content)));
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
@@ -41848,10 +42036,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine24 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine25 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength14 = 500;
-var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength15 = 500;
+var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -41861,11 +42049,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation14.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation15.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine24.test(content) && content.length <= maxLineLength14 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine25.test(content) && content.length <= maxLineLength15 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -41924,8 +42112,8 @@ var settings2 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine26 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -41935,11 +42123,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation15.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation16.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine25.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine26.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -41988,8 +42176,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine26 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine27 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -41999,13 +42187,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation16.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation17.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine26.test(content)) {
+        if (!added || commentLine27.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -42261,10 +42449,10 @@ var languages5 = [
     )
   }
 ];
-var commentLine27 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine28 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation18 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength15 = 1e3;
+var maxLineLength16 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -42275,11 +42463,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages5.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation17.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (language === void 0 || file.patch === void 0 || documentation18.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine27.test(content) || content.length > maxLineLength15) {
+        if (!added || commentLine28.test(content) || content.length > maxLineLength16) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -42481,8 +42669,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine28 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation18 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine29 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation19 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -42493,7 +42681,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation18.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation19.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -42545,7 +42733,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine28.test(content)) {
+    if (commentLine29.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -42805,7 +42993,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation19 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -42815,7 +43003,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation19.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation20.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -43235,8 +43423,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine29 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine30 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation21 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -43246,7 +43434,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation20.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation21.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -43277,7 +43465,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine29.test(content)) {
+    if (commentLine30.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -43401,6 +43589,7 @@ var defaultRules = [
   uploadFilenameRule,
   reflectedXssRule,
   logInjectionRule,
+  staticIvRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -43741,6 +43930,7 @@ var ruleAreas = {
   "upload-filename": "code",
   "reflected-xss": "code",
   "log-injection": "code",
+  "static-iv": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -43797,6 +43987,7 @@ var ruleQuestions = {
   "upload-filename": "Are uploads stored under names the server makes, with their type checked?",
   "reflected-xss": "Is every request value escaped before it is written into an HTML response?",
   "log-injection": "Are line breaks removed from request values before they go into log text?",
+  "static-iv": "Does every encryption use a new random IV or nonce?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -43857,6 +44048,7 @@ var ruleSections = {
   "upload-filename": "Upload File Names",
   "reflected-xss": "Reflected XSS",
   "log-injection": "Log Injection",
+  "static-iv": "Static IVs",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
