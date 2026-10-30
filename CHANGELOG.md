@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.60.0 - 2026-10-30
+
+### Added
+
+- `nosql-injection` rule: warns about request bodies and query strings used as MongoDB filters, or as values in them, without a cast to text or `$eq`, such as `User.findOne({ email: req.body.email, password: req.body.password })`, where `{"$ne": null}` matches any password, and about `$where` expressions built from text. It reads Mongoose and the MongoDB drivers for Node.js, PyMongo and Motor, and the MongoDB PHP library, and follows names destructured from the request and objects taken from it a few lines before the query. Route parameters, Flask's `request.args`, casts, `$eq`, and values passed through a function such as a validator are not reported; `JSON.parse` and `json.loads` still count. On 24 packages built on MongoDB, such as Parse Server, Apostrophe, mongo-express, Feathers, Eve, Beanie, and MongoEngine, and on the 53,000 files of other library code, it reports none.
+
 ## 0.59.0 - 2026-10-30
 
 ### Added
