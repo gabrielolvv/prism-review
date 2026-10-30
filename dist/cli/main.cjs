@@ -1275,9 +1275,9 @@ ${indent}`) + "'";
         return quotedString(value, ctx);
       }
       const indent = ctx.indent || (ctx.forceBlockIndent || containsDocumentMarker(value) ? "  " : "");
-      const literal = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
+      const literal2 = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
       if (!value)
-        return literal ? "|\n" : ">\n";
+        return literal2 ? "|\n" : ">\n";
       let chomp;
       let endStart;
       for (endStart = value.length; endStart > 0; --endStart) {
@@ -1326,7 +1326,7 @@ ${indent}`) + "'";
         if (onComment)
           onComment();
       }
-      if (!literal) {
+      if (!literal2) {
         const foldedValue = value.replace(/\n+/g, "\n$&").replace(/(?:^|\n)([\t ].*)(?:([\n\t ]*)\n(?![\n\t ]))?/g, "$1$2").replace(/\n+/g, `$&${indent}`);
         let literalFallback = false;
         const foldOptions = getFoldOptions(ctx, true);
@@ -15382,6 +15382,7 @@ var ruleIds = [
   "blanket-suppression",
   "risky-api",
   "unescaped-html",
+  "timing-unsafe-comparison",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15561,6 +15562,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     unescapedHtml: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    timingUnsafeComparison: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -16121,11 +16125,11 @@ function isLiteralKey(argument) {
   for (const wrapper of byteWrappers) {
     value = wrapper.exec(value)?.[1] ?? value;
   }
-  const literal = stringLiteral.exec(value);
-  if (literal === null) {
+  const literal2 = stringLiteral.exec(value);
+  if (literal2 === null) {
     return false;
   }
-  const [, quote, text = ""] = literal;
+  const [, quote, text = ""] = literal2;
   return !(quote === "`" && text.includes("${")) && !publicKey.test(text);
 }
 function callArguments(content, start) {
@@ -16587,6 +16591,272 @@ function isWrittenText(expr) {
   return quoted.test(expr) && expr.replace(literalParts, "") === "";
 }
 
+// src/security/timing-compare.ts
+var secretWords2 = /* @__PURE__ */ new Set(["signature", "sig", "hmac", "token", "secret", "apikey", "csrf", "otp"]);
+var secretPairs2 = [
+  ["api", "key"],
+  ["access", "key"],
+  ["secret", "key"],
+  ["auth", "key"]
+];
+var otherWords = /* @__PURE__ */ new Set([
+  "length",
+  "len",
+  "size",
+  "count",
+  "type",
+  "types",
+  "kind",
+  "name",
+  "id",
+  "index",
+  "idx",
+  "value",
+  "text",
+  "raw",
+  "given",
+  "start",
+  "end",
+  "line",
+  "col",
+  "column",
+  "pos",
+  "position",
+  "offset",
+  "range",
+  "loc",
+  "location",
+  "char",
+  "next",
+  "current",
+  "cur",
+  "prev",
+  "previous",
+  "last",
+  "first",
+  "peek",
+  "lookahead",
+  "eof",
+  "page",
+  "cursor",
+  "continuation",
+  "pagination",
+  "cancellation",
+  "cancel",
+  "sync",
+  "resume",
+  "lexer",
+  "parser",
+  "syntax",
+  "ast",
+  "tokenizer",
+  "expires",
+  "expiry",
+  "expiration",
+  "ttl",
+  "header",
+  "prefix",
+  "is",
+  "has",
+  "should",
+  "valid",
+  "enabled",
+  "required",
+  "present",
+  "exists",
+  "missing",
+  "error",
+  "errors",
+  "status",
+  "state",
+  "ttype",
+  "contents",
+  "content",
+  "method",
+  "endpoint",
+  "username",
+  "user",
+  "account",
+  "identity",
+  "model",
+  "uuid",
+  "lookup",
+  "age",
+  "max",
+  "min",
+  "term",
+  "data",
+  "class",
+  "pointer",
+  "ptr",
+  "split",
+  "strip",
+  "lower",
+  "upper",
+  "omit",
+  "verify",
+  "verified",
+  "algorithm",
+  "alg",
+  "use",
+  "hash",
+  "digest",
+  "sub",
+  "iss",
+  "aud",
+  "exp",
+  "iat",
+  "nbf",
+  "scope",
+  "claims"
+]);
+var aboutWords = /* @__PURE__ */ new Set(["type", "types", "kind", "class", "name", "length", "len", "size", "count", "id", "ttype", "username", "user", "method", "data"]);
+var wrappers = /* @__PURE__ */ new Set(["len", "length", "size", "count", "typeof", "type", "sizeof", "strlen", "cap", "isinstance", "bool", "hash"]);
+var secretConstant = /(?:^|_)(?:SECRET|API_?KEY|SECRET_?KEY|AUTH_?TOKEN|ACCESS_?TOKEN|API_?TOKEN)$/;
+var constant = /^_?[A-Z][A-Z0-9_]*$/;
+var sameObject = /^(?:this|that|other|self|o|obj|rhs|lhs)$/;
+var languageTooling = /(?:^|[/_.-])(?:lexer|lex|parser|parse|compiler|tokenizer|tokenize|scanner|grammar|formatter|syntax|ast)(?:[/_.-]|s\/|$)/i;
+var equality = /(?<![=!<>])(?:===|!==|==|!=)(?!=)/g;
+var chainBefore = /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\s*$/;
+var chainAfter = /^\s*([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)/;
+var equalityCalls = [
+  /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\.(?:equals|Equals|contentEquals|SequenceEqual)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
+  /\b(?:bytes\.Equal|strcmp|Arrays\.equals|Objects\.equals)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g
+];
+var insertingText = /^\s*(?:`[^`]*\$\{|[fF]["'])/;
+var literal = /^\s*(?:[bBrRuU]{0,2}["']|`(?![^`]*\$\{)|-?\d|(?:null|undefined|None|nil|NULL|nullptr|true|false|True|False|void)\b|\[\s*\]|\{\s*\}|$)/;
+var reviewed2 = /#\s*nosec\b|nosemgrep/;
+var constantTime = /timingSafeEqual|compare_digest|secure_compare|hash_equals|ConstantTimeCompare|MessageDigest\.isEqual|FixedTimeEquals|constant_?time/i;
+var commentLine6 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var pascalCaseConstants = /\.(?:go|py)$/i;
+var sourceFile2 = /\.(?:[cm]?[jt]sx?|py|rb|go|java|kt|scala|cs|php)$/i;
+var skippedFile = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
+var maxLineLength5 = 1e3;
+function findTimingCompareLines(path2, patch) {
+  if (!sourceFile2.test(path2) || skippedFile.test(path2) || languageTooling.test(path2)) {
+    return [];
+  }
+  return patchLines(patch).flatMap(
+    ({ line, content, added }) => added && content.length <= maxLineLength5 && !commentLine6.test(content) && !constantTime.test(content) && !reviewed2.test(content) && comparesSecret(content, pascalCaseConstants.test(path2)) ? [line] : []
+  );
+}
+function comparesSecret(content, pascalCase) {
+  const pairs = [];
+  for (const match2 of content.matchAll(equality)) {
+    const left = chainBefore.exec(content.slice(0, match2.index))?.[1];
+    const rest = content.slice(match2.index + match2[0].length);
+    const right = insertingText.test(rest) ? "inserted" : chainAfter.exec(rest)?.[1];
+    if (left !== void 0 && right !== void 0 && !literal.test(rest)) {
+      pairs.push([left, right]);
+    }
+  }
+  const [method, call] = equalityCalls;
+  for (const match2 of content.matchAll(method ?? /$^/)) {
+    pairs.push([match2[1] ?? "", match2[2] ?? ""]);
+  }
+  for (const match2 of content.matchAll(call ?? /$^/)) {
+    const args = (match2[1] ?? "").split(",");
+    if (args.length === 2) {
+      pairs.push([args[0] ?? "", args[1] ?? ""]);
+    }
+  }
+  return pairs.some(([left, right]) => comparesSecretPair(left.trim(), right.trim(), pascalCase));
+}
+function comparesSecretPair(left, right, pascalCase) {
+  if ([left, right].some((side) => literal.test(side) || isFixedValue(side, pascalCase))) {
+    return false;
+  }
+  const [leftNames, rightNames] = [namesOf(left), namesOf(right)];
+  const fromObject = (chain, names) => names.length > 1 || /\)\s*$/.test(chain);
+  if (fromObject(left, leftNames) && fromObject(right, rightNames) && lastName(left) === lastName(right) && [leftNames[0], rightNames[0]].some((name) => name !== void 0 && sameObject.test(name))) {
+    return false;
+  }
+  const [leftSecret, rightSecret] = [isSecret(left), isSecret(right)];
+  if (leftSecret && !rightSecret && isAbout(right) || rightSecret && !leftSecret && isAbout(left)) {
+    return false;
+  }
+  return leftSecret || rightSecret;
+}
+function isFixedValue(chain, pascalCase) {
+  const last = lastName(chain);
+  const first = namesOf(chain)[0] ?? "";
+  if (constant.test(last) && last.length > 1) {
+    return !secretConstant.test(last);
+  }
+  const call = /\)\s*$/.test(chain);
+  return !call && /^[A-Z]/.test(last) && (pascalCase || /^[A-Z]/.test(first));
+}
+function isAbout(chain) {
+  return namesOf(chain).some((name) => wordsOf2(name).some((word2) => aboutWords.has(word2)));
+}
+function namesOf(chain) {
+  return chain.split(/[.[\]()'"?,:\s]+/).filter(Boolean);
+}
+function lastName(chain) {
+  const key = /\[\s*:?["']?([\w-]+)["']?\s*\]\s*$/.exec(chain);
+  if (key !== null && /\[\s*(?:["']|:)/.test(chain.slice(key.index))) {
+    return key[1] ?? "";
+  }
+  const stripped = chain.replace(/(?:\([^()]*\)|\[[^[\]]*\])+\s*$/, "");
+  return stripped.slice(stripped.lastIndexOf(".") + 1).replace(/^\?/, "");
+}
+function isSecret(chain) {
+  const names = namesOf(chain);
+  const secret = names.findIndex(isSecretName2);
+  return secret !== -1 && // A numeric index, as in `token[1]`, reads one part of a lexer's tuple.
+  !names.slice(secret + 1).some((name) => /^\d+$/.test(name) || wordsOf2(name).some((word2) => otherWords.has(word2))) && !names.slice(0, secret).some((name) => wrappers.has(name.toLowerCase()));
+}
+function isSecretName2(name) {
+  const words = wordsOf2(name);
+  if (words.some((word2) => otherWords.has(word2))) {
+    return false;
+  }
+  return words.some((word2) => secretWords2.has(word2)) || secretPairs2.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+}
+function wordsOf2(name) {
+  return name.split(/[_$-]/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word2) => word2.toLowerCase());
+}
+
+// src/rules/timing-unsafe-comparison.ts
+var timingUnsafeComparisonRule = {
+  id: "timing-unsafe-comparison",
+  description: "Flags signatures, tokens, and keys compared with an operator that stops at the first difference.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.timingUnsafeComparison.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = timingCompareLines(file);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "timing-unsafe-comparison",
+          title: "Secret compared in variable time",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "compare" : "compares"} what looks like a signature, token, or key with an operator that stops at the first difference, so how long the check takes can reveal the expected value one character at a time.`,
+          recommendation: "Compare secrets in constant time: crypto.timingSafeEqual in Node.js, hmac.compare_digest in Python, ActiveSupport::SecurityUtils.secure_compare in Ruby, subtle.ConstantTimeCompare in Go, MessageDigest.isEqual in Java, CryptographicOperations.FixedTimeEquals in .NET, or hash_equals in PHP."
+        }
+      ];
+    });
+  }
+};
+function timingCompareLines(file) {
+  if (file.timingCompareLines !== void 0) {
+    return file.timingCompareLines;
+  }
+  return file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -16654,7 +16924,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine6 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine7 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -16712,7 +16982,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine6.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine7.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -16809,7 +17079,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine7 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine8 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation5 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -16826,7 +17096,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine7.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine8.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -18684,7 +18954,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine8 = /^\s*#/;
+var commentLine9 = /^\s*#/;
 var documentation6 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -18728,7 +18998,7 @@ function findSettings(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine8.test(content)) {
+    if (commentLine9.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -18762,9 +19032,9 @@ var labels = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine9 = /^\s*#/;
-var secretWords2 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
-var secretPairs2 = [
+var commentLine10 = /^\s*#/;
+var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
+var secretPairs3 = [
   ["api", "key"],
   ["private", "key"],
   ["access", "key"],
@@ -18825,7 +19095,7 @@ function findRisks(patch) {
     if (keyword === "ADD" && added && /(?:^|\s)https?:\/\//i.test(args) && !/--checksum=/i.test(args)) {
       found.push({ line, kind: "remote-add" });
     }
-    if ((keyword === "ENV" || keyword === "ARG") && added && variableNames(keyword, args).some(isSecretName2)) {
+    if ((keyword === "ENV" || keyword === "ARG") && added && variableNames(keyword, args).some(isSecretName3)) {
       found.push({ line, kind: "secret-variable" });
     }
   }
@@ -18838,7 +19108,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine9.test(content)) {
+    if (commentLine10.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -18881,12 +19151,12 @@ function variableNames(keyword, args) {
   const name = keyword === "ENV" ? /(?:^|\s)([A-Za-z_][\w.-]{0,199})(?==)/g : /(?:^|\s)([A-Za-z_][\w.-]{0,199})(?==|\s|$)/g;
   return [...unquoted2.matchAll(name)].map((match2) => match2[1] ?? "");
 }
-function isSecretName2(name) {
+function isSecretName3(name) {
   const words = name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase().split(/[_.-]+/).filter((word2) => word2 !== "");
   if (words.length === 0 || locationWords.has(words[words.length - 1] ?? "") || words.includes("public")) {
     return false;
   }
-  return words.some((word2) => secretWords2.has(word2)) || secretPairs2.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
 function joinLabels3(labels9) {
   return labels9.length > 1 ? `${labels9.slice(0, -1).join(", ")}, and ${labels9.at(-1)}` : labels9[0] ?? "";
@@ -18928,7 +19198,7 @@ var settings = [
   }
 ];
 var allowsEverything = settings[0];
-var commentLine10 = /^\s*(?:#|\/\/)/;
+var commentLine11 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -18969,7 +19239,7 @@ var insecureInfrastructureRule = {
 function findSettings2(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine10.test(content)) {
+    if (!added || commentLine11.test(content)) {
       continue;
     }
     for (const setting of settings) {
@@ -19028,7 +19298,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine11 = /^\s*#/;
+var commentLine12 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -19077,7 +19347,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine11.test(content) || content.trim() === "") {
+    if (commentLine12.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -19132,7 +19402,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine12 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine13 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation8 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -19147,7 +19417,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine12.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine13.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -19274,7 +19544,7 @@ var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
-var commentLine13 = /^\s*(?:#|\/\/|\*)/;
+var commentLine14 = /^\s*(?:#|\/\/|\*)/;
 var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var insecureWebConfigRule = {
   id: "insecure-web-config",
@@ -19312,7 +19582,7 @@ var insecureWebConfigRule = {
   }
 };
 function findSettings3(path2, patch) {
-  const lines = patchLines(patch).filter(({ content }) => !commentLine13.test(content));
+  const lines = patchLines(patch).filter(({ content }) => !commentLine14.test(content));
   const found = [];
   const origins = lines.filter(({ content }) => anyOrigin.some((pattern) => pattern.test(content)));
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
@@ -19358,8 +19628,8 @@ var labels5 = {
   ecb: "encrypts in ECB mode, which shows where the plaintext repeats",
   "weak-random": "makes a secret value with a random generator that is not meant for security"
 };
-var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "passphrase", "secret", "token", "nonce", "salt", "otp", "apikey", "csrf"]);
-var secretPairs3 = [
+var secretWords4 = /* @__PURE__ */ new Set(["password", "passwd", "passphrase", "secret", "token", "nonce", "salt", "otp", "apikey", "csrf"]);
+var secretPairs4 = [
   ["api", "key"],
   ["session", "id"],
   ["reset", "code"],
@@ -19369,9 +19639,9 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine14 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine15 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength5 = 500;
+var maxLineLength6 = 500;
 var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
@@ -19386,7 +19656,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine14.test(content) && content.length <= maxLineLength5 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine15.test(content) && content.length <= maxLineLength6 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -19420,7 +19690,7 @@ function kindsIn2(content) {
 }
 function mentionsSecret(content) {
   const words = content.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word2) => word2.toLowerCase());
-  return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords4.has(word2)) || secretPairs4.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
 }
 function joinLabels8(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
@@ -19445,7 +19715,7 @@ var settings2 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine15 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -19460,7 +19730,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine15.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine16.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -19509,7 +19779,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine17 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -19526,7 +19796,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine16.test(content)) {
+        if (!added || commentLine17.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -19782,10 +20052,10 @@ var languages2 = [
     )
   }
 ];
-var commentLine17 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine18 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength6 = 1e3;
+var maxLineLength7 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -19800,7 +20070,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine17.test(content) || content.length > maxLineLength6) {
+        if (!added || commentLine18.test(content) || content.length > maxLineLength7) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -19869,7 +20139,7 @@ var guarded = {
   path: /\b(?:path\.basename|basename|secure_filename|filepath\.Base|Path\.GetFileName|File\.basename|sanitize\w*)\s*\(/
 };
 var fixedTarget = /^\s*\(?\s*(["'`])(?:\/(?![\/$])|https?:\/\/[\w.-]+(?:[:/?]|\1))/;
-var commentLine18 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine19 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var untrustedInputRule = {
   id: "untrusted-input",
@@ -19886,7 +20156,7 @@ var untrustedInputRule = {
       const ruby = rubyFile.test(file.path);
       const fromRequest = (content) => requestValue.test(content) || ruby && railsParams.test(content);
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine18.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine19.test(content) && fromRequest(content) ? sinks.filter(([kind, sink]) => reaches(content, kind, sink)).map(([kind]) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -20082,7 +20352,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine19 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine20 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -20146,7 +20416,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine19.test(content)) {
+    if (commentLine20.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -20836,7 +21106,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine20 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine21 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -20878,7 +21148,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine20.test(content)) {
+    if (commentLine21.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -20993,6 +21263,7 @@ var defaultRules = [
   blanketSuppressionRule,
   riskyApiRule,
   unescapedHtmlRule,
+  timingUnsafeComparisonRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -21103,10 +21374,10 @@ function analyzePullRequest(files, config2, options = {}) {
     matchers: override.paths.map((glob) => new Minimatch(glob, { dot: true })),
     severity: override.severity
   }));
-  const { reviewed: reviewed2, ignoredByConfig, generated } = partitionFiles(files, config2, isGenerated);
+  const { reviewed: reviewed3, ignoredByConfig, generated } = partitionFiles(files, config2, isGenerated);
   const all = rules.flatMap(
     (rule) => rule.run({
-      files: rule.seesIgnoredFiles ? files : reviewed2,
+      files: rule.seesIgnoredFiles ? files : reviewed3,
       config: config2,
       configPath,
       extendedConfigPaths,
@@ -21118,11 +21389,11 @@ function analyzePullRequest(files, config2, options = {}) {
   const protectedRules = new Set(rules.filter((rule) => rule.seesIgnoredFiles).map((rule) => rule.id));
   const { kept: findings, suppressed } = applySuppressions(files, all, protectedRules);
   return {
-    summary: buildSummary(reviewed2.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
-    riskLevel: calculateRiskLevel(reviewed2, findings, config2),
+    summary: buildSummary(reviewed3.length, ignoredByConfig.size, generated.size, findings, suppressed.length),
+    riskLevel: calculateRiskLevel(reviewed3, findings, config2),
     findings,
     suppressed,
-    ...nonEmpty("dependencyChanges", dependencyChanges(reviewed2))
+    ...nonEmpty("dependencyChanges", dependencyChanges(reviewed3))
   };
 }
 function partitionFiles(files, config2, isGenerated = () => false) {
@@ -21133,8 +21404,8 @@ function partitionFiles(files, config2, isGenerated = () => false) {
   const generated = new Set(
     files.filter((file) => !ignoredByConfig.has(file) && leftOut(file, (path2) => isIgnored(path2) || isGenerated(path2)))
   );
-  const reviewed2 = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
-  return { reviewed: reviewed2, ignoredByConfig, generated };
+  const reviewed3 = files.filter((file) => !ignoredByConfig.has(file) && !generated.has(file));
+  return { reviewed: reviewed3, ignoredByConfig, generated };
 }
 function nonEmpty(key, values) {
   return values.length > 0 ? { [key]: values } : {};
@@ -21157,10 +21428,10 @@ function applySeverityOverride(finding2, config2, pathOverrides) {
 function buildSummary(reviewedCount, ignoredCount, generatedCount, findings, suppressedCount) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
   const generated = generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
-  const reviewed2 = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
+  const reviewed3 = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found = findings.length === 0 ? "No configured risk signals were detected." : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
   const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
-  return `${reviewed2} ${found}${suppressed}`;
+  return `${reviewed3} ${found}${suppressed}`;
 }
 function calculateRiskLevel(files, findings, config2) {
   if (findings.some((finding2) => finding2.severity === "high")) {
@@ -21503,6 +21774,7 @@ var ruleAreas = {
   "untrusted-input": "code",
   "risky-api": "code",
   "unescaped-html": "code",
+  "timing-unsafe-comparison": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -21585,6 +21857,7 @@ var ruleQuestions = {
   "insecure-web-config": "Which origins may send credentials, and do the cookies and debug settings match production?",
   "risky-api": "Can input from users, files, or the network reach the flagged calls?",
   "unescaped-html": "Is every value written into the page without escaping either fixed text or sanitized first?",
+  "timing-unsafe-comparison": "Are signatures, tokens, and keys compared in constant time?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -21636,6 +21909,7 @@ var ruleSections = {
   "blanket-suppression": "Blanket Suppressions",
   "risky-api": "Risky APIs",
   "unescaped-html": "Unescaped HTML",
+  "timing-unsafe-comparison": "Timing-Unsafe Comparison",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -22124,6 +22398,7 @@ function prepareChangedFiles(files, config2) {
     jwtKeyLines: file.patch === void 0 ? [] : findJwtKeyLines(file.path, file.patch),
     secretLogLines: file.patch === void 0 ? [] : findSecretLogLines(file.path, file.patch),
     urlCredentialLines: file.patch === void 0 ? [] : findUrlCredentialLines(file.path, file.patch, allowlist),
+    timingCompareLines: file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch),
     ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {},
     ...file.patch !== void 0 && isSourceFile(file.path) ? { lockfileSources: findLockfileSources(file.path, file.patch, config2.rules.lockfileSources.allowedSources) } : {}
   }));
@@ -22347,7 +22622,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.57.0" : "development";
+var version2 = true ? "0.58.0" : "development";
 
 // src/cli/main.ts
 var usage = [
