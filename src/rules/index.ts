@@ -5,6 +5,7 @@ import { credentialFileRule } from "./credential-file.js";
 import { hardcodedJwtSecretRule } from "./hardcoded-jwt-secret.js";
 import { secretLoggingRule } from "./secret-logging.js";
 import { urlCredentialsRule } from "./url-credentials.js";
+import { unescapedHtmlRule } from "./unescaped-html.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -53,6 +54,7 @@ export const defaultRules: Rule[] = [
   skippedTestsRule,
   blanketSuppressionRule,
   riskyApiRule,
+  unescapedHtmlRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

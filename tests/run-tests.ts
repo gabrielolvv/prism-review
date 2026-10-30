@@ -427,6 +427,13 @@ import {
   testUrlCredentialsSkipsTestsDocsAndCredentialFiles
 } from "./unit/url-credentials.test.js";
 import {
+  testUnescapedHtmlCanBeDisabled,
+  testUnescapedHtmlReadsEachTemplateEngine,
+  testUnescapedHtmlReportsOneFindingPerFile,
+  testUnescapedHtmlSkipsTestsDocsAndOtherFiles,
+  testUnescapedHtmlSkipsTextAndEscapedValues
+} from "./unit/unescaped-html.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -746,6 +753,11 @@ const tests: Array<[string, Test]> = [
   ["url-credentials skips tests, docs, and credential files", testUrlCredentialsSkipsTestsDocsAndCredentialFiles],
   ["url-credentials can be disabled", testUrlCredentialsCanBeDisabled],
   ["url-credentials redacts the password", testUrlCredentialsRedactsThePassword],
+  ["unescaped-html reports one finding per file", testUnescapedHtmlReportsOneFindingPerFile],
+  ["unescaped-html reads each template engine", testUnescapedHtmlReadsEachTemplateEngine],
+  ["unescaped-html skips text and escaped values", testUnescapedHtmlSkipsTextAndEscapedValues],
+  ["unescaped-html skips tests, docs, and other files", testUnescapedHtmlSkipsTestsDocsAndOtherFiles],
+  ["unescaped-html can be disabled", testUnescapedHtmlCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
