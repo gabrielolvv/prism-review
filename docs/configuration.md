@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -108,6 +108,8 @@ rules:
   postMessageOrigin:
     enabled: true
   nosqlInjection:
+    enabled: true
+  templateInjection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -482,6 +484,30 @@ These are not reported:
 - Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 Sanitizing middleware, such as express-mongo-sanitize, or Mongoose's `sanitizeFilter` option also prevents this; the rule cannot see them, so disable it when every request passes through one.
+
+## Template Injection
+
+### `rules.templateInjection.enabled`
+
+The `template-injection` rule reports a high-risk finding per file where a template is compiled from text that comes from the request. Template engines run the expressions in a template, so a request that writes `{{ ... }}` or `<%= ... %>` into the template text runs code on the server (server-side template injection).
+
+| Language | Calls read, and the argument that holds the template text |
+| --- | --- |
+| Python | `render_template_string`, `Template` (Jinja and Mako), and `.from_string`: the first |
+| JavaScript and TypeScript | `ejs.render`, `ejs.compile`, `Handlebars.compile`, `pug.render`, `pug.compile`, `nunjucks.renderString`, `env.renderString`, `_.template`, `doT.template`: the first |
+| Ruby | `ERB.new`, `Erubi::Engine.new`, `Haml::Engine.new`, `Slim::Template.new`, `Tilt::*Template.new`: the first; `render inline:` |
+| PHP | Twig's `->createTemplate`, `Blade::render`: the first; Smarty's `->fetch("string:...")` and `->display("string:...")` |
+| Java and Kotlin | `Velocity.evaluate`: the fourth; FreeMarker's `new Template(name, new StringReader(...))` |
+| Go | `template.New(...).Parse` in `text/template` and `html/template`: the first |
+
+The template text counts as coming from the request when it holds a request value that `untrusted-input` recognizes, or, in Java, `request.getParameter`, `getHeader`, `getQueryString`, `getReader`, or `getInputStream`. It also counts when it holds a name assigned from one up to 30 lines before, directly or through other names, as in `name = request.args.get("name")` followed by `render_template_string("<h1>" + name + "</h1>")`, or `const { template } = req.body`.
+
+These are not reported:
+
+- Request values passed only as template variables, such as `render_template_string(PAGE, name=request.args["name"])` or `ejs.render(template, { name: req.query.name })`.
+- Templates read from files or written as fixed text, and Python's `string.Template`, which only substitutes values.
+- A name assigned from the request and then reassigned from something else.
+- Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1030,7 +1056,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
