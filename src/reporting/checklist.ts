@@ -49,6 +49,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "log-injection": "Are line breaks removed from request values before they go into log text?",
   "static-iv": "Does every encryption use a new random IV or nonce?",
   "plaintext-password": "Are passwords stored only as slow, salted hashes and checked with the library's verify function?",
+  "admin-route-auth": "Does every new admin or internal route check who is calling and what role they have?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

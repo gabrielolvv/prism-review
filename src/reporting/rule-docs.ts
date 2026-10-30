@@ -28,6 +28,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "log-injection": "Log Injection",
   "static-iv": "Static IVs",
   "plaintext-password": "Plaintext Passwords",
+  "admin-route-auth": "Admin Route Access",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
