@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.57.0 - 2026-10-30
+
+### Added
+
+- `unescaped-html` rule: warns about template output and calls that write a value into HTML without escaping it, such as Vue's `v-html`, Svelte's `{@html}`, Angular's `bypassSecurityTrustHtml`, Jinja and Django's `|safe` and `{% autoescape off %}`, Twig's `|raw`, Blade's `{!! !!}`, Handlebars' `{{{ }}}`, EJS's `<%-`, ERB's `<%==`, Haml, Slim, and Pug's unescaped output, Thymeleaf's `th:utext`, JSP's `escapeXml="false"`, and Python's `mark_safe` and `Markup`. Text written in the template, values already escaped such as `| tojson | safe`, Django's `help_text|safe`, layouts such as `{{{body}}}`, includes, and lines marked `# nosec` are not reported. On about 43,000 files of library code, it reports 46 files, almost all in Django, Django REST framework, and Flask-AppBuilder, where these calls are how the frameworks build their own HTML.
+
 ## 0.56.0 - 2026-10-30
 
 ### Added
