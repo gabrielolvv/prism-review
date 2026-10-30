@@ -92,6 +92,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `plaintext-password` rule for passwords compared in plain text (0.68.0).
 - `admin-route-auth` rule for admin routes without an access check (0.69.0).
 - Security severities, related locations, and rule help in the SARIF report (0.70.0).
+- No private key findings for throwaway keys in tests, examples, and docs (0.71.0).
 
 ## Later
 
