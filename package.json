@@ -1,6 +1,6 @@
 {
   "name": "@gabrielolvv/prism-review",
-  "version": "0.64.0",
+  "version": "0.65.0",
   "description": "Reviews pull requests for risky changes before a human does: workflows, dependencies, infrastructure, secrets, code, and tests. A GitHub Action and a CLI.",
   "type": "module",
   "bin": {
