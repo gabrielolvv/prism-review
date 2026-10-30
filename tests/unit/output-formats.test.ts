@@ -70,8 +70,9 @@ export function testRenderSarifMapsFindingsForCodeScanning(): void {
   const tags = new Map(
     run.tool.driver.rules.map((rule: { id: string; properties: { tags: string[] } }) => [rule.id, rule.properties.tags])
   );
-  assert.deepEqual(tags.get("secret-in-diff"), ["secrets"]);
-  assert.deepEqual(tags.get("unpinned-action"), ["supply-chain"]);
+  assert.deepEqual(tags.get("secret-in-diff"), ["secrets", "security"]);
+  assert.deepEqual(tags.get("unpinned-action"), ["supply-chain", "security"]);
+  assert.deepEqual(tags.get("large-diff"), ["review-scope"]);
 
   // Findings without a file, such as large-diff, cannot be placed for code scanning.
   assert.deepEqual(
@@ -90,4 +91,42 @@ export function testRenderSarifMapsFindingsForCodeScanning(): void {
   assert.equal(run.results[1].locations[0].physicalLocation.region, undefined);
   assert.equal(run.results[0].suppressions, undefined);
   assert.deepEqual(run.results[2].suppressions, [{ kind: "inSource", justification: "pinned by checksum" }]);
+}
+
+export function testRenderSarifRanksSecurityRulesAndListsEveryLine(): void {
+  const sarif = JSON.parse(renderSarif(result, defaultRules));
+  const run = sarif.runs[0];
+  type SarifRuleJson = {
+    id: string;
+    helpUri: string;
+    help: { text: string; markdown: string };
+    defaultConfiguration?: { level: string };
+    properties: Record<string, unknown>;
+  };
+  const rules = new Map<string, SarifRuleJson>(run.tool.driver.rules.map((rule: SarifRuleJson) => [rule.id, rule]));
+
+  // Security rules carry the most severe level they reported as a security severity, which code
+  // scanning ranks as High, Medium, or Low; other rules carry a problem severity instead.
+  assert.equal(rules.get("sql-injection")?.properties["security-severity"], "8.0");
+  assert.equal(rules.get("sql-injection")?.defaultConfiguration?.level, "error");
+  assert.equal(rules.get("remote-script")?.properties["security-severity"], "5.0");
+  assert.equal(rules.get("sensitive-files")?.properties["security-severity"], undefined);
+  assert.equal(rules.get("sensitive-files")?.properties["problem.severity"], "recommendation");
+  // Rules that reported nothing have no level.
+  assert.equal(rules.get("redos")?.defaultConfiguration, undefined);
+  assert.equal(rules.get("redos")?.properties["security-severity"], undefined);
+
+  // Every rule links its help to its section of the documentation.
+  assert.match(rules.get("sql-injection")?.help.markdown ?? "", /\[Read about `sql-injection`\]\(https:\/\/github\.com\/.+#sql-injection\)/);
+  assert.equal(rules.get("sql-injection")?.helpUri.endsWith("#sql-injection"), true);
+
+  // A finding's other lines are related locations of the same alert.
+  assert.deepEqual(run.results[0].relatedLocations, [
+    {
+      id: 1,
+      physicalLocation: { artifactLocation: { uri: "src/my%20reports%231.ts" }, region: { startLine: 9 } },
+      message: { text: "Also line 9." }
+    }
+  ]);
+  assert.equal(run.results[2].relatedLocations, undefined);
 }
