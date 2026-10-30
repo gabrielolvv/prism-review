@@ -2,6 +2,15 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.70.0 - 2026-10-30
+
+### Changed
+
+- The SARIF report ranks security alerts. Rules about secrets, the supply chain, infrastructure, and code carry the `security` tag and a `security-severity`, 8.0 when they reported a high-risk finding and 5.0 for a warning, so code scanning shows their alerts as High or Medium and branch protection can block merging on them. Rules about tests and the size of the review carry a `problem.severity` instead. Each rule that reported a finding has a `defaultConfiguration.level`.
+- A finding on several lines lists its other lines as `relatedLocations` of the same alert, instead of pointing only to the first line.
+- Each rule in the SARIF report has a `fullDescription` and `help`, in text and Markdown, that links to its section in `docs/configuration.md`, which code scanning shows on each alert.
+- The report was checked against the SARIF 2.1.0 schema.
+
 ## 0.69.0 - 2026-10-30
 
 ### Added
