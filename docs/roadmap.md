@@ -80,6 +80,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `url-credentials` rule for passwords in connection URLs (0.56.0).
 - `unescaped-html` rule for template output written without HTML escaping (0.57.0).
 - `timing-unsafe-comparison` rule for secrets compared in variable time (0.58.0).
+- `postmessage-origin` rule for cross-window messages without an origin check (0.59.0).
 
 ## Later
 
