@@ -456,6 +456,13 @@ import {
   testNosqlInjectionSkipsTestsAndOtherFiles
 } from "./unit/nosql-injection.test.js";
 import {
+  testTemplateInjectionCanBeDisabled,
+  testTemplateInjectionReadsEachEngine,
+  testTemplateInjectionReportsOneFindingPerFile,
+  testTemplateInjectionSkipsRequestValuesPassedAsVariables,
+  testTemplateInjectionSkipsTestsAndDocs
+} from "./unit/template-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -796,6 +803,11 @@ const tests: Array<[string, Test]> = [
   ["nosql-injection skips cast and text values", testNosqlInjectionSkipsCastAndTextValues],
   ["nosql-injection skips tests and other files", testNosqlInjectionSkipsTestsAndOtherFiles],
   ["nosql-injection can be disabled", testNosqlInjectionCanBeDisabled],
+  ["template-injection reports one finding per file", testTemplateInjectionReportsOneFindingPerFile],
+  ["template-injection reads each engine", testTemplateInjectionReadsEachEngine],
+  ["template-injection skips request values passed as variables", testTemplateInjectionSkipsRequestValuesPassedAsVariables],
+  ["template-injection skips tests and docs", testTemplateInjectionSkipsTestsAndDocs],
+  ["template-injection can be disabled", testTemplateInjectionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

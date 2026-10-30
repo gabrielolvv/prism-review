@@ -15,11 +15,11 @@ const labels: Record<Kind, string> = {
 
 // Values the person sending the request chooses: Express and Koa, Flask and Django, PHP, Go's
 // net/http, Rails, ASP.NET Core, and Next.js search parameters.
-const requestValue =
+export const requestValue =
   /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|headers|cookies|url)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|META|FILES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE|SERVER\[\s*["']HTTP_)|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\(|Header\.Get\()|\bRequest\.(?:Query|Form|Headers|Cookies)\[|\bsearchParams\.get\(/;
 // Rails' `params[...]`. In other languages, `params` is usually a function's own argument, such as
 // an Ansible module's options.
-const railsParams = /(?<![\w.@])params\[/;
+export const railsParams = /(?<![\w.@])params\[/;
 const rubyFile = /\.(?:rb|erb|rake)$/i;
 
 const sinks: Array<[Kind, RegExp]> = [

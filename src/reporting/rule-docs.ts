@@ -20,6 +20,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "timing-unsafe-comparison": "Timing-Unsafe Comparison",
   "postmessage-origin": "postMessage Origin",
   "nosql-injection": "NoSQL Injection",
+  "template-injection": "Template Injection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
