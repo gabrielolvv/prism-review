@@ -44986,12 +44986,22 @@ function escapeProperty(value) {
 
 // src/reporting/render-sarif.ts
 var levels = { high: "error", warning: "warning", info: "note" };
+var severityOrder = ["info", "warning", "high"];
+var securitySeverity = { high: "8.0", warning: "5.0", info: "2.0" };
+var securityAreas = /* @__PURE__ */ new Set(["secrets", "supply-chain", "infrastructure", "code"]);
+var docsHome = "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md";
 function renderSarif(result, rules) {
   const located = (finding2) => finding2.file !== void 0;
-  const results = [
-    ...result.findings.filter(located).map((finding2) => sarifResult(finding2)),
-    ...(result.suppressed ?? []).filter(located).map((finding2) => sarifResult(finding2, finding2))
-  ];
+  const findings = result.findings.filter(located);
+  const suppressed = (result.suppressed ?? []).filter(located);
+  const results = [...findings.map((finding2) => sarifResult(finding2)), ...suppressed.map((finding2) => sarifResult(finding2, finding2))];
+  const reported = /* @__PURE__ */ new Map();
+  for (const finding2 of [...findings, ...suppressed]) {
+    const current = reported.get(finding2.ruleId);
+    if (current === void 0 || severityOrder.indexOf(finding2.severity) > severityOrder.indexOf(current)) {
+      reported.set(finding2.ruleId, finding2.severity);
+    }
+  }
   return JSON.stringify(
     {
       $schema: "https://json.schemastore.org/sarif-2.1.0.json",
@@ -45002,14 +45012,7 @@ function renderSarif(result, rules) {
             driver: {
               name: "Prism Review",
               informationUri: "https://github.com/gabrielolvv/prism-review",
-              rules: rules.map((rule) => ({
-                id: rule.id,
-                name: rule.id,
-                shortDescription: { text: rule.description },
-                helpUri: ruleDocsUrl(rule.id) ?? "https://github.com/gabrielolvv/prism-review/blob/master/docs/configuration.md",
-                // Code scanning lets alerts be filtered by tag.
-                properties: { tags: [areaOf(rule.id)] }
-              }))
+              rules: rules.map((rule) => sarifRule(rule, reported.get(rule.id)))
             }
           },
           results
@@ -45020,7 +45023,36 @@ function renderSarif(result, rules) {
     2
   );
 }
+function sarifRule(rule, severity) {
+  const area = areaOf(rule.id);
+  const security = securityAreas.has(area);
+  const helpUri = ruleDocsUrl(rule.id) ?? docsHome;
+  return {
+    id: rule.id,
+    name: rule.id,
+    shortDescription: { text: rule.description },
+    fullDescription: { text: rule.description },
+    helpUri,
+    // Code scanning shows the help on each alert.
+    help: {
+      text: `${rule.description} See ${helpUri} for what the rule reads, what it leaves out, and how to turn it off.`,
+      markdown: `${rule.description}
+
+[Read about \`${rule.id}\`](${helpUri}): what it reads, what it leaves out, and how to turn it off.`
+    },
+    ...severity === void 0 ? {} : { defaultConfiguration: { level: levels[severity] } },
+    // Code scanning lets alerts be filtered by tag. A `security` tag and a security severity let it
+    // rank alerts as High, Medium, or Low and let branch protection block on them.
+    properties: {
+      tags: security ? [area, "security"] : [area],
+      ...security && severity !== void 0 ? { "security-severity": securitySeverity[severity] } : {},
+      ...!security && severity !== void 0 ? { "problem.severity": severity === "high" ? "error" : severity === "warning" ? "warning" : "recommendation" } : {}
+    }
+  };
+}
 function sarifResult(finding2, suppressed) {
+  const uri = fileUri(finding2.file ?? "");
+  const otherLines = (finding2.lines ?? []).filter((line) => line !== finding2.line);
   return {
     ruleId: finding2.ruleId,
     level: levels[finding2.severity],
@@ -45028,11 +45060,18 @@ function sarifResult(finding2, suppressed) {
     locations: [
       {
         physicalLocation: {
-          artifactLocation: { uri: fileUri(finding2.file ?? "") },
+          artifactLocation: { uri },
           ...finding2.line === void 0 ? {} : { region: { startLine: finding2.line } }
         }
       }
     ],
+    ...otherLines.length === 0 ? {} : {
+      relatedLocations: otherLines.map((line, index) => ({
+        id: index + 1,
+        physicalLocation: { artifactLocation: { uri }, region: { startLine: line } },
+        message: { text: `Also line ${line}.` }
+      }))
+    },
     // An inline suppression is SARIF's in-source suppression; code scanning shows it as dismissed.
     ...suppressed === void 0 ? {} : { suppressions: [{ kind: "inSource", justification: suppressed.suppressionReason }] }
   };
