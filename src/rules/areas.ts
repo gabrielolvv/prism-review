@@ -54,6 +54,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "log-injection": "code",
   "static-iv": "code",
   "plaintext-password": "code",
+  "admin-route-auth": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

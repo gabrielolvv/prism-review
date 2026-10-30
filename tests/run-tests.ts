@@ -512,6 +512,13 @@ import {
   testPlaintextPasswordSkipsTestsAndOtherFiles
 } from "./unit/plaintext-password.test.js";
 import {
+  testAdminRouteAuthReadsEachFramework,
+  testAdminRouteAuthReportsOneFindingPerFile,
+  testAdminRouteAuthReportsUnguardedRoutesNextToGuardedOnes,
+  testAdminRouteAuthSkipsGuardedRoutes,
+  testAdminRouteAuthSkipsTestsAndCanBeDisabled
+} from "./unit/admin-route-auth.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -892,6 +899,11 @@ const tests: Array<[string, Test]> = [
   ["plaintext-password skips hashes and other checks", testPlaintextPasswordSkipsHashesAndOtherChecks],
   ["plaintext-password skips tests and other files", testPlaintextPasswordSkipsTestsAndOtherFiles],
   ["plaintext-password can be disabled", testPlaintextPasswordCanBeDisabled],
+  ["admin-route-auth reports one finding per file", testAdminRouteAuthReportsOneFindingPerFile],
+  ["admin-route-auth reads each framework", testAdminRouteAuthReadsEachFramework],
+  ["admin-route-auth reports unguarded routes next to guarded ones", testAdminRouteAuthReportsUnguardedRoutesNextToGuardedOnes],
+  ["admin-route-auth skips guarded routes", testAdminRouteAuthSkipsGuardedRoutes],
+  ["admin-route-auth skips tests and can be disabled", testAdminRouteAuthSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
