@@ -39,7 +39,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Runs on GitHub Pull Request events
 - Fetches changed files through the GitHub API
 - Applies configurable risk rules
-- Reports credentials added in the diff, on the line where they appear, without ever printing the value, JWT signing keys written in the code, and secrets written to logs
+- Reports credentials added in the diff, on the line where they appear, without ever printing the value, JWT signing keys written in the code, secrets written to logs, and passwords in connection URLs
 - Flags script injection and other risky changes to GitHub Actions workflows
 - Flags bidirectional control characters and invisible text that make code read differently from how it runs
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
@@ -206,7 +206,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.55.0
+    rev: v0.56.0
     hooks:
       - id: prism-review
 ```
@@ -241,7 +241,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.55.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.56.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -350,6 +350,7 @@ flowchart TD
 | `credential-file` | High | Flags committed private keys, key stores, Terraform state, and credential files, and secrets added to `.env`, `.npmrc`, and `.pypirc` files. |
 | `hardcoded-jwt-secret` | Warning | Flags JSON Web Tokens signed or verified with a key written in the code, such as `jwt.sign(payload, "secret")`, in Node.js, Python, Ruby, PHP, Java, Go, and .NET. |
 | `secret-logging` | Warning | Flags log and console calls that write a password, token, API key, or other value named like a secret, such as `logger.info(user.password)` or `` console.log(`Bearer ${token}`) ``, in JavaScript, Python, Ruby, Go, Java, C#, and PHP. |
+| `url-credentials` | High | Flags URLs with a real-looking password in them, such as `postgres://app:<password>@db.acme.io/app` in code, Compose files, or Helm values. Placeholders, template syntax such as `${DB_PASSWORD}`, local development defaults, and `localhost` are skipped. |
 | `disabled-security-check` | High or Warning | Flags code that turns off TLS certificate verification or token signature checks, and warns when CSRF protection is turned off. |
 | `hidden-unicode` | High or Warning | Flags bidirectional controls (Trojan Source) and invisible characters added to code or file names. |
 | `workflow-risk` | High or Warning | Flags script injection, `pull_request_target`, checkout of pull request code, `write-all` permissions, write scopes granted to every job, and new workflows that set no permissions. |
