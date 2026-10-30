@@ -171,6 +171,8 @@ jobs:
 
 `if: always()` uploads the report even when `check.failOn` fails the review step. Findings about the pull request as a whole, such as `large-diff` and `incomplete-review`, have no file to point to, so they stay in the comment and are not in the SARIF report. Findings suppressed inline are included as suppressed, with their reason, and code scanning shows them as dismissed. `sarif-file` must be a relative path inside the workspace.
 
+Rules about secrets, the supply chain, infrastructure, and code carry the `security` tag and a security severity, so code scanning ranks their alerts as High (a high-risk finding) or Medium (a warning) and a branch protection rule can block merging on them. Rules about tests and the size of the review carry a problem severity instead. A finding on several lines is one alert on its first line, with the other lines listed as related locations, and each rule's help links to its section in [docs/configuration.md](docs/configuration.md).
+
 ## Local Development
 
 ```bash
@@ -219,7 +221,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.69.0
+    rev: v0.70.0
     hooks:
       - id: prism-review
 ```
@@ -254,7 +256,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.69.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.70.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
