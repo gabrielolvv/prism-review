@@ -2,7 +2,7 @@ import { patchLines } from "../analysis/added-lines.js";
 
 // Calls that write to a log or the console, in JavaScript, Python, Ruby, Go, Java, Kotlin, C#, and
 // PHP. The match ends at the call's opening parenthesis, or at the space before Ruby's arguments.
-const logCall = new RegExp(
+export const logCall = new RegExp(
   [
     String.raw`\bconsole\.(?:log|info|warn|error|debug|trace)\s*\(`,
     String.raw`\b(?:logger|log|_logger|LOGGER|LOG|logging|Logger|Log|winston|pino|bunyan|signale|self\.logger|self\.log|this\.logger|this\.log|Rails\.logger|app\.logger|current_app\.logger)\.(?:log|info|warn|warning|error|debug|trace|fatal|critical|exception|verbose|notice|Debug|Info|Warn|Error|Fatal|Print|Printf|Println|Debugf|Infof|Warnf|Errorf|Fatalf|LogInformation|LogDebug|LogWarning|LogError|LogTrace|LogCritical)\s*[(\s]`,
@@ -127,7 +127,7 @@ function describes(name: string): boolean {
 
 // The code of the arguments, with the text of string literals removed but the values they insert
 // kept, as in `${token}`, f"{token}", or "#{token}".
-function codeOutsideText(text: string): string {
+export function codeOutsideText(text: string): string {
   return text.replace(/([fF]?)(["'`])((?:\\.|(?!\2)[^\\])*)\2/g, (_literal, prefix: string, quote: string, body: string) => {
     const inserted = [
       ...body.matchAll(quote === "`" ? /\$\{([^}]*)\}/g : prefix !== "" ? /\{([^}]*)\}/g : /#\{([^}]*)\}/g)

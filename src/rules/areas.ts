@@ -51,6 +51,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "ldap-xpath-injection": "code",
   "upload-filename": "code",
   "reflected-xss": "code",
+  "log-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
