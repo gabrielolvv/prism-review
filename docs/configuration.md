@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -104,6 +104,8 @@ rules:
   unescapedHtml:
     enabled: true
   timingUnsafeComparison:
+    enabled: true
+  postMessageOrigin:
     enabled: true
   remoteScripts:
     enabled: true
@@ -434,6 +436,23 @@ These are not reported:
 - Comment lines, lines marked `# nosec` or `nosemgrep`, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 The comparisons are found before redaction, which rewrites lines such as `if token == expected_token`, and only their line numbers are kept.
+
+## postMessage Origin
+
+### `rules.postMessageOrigin.enabled`
+
+The `postmessage-origin` rule reads added lines in JavaScript, TypeScript, Vue, Svelte, and HTML files and reports one warning per file with either of these:
+
+- A `postMessage` call to another window, such as `parent`, `top`, `opener`, an iframe's `contentWindow`, or a popup, with `*` as the target origin: `postMessage(data, "*")` or `postMessage(data, { targetOrigin: "*" })`. The data reaches whatever page is loaded in that window at the time, which may have navigated elsewhere.
+- A message listener on the window, `window.addEventListener("message", ...)` or `window.onmessage = ...`, whose handler never checks who sent the message. Any website that can open or frame the page can send it messages.
+
+A handler counts as checking the sender when, within 25 lines of its start, it reads `origin`, compares `event.source`, uses `isTrusted` or a list of allowed origins, or passes the event to a helper such as `sanitize(e, origin)`, `validateMessage(event)`, or `isTrustedMessage(event)`. A handler passed by name, such as `handleMessage` or `this.onMessage`, is read where the patch defines it; when the patch does not define it, it is not reported.
+
+These are not reported:
+
+- A window posting to itself, such as `window.postMessage(token, "*")` in a `setImmediate` polyfill.
+- Workers, `MessagePort`s, `BroadcastChannel`s, and WebSockets, which also receive `message` events but not from other websites: `worker.postMessage(data, [buffer])`, `port.onmessage`, `socket.addEventListener("message", ...)`, and bare `addEventListener("message", ...)` in worker files.
+- Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -982,7 +1001,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
