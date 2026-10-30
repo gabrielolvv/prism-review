@@ -90,6 +90,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `log-injection` rule for request values written into log text (0.66.0).
 - `static-iv` rule for encryption with a fixed IV or nonce (0.67.0).
 - `plaintext-password` rule for passwords compared in plain text (0.68.0).
+- `admin-route-auth` rule for admin routes without an access check (0.69.0).
 
 ## Later
 
