@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.56.0 - 2026-10-30
+
+### Added
+
+- `url-credentials` rule: reports, as high risk, URLs with a password in them, such as database, Redis, MongoDB, AMQP, or Git connection strings, in code, Docker Compose files, Helm values, Spring properties, and other text files. Template syntax such as `${DB_PASSWORD}` or `{{ .Values.password }}`, placeholders, local development defaults such as `postgres:postgres`, documentation pairs such as `scott:tiger`, very short passwords, `localhost`, and example hosts are not reported. Environment and package manager files stay with `credential-file`. On about 43,000 files of library code, it reports none.
+
+### Changed
+
+- Redaction replaces the password of each reported URL, so a review shows `postgres://app:[REDACTED]@db.acme.io/app`.
+
 ## 0.55.0 - 2026-10-29
 
 ### Added
