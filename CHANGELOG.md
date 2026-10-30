@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.64.0 - 2026-10-30
+
+### Added
+
+- `upload-filename` rule: warns about uploads saved or placed in a path under the file name the client sent, which can hold `../`, replace another file, or end in `.php` or `.html`, such as `f.save(os.path.join(UPLOADS, f.filename))`, multer's `cb(null, file.originalname)`, `move_uploaded_file($tmp, "uploads/" . $_FILES["f"]["name"])`, or `file.transferTo(new File(dir, file.getOriginalFilename()))`. It reads Flask, multer, express-fileupload, PHP, Laravel, Spring, the Servlet API, Go, ASP.NET Core, and Rails, and follows names assigned from the client's name. Names reduced with `secure_filename`, `basename`, `FilenameUtils.getName`, `filepath.Base`, `Path.GetFileName`, or by taking what follows the last slash, and names the server makes, are not reported. On 20 upload libraries, such as multer, formidable, busboy, Uppy Companion, Strapi's upload plugin, Flask-Reuploaded, Flask-Admin, django-filer, and gin, and on about 75,000 files of other library code, it reports none.
+
 ## 0.63.0 - 2026-10-30
 
 ### Added
