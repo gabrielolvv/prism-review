@@ -22033,6 +22033,7 @@ var riskyApiRule = {
 var privateKeyHeader = /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g;
 var detectedFormats = [...credentialFormats, { kind: "private key", pattern: privateKeyHeader }];
 var keyMaterial = /[A-Za-z0-9+/]{40,}/;
+var materialAfterHeader = /^(?:\\[rn]|[\s"'`+,])*[A-Za-z0-9][A-Za-z0-9+/]{39,}/;
 var materialWindow = 6;
 var documentedExample = /^AKIA[0-9A-Z]{9}EXAMPLE$/;
 function detectSecrets(files, allowlist = []) {
@@ -22057,8 +22058,10 @@ function hasKeyMaterial(lines, index) {
   if (header === void 0) {
     return false;
   }
-  const afterHeader = header.content.slice(header.content.lastIndexOf("-----") + 5);
-  if (keyMaterial.test(afterHeader)) {
+  const sameLine = [...header.content.matchAll(privateKeyHeader)].some(
+    (match2) => materialAfterHeader.test(header.content.slice(match2.index + match2[0].length))
+  );
+  if (sameLine) {
     return true;
   }
   return lines.slice(index + 1, index + 1 + materialWindow).some(({ line, content }) => line - header.line <= materialWindow && keyMaterial.test(content));
@@ -22074,7 +22077,11 @@ var secretInDiffRule = {
       return [];
     }
     const allowlist = config2.security.redaction.allowlist.map((source) => new RegExp(source));
-    return files.map((file) => ({ file, secrets: secretsIn(file, allowlist) })).filter(({ secrets }) => secrets.length > 0).map(({ file, secrets }) => ({
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.map((file) => ({ file, secrets: secretsIn(file, allowlist) })).map(({ file, secrets }) => ({
+      file,
+      secrets: isSamplePath(file.path, testGlobs) ? secrets.filter((secret) => secret.kind !== "private key") : secrets
+    })).filter(({ secrets }) => secrets.length > 0).map(({ file, secrets }) => ({
       ruleId: "secret-in-diff",
       title: "Possible secret added",
       severity: "high",
@@ -22093,6 +22100,11 @@ function secretsIn(file, allowlist) {
     return file.secrets;
   }
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist);
+}
+var sampleDirectory = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
+var documentation21 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+function isSamplePath(path2, testGlobs) {
+  return isTestDataPath(path2) || sampleDirectory.test(path2) || documentation21.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -22121,7 +22133,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation21 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation22 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -22131,7 +22143,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation21.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation22.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -22552,7 +22564,7 @@ var languageStrings = [
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
 var commentLine32 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation22 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation23 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -22562,7 +22574,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation22.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation23.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
