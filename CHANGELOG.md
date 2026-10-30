@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.66.0 - 2026-10-30
+
+### Added
+
+- `log-injection` rule: warns about request values from query strings, bodies, forms, and cookies written into the text of a log or console line, where a line break can add fake entries, such as ``logger.info(`Failed login for ${req.body.username}`)``, `logging.info("Search: %s", request.args.get("q"))`, or `log.trace("Authenticating username '" + username + "'")` after `username = request.getParameter("j_username")`. It reads the log calls `secret-logging` reads and follows names assigned a request value. Structured fields, whole request objects, values cleaned of line breaks or quoted (`%r`, `!r`, `%q`, `JSON.stringify`), URLs, headers, route parameters, and names inside string text are not reported. On about 81,000 files of library code, it reports four, such as Tomcat's form login and Spring's locale interceptor, which log the submitted username and locale.
+
 ## 0.65.0 - 2026-10-30
 
 ### Added
