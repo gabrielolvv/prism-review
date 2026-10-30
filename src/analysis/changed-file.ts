@@ -31,6 +31,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that hold a URL
   // with a password in it.
   urlCredentialLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that compare a
+  // signature, token, or key in variable time.
+  timingCompareLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
