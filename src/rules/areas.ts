@@ -48,6 +48,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "nosql-injection": "code",
   "template-injection": "code",
   "prototype-pollution": "code",
+  "ldap-xpath-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

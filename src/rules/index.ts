@@ -11,6 +11,7 @@ import { postMessageOriginRule } from "./postmessage-origin.js";
 import { nosqlInjectionRule } from "./nosql-injection.js";
 import { templateInjectionRule } from "./template-injection.js";
 import { prototypePollutionRule } from "./prototype-pollution.js";
+import { ldapXpathInjectionRule } from "./ldap-xpath-injection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -65,6 +66,7 @@ export const defaultRules: Rule[] = [
   nosqlInjectionRule,
   templateInjectionRule,
   prototypePollutionRule,
+  ldapXpathInjectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
