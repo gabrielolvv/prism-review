@@ -442,6 +442,13 @@ import {
   testTimingUnsafeComparisonSkipsTestsAndLanguageTooling
 } from "./unit/timing-unsafe-comparison.test.js";
 import {
+  testPostMessageOriginCanBeDisabled,
+  testPostMessageOriginReadsEachForm,
+  testPostMessageOriginReportsOneFindingPerFile,
+  testPostMessageOriginSkipsCheckedAndOtherMessages,
+  testPostMessageOriginSkipsTestsAndServerFiles
+} from "./unit/postmessage-origin.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -772,6 +779,11 @@ const tests: Array<[string, Test]> = [
   ["timing-unsafe-comparison skips tests and language tooling", testTimingUnsafeComparisonSkipsTestsAndLanguageTooling],
   ["timing-unsafe-comparison can be disabled", testTimingUnsafeComparisonCanBeDisabled],
   ["timing-unsafe-comparison sees lines that redaction rewrites", testTimingUnsafeComparisonSeesLinesRedactionRewrites],
+  ["postmessage-origin reports one finding per file", testPostMessageOriginReportsOneFindingPerFile],
+  ["postmessage-origin reads each form", testPostMessageOriginReadsEachForm],
+  ["postmessage-origin skips checked and other messages", testPostMessageOriginSkipsCheckedAndOtherMessages],
+  ["postmessage-origin skips tests and server files", testPostMessageOriginSkipsTestsAndServerFiles],
+  ["postmessage-origin can be disabled", testPostMessageOriginCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

@@ -18,6 +18,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "risky-api": "Risky APIs",
   "unescaped-html": "Unescaped HTML",
   "timing-unsafe-comparison": "Timing-Unsafe Comparison",
+  "postmessage-origin": "postMessage Origin",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
