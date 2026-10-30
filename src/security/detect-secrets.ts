@@ -9,6 +9,10 @@ const detectedFormats = [...credentialFormats, { kind: "private key", pattern: p
 // next lines, after headers such as `Proc-Type: 4,ENCRYPTED` in encrypted keys or `Version:` in PGP.
 // A header alone, such as a constant a TLS library uses to write keys, holds no key.
 const keyMaterial = /[A-Za-z0-9+/]{40,}/;
+// On the header's line, the material must come right after it, past line breaks, quotes, and string
+// concatenation. Elsewhere on a minified line, a long name or a base64 alphabet is not key material.
+// The material starts with a letter or digit, so a run of "+" can only be read one way.
+const materialAfterHeader = /^(?:\\[rn]|[\s"'`+,])*[A-Za-z0-9][A-Za-z0-9+/]{39,}/;
 const materialWindow = 6;
 // AWS's documentation uses AKIAIOSFODNN7EXAMPLE, and SDKs and their tests copy it.
 const documentedExample = /^AKIA[0-9A-Z]{9}EXAMPLE$/;
@@ -45,8 +49,11 @@ function hasKeyMaterial(lines: Array<{ line: number; content: string }>, index: 
   if (header === undefined) {
     return false;
   }
-  const afterHeader = header.content.slice(header.content.lastIndexOf("-----") + 5);
-  if (keyMaterial.test(afterHeader)) {
+  // A key in one string, such as a service account's JSON, ends with its END line on the same line.
+  const sameLine = [...header.content.matchAll(privateKeyHeader)].some(
+    (match) => materialAfterHeader.test(header.content.slice(match.index + match[0].length))
+  );
+  if (sameLine) {
     return true;
   }
   return lines

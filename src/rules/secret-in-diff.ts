@@ -1,4 +1,6 @@
+import { minimatch } from "minimatch";
 import type { ChangedFile, SecretMatch } from "../analysis/changed-file.js";
+import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 import { findAddedSecrets } from "../security/detect-secrets.js";
 import { describeLines } from "./line-list.js";
@@ -13,9 +15,14 @@ export const secretInDiffRule: Rule = {
     }
 
     const allowlist = config.security.redaction.allowlist.map((source) => new RegExp(source));
+    const testGlobs = config.rules.missingTests.testGlobs;
 
     return files
       .map((file) => ({ file, secrets: secretsIn(file, allowlist) }))
+      .map(({ file, secrets }) => ({
+        file,
+        secrets: isSamplePath(file.path, testGlobs) ? secrets.filter((secret) => secret.kind !== "private key") : secrets
+      }))
       .filter(({ secrets }) => secrets.length > 0)
       .map(({ file, secrets }) => ({
         ruleId: "secret-in-diff",
@@ -40,6 +47,21 @@ function secretsIn(file: ChangedFile, allowlist: RegExp[]): SecretMatch[] {
   }
 
   return file.patch === undefined ? [] : findAddedSecrets(file.patch, allowlist);
+}
+
+// Tests, examples, and documentation that show TLS or signing generate a throwaway private key.
+// Token formats are still reported there: a token opens a real account, while a test key signs nothing
+// anyone trusts.
+const sampleDirectory = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
+const documentation = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+
+function isSamplePath(path: string, testGlobs: string[]): boolean {
+  return (
+    isTestDataPath(path) ||
+    sampleDirectory.test(path) ||
+    documentation.test(path) ||
+    testGlobs.some((glob) => minimatch(path, glob))
+  );
 }
 
 function describe(lines: number[], kinds: string[]): string {
