@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -100,6 +100,8 @@ rules:
   blanketSuppression:
     enabled: true
   riskyApis:
+    enabled: true
+  unescapedHtml:
     enabled: true
   remoteScripts:
     enabled: true
@@ -381,6 +383,36 @@ The `risky-api` rule warns, with the first line number, when a pull request adds
 | PHP | `eval(...)`, `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `unserialize(...)` | `$runner->exec(...)`, `Foo::exec(...)`, `function exec(...)`, `json_decode(...)` |
 
 Only added lines are checked, and lines that define a function or method with one of these names, such as `def eval(self):` or a class method `exec(command) {`, are not reported. Files matched by `rules.missingTests.testGlobs` are skipped, because tests call these on purpose with fixed input, and only source files of the languages above are scanned.
+
+## Unescaped HTML
+
+### `rules.unescapedHtml.enabled`
+
+The `unescaped-html` rule reads added lines in templates and source files and reports one warning per file where a value is written into the page without HTML escaping. If the value holds user input, it can run scripts in the page (cross-site scripting).
+
+| Engine | Forms read |
+| --- | --- |
+| Vue | `v-html="..."`, in `.vue`, HTML, and script files |
+| Svelte | `{@html ...}` |
+| Angular | `bypassSecurityTrustHtml`, `Script`, `Style`, `Url`, and `ResourceUrl`. `[innerHTML]` is not reported, since Angular sanitizes it. |
+| Jinja, Django, Nunjucks, Twig | `{{ value\|safe }}`, `{{ value\|raw }}`, `{% autoescape off %}`, `{% autoescape false %}` |
+| Handlebars and Mustache | `{{{ value }}}`, `{{& value }}` |
+| EJS | `<%- value %>` |
+| Blade | `{!! $value !!}` |
+| ERB, Haml, Slim | `<%== value %>`, `!= value`, `== value` |
+| Pug | `!= value`, `!{value}` |
+| Thymeleaf | `th:utext="${...}"` |
+| JSP | `<c:out ... escapeXml="false"/>` |
+| Python | `mark_safe(...)`, `SafeString(...)`, `Markup(...)`, `autoescape=False` |
+
+`risky-api` already reports React's raw HTML prop, `innerHTML`, Rails' `html_safe` and `raw`, `Html.Raw`, and Go's `template.HTML`, so this rule leaves them out.
+
+These are not reported:
+
+- Text written in the template, translated or not, such as `v-html="'<br>'"`, `mark_safe("<br>")`, or `{{ _('<b>Note</b>')|safe }}`.
+- Values another step already escaped, such as `{{ data | tojson | safe }}` or Django's `{{ field.help_text|safe }}`, which the developer writes. `Markup("<b>%s</b>") % name` escapes `name`, and `format_html` is not reported.
+- Layouts and includes: Handlebars' `{{{body}}}`, EJS's `<%- include(...) %>`, and EJS templates that generate other files, such as `app.js.ejs`. Thymeleaf's `#{...}` messages.
+- Comment lines, lines marked `# nosec` or `nosemgrep`, documentation and files under `doc/` or `docs/`, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -929,7 +961,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
