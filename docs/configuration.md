@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -102,6 +102,8 @@ rules:
   riskyApis:
     enabled: true
   unescapedHtml:
+    enabled: true
+  timingUnsafeComparison:
     enabled: true
   remoteScripts:
     enabled: true
@@ -413,6 +415,25 @@ These are not reported:
 - Values another step already escaped, such as `{{ data | tojson | safe }}` or Django's `{{ field.help_text|safe }}`, which the developer writes. `Markup("<b>%s</b>") % name` escapes `name`, and `format_html` is not reported.
 - Layouts and includes: Handlebars' `{{{body}}}`, EJS's `<%- include(...) %>`, and EJS templates that generate other files, such as `app.js.ejs`. Thymeleaf's `#{...}` messages.
 - Comment lines, lines marked `# nosec` or `nosemgrep`, documentation and files under `doc/` or `docs/`, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Timing-Unsafe Comparison
+
+### `rules.timingUnsafeComparison.enabled`
+
+The `timing-unsafe-comparison` rule reads added lines in source files and reports one warning per file where a signature, HMAC, token, or API key is compared with an operator or method that stops at the first character that differs: `==`, `===`, `!=`, `!==`, `equals`, `Equals`, `SequenceEqual`, `Objects.equals`, `Arrays.equals`, `bytes.Equal`, or `strcmp`. An attacker who can time the check can find the expected value one character at a time, as in `if (signature !== expected)` in a webhook handler or `if req.headers.get("X-Api-Key") != settings.API_KEY`.
+
+A side counts as secret when a word of a name in it is `signature`, `sig`, `hmac`, `token`, `secret`, `apikey`, `csrf`, or `otp`, or two words are `api key`, `access key`, `secret key`, or `auth key`, as in `req.headers['x-hub-signature-256']`, `params[:token]`, or `ENV['WEBHOOK_SECRET']`.
+
+These are not reported:
+
+- Lines that already use a constant-time comparison: `crypto.timingSafeEqual`, `hmac.compare_digest`, `secure_compare`, `subtle.ConstantTimeCompare`, `MessageDigest.isEqual`, `CryptographicOperations.FixedTimeEquals`, or `hash_equals`.
+- Comparisons with fixed values, such as `null`, `undefined`, `None`, numbers, text, `TOKEN_LENGTH`, or enum members such as `JsonToken.START_OBJECT`. Constants named like a secret, such as `API_KEY` or `WEBHOOK_SECRET`, still count.
+- Names about a token rather than its value, such as `token.length`, `len(token)`, `typeof token`, `tokenType`, `token.type`, `nextToken`, `pageToken`, or `CancellationToken`, and OpenID nonces, which are not secret.
+- `equals` methods that compare one field of two objects, such as `Objects.equals(this.token, that.token)`.
+- Files of lexers, parsers, compilers, tokenizers, scanners, and grammars, whose tokens are pieces of text.
+- Comment lines, lines marked `# nosec` or `nosemgrep`, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+The comparisons are found before redaction, which rewrites lines such as `if token == expected_token`, and only their line numbers are kept.
 
 ## Disabled Security Checks
 
@@ -961,7 +982,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
