@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.61.0 - 2026-10-30
+
+### Added
+
+- `template-injection` rule: reports, as high risk, templates compiled from text that comes from the request, directly or through a name assigned from it up to 30 lines before, such as `render_template_string("<h1>Hello " + name + "</h1>")` after `name = request.args.get("name")`, `ejs.render(req.body.template)`, or `render inline: params[:template]`. It reads Flask, Jinja, Django, Mako, EJS, Handlebars, Pug, Nunjucks, Lodash, doT, ERB, Haml, Slim, Twig, Blade, Smarty, Velocity, FreeMarker, and Go templates, and only the argument that holds the template text, so request values passed as template variables are not reported. On about 73,000 files of library code, it reports none.
+
 ## 0.60.0 - 2026-10-30
 
 ### Added
