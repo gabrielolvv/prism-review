@@ -83,6 +83,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `postmessage-origin` rule for cross-window messages without an origin check (0.59.0).
 - `nosql-injection` rule for request values in MongoDB filters (0.60.0).
 - `template-injection` rule for templates compiled from request input (0.61.0).
+- `prototype-pollution` rule for unguarded recursive merges and nested request keys (0.62.0).
 
 ## Later
 

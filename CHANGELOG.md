@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.62.0 - 2026-10-30
+
+### Added
+
+- `prototype-pollution` rule: warns about recursive merge, extend, and clone functions added in JavaScript or TypeScript that write into their target by key and go down into `target[key]` without checking for `constructor` or `prototype`, including jQuery-style functions that take their target from `arguments`, and about assignments such as `config[section][key] = value` where a key comes from the request. Skipping only `__proto__` does not count as a check for merges, since `{"constructor": {"prototype": ...}}` reaches the same place. Merges that write into a new object or a copy are not reported. On 26 packages at versions with prototype pollution advisories, it reports 11, such as deep-extend 0.5.0, extend 3.0.1, jQuery 3.3.1, assign-deep 0.4.7, merge-deep 3.0.1, and node.extend 1.1.6; on about 75,000 files of current library code, it reports three files, the unguarded recursive copies in fast-xml-parser and Apostrophe.
+
 ## 0.61.0 - 2026-10-30
 
 ### Added
