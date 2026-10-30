@@ -77,6 +77,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - SameSite=None cookies in `insecure-web-config` (0.53.0).
 - `extends` for configuration shared across repositories (0.54.0).
 - `secret-logging` rule for secrets written to logs (0.55.0).
+- `url-credentials` rule for passwords in connection URLs (0.56.0).
 
 ## Later
 
