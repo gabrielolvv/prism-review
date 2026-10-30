@@ -45,6 +45,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Flags added calls that deserve a security review, such as `eval`, shell execution, unsafe deserialization, and raw HTML writes, in JavaScript, TypeScript, Python, Go, Ruby, Java, Kotlin, PHP, C#, and Swift
 - Flags template output written without HTML escaping, such as `v-html`, `|safe`, `{!! !!}`, `{{{ }}}`, or `mark_safe`, across Vue, Svelte, Angular, Jinja, Django, Twig, Blade, Handlebars, EJS, Pug, ERB, Haml, Slim, Thymeleaf, and JSP
 - Flags signatures, tokens, and API keys compared with `==` or `equals` instead of a constant-time comparison such as `crypto.timingSafeEqual` or `hmac.compare_digest`
+- Flags `postMessage(data, "*")` to other windows and window message listeners that never check `event.origin`
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, dependencies named like popular packages or moved to older or unbounded versions, manifests changed without their lockfile, unpinned third-party actions, and scripts piped from the internet into a shell
@@ -208,7 +209,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.58.0
+    rev: v0.59.0
     hooks:
       - id: prism-review
 ```
@@ -243,7 +244,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.58.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.59.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -374,6 +375,7 @@ flowchart TD
 | `risky-api` | Warning | Flags added calls that run code, start a shell, deserialize data, or write raw HTML. |
 | `unescaped-html` | Warning | Flags template output and calls that write a value into HTML without escaping it, such as `v-html`, `{@html}`, `\|safe`, `\|raw`, `{!! !!}`, `{{{ }}}`, `<%-`, `th:utext`, `mark_safe`, or `bypassSecurityTrustHtml`. Text written in the template and values already escaped, such as `\| tojson \| safe`, are skipped. |
 | `timing-unsafe-comparison` | Warning | Flags signatures, HMACs, tokens, and API keys compared with `==`, `===`, `equals`, `bytes.Equal`, or `strcmp`, which stop at the first difference, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP. Checks for a missing token, lexer and page tokens, and constant-time comparisons are skipped. |
+| `postmessage-origin` | Warning | Flags `postMessage` calls to another window with `*` as the target origin, and `window` message listeners whose handler never checks `event.origin` or `event.source`, in JavaScript, TypeScript, Vue, Svelte, and HTML. Workers, ports, WebSockets, and a window posting to itself are skipped. |
 | `lookalike-dependency` | Warning | Flags added dependencies named one character away from a popular npm, PyPI, RubyGems, crates.io, Go, Packagist, NuGet, or Maven package, such as `expresss` or `reqeusts`, a common typosquatting trick. |
 | `risky-dependency-version` | Warning | Flags dependencies moved to an older version, and versions changed to accept any future release, such as `*`, `latest`, or `>=2.0` with no upper bound. |
 | `stale-lockfile` | Warning | Flags manifests whose dependencies change while the lockfile that pins them, such as `package-lock.json` or `Cargo.lock`, is not updated. |
