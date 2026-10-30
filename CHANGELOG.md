@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.69.0 - 2026-10-30
+
+### Added
+
+- `admin-route-auth` rule: warns about routes under `/admin`, `/internal`, `/backoffice`, `/staff`, or `/manage` registered with no authentication or role check, such as `router.delete("/admin/users/:id", deleteUser)` or a Flask `@app.route("/admin/...")` without `@login_required`. It reads Express, Koa, Fastify, Hono, Flask, Quart, Go routers, and Laravel, and counts middleware, decorators, groups, file-wide hooks such as `router.use(authenticate)` or `before_request`, and checks at the start of the handler. In a changed file, an unguarded route only counts when another route in the patch is guarded, since protection may sit in another file. On eight applications with admin APIs, such as Medusa, Directus, Ghost, NodeBB, Strapi's admin, and Verdaccio, and on about 83,000 files of library code, it reports none.
+
 ## 0.68.0 - 2026-10-30
 
 ### Added
