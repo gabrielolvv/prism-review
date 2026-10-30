@@ -21,6 +21,7 @@ export const ruleIds: readonly string[] = [
   "template-injection",
   "prototype-pollution",
   "ldap-xpath-injection",
+  "upload-filename",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

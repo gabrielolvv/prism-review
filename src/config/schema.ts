@@ -260,6 +260,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      uploadFilename: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)

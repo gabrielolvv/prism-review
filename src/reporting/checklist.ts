@@ -44,6 +44,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "template-injection": "Are templates kept in files or fixed text, with request values passed only as variables?",
   "prototype-pollution": "Do merges and assignments by key skip `__proto__`, `constructor`, and `prototype`?",
   "ldap-xpath-injection": "Is every value in an LDAP filter or XPath expression escaped or bound as a variable?",
+  "upload-filename": "Are uploads stored under names the server makes, with their type checked?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
