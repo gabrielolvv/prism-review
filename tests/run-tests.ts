@@ -225,7 +225,8 @@ import {
 } from "./unit/inline-suppression.test.js";
 import {
   testRenderJsonKeepsEveryField,
-  testRenderSarifMapsFindingsForCodeScanning
+  testRenderSarifMapsFindingsForCodeScanning,
+  testRenderSarifRanksSecurityRulesAndListsEveryLine
 } from "./unit/output-formats.test.js";
 import {
   testEveryRuleHasAnArea,
@@ -735,6 +736,7 @@ const tests: Array<[string, Test]> = [
   ["inline suppression shares the comment size limit", testInlineSuppressionSharesTheCommentSizeLimit],
   ["render JSON keeps every field", testRenderJsonKeepsEveryField],
   ["render SARIF maps findings for code scanning", testRenderSarifMapsFindingsForCodeScanning],
+  ["render SARIF ranks security rules and lists every line", testRenderSarifRanksSecurityRulesAndListsEveryLine],
   ["every rule has an area", testEveryRuleHasAnArea],
   ["render markdown groups findings by area", testRenderMarkdownGroupsFindingsByArea],
   ["render markdown lists one area without groups", testRenderMarkdownListsOneAreaWithoutGroups],
