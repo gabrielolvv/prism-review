@@ -2,6 +2,17 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.71.0 - 2026-10-30
+
+### Changed
+
+- `secret-in-diff` no longer reports private keys under `test/`, `tests/`, `testdata/`, `fixtures/`, `test-fixtures/`, `__tests__/`, `__mocks__/`, `spec/`, `examples/`, `samples/`, `demos/`, `docs/`, or `testcerts/`, in test files, or in documentation, because tests and examples that show TLS or signing generate a throwaway key. GitHub tokens, OpenAI-style keys, and AWS access key IDs are still reported in every file. On about 95,000 files of library and application code, the rule now reports 2 files instead of 102: the key Netty embeds in its source, and a test module outside a test directory.
+
+### Fixed
+
+- On a private key header's line, the key material must follow the header. A minified bundle that checks whether a string starts with the header, such as auth0-spa-js, was reported as a key because of a long name further on the line.
+- A whole key in one string, such as the `private_key` of a service account's JSON with its END line on the same line, is now reported. The material was looked for after the last `-----` of the line, which is past the END line.
+
 ## 0.70.0 - 2026-10-30
 
 ### Changed
