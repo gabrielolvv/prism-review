@@ -13,6 +13,7 @@ import { templateInjectionRule } from "./template-injection.js";
 import { prototypePollutionRule } from "./prototype-pollution.js";
 import { ldapXpathInjectionRule } from "./ldap-xpath-injection.js";
 import { uploadFilenameRule } from "./upload-filename.js";
+import { reflectedXssRule } from "./reflected-xss.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -69,6 +70,7 @@ export const defaultRules: Rule[] = [
   prototypePollutionRule,
   ldapXpathInjectionRule,
   uploadFilenameRule,
+  reflectedXssRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
