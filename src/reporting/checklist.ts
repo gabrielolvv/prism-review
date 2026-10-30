@@ -48,6 +48,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "reflected-xss": "Is every request value escaped before it is written into an HTML response?",
   "log-injection": "Are line breaks removed from request values before they go into log text?",
   "static-iv": "Does every encryption use a new random IV or nonce?",
+  "plaintext-password": "Are passwords stored only as slow, salted hashes and checked with the library's verify function?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

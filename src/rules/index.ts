@@ -16,6 +16,7 @@ import { uploadFilenameRule } from "./upload-filename.js";
 import { reflectedXssRule } from "./reflected-xss.js";
 import { logInjectionRule } from "./log-injection.js";
 import { staticIvRule } from "./static-iv.js";
+import { plaintextPasswordRule } from "./plaintext-password.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -75,6 +76,7 @@ export const defaultRules: Rule[] = [
   reflectedXssRule,
   logInjectionRule,
   staticIvRule,
+  plaintextPasswordRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

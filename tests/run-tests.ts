@@ -505,6 +505,13 @@ import {
   testStaticIvSkipsTestsAndDocs
 } from "./unit/static-iv.test.js";
 import {
+  testPlaintextPasswordCanBeDisabled,
+  testPlaintextPasswordReadsEachLanguage,
+  testPlaintextPasswordReportsOneFindingPerFile,
+  testPlaintextPasswordSkipsHashesAndOtherChecks,
+  testPlaintextPasswordSkipsTestsAndOtherFiles
+} from "./unit/plaintext-password.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -880,6 +887,11 @@ const tests: Array<[string, Test]> = [
   ["static-iv skips random IVs", testStaticIvSkipsRandomIvs],
   ["static-iv skips tests and docs", testStaticIvSkipsTestsAndDocs],
   ["static-iv can be disabled", testStaticIvCanBeDisabled],
+  ["plaintext-password reports one finding per file", testPlaintextPasswordReportsOneFindingPerFile],
+  ["plaintext-password reads each language", testPlaintextPasswordReadsEachLanguage],
+  ["plaintext-password skips hashes and other checks", testPlaintextPasswordSkipsHashesAndOtherChecks],
+  ["plaintext-password skips tests and other files", testPlaintextPasswordSkipsTestsAndOtherFiles],
+  ["plaintext-password can be disabled", testPlaintextPasswordCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
