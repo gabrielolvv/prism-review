@@ -26,6 +26,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "upload-filename": "Upload File Names",
   "reflected-xss": "Reflected XSS",
   "log-injection": "Log Injection",
+  "static-iv": "Static IVs",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

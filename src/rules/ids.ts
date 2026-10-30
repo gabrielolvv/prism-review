@@ -24,6 +24,7 @@ export const ruleIds: readonly string[] = [
   "upload-filename",
   "reflected-xss",
   "log-injection",
+  "static-iv",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
