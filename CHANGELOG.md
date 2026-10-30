@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.59.0 - 2026-10-30
+
+### Added
+
+- `postmessage-origin` rule: warns about `postMessage` calls to another window with `*` as the target origin, and `window` message listeners whose handler never checks `event.origin` or `event.source`, in JavaScript, TypeScript, Vue, Svelte, and HTML. Handlers passed by name are read where the patch defines them, and checks through a helper such as `sanitize(e, origin)` count. Workers, ports, WebSockets, and a window posting to itself are not reported. On 27 browser packages that use cross-window messages, such as Keycloak, MSAL, auth0-spa-js, oidc-client-ts, Stripe, PayPal, Braintree, Teams, penpal, post-robot, and iframe-resizer, it reports two: frame-messenger, which posts to iframes with `*`, and Postmate, whose reply handler does not check the sender. On the 45,000 files of other library code, it reports none.
+
 ## 0.58.0 - 2026-10-30
 
 ### Added
