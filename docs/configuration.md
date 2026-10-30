@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -122,6 +122,8 @@ rules:
   logInjection:
     enabled: true
   staticIv:
+    enabled: true
+  plaintextPassword:
     enabled: true
   remoteScripts:
     enabled: true
@@ -650,6 +652,24 @@ These are not reported:
 - IVs made or filled with random bytes: `crypto.randomBytes`, `getRandomValues`, `randomFill`, `os.urandom`, `secrets.token_bytes`, `get_random_bytes`, `SecureRandom.nextBytes`, `io.ReadFull(rand.Reader, ...)`, `rand.Read`, `RandomNumberGenerator`, `GenerateIV()`, `random_bytes`, `openssl_random_pseudo_bytes`, `random_iv`, and the like, and calls that let the library pick one, such as `AES.new(key, AES.MODE_GCM)`.
 - IVs read back from the ciphertext when decrypting, such as `input.slice(0, 16)` or `Arrays.copyOfRange(data, 0, 16)`.
 - Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Plaintext Passwords
+
+### `rules.plaintextPassword.enabled`
+
+The `plaintext-password` rule reports a high-risk finding per file where the password a user typed is compared directly with a stored password. A comparison that works means the database holds passwords as they were typed, so anyone who reads the database, a backup, or a log of it has every user's password, which many users also use elsewhere.
+
+A line counts when `==`, `===`, `!=`, `!==`, `equals`, `Equals`, `Objects.equals`, `String.Equals`, `strcmp`, or `hash_equals` compares these two:
+
+- A stored password: a `password`, `passwd`, `pwd`, or `pass` field read from a record, such as `user.password`, `row["password"]`, `user.get("password")`, `$user->password`, `$user['password']`, `user.getPassword()`, `account.Password`, or `this.password` in a model's own method.
+- The password the user typed: a request value, such as `req.body.password`, `request.form["password"]`, `params[:password]`, `$_POST["password"]`, or `request.getParameter("password")`, or a parameter or variable named `password`, `plainPassword`, `rawPassword`, `candidate`, `enteredPassword`, `providedPassword`, and the like.
+
+These are not reported:
+
+- Lines that hash or verify, with bcrypt, scrypt, Argon2, PBKDF2, `check_password`, `checkpw`, `password_verify`, `matches`, `PasswordHasher`, passlib, or any function named for hashing, verifying, or comparing.
+- Hashed fields and other fields about a password, such as `passwordHash`, `password_digest`, `encrypted_password`, `confirmPassword`, `passwordConfirmation`, `oldPassword`, `newPassword`, `password.length`, or `passwordPolicy`.
+- Fields of the request or a form compared with each other, as in `req.body.password !== req.body.confirmPassword`, checks such as `user.password === undefined` or `typeof user.password !== "string"`, and equals methods that compare `self.password` with `other.password`.
+- Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1198,7 +1218,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
