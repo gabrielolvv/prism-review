@@ -15390,6 +15390,7 @@ var ruleIds = [
   "ldap-xpath-injection",
   "upload-filename",
   "reflected-xss",
+  "log-injection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15593,6 +15594,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     reflectedXss: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    logInjection: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -17898,6 +17902,94 @@ function findReflections(patch, language) {
   return found;
 }
 
+// src/rules/log-injection.ts
+var requestValue2 = /\b(?:req|request|ctx(?:\.request)?)\.(?:query|body|cookies)\b|\brequest\.(?:args|form|values|json|get_json\(|GET|POST|COOKIES|data|query_params)\b|\$_(?:GET|POST|REQUEST|COOKIE)\b|\br\.(?:URL\.Query\(\)|FormValue\(|PostFormValue\()|\bRequest\.(?:Query|Form|Cookies)\[|\bsearchParams\.get\(/;
+var wholeObject = /\b(?:req|request|ctx(?:\.request)?)\.(?:query|params|body|cookies|args|form|values|json|data|GET|POST|COOKIES|query_params)\b(?!\s*(?:\.|\[|\?\.|\())/g;
+var servletValue2 = /\b(?:request|req)\.getParameter(?:Values)?\s*\(/;
+var cleaned = /\.replace(?:All)?\s*\(\s*(?:\/[^/]*\\[rn][^/]*\/[gimsuy]*|["'][^"']*\\[rn][^"']*["'])|\brepr\s*\(|%r\b|!r\}|%q\b|\bJSON\.stringify\s*\(|\bjson\.dumps\s*\(|\bstrconv\.Quote\s*\(|\b(?:sanitize|escape|encode|clean|strip)\w*\s*\(|\bStringEscapeUtils\.escape\w+\s*\(|\bEncode\.for\w+\s*\(|\.inspect\b|\bp\s*\(/i;
+var structuredFirst = /^\s*\{/;
+var assignment7 = /^\s*(?:(?:const|let|var|final|String|string)\s+)?\$?([A-Za-z_][\w]*)\s*(?::\s*[\w<>[\]]+\s*)?(?::=|=)(?!=)\s*(.*)$/;
+var destructuring5 = /^\s*(?:const|let|var)\s*\{([^}]*)\}\s*=\s*(.*)$/;
+var reach6 = 20;
+var sourceFile5 = /\.(?:[cm]?[jt]sx?|py|rb|go|java|kt|scala|cs|php)$/i;
+var skippedFile8 = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
+var commentLine15 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var maxLineLength13 = 1e3;
+var logInjectionRule = {
+  id: "log-injection",
+  description: "Flags request values written into the text of a log line without removing line breaks.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.logInjection.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !sourceFile5.test(file.path) || skippedFile8.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = findInjectedLogs(file.path, file.patch);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "log-injection",
+          title: "Request value written into a log line",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "write values" : "writes a value"} from the request into the text of a log line, so a value with a line break in it can add fake entries, such as a forged login, to the log.`,
+          recommendation: 'Remove line breaks first, such as `value.replace(/[\\r\\n]/g, "")`, log a quoted form such as `%r` in Python or `%q` in Go, or use a structured logger that writes fields as JSON, such as pino, structlog, or Logback\'s JSON encoder, and pass the value as a field.'
+        }
+      ];
+    });
+  }
+};
+function findInjectedLogs(path2, patch) {
+  const ruby2 = /\.(?:rb|erb|rake)$/i.test(path2);
+  const java2 = /\.(?:java|kt|scala)$/i.test(path2);
+  const fromRequest = (text) => requestValue2.test(text) || ruby2 && railsParams.test(text) || java2 && servletValue2.test(text);
+  const tainted = /* @__PURE__ */ new Map();
+  const found = [];
+  for (const { line, content, added } of patchLines(patch)) {
+    if (content.length > maxLineLength13 || commentLine15.test(content)) {
+      continue;
+    }
+    const isTainted = (text) => fromRequest(text) || [...tainted].some(([name, at]) => line - at <= reach6 && new RegExp(`(?<![\\w$.:])\\$?${name}(?![\\w$])`).test(text));
+    const call = logCall.exec(content);
+    if (added && call !== null && !cleaned.test(content)) {
+      const args = codeOutsideText(content.slice(call.index + call[0].length)).replace(wholeObject, "");
+      if (!structuredFirst.test(args) && isTainted(args)) {
+        found.push(line);
+      }
+    }
+    const names = destructuring5.exec(content);
+    if (names !== null && fromRequest(names[2] ?? "")) {
+      for (const part of (names[1] ?? "").split(",")) {
+        const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
+        if (name !== void 0) {
+          tainted.set(name, line);
+        }
+      }
+    }
+    const assigned = assignment7.exec(content);
+    if (assigned?.[1] !== void 0) {
+      const value = (assigned[2] ?? "").replace(/^\s*await\s+/, "");
+      const starts = [requestValue2, ruby2 ? railsParams : void 0, java2 ? servletValue2 : void 0].some(
+        (pattern) => pattern?.exec(value)?.index === 0
+      );
+      if (starts && !cleaned.test(value)) {
+        tainted.set(assigned[1], line);
+      } else {
+        tainted.delete(assigned[1]);
+      }
+    }
+  }
+  return found;
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -17965,7 +18057,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine15 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine16 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -18023,7 +18115,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine15.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine16.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -18120,7 +18212,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine16 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine17 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation9 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -18137,7 +18229,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine16.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine17.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -19995,7 +20087,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine17 = /^\s*#/;
+var commentLine18 = /^\s*#/;
 var documentation10 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -20039,7 +20131,7 @@ function findSettings(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine17.test(content)) {
+    if (commentLine18.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -20073,7 +20165,7 @@ var labels6 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine18 = /^\s*#/;
+var commentLine19 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -20149,7 +20241,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine18.test(content)) {
+    if (commentLine19.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -20239,7 +20331,7 @@ var settings = [
   }
 ];
 var allowsEverything = settings[0];
-var commentLine19 = /^\s*(?:#|\/\/)/;
+var commentLine20 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -20280,7 +20372,7 @@ var insecureInfrastructureRule = {
 function findSettings2(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine19.test(content)) {
+    if (!added || commentLine20.test(content)) {
       continue;
     }
     for (const setting of settings) {
@@ -20339,7 +20431,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine20 = /^\s*#/;
+var commentLine21 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -20388,7 +20480,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine20.test(content) || content.trim() === "") {
+    if (commentLine21.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -20443,7 +20535,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine21 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine22 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation12 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -20458,7 +20550,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine21.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine22.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -20585,7 +20677,7 @@ var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
-var commentLine22 = /^\s*(?:#|\/\/|\*)/;
+var commentLine23 = /^\s*(?:#|\/\/|\*)/;
 var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var insecureWebConfigRule = {
   id: "insecure-web-config",
@@ -20623,7 +20715,7 @@ var insecureWebConfigRule = {
   }
 };
 function findSettings3(path2, patch) {
-  const lines = patchLines(patch).filter(({ content }) => !commentLine22.test(content));
+  const lines = patchLines(patch).filter(({ content }) => !commentLine23.test(content));
   const found = [];
   const origins = lines.filter(({ content }) => anyOrigin.some((pattern) => pattern.test(content)));
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
@@ -20680,9 +20772,9 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine23 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine24 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength13 = 500;
+var maxLineLength14 = 500;
 var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
@@ -20697,7 +20789,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine23.test(content) && content.length <= maxLineLength13 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine24.test(content) && content.length <= maxLineLength14 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -20756,7 +20848,7 @@ var settings2 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine24 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -20771,7 +20863,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine24.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine25.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -20820,7 +20912,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine26 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -20837,7 +20929,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine25.test(content)) {
+        if (!added || commentLine26.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -21093,10 +21185,10 @@ var languages5 = [
     )
   }
 ];
-var commentLine26 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine27 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength14 = 1e3;
+var maxLineLength15 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -21111,7 +21203,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine26.test(content) || content.length > maxLineLength14) {
+        if (!added || commentLine27.test(content) || content.length > maxLineLength15) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -21313,7 +21405,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine27 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine28 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation18 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -21377,7 +21469,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine27.test(content)) {
+    if (commentLine28.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -22067,7 +22159,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine28 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine29 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -22109,7 +22201,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine28.test(content)) {
+    if (commentLine29.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -22232,6 +22324,7 @@ var defaultRules = [
   ldapXpathInjectionRule,
   uploadFilenameRule,
   reflectedXssRule,
+  logInjectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -22750,6 +22843,7 @@ var ruleAreas = {
   "ldap-xpath-injection": "code",
   "upload-filename": "code",
   "reflected-xss": "code",
+  "log-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -22840,6 +22934,7 @@ var ruleQuestions = {
   "ldap-xpath-injection": "Is every value in an LDAP filter or XPath expression escaped or bound as a variable?",
   "upload-filename": "Are uploads stored under names the server makes, with their type checked?",
   "reflected-xss": "Is every request value escaped before it is written into an HTML response?",
+  "log-injection": "Are line breaks removed from request values before they go into log text?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -22899,6 +22994,7 @@ var ruleSections = {
   "ldap-xpath-injection": "LDAP and XPath Injection",
   "upload-filename": "Upload File Names",
   "reflected-xss": "Reflected XSS",
+  "log-injection": "Log Injection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -23611,7 +23707,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.65.0" : "development";
+var version2 = true ? "0.66.0" : "development";
 
 // src/cli/main.ts
 var usage = [
