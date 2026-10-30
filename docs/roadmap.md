@@ -87,6 +87,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `ldap-xpath-injection` rule for LDAP filters and XPath expressions built from text (0.63.0).
 - `upload-filename` rule for uploads saved under the client's file name (0.64.0).
 - `reflected-xss` rule for request values written into HTML responses (0.65.0).
+- `log-injection` rule for request values written into log text (0.66.0).
 
 ## Later
 
