@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -118,6 +118,8 @@ rules:
   uploadFilename:
     enabled: true
   reflectedXss:
+    enabled: true
+  logInjection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -605,6 +607,21 @@ These are not reported:
 - JSON and plain-text responses: `res.json`, `jsonify`, `JsonResponse`, `json_encode`, a returned `dict` or list in Flask, and responses that name `application/json` or `text/plain` on the same line.
 - Python returns outside a route that do not return HTML text, such as a helper's `return request.args.get("page", 1)`.
 - Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Log Injection
+
+### `rules.logInjection.enabled`
+
+The `log-injection` rule reports one warning per file where a value from the request is written into the text of a log or console line. A value with a line break in it, such as `alice\n2026-10-30 INFO Login succeeded for admin`, adds a fake entry to a plain-text log, which can hide an attack or mislead whoever reads the log later.
+
+It reads the same log and console calls as `secret-logging`, in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, C#, and PHP, with these request values: Express and Koa `req.query`, `req.body`, and `req.cookies`; Flask and Django `request.args`, `form`, `values`, `json`, `get_json()`, `data`, `GET`, `POST`, and `COOKIES`; Rails `params[...]`; PHP `$_GET`, `$_POST`, `$_REQUEST`, and `$_COOKIE`; Go `r.URL.Query()`, `r.FormValue`, and `r.PostFormValue`; ASP.NET `Request.Query`, `Form`, and `Cookies`; and servlet `request.getParameter`. A name counts when it is assigned one of them up to 20 lines before, as in `const { username } = req.body` or `username = request.form["username"]`; the result of a call that receives one does not.
+
+These are not reported:
+
+- Structured fields, such as pino's `logger.info({ username }, "failed login")`, which JSON loggers write with line breaks escaped, and whole request objects, such as `console.log(req.query)`, which are written with `util.inspect` or `repr`.
+- Values with line breaks removed or quoted on the same line: `.replace(/[\r\n]/g, "")`, `repr()`, `%r`, `!r`, Go's `%q`, `strconv.Quote`, `JSON.stringify`, `json.dumps`, `StringEscapeUtils.escapeJava`, `Encode.forJava`, or a helper named `sanitize`, `escape`, `encode`, `clean`, or `strip`.
+- The request's URL, method, path, and headers, which cannot hold a raw line break, and route parameters, which are usually IDs the router matched.
+- Names that only appear inside the text of a string, comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1153,7 +1170,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
