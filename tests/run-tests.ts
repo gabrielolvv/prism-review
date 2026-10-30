@@ -463,6 +463,13 @@ import {
   testTemplateInjectionSkipsTestsAndDocs
 } from "./unit/template-injection.test.js";
 import {
+  testPrototypePollutionCanBeDisabled,
+  testPrototypePollutionReadsEachForm,
+  testPrototypePollutionReportsOneFindingPerFile,
+  testPrototypePollutionSkipsGuardedAndShallowCopies,
+  testPrototypePollutionSkipsTestsAndOtherFiles
+} from "./unit/prototype-pollution.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -808,6 +815,11 @@ const tests: Array<[string, Test]> = [
   ["template-injection skips request values passed as variables", testTemplateInjectionSkipsRequestValuesPassedAsVariables],
   ["template-injection skips tests and docs", testTemplateInjectionSkipsTestsAndDocs],
   ["template-injection can be disabled", testTemplateInjectionCanBeDisabled],
+  ["prototype-pollution reports one finding per file", testPrototypePollutionReportsOneFindingPerFile],
+  ["prototype-pollution reads each form", testPrototypePollutionReadsEachForm],
+  ["prototype-pollution skips guarded and shallow copies", testPrototypePollutionSkipsGuardedAndShallowCopies],
+  ["prototype-pollution skips tests and other files", testPrototypePollutionSkipsTestsAndOtherFiles],
+  ["prototype-pollution can be disabled", testPrototypePollutionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

@@ -47,6 +47,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "postmessage-origin": "code",
   "nosql-injection": "code",
   "template-injection": "code",
+  "prototype-pollution": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
