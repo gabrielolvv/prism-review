@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.63.0 - 2026-10-30
+
+### Added
+
+- `ldap-xpath-injection` rule: warns about LDAP filters and XPath expressions built by inserting values into their text, such as `"(uid=" + username + ")"`, `f"//user[name='{name}']"`, or `fmt.Sprintf("(uid=%s)", user)`, when the text reaches an LDAP search or XPath query on the same line or through a variable within 20 lines. It reads JNDI, Spring LDAP, UnboundID, python-ldap, ldap3, PHP's LDAP functions, ldapjs, .NET's DirectorySearcher, and go-ldap, and XPath in Java, lxml, Nokogiri, REXML, PHP's DOMXPath, the `xpath` package, .NET, and the browser. Escaped values, JNDI filter arguments such as `{0}`, bound XPath variables, CSS selectors, and operators inside string text are not reported. On about 75,000 files of library code, it reports none.
+
 ## 0.62.0 - 2026-10-30
 
 ### Added
