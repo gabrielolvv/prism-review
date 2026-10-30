@@ -46,6 +46,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "timing-unsafe-comparison": "code",
   "postmessage-origin": "code",
   "nosql-injection": "code",
+  "template-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
