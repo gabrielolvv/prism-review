@@ -1144,7 +1144,9 @@ The `secret-in-diff` rule reports a high-risk finding, with the line number, whe
 - GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`)
 - OpenAI-style API keys (`sk-`)
 - AWS access key IDs (`AKIA`), except AWS's documented example, `AKIAIOSFODNN7EXAMPLE`
-- Private keys: a `-----BEGIN ... PRIVATE KEY-----` header, including PGP key blocks, followed by base64 key material on the same line or within the next six lines. A header alone, such as the constant a TLS library writes keys with, is not a key.
+- Private keys: a `-----BEGIN ... PRIVATE KEY-----` header, including PGP key blocks, followed by base64 key material within the next six lines, or right after the header on the same line, as in a service account's JSON. A header alone, such as the constant a TLS library writes keys with or a check for it in a minified bundle, is not a key.
+
+Private keys under `test/`, `tests/`, `testdata/`, `fixtures/`, `test-fixtures/`, `_fixture/`, `__tests__/`, `__mocks__/`, `spec/`, `examples/`, `samples/`, `demos/`, `docs/`, or `testcerts/`, in files matched by `rules.missingTests.testGlobs`, and in documentation (`.md`, `.mdx`, `.rst`, `.adoc`) are not reported, because tests and examples that show TLS or signing generate a throwaway key. Token formats are reported in every file.
 
 Removed and unchanged lines are not reported. Patches over `security.maxPatchBytes` are still scanned for these formats, because a credential in a large vendored or generated file is still a leak. Broader patterns, such as long base64 strings and `password: ...` assignments, are still redacted but not reported, because lockfile hashes and type declarations would make them noisy.
 
