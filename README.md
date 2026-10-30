@@ -50,6 +50,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Flags templates compiled from request input, such as `render_template_string(request.args["t"])` or `ejs.render(req.body.template)`, which let a request run code on the server
 - Flags hand-written recursive merges that do not skip `__proto__`, `constructor`, and `prototype`, and nested assignments through keys from the request, which allow prototype pollution
 - Flags LDAP filters and XPath expressions built by inserting values into their text, such as `"(uid=" + username + ")"` or `f"//user[name='{name}']"`
+- Flags uploads saved under the file name the client sent, such as `f.save(os.path.join(UPLOADS, f.filename))` or multer's `cb(null, file.originalname)`
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, dependencies named like popular packages or moved to older or unbounded versions, manifests changed without their lockfile, unpinned third-party actions, and scripts piped from the internet into a shell
@@ -213,7 +214,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.63.0
+    rev: v0.64.0
     hooks:
       - id: prism-review
 ```
@@ -248,7 +249,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.63.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.64.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
@@ -384,6 +385,7 @@ flowchart TD
 | `template-injection` | High | Flags templates compiled from text that comes from the request, directly or through a name assigned from it, in Flask, Jinja, Django, Mako, EJS, Handlebars, Pug, Nunjucks, Lodash, doT, ERB, Haml, Slim, Rails' `render inline:`, Twig, Blade, Smarty, Velocity, FreeMarker, and Go templates. Request values passed only as template variables are not reported. |
 | `prototype-pollution` | Warning | Flags recursive merge, extend, and clone functions added in JavaScript or TypeScript that write into their target by key, go down into `target[key]`, and never check for `__proto__`, `constructor`, or `prototype`, and assignments such as `config[section][key] = value` where a key comes from the request. Merges that write into a new object are skipped. |
 | `ldap-xpath-injection` | Warning | Flags LDAP filters and XPath expressions built by concatenation, interpolation, or formatting, and passed to an LDAP search or XPath query on the same line or through a variable, in Java, Kotlin, Python, PHP, JavaScript, TypeScript, C#, Go, and Ruby. Escaped values, bound XPath variables, and filter arguments such as `{0}` are skipped. |
+| `upload-filename` | Warning | Flags uploads saved or placed under the file name the client sent, in Flask, multer, express-fileupload, PHP, Laravel, Spring, the Servlet API, Go, ASP.NET Core, and Rails, directly or through a name assigned from it. Names reduced with `secure_filename`, `basename`, `FilenameUtils.getName`, `filepath.Base`, or `Path.GetFileName`, and names the server makes, are skipped. |
 | `lookalike-dependency` | Warning | Flags added dependencies named one character away from a popular npm, PyPI, RubyGems, crates.io, Go, Packagist, NuGet, or Maven package, such as `expresss` or `reqeusts`, a common typosquatting trick. |
 | `risky-dependency-version` | Warning | Flags dependencies moved to an older version, and versions changed to accept any future release, such as `*`, `latest`, or `>=2.0` with no upper bound. |
 | `stale-lockfile` | Warning | Flags manifests whose dependencies change while the lockfile that pins them, such as `package-lock.json` or `Cargo.lock`, is not updated. |

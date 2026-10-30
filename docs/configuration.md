@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -114,6 +114,8 @@ rules:
   prototypePollution:
     enabled: true
   ldapXpathInjection:
+    enabled: true
+  uploadFilename:
     enabled: true
   remoteScripts:
     enabled: true
@@ -551,6 +553,31 @@ These are not reported:
 - JNDI filter arguments, as in `ctx.search(base, "(uid={0})", new Object[] { username }, controls)`, and bound XPath variables, as in `tree.xpath("//user[name=$name]", name=name)`.
 - CSS selectors, such as jQuery's `.find('[data-tab=' + id + ']')`, and text that never reaches a query.
 - Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## Upload File Names
+
+### `rules.uploadFilename.enabled`
+
+The `upload-filename` rule reports one warning per file where an uploaded file is written, moved, or placed in a path under the name the client sent. That name can hold `../` to leave the upload directory, replace another file with the same name, or end in `.php`, `.jsp`, or `.html`, so the server runs or serves it.
+
+| Framework | Client's file name | Calls read |
+| --- | --- | --- |
+| Flask and Werkzeug | `.filename` of `request.files[...]`, or of a name assigned from it | `.save`, `os.path.join`, `open`, `Path`, `shutil.move`, `shutil.copy`, `os.rename` |
+| multer and express-fileupload | `.originalname`, `req.files.<field>.name`, or `.name` of a name assigned from `req.files` | `path.join`, `path.resolve`, `fs.writeFile`, `fs.createWriteStream`, `fs.rename`, `fs.copyFile`, `.mv`, and multer's `cb(null, ...)` |
+| PHP and Laravel | `$_FILES[...]['name']`, `->getClientOriginalName()` | `move_uploaded_file`, `copy`, `file_put_contents`, `fopen`, `->move`, `->storeAs` |
+| Spring and the Servlet API | `getOriginalFilename()`, `getSubmittedFileName()` | `new File`, `Paths.get`, `Path.of`, `.resolve`, `.transferTo`, `Files.copy`, `new FileOutputStream` |
+| Go | `.Filename` of a `multipart.FileHeader` | `os.Create`, `os.OpenFile`, `os.WriteFile`, `filepath.Join`, `path.Join`, gin's `SaveUploadedFile` |
+| ASP.NET Core | `.FileName` of an `IFormFile` parameter or loop variable, or of `Request.Form.Files[...]` | `Path.Combine`, `File.Create`, `File.OpenWrite`, `File.Move`, `new FileStream` |
+| Rails and Rack | `.original_filename` | `File.join`, `File.open`, `File.write`, `FileUtils.mv`, `FileUtils.cp`, `Rails.root.join`, `IO.copy_stream` |
+
+The name is followed through names assigned from it up to 20 lines before, as in `name = f.filename` followed by `os.path.join(UPLOADS, name)`. Django's `request.FILES` is a request value that `untrusted-input` already reports in file paths.
+
+These are not reported:
+
+- Names reduced to their last part: `secure_filename`, `get_valid_filename`, `os.path.basename`, `path.basename`, `basename`, `pathinfo`, `FilenameUtils.getName`, `Paths.get(...).getFileName()`, `filepath.Base`, `Path.GetFileName`, `File.basename`, and by hand, as in `name.substring(name.lastIndexOf('/') + 1)` or `name.split('/').pop()`.
+- Names the server makes, with `uuid`, `randomUUID`, `nanoid`, `randomBytes`, `Date.now()`, `uniqid`, `Str::random`, `->hashName()`, `UUID.randomUUID`, `Guid.NewGuid`, `Path.GetRandomFileName`, or `SecureRandom`, even when they keep the original extension.
+- The client's name used only as data, such as in a response or a database row.
+- Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
 
@@ -1099,7 +1126,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
