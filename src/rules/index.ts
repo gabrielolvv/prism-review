@@ -7,6 +7,7 @@ import { secretLoggingRule } from "./secret-logging.js";
 import { urlCredentialsRule } from "./url-credentials.js";
 import { unescapedHtmlRule } from "./unescaped-html.js";
 import { timingUnsafeComparisonRule } from "./timing-unsafe-comparison.js";
+import { postMessageOriginRule } from "./postmessage-origin.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -57,6 +58,7 @@ export const defaultRules: Rule[] = [
   riskyApiRule,
   unescapedHtmlRule,
   timingUnsafeComparisonRule,
+  postMessageOriginRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
