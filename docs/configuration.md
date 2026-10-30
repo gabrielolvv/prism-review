@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -112,6 +112,8 @@ rules:
   templateInjection:
     enabled: true
   prototypePollution:
+    enabled: true
+  ldapXpathInjection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -524,6 +526,30 @@ These are not reported:
 
 - Merges that write into a new object, such as `const out = {}`, or into a copy, such as `target = { ...target }`, and shallow copies that do not go down into the target's keys.
 - Calls to maintained libraries, such as lodash's `merge` and `set`, jQuery's `extend`, or deepmerge, whose current versions skip these keys. Keep them up to date.
+- Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+## LDAP and XPath Injection
+
+### `rules.ldapXpathInjection.enabled`
+
+The `ldap-xpath-injection` rule reads added lines in Java, Kotlin, Scala, Python, PHP, JavaScript, TypeScript, C#, Go, and Ruby files and reports one warning per file where a value is inserted into the text of an LDAP filter or an XPath expression. A username such as `*)(uid=*` turns `(uid=...)` into a filter that matches every user, and a name such as `' or '1'='1` turns `//user[name='...']` into an expression that selects every user.
+
+A line counts when all of these hold:
+
+- It holds text shaped like an LDAP filter, such as `(uid=` or `(&(objectClass=person)(cn=`, or like an XPath predicate, such as `//user[`, `[name=`, `[@id=`, or `[contains(`.
+- A value is inserted into that text: concatenation with `+`, a Python f-string, `%` or `.format()`, a JavaScript template literal, `fmt.Sprintf`, `String.format`, or `sprintf`, Ruby's `#{...}`, PHP's `"$name"` or `.` concatenation, or C#'s `$"{...}"`.
+- The text reaches a query on the same line, or through a name it is assigned to that a query receives within 20 lines.
+
+| Query | Calls read |
+| --- | --- |
+| LDAP | `search`, `search_s`, `search_ext_s`, and `searchForObject` (JNDI, python-ldap, ldap3, ldapjs, Spring LDAP), `authenticate`, `ldap_search`, `ldap_list`, and `ldap_read` (PHP), `new DirectorySearcher(...)` and `.Filter =` (.NET), `ldap.NewSearchRequest` (Go), `new SearchRequest(...)` (UnboundID), and a `filter:` option |
+| XPath | `xpath` and `at_xpath` (lxml, Nokogiri), `evaluate`, `compile`, `query`, and `select` on an XPath object (Java's `XPath`, PHP's `DOMXPath`, the `xpath` package), `XPath.first`, `match`, and `each` (REXML), `SelectNodes` and `SelectSingleNode` (.NET), and `document.evaluate` |
+
+These are not reported:
+
+- Values passed through an escaping function on the same line, such as `escape_filter_chars`, `ldap_escape`, `ldap.EscapeFilter`, `LdapEncoder.filterEncode`, `encodeForLDAP`, or `encodeForXPath`, and filters built with filter objects, such as Spring's `EqualsFilter` or UnboundID's `Filter.createEqualityFilter`.
+- JNDI filter arguments, as in `ctx.search(base, "(uid={0})", new Object[] { username }, controls)`, and bound XPath variables, as in `tree.xpath("//user[name=$name]", name=name)`.
+- CSS selectors, such as jQuery's `.find('[data-tab=' + id + ']')`, and text that never reaches a query.
 - Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 ## Disabled Security Checks
@@ -1073,7 +1099,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
