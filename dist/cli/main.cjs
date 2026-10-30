@@ -24162,7 +24162,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.70.0" : "development";
+var version2 = true ? "0.71.0" : "development";
 
 // src/cli/main.ts
 var usage = [
