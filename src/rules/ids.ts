@@ -23,6 +23,7 @@ export const ruleIds: readonly string[] = [
   "ldap-xpath-injection",
   "upload-filename",
   "reflected-xss",
+  "log-injection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

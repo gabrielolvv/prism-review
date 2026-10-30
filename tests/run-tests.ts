@@ -491,6 +491,13 @@ import {
   testReflectedXssSkipsTestsAndDocs
 } from "./unit/reflected-xss.test.js";
 import {
+  testLogInjectionCanBeDisabled,
+  testLogInjectionReadsEachLanguage,
+  testLogInjectionReportsOneFindingPerFile,
+  testLogInjectionSkipsCleanedAndStructuredValues,
+  testLogInjectionSkipsTestsAndOtherFiles
+} from "./unit/log-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -856,6 +863,11 @@ const tests: Array<[string, Test]> = [
   ["reflected-xss skips escaped and non-HTML responses", testReflectedXssSkipsEscapedAndNonHtmlResponses],
   ["reflected-xss skips tests and docs", testReflectedXssSkipsTestsAndDocs],
   ["reflected-xss can be disabled", testReflectedXssCanBeDisabled],
+  ["log-injection reports one finding per file", testLogInjectionReportsOneFindingPerFile],
+  ["log-injection reads each language", testLogInjectionReadsEachLanguage],
+  ["log-injection skips cleaned and structured values", testLogInjectionSkipsCleanedAndStructuredValues],
+  ["log-injection skips tests and other files", testLogInjectionSkipsTestsAndOtherFiles],
+  ["log-injection can be disabled", testLogInjectionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

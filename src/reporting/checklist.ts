@@ -46,6 +46,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "ldap-xpath-injection": "Is every value in an LDAP filter or XPath expression escaped or bound as a variable?",
   "upload-filename": "Are uploads stored under names the server makes, with their type checked?",
   "reflected-xss": "Is every request value escaped before it is written into an HTML response?",
+  "log-injection": "Are line breaks removed from request values before they go into log text?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
