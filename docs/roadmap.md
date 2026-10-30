@@ -86,6 +86,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `prototype-pollution` rule for unguarded recursive merges and nested request keys (0.62.0).
 - `ldap-xpath-injection` rule for LDAP filters and XPath expressions built from text (0.63.0).
 - `upload-filename` rule for uploads saved under the client's file name (0.64.0).
+- `reflected-xss` rule for request values written into HTML responses (0.65.0).
 
 ## Later
 

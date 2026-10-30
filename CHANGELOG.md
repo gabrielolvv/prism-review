@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.65.0 - 2026-10-30
+
+### Added
+
+- `reflected-xss` rule: warns about request values written straight into an HTML response, such as ``res.send(`<h1>Hello ${req.query.name}</h1>`)``, `return f"<h1>Hello {name}</h1>"` in a Flask route after `name = request.args.get("name")`, `echo $_GET["q"]`, `fmt.Fprintf(w, ..., r.URL.Query().Get("q"))`, or `response.getWriter().println(request.getParameter("q"))`. It reads Express, Flask, Django, PHP, Go's net/http, servlets and JSP, and ASP.NET, and follows names assigned a request value or text built from one. Escaped values, rendered templates, JSON and plain-text responses, returned dicts, and Python returns outside a route are not reported. On about 78,000 files of library code, it reports one: Eve's JSONP response, which writes the callback name from the query string into the body without checking it.
+
 ## 0.64.0 - 2026-10-30
 
 ### Added
