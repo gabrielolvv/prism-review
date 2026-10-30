@@ -449,6 +449,13 @@ import {
   testPostMessageOriginSkipsTestsAndServerFiles
 } from "./unit/postmessage-origin.test.js";
 import {
+  testNosqlInjectionCanBeDisabled,
+  testNosqlInjectionReadsEachForm,
+  testNosqlInjectionReportsOneFindingPerFile,
+  testNosqlInjectionSkipsCastAndTextValues,
+  testNosqlInjectionSkipsTestsAndOtherFiles
+} from "./unit/nosql-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -784,6 +791,11 @@ const tests: Array<[string, Test]> = [
   ["postmessage-origin skips checked and other messages", testPostMessageOriginSkipsCheckedAndOtherMessages],
   ["postmessage-origin skips tests and server files", testPostMessageOriginSkipsTestsAndServerFiles],
   ["postmessage-origin can be disabled", testPostMessageOriginCanBeDisabled],
+  ["nosql-injection reports one finding per file", testNosqlInjectionReportsOneFindingPerFile],
+  ["nosql-injection reads each form", testNosqlInjectionReadsEachForm],
+  ["nosql-injection skips cast and text values", testNosqlInjectionSkipsCastAndTextValues],
+  ["nosql-injection skips tests and other files", testNosqlInjectionSkipsTestsAndOtherFiles],
+  ["nosql-injection can be disabled", testNosqlInjectionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
