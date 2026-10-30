@@ -145,6 +145,47 @@ export function testFindAddedSecretsNeedsKeyMaterialAfterAHeader(): void {
   assert.deepEqual(findAddedSecrets(encrypted), [{ line: 1, kind: "private key" }]);
 }
 
+export function testFindAddedSecretsReadsKeysOnOneLine(): void {
+  // A service account's JSON keeps the whole key, END line included, in one string.
+  const endLine = ["-----END OPENSSH PRIVATE", "KEY-----"].join(" ");
+  assert.deepEqual(findAddedSecrets(`@@ -0,0 +1 @@\n+  "private_key": "${privateKeyHeader}\\n${keyMaterial}\\n${endLine}\\n",`), [
+    { line: 1, kind: "private key" }
+  ]);
+  assert.deepEqual(findAddedSecrets(`@@ -0,0 +1,2 @@\n+const KEY = "${privateKeyHeader}\\n" +\n+  "${keyMaterial}";`), [{ line: 1, kind: "private key" }]);
+
+  // A minified bundle that checks for the header has long names and base64 alphabets later on the line.
+  const bundle = `@@ -0,0 +1 @@\n+if(0!==e.indexOf("${privateKeyHeader}"))throw new TypeError("pkcs8");var ${"Ab".repeat(30)}=1;`;
+  assert.deepEqual(findAddedSecrets(bundle), []);
+}
+
+export function testSecretInDiffRuleSkipsSampleKeys(): void {
+  const key = `@@ -0,0 +1,2 @@\n+${privateKeyHeader}\n+${keyMaterial}`;
+  const token = `@@ -0,0 +1 @@\n+GH_TOKEN=${githubToken}`;
+  const reported = (path: string, patch: string) =>
+    analyzePullRequest(prepareChangedFiles([changedFile(path, patch)], defaultConfig), defaultConfig).findings.some(
+      (finding) => finding.ruleId === "secret-in-diff"
+    );
+
+  // Tests, examples, and documentation use throwaway keys to show TLS and signing.
+  for (const path of [
+    "tests/certs/server.key",
+    "test-fixtures/keys/key.pem",
+    "_fixture/certs/key.pem",
+    "examples/ssl/worker.key",
+    "demos/user_rsa_key",
+    "docs/usage.rst",
+    "README.md",
+    "src/auth/signer.test.ts"
+  ]) {
+    assert.equal(reported(path, key), false, path);
+  }
+  // A key anywhere else, and a token anywhere, is still reported.
+  assert.equal(reported("deploy/server.key", key), true);
+  assert.equal(reported("src/main/java/SslUtils.java", key), true);
+  assert.equal(reported("tests/ci.env", token), true);
+  assert.equal(reported("docs/setup.md", token), true);
+}
+
 export function testFindAddedSecretsSkipsTheDocumentedAwsExample(): void {
   // AWS's documentation and SDK tests use this key ID; a real one is still reported.
   const documented = ["AKIA", "IOSFODNN7EXAMPLE"].join("");
@@ -190,11 +231,12 @@ export function testFindAddedSecretsStaysLinearOnHostileInput(): void {
     `+ ${"sk-".repeat(200_000)}-`,
     `+ ghp_${"a".repeat(1_000_000)}-`,
     `+-----BEGIN ${"A ".repeat(500_000)}PUBLIC KEY-----`,
+    `+${privateKeyHeader}${"+".repeat(1_000_000)}-`,
     `+ ${"AKIA".repeat(250_000)}`
   ];
   const started = performance.now();
 
-  findAddedSecrets(`@@ -0,0 +1,4 @@\n${lines.join("\n")}`);
+  findAddedSecrets(`@@ -0,0 +1,5 @@\n${lines.join("\n")}`);
 
   assert.ok(performance.now() - started < 2000, `took ${Math.round(performance.now() - started)}ms`);
 }

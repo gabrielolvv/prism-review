@@ -583,12 +583,14 @@ import {
   testFindAddedSecretsHonorsAllowlist,
   testFindAddedSecretsIgnoresGenericTokens,
   testFindAddedSecretsNumbersLinesInTheNewFile,
+  testFindAddedSecretsReadsKeysOnOneLine,
   testFindAddedSecretsSkipsGitHeaders,
   testFindAddedSecretsStaysLinearOnHostileInput,
   testSecretInDiffRuleCanBeDisabled,
   testSecretInDiffRuleReportsFixtureLeak,
   testSecretInDiffRuleScansOversizedPatches,
   testSecretInDiffRuleScansUnpreparedFiles,
+  testSecretInDiffRuleSkipsSampleKeys,
   testSecretInDiffRuleSummarizesManyLines
 } from "./unit/secret-in-diff.test.js";
 import {
@@ -623,9 +625,11 @@ const tests: Array<[string, Test]> = [
   ["secret-in-diff rule can be disabled", testSecretInDiffRuleCanBeDisabled],
   ["findAddedSecrets detects PGP private keys", testFindAddedSecretsDetectsPgpPrivateKeys],
   ["findAddedSecrets needs key material after a private key header", testFindAddedSecretsNeedsKeyMaterialAfterAHeader],
+  ["findAddedSecrets reads a whole key on one line", testFindAddedSecretsReadsKeysOnOneLine],
   ["findAddedSecrets skips the documented AWS example key", testFindAddedSecretsSkipsTheDocumentedAwsExample],
   ["secret-in-diff rule scans patches over the size limit", testSecretInDiffRuleScansOversizedPatches],
   ["secret-in-diff rule scans files that were not prepared", testSecretInDiffRuleScansUnpreparedFiles],
+  ["secret-in-diff rule skips throwaway keys in tests, examples, and docs", testSecretInDiffRuleSkipsSampleKeys],
   ["findAddedSecrets stays linear on hostile input", testFindAddedSecretsStaysLinearOnHostileInput],
   ["skipped-tests rule reports focused and skipped tests with lines", testSkippedTestsRuleReportsFocusAndSkipWithLines],
   ["skipped-tests rule ignores removed lines and non-test files", testSkippedTestsRuleIgnoresRemovedLinesAndNonTestFiles],
