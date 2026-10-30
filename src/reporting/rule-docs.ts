@@ -8,6 +8,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "credential-file": "Credential Files",
   "hardcoded-jwt-secret": "Hardcoded JWT Secrets",
   "secret-logging": "Secret Logging",
+  "url-credentials": "URL Credentials",
   "disabled-security-check": "Disabled Security Checks",
   "hidden-unicode": "Hidden Unicode",
   "large-diff": "Large Diff",

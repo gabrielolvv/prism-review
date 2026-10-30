@@ -10,6 +10,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "credential-file": "Do the committed credential files belong in the repository, or in a secret store?",
   "hardcoded-jwt-secret": "Is each JWT key written in the code replaced by one from a secret store, and the committed key retired?",
   "secret-logging": "Do the new log lines write only that a secret was present, never its value?",
+  "url-credentials": "Is each password found in a URL changed, and the URL now built from a secret at run time?",
   "dependency-risk": "Are the new or updated dependencies necessary and trusted?",
   "lockfile-source": "Do the packages from other sources come from places the team trusts?",
   "lookalike-dependency": "Is each flagged dependency the package that was meant, and not a lookalike of a popular one?",

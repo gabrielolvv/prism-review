@@ -1,5 +1,6 @@
 import type { ChangedFile } from "../analysis/changed-file.js";
 import { credentialFormats, isAllowlisted } from "./credential-formats.js";
+import { redactUrlPasswords } from "./url-credentials.js";
 
 const redaction = "[REDACTED]";
 
@@ -19,7 +20,8 @@ export type RedactionOptions = {
 
 export function redactSecrets(value: string, options: RedactionOptions = {}): string {
   const allowlist = options.allowlist ?? [];
-  let redacted = value;
+  // URL passwords go first, while the user name and host around them still tell a real one from an example.
+  let redacted = redactUrlPasswords(value, redaction, (password) => isAllowlisted(password, allowlist));
 
   for (const pattern of assignmentPatterns) {
     redacted = redacted.replace(pattern, (match) => {

@@ -30,7 +30,7 @@ const secretName =
 // Build tools inline these into code sent to browsers, so they are public by design.
 const publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
 const urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@(\[[^\]\s]*\]|[^\s:/?#]+)/i;
-const localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
+export const localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
 const registryToken = /(?:_authToken|_auth|_password|npmAuthToken|npmAuthIdent)\s*[=:]\s*(.*)$|^\s*password\s*[=:]\s*(.*)$/i;
 // Empty values, references to other variables, and the values examples use.
 const placeholder =
@@ -99,7 +99,7 @@ function registrySecret(content: string): boolean {
   return match !== null && !isPlaceholder(cleanValue(match[1] ?? match[2] ?? ""));
 }
 
-function isPlaceholder(value: string): boolean {
+export function isPlaceholder(value: string): boolean {
   return placeholder.test(value) || localDefault.test(value) || filePath.test(value);
 }
 

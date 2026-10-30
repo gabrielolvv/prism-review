@@ -6,6 +6,7 @@ export const ruleIds: readonly string[] = [
   "credential-file",
   "hardcoded-jwt-secret",
   "secret-logging",
+  "url-credentials",
   "disabled-security-check",
   "hidden-unicode",
   "large-diff",

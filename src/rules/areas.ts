@@ -18,6 +18,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "credential-file": "secrets",
   "hardcoded-jwt-secret": "secrets",
   "secret-logging": "secrets",
+  "url-credentials": "secrets",
   "dependency-risk": "supply-chain",
   "lockfile-source": "supply-chain",
   "lookalike-dependency": "supply-chain",

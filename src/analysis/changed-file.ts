@@ -28,6 +28,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
   // named like a secret.
   secretLogLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that hold a URL
+  // with a password in it.
+  urlCredentialLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
