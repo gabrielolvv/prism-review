@@ -39,6 +39,8 @@ export function testNosqlInjectionReadsEachForm(): void {
     ["src/search.js", ["const docs = await coll.find({ owner: JSON.parse(req.query.owner) });"]],
     ["src/search.js", ["Item.find({ $where: \"this.owner == '\" + req.query.owner + \"'\" });"]],
     ["src/koa.js", ["const user = await User.findOne({ token: ctx.request.body.token });"]],
+    // A Mongoose model may be named Service.
+    ["src/booking.js", ["const service = await Service.findOne({ slug: req.body.slug });"]],
     ["app/auth.py", ['user = db.users.find_one({"email": request.json["email"], "password": request.json["password"]})']],
     ["app/auth.py", ["data = request.get_json()", 'user = db.users.find_one({"token": data["token"]})']],
     ["src/Auth.php", ["$user = $collection->findOne(['email' => $_POST['email'], 'password' => $_POST['password']]);"]]
@@ -65,6 +67,13 @@ export function testNosqlInjectionSkipsCastAndTextValues(): void {
     ["src/search.js", ["const items = await Item.find({ owner: req.user.id });"]],
     ["src/search.js", ["const { page } = req.query;", "const items = await Item.find({ owner: userId }).skip(page);"]],
     ["src/search.js", ["Item.find({ $where: 'this.a > this.b' });"]],
+    // Service layers take keys or their own query format, and SQL ORMs wrap the filter in `where`.
+    ["src/controllers/items.js", ["keys = await service.updateMany(req.body.keys, req.body.data);"]],
+    ["src/controllers/user.js", ["const input = ctx.request.body;", 'const taken = await getService("user").exists({ email: input.email, id: { $ne: id } });']],
+    ["src/controllers/user.js", ["const users = await this.usersService.find({ email: req.body.email });"]],
+    ["src/controllers/user.js", ['const users = await app.service("users").find({ query: req.query });']],
+    ["src/controllers/user.js", ["const user = await User.findOne({ where: { email: req.body.email } });"]],
+    ["src/controllers/user.js", ["const user = await userRepository.findOne({", "  where: { email: req.body.email }", "});"]],
     // Comments.
     ["src/auth.js", ["// User.findOne({ email: req.body.email })"]]
   ];
