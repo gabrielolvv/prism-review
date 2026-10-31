@@ -19,6 +19,7 @@ import { staticIvRule } from "./static-iv.js";
 import { plaintextPasswordRule } from "./plaintext-password.js";
 import { adminRouteAuthRule } from "./admin-route-auth.js";
 import { zipSlipRule } from "./zip-slip.js";
+import { regexInjectionRule } from "./regex-injection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -81,6 +82,7 @@ export const defaultRules: Rule[] = [
   plaintextPasswordRule,
   adminRouteAuthRule,
   zipSlipRule,
+  regexInjectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

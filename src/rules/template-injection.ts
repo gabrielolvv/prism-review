@@ -40,7 +40,7 @@ const sinks: Sink[] = [
 ];
 
 // Servlet request values, which untrusted-input leaves to other rules.
-const servletValue = /\b(?:request|req|httpRequest|servletRequest|httpServletRequest)\.get(?:Parameter|ParameterValues|Header|QueryString|Reader|InputStream)\s*\(/;
+export const servletValue = /\b(?:request|req|httpRequest|servletRequest|httpServletRequest)\.get(?:Parameter|ParameterValues|Header|QueryString|Reader|InputStream)\s*\(/;
 const java = /\.(?:java|kt)$/i;
 
 // A name assigned from the request, as in `name = request.args.get("name")` or
@@ -154,7 +154,7 @@ function templateArgument(rest: string, argument: number | "inline"): string {
   return splitArguments(rest)[argument] ?? "";
 }
 
-function splitArguments(text: string): string[] {
+export function splitArguments(text: string): string[] {
   const args: string[] = [];
   let depth = 0;
   let quote: string | undefined;
