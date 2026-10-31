@@ -60,6 +60,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "jwt-without-expiry": "Does every token expire, with longer sessions kept by refresh tokens the server can revoke?",
   "weak-tls": "Do TLS settings require TLS 1.2 or later and current cipher suites?",
   "security-headers": "Are CSP, framing protection, HSTS, and nosniff still on, narrowed only where a page needs it?",
+  "debug-endpoint": "Are debug and diagnostic endpoints limited to development or to an internal, authenticated port?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
