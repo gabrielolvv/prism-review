@@ -17,6 +17,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "secret-in-diff": "secrets",
   "credential-file": "secrets",
   "hardcoded-jwt-secret": "secrets",
+  "hardcoded-session-secret": "secrets",
   "secret-logging": "secrets",
   "url-credentials": "secrets",
   "dependency-risk": "supply-chain",

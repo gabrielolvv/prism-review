@@ -33,6 +33,7 @@ export const ruleIds: readonly string[] = [
   "unsafe-reflection",
   "command-injection",
   "weak-password-hashing",
+  "hardcoded-session-secret",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

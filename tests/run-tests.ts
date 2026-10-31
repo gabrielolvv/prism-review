@@ -563,6 +563,13 @@ import {
   testWeakPasswordHashingSkipsTestsAndCanBeDisabled
 } from "./unit/weak-password-hashing.test.js";
 import {
+  testHardcodedSessionSecretReadsEachFramework,
+  testHardcodedSessionSecretReportsOneFindingPerFile,
+  testHardcodedSessionSecretSeesLinesRedactionRewrites,
+  testHardcodedSessionSecretSkipsKeysFromElsewhere,
+  testHardcodedSessionSecretSkipsSamplesAndCanBeDisabled
+} from "./unit/hardcoded-session-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -980,6 +987,11 @@ const tests: Array<[string, Test]> = [
   ["weak-password-hashing reads each language", testWeakPasswordHashingReadsEachLanguage],
   ["weak-password-hashing skips enough work and unknown values", testWeakPasswordHashingSkipsEnoughWorkAndUnknownValues],
   ["weak-password-hashing skips tests and can be disabled", testWeakPasswordHashingSkipsTestsAndCanBeDisabled],
+  ["hardcoded-session-secret reports one finding per file", testHardcodedSessionSecretReportsOneFindingPerFile],
+  ["hardcoded-session-secret reads each framework", testHardcodedSessionSecretReadsEachFramework],
+  ["hardcoded-session-secret skips keys from elsewhere", testHardcodedSessionSecretSkipsKeysFromElsewhere],
+  ["hardcoded-session-secret skips samples and can be disabled", testHardcodedSessionSecretSkipsSamplesAndCanBeDisabled],
+  ["hardcoded-session-secret sees lines redaction rewrites", testHardcodedSessionSecretSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

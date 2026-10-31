@@ -5,6 +5,7 @@ import { credentialFileKind, findCredentialLines } from "./credential-files.js";
 import { detectSecrets } from "./detect-secrets.js";
 import { findJwtKeyLines } from "./jwt-keys.js";
 import { findSecretLogLines } from "./secret-logs.js";
+import { findSessionSecretLines } from "./session-secrets.js";
 import { findUrlCredentialLines } from "./url-credentials.js";
 import { findTimingCompareLines } from "./timing-compare.js";
 import { findLockfileSources, isSourceFile } from "./lockfile-sources.js";
@@ -24,6 +25,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     hiddenLines: file.patch === undefined ? [] : findHiddenLines(file.patch),
     // Redaction rewrites lines such as `const token = jwt.sign(...)`, so keys are found first.
     jwtKeyLines: file.patch === undefined ? [] : findJwtKeyLines(file.path, file.patch),
+    sessionSecretLines: file.patch === undefined ? [] : findSessionSecretLines(file.path, file.patch),
     secretLogLines: file.patch === undefined ? [] : findSecretLogLines(file.path, file.patch),
     urlCredentialLines: file.patch === undefined ? [] : findUrlCredentialLines(file.path, file.patch, allowlist),
     timingCompareLines: file.patch === undefined ? [] : findTimingCompareLines(file.path, file.patch),
