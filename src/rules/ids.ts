@@ -38,6 +38,7 @@ export const ruleIds: readonly string[] = [
   "weak-tls",
   "security-headers",
   "debug-endpoint",
+  "mobile-security",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
