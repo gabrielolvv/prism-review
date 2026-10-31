@@ -45126,8 +45126,8 @@ function limitPatchSizes(files, maxPatchBytes) {
 // src/security/redact-secrets.ts
 var redaction = "[REDACTED]";
 var assignmentPatterns = [
-  /\b(api[_-]?key|token|secret|password|passwd|pwd|client[_-]?secret)\b\s*[:=]\s*["']?[^"',\s]+/gi,
-  /\b(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|OPENAI_API_KEY)\b\s*[:=]\s*["']?[^"',\s]+/g
+  /\b(api[_-]?key|token|secret|password|passwd|pwd|client[_-]?secret)\b[ \t]*[:=][ \t]*["']?[^"',\s]+/gi,
+  /\b(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|OPENAI_API_KEY)\b[ \t]*[:=][ \t]*["']?[^"',\s]+/g
 ];
 var standaloneSecretPatterns = [
   ...credentialFormats.map((format) => format.pattern),
