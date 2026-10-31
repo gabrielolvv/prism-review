@@ -7,7 +7,7 @@ const redaction = "[REDACTED]";
 // Spaces and tabs only around the separator: a line ending in `token:` must not take the next
 // line with it, which would shift the line numbers of every finding below.
 const assignmentPatterns = [
-  /\b(api[_-]?key|token|secret|password|passwd|pwd|client[_-]?secret)\b[ \t]*[:=][ \t]*["']?[^"',\s]+/gi,
+  /\b(api[_-]?key|token|secret|secret[_-]?key(?:[_-]?base)?|session[_-]?secret|password|passwd|pwd|client[_-]?secret)\b[ \t]*[:=][ \t]*["']?[^"',\s]+/gi,
   /\b(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|OPENAI_API_KEY)\b[ \t]*[:=][ \t]*["']?[^"',\s]+/g
 ];
 

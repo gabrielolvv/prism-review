@@ -24,6 +24,7 @@ import { electronSecurityRule } from "./electron-security.js";
 import { unsafeReflectionRule } from "./unsafe-reflection.js";
 import { commandInjectionRule } from "./command-injection.js";
 import { weakPasswordHashingRule } from "./weak-password-hashing.js";
+import { hardcodedSessionSecretRule } from "./hardcoded-session-secret.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -91,6 +92,7 @@ export const defaultRules: Rule[] = [
   unsafeReflectionRule,
   commandInjectionRule,
   weakPasswordHashingRule,
+  hardcodedSessionSecretRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
