@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.86.0 - 2026-10-31
+
+### Added
+
+- `security-headers` rule: warns when a change turns off or weakens a security header, such as helmet's `contentSecurityPolicy: false`, `frameguard: false`, or `hsts: false`, `res.removeHeader("X-Frame-Options")`, Django's `SECURE_SSL_REDIRECT = False`, `SECURE_HSTS_SECONDS = 0`, and `@xframe_options_exempt`, Flask-Talisman's `content_security_policy=None`, Rails' `config.force_ssl = false`, Spring Security's `frameOptions().disable()` and `headers().disable()`, and a Content-Security-Policy whose `script-src` or `default-src` allows `'unsafe-inline'`, `'unsafe-eval'`, or `*`. Development, example, and test settings, Django's defaults file, and docstrings are not reported. On about 99,000 files of library and application code, it reports one: Directus's `'unsafe-eval'` in `scriptSrc`.
+
 ## 0.85.0 - 2026-10-31
 
 ### Added
