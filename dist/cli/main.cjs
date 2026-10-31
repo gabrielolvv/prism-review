@@ -13617,11 +13617,11 @@ function compactTypeUnion(schema) {
     if (keys.length !== 1 || keys[0] !== "type")
       return;
     const type = option.type;
-    for (const member of Array.isArray(type) ? type : [type]) {
-      if (typeof member !== "string")
+    for (const member2 of Array.isArray(type) ? type : [type]) {
+      if (typeof member2 !== "string")
         return;
-      if (!types2.includes(member))
-        types2.push(member);
+      if (!types2.includes(member2))
+        types2.push(member2);
     }
   }
   delete schema.anyOf;
@@ -13629,22 +13629,22 @@ function compactTypeUnion(schema) {
 }
 var FOLDABLE_KEYS = /* @__PURE__ */ new Set(["type", "properties", "required", "additionalProperties"]);
 var UNION_KEYS = ["oneOf", "anyOf"];
-function undeclaredConstraint(member) {
-  const extra = member.additionalProperties;
+function undeclaredConstraint(member2) {
+  const extra = member2.additionalProperties;
   if (extra === void 0 || extra === false || typeof extra !== "object" || extra === null)
     return null;
   return Object.keys(extra).length ? extra : null;
 }
 function foldObjects(members2) {
   const objects = [];
-  for (const member of members2) {
-    if (typeof member !== "object" || member.type !== "object")
+  for (const member2 of members2) {
+    if (typeof member2 !== "object" || member2.type !== "object")
       return null;
-    for (const key in member) {
+    for (const key in member2) {
       if (!FOLDABLE_KEYS.has(key))
         return null;
     }
-    objects.push(member);
+    objects.push(member2);
   }
   const properties = {};
   const required2 = /* @__PURE__ */ new Set();
@@ -16755,14 +16755,18 @@ var otherWords = /* @__PURE__ */ new Set([
   "claims"
 ]);
 var aboutWords = /* @__PURE__ */ new Set(["type", "types", "kind", "class", "name", "length", "len", "size", "count", "id", "ttype", "username", "user", "method", "data"]);
-var wrappers = /* @__PURE__ */ new Set(["len", "length", "size", "count", "typeof", "type", "sizeof", "strlen", "cap", "isinstance", "bool", "hash"]);
+var wrappers = /* @__PURE__ */ new Set(["len", "length", "size", "count", "typeof", "type", "sizeof", "strlen", "cap", "isinstance", "bool", "hash", "stringify"]);
 var secretConstant = /(?:^|_)(?:SECRET|API_?KEY|SECRET_?KEY|AUTH_?TOKEN|ACCESS_?TOKEN|API_?TOKEN)$/;
 var constant = /^_?[A-Z][A-Z0-9_]*$/;
 var sameObject = /^(?:this|that|other|self|o|obj|rhs|lhs)$/;
+var requestNames = /* @__PURE__ */ new Set(["req", "request", "params", "param", "query", "body", "headers", "header", "cookies", "cookie", "ctx", "args", "form", "input", "payload"]);
+var member = /^[\w$]+\s*(?:\??\.|\[)/;
+var generatedSide = /^(?:module\.)?exports\b|^\$\[\d+\]$/;
+var testValue = /^(?:mock|fake|dummy|stub|test)(?:[A-Z_]|$)/;
 var languageTooling = /(?:^|[/_.-])(?:lexer|lex|parser|parse|compiler|tokenizer|tokenize|scanner|grammar|formatter|syntax|ast)(?:[/_.-]|s\/|$)/i;
 var equality = /(?<![=!<>])(?:===|!==|==|!=)(?!=)/g;
-var chainBefore = /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\s*$/;
-var chainAfter = /^\s*([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)/;
+var chainBefore = /([\w$]+(?:\??\.[\w$]+|->[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\s*$/;
+var chainAfter = /^\s*([\w$]+(?:\??\.[\w$]+|->[\w$]+|\([^()]*\)|\[[^[\]]*\])*)/;
 var equalityCalls = [
   /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\.(?:equals|Equals|contentEquals|SequenceEqual)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
   /\b(?:bytes\.Equal|strcmp|Arrays\.equals|Objects\.equals)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g
@@ -16804,15 +16808,18 @@ function comparesSecret(content, pascalCase) {
       pairs.push([args[0] ?? "", args[1] ?? ""]);
     }
   }
-  return pairs.some(([left, right]) => comparesSecretPair(left.trim(), right.trim(), pascalCase));
+  return pairs.some(([left, right]) => comparesSecretPair(left.trim().replace(/->/g, "."), right.trim().replace(/->/g, "."), pascalCase));
 }
 function comparesSecretPair(left, right, pascalCase) {
-  if ([left, right].some((side) => literal.test(side) || isFixedValue(side, pascalCase))) {
+  if ([left, right].some(
+    (side) => literal.test(side) || isFixedValue(side, pascalCase) || generatedSide.test(side) || testValue.test(namesOf(side)[0] ?? "")
+  )) {
     return false;
   }
   const [leftNames, rightNames] = [namesOf(left), namesOf(right)];
   const fromObject = (chain, names) => names.length > 1 || /\)\s*$/.test(chain);
-  if (fromObject(left, leftNames) && fromObject(right, rightNames) && lastName(left) === lastName(right) && [leftNames[0], rightNames[0]].some((name) => name !== void 0 && sameObject.test(name))) {
+  if (fromObject(left, leftNames) && fromObject(right, rightNames) && (lastName(left) === lastName(right) || fieldOf(left) !== void 0 && fieldOf(left) === fieldOf(right)) && ([leftNames[0], rightNames[0]].some((name) => name !== void 0 && sameObject.test(name)) || // Members of objects, not one function applied to two values, as in `_hmac(key, a) != _hmac(key, b)`.
+  [left, right].every((side) => member.test(side)) && ![...leftNames, ...rightNames].some((name) => requestNames.has(name.toLowerCase()) || name.startsWith("$_")))) {
     return false;
   }
   const [leftSecret, rightSecret] = [isSecret(left), isSecret(right)];
@@ -16829,6 +16836,9 @@ function isFixedValue(chain, pascalCase) {
   }
   const call = /\)\s*$/.test(chain);
   return !call && /^[A-Z]/.test(last) && (pascalCase || /^[A-Z]/.test(first));
+}
+function fieldOf(chain) {
+  return /\(\s*["']([\w-]+)["']\s*\)\s*$/.exec(chain)?.[1];
 }
 function isAbout(chain) {
   return namesOf(chain).some((name) => wordsOf2(name).some((word2) => aboutWords.has(word2)));
@@ -17070,7 +17080,7 @@ var nosqlInjectionRule = {
   }
 };
 function findIssues2(lines, language) {
-  const requestNames = /* @__PURE__ */ new Set();
+  const requestNames2 = /* @__PURE__ */ new Set();
   const requestObjects = /* @__PURE__ */ new Set();
   const issues = [];
   lines.forEach(({ line, content, added }, index) => {
@@ -17086,7 +17096,7 @@ function findIssues2(lines, language) {
       for (const part of (names[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0 && !part.includes("...")) {
-          requestNames.add(name);
+          requestNames2.add(name);
         }
       }
     }
@@ -17102,7 +17112,7 @@ function findIssues2(lines, language) {
         continue;
       }
       const filter2 = filterText(lines, index, match2.index + match2[0].length);
-      if (filterUsesRequest(filter2, language, requestNames, requestObjects)) {
+      if (filterUsesRequest(filter2, language, requestNames2, requestObjects)) {
         issues.push({ line, kind: "filter" });
         break;
       }
@@ -17135,7 +17145,7 @@ function filterText(lines, index, start) {
   }
   return text;
 }
-function filterUsesRequest(filter2, language, requestNames, requestObjects) {
+function filterUsesRequest(filter2, language, requestNames2, requestObjects) {
   if (sqlOrmFilter.test(filter2)) {
     return false;
   }
@@ -17156,7 +17166,7 @@ function filterUsesRequest(filter2, language, requestNames, requestObjects) {
       return true;
     }
     const name = /^[\s{]*([A-Za-z_$][\w$]*)[\s}]*$/.exec(value)?.[1];
-    if (name !== void 0 && requestNames.has(name)) {
+    if (name !== void 0 && requestNames2.has(name)) {
       return true;
     }
     const object2 = /^[\s{]*([A-Za-z_$][\w$]*)\s*(?:\.(?!length\b)\w|\[|\.get\s*\()/.exec(value)?.[1];
@@ -18242,7 +18252,7 @@ var plaintextPasswordRule = {
     });
   }
 };
-function fieldOf(chain) {
+function fieldOf2(chain) {
   return chain.replace(/^.*(?:\.|->|\[\s*["':]|\.get\s*\(\s*["'])/s, "");
 }
 function comparesPlaintext(content) {
@@ -18263,7 +18273,7 @@ function comparesPlaintext(content) {
   return pairs.some(([left, right]) => isPair(left.trim(), right.trim()) || isPair(right.trim(), left.trim()));
 }
 function isPair(stored, typed) {
-  if (notThePassword.test(fieldOf(stored)) || notThePassword.test(fieldOf(typed))) {
+  if (notThePassword.test(fieldOf2(stored)) || notThePassword.test(fieldOf2(typed))) {
     return false;
   }
   return storedPassword.test(stored) && typedPassword.test(typed) && !storedPassword.test(typed.replace(/^\$?this\b/, "x"));
