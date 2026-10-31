@@ -389,6 +389,13 @@ The `blanket-suppression` rule warns, with the first line number, when a pull re
 
 Only added lines are checked, and each marker only counts in files of its own language: ESLint and TypeScript markers in JavaScript and TypeScript sources, Python markers in `.py` and `.pyi` files, and so on. A `#noqa` inside a URL in a `.ts` file is not a suppression, and documentation that quotes these markers is never reported.
 
+In Python, some lines leave a bare marker only one check to turn off, and are not reported:
+
+- Import lines, as in `from .models import *  # noqa` or `import yaml  # type: ignore`. There a `# noqa` keeps a re-export (F401) or an import below code (E402), and a `# type: ignore` covers a module without type stubs.
+- A `# noqa` after text in a comment, as in `# See https://...  # noqa`, and on the line that closes a long triple-quoted string. Both can only cover the line's length (E501).
+
+`# flake8: noqa` and a `# type: ignore` on a line of its own turn off checks for the whole file, and are still reported, as is a `# noqa` on the line that opens a string.
+
 ## Risky APIs
 
 ### `rules.riskyApis.enabled`
