@@ -36820,7 +36820,8 @@ var prismConfigSchema = object({
     dependencyChanges: boolean2().default(true)
   }).prefault({}),
   ignorePaths: array(string2()).default([]),
-  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
+  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes, and the paths
+  // Linguist treats as vendored, such as `vendor/` and `dist/`, out like ignorePaths.
   ignoreGenerated: boolean2().default(true),
   severity: severityMap.prefault({}),
   // Severity for findings in matching files, applied after `severity`; later entries win.
@@ -43989,7 +43990,7 @@ function applySeverityOverride(finding2, config2, pathOverrides) {
 }
 function buildSummary(reviewedCount, ignoredCount, generatedCount, findings, suppressedCount) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
-  const generated = generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
+  const generated = generatedCount > 0 ? `, ${generatedCount} more generated or vendored` : "";
   const reviewed3 = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found = findings.length === 0 ? "No configured risk signals were detected." : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
   const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
@@ -44018,6 +44019,62 @@ function failingFindings(result, failOn) {
 function describeFailure(failing, failOn, setting = "check.failOn") {
   const severities = failOn === "high" ? "high-risk" : "warning or high-risk";
   return `Prism Review found ${failing.length} ${severities} finding(s), and ${setting} is "${failOn}".`;
+}
+
+// src/analysis/git-attributes.ts
+var gitAttributesPath = ".gitattributes";
+var defaultVendored = /(?:^|\/)(?:vendor|vendors|third[-_]?party|3rd[-_]?party|node_modules|bower_components|dist)\/|[.-]min\.(?:js|css)$/i;
+var maxRules2 = 5e3;
+var maxPatternLength3 = 500;
+function parseGitAttributes(text) {
+  const rules = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === "" || /^(?:#|\[attr\]|")/.test(line) || rules.length >= maxRules2) {
+      continue;
+    }
+    const [pattern = "", ...attributes] = line.split(/\s+/);
+    if (pattern.length > maxPatternLength3 || pattern.startsWith("!") || pattern.endsWith("/")) {
+      continue;
+    }
+    const rule = { matcher: new Minimatch(patternGlob(pattern), { dot: true }) };
+    for (const attribute of attributes) {
+      const state = attributeState(attribute);
+      if (state?.name === "linguist-generated") {
+        rule.generated = state.set;
+      } else if (state?.name === "linguist-vendored") {
+        rule.vendored = state.set;
+      }
+    }
+    if (rule.generated !== void 0 || rule.vendored !== void 0) {
+      rules.push(rule);
+    }
+  }
+  return {
+    isGenerated(path5) {
+      let generated = false;
+      let vendored;
+      for (const rule of rules) {
+        if (rule.matcher.match(path5)) {
+          generated = rule.generated ?? generated;
+          vendored = rule.vendored ?? vendored;
+        }
+      }
+      return generated || (vendored ?? defaultVendored.test(path5));
+    }
+  };
+}
+var defaultGeneratedFiles = parseGitAttributes("");
+function patternGlob(pattern) {
+  return pattern.includes("/") ? pattern.replace(/^\/+/, "") : `**/${pattern}`;
+}
+function attributeState(attribute) {
+  const match2 = /^([-!]?)([\w.-]+)(?:=(.*))?$/.exec(attribute);
+  if (match2 === null) {
+    return void 0;
+  }
+  const [, prefix = "", name = "", value] = match2;
+  return { name, set: prefix === "" && value !== "false" && value !== "0" };
 }
 
 // src/github/client.ts
@@ -44856,64 +44913,10 @@ async function loadBaseCodeOwners(client, owner, repo, baseSha) {
   return void 0;
 }
 
-// src/analysis/git-attributes.ts
-var gitAttributesPath = ".gitattributes";
-var maxRules2 = 5e3;
-var maxPatternLength3 = 500;
-function parseGitAttributes(text) {
-  const rules = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (line === "" || /^(?:#|\[attr\]|")/.test(line) || rules.length >= maxRules2) {
-      continue;
-    }
-    const [pattern = "", ...attributes] = line.split(/\s+/);
-    if (pattern.length > maxPatternLength3 || pattern.startsWith("!") || pattern.endsWith("/")) {
-      continue;
-    }
-    const rule = { matcher: new Minimatch(patternGlob(pattern), { dot: true }) };
-    for (const attribute of attributes) {
-      const state = attributeState(attribute);
-      if (state?.name === "linguist-generated") {
-        rule.generated = state.set;
-      } else if (state?.name === "linguist-vendored") {
-        rule.vendored = state.set;
-      }
-    }
-    if (rule.generated !== void 0 || rule.vendored !== void 0) {
-      rules.push(rule);
-    }
-  }
-  return {
-    isGenerated(path5) {
-      let generated = false;
-      let vendored = false;
-      for (const rule of rules) {
-        if (rule.matcher.match(path5)) {
-          generated = rule.generated ?? generated;
-          vendored = rule.vendored ?? vendored;
-        }
-      }
-      return generated || vendored;
-    }
-  };
-}
-function patternGlob(pattern) {
-  return pattern.includes("/") ? pattern.replace(/^\/+/, "") : `**/${pattern}`;
-}
-function attributeState(attribute) {
-  const match2 = /^([-!]?)([\w.-]+)(?:=(.*))?$/.exec(attribute);
-  if (match2 === null) {
-    return void 0;
-  }
-  const [, prefix = "", name = "", value] = match2;
-  return { name, set: prefix === "" && value !== "false" && value !== "0" };
-}
-
 // src/github/load-git-attributes.ts
 async function loadBaseGitAttributes(client, owner, repo, baseSha) {
   const text = await fetchRepositoryFile(client, owner, repo, gitAttributesPath, baseSha);
-  return text === void 0 ? void 0 : parseGitAttributes(text);
+  return text === void 0 ? defaultGeneratedFiles : parseGitAttributes(text);
 }
 
 // src/github/list-directory.ts
@@ -45299,9 +45302,9 @@ async function run() {
     config2
   );
   const generated = config2.ignoreGenerated ? await loadOptional(
-    ".gitattributes, so generated files are reviewed",
+    ".gitattributes, so the files it marks generated are reviewed",
     () => loadBaseGitAttributes(client, owner, repo, baseSha)
-  ) : void 0;
+  ) ?? defaultGeneratedFiles : void 0;
   const existingLockfiles = config2.rules.staleLockfiles.enabled ? await loadOptional(
     "the base commit's lockfiles, so stale lockfiles are not checked",
     () => findBaseLockfiles(client, owner, repo, baseSha, files)

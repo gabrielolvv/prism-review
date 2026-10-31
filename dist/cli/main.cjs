@@ -15647,7 +15647,8 @@ var prismConfigSchema = object({
     dependencyChanges: boolean2().default(true)
   }).prefault({}),
   ignorePaths: array(string2()).default([]),
-  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes out like ignorePaths.
+  // Leaves files marked `linguist-generated` or `linguist-vendored` in .gitattributes, and the paths
+  // Linguist treats as vendored, such as `vendor/` and `dist/`, out like ignorePaths.
   ignoreGenerated: boolean2().default(true),
   severity: severityMap.prefault({}),
   // Severity for findings in matching files, applied after `severity`; later entries win.
@@ -22913,7 +22914,7 @@ function applySeverityOverride(finding2, config2, pathOverrides) {
 }
 function buildSummary(reviewedCount, ignoredCount, generatedCount, findings, suppressedCount) {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
-  const generated = generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
+  const generated = generatedCount > 0 ? `, ${generatedCount} more generated or vendored` : "";
   const reviewed3 = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found = findings.length === 0 ? "No configured risk signals were detected." : `Found ${countBySeverity(findings, "high")} high-risk and ${countBySeverity(findings, "warning")} warning-level signal(s).`;
   const suppressed = suppressedCount > 0 ? ` ${suppressedCount} finding(s) were suppressed inline.` : "";
@@ -22934,6 +22935,7 @@ function calculateRiskLevel(files, findings, config2) {
 
 // src/analysis/git-attributes.ts
 var gitAttributesPath = ".gitattributes";
+var defaultVendored = /(?:^|\/)(?:vendor|vendors|third[-_]?party|3rd[-_]?party|node_modules|bower_components|dist)\/|[.-]min\.(?:js|css)$/i;
 var maxRules2 = 5e3;
 var maxPatternLength3 = 500;
 function parseGitAttributes(text) {
@@ -22963,17 +22965,18 @@ function parseGitAttributes(text) {
   return {
     isGenerated(path2) {
       let generated = false;
-      let vendored = false;
+      let vendored;
       for (const rule of rules) {
         if (rule.matcher.match(path2)) {
           generated = rule.generated ?? generated;
           vendored = rule.vendored ?? vendored;
         }
       }
-      return generated || vendored;
+      return generated || (vendored ?? defaultVendored.test(path2));
     }
   };
 }
+var defaultGeneratedFiles = parseGitAttributes("");
 function patternGlob(pattern) {
   return pattern.includes("/") ? pattern.replace(/^\/+/, "") : `**/${pattern}`;
 }
@@ -24253,7 +24256,7 @@ async function main() {
     return;
   }
   const files = prepareChangedFiles(parseDiff(diff), config2);
-  const generated = config2.ignoreGenerated && isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs2.readFileSync)(gitAttributesPath, "utf8")) : void 0;
+  const generated = !config2.ignoreGenerated ? void 0 : isFile(gitAttributesPath) ? parseGitAttributes((0, import_node_fs2.readFileSync)(gitAttributesPath, "utf8")) : defaultGeneratedFiles;
   const existingLockfiles = config2.rules.staleLockfiles.enabled ? await findLockfiles(
     files,
     async (directory) => (0, import_node_fs2.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
