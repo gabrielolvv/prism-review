@@ -27,6 +27,7 @@ export const ruleIds: readonly string[] = [
   "static-iv",
   "plaintext-password",
   "admin-route-auth",
+  "zip-slip",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

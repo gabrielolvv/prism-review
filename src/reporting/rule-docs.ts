@@ -29,6 +29,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "static-iv": "Static IVs",
   "plaintext-password": "Plaintext Passwords",
   "admin-route-auth": "Admin Route Access",
+  "zip-slip": "Archive Extraction",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

@@ -527,6 +527,12 @@ import {
   testAdminRouteAuthSkipsTestsAndCanBeDisabled
 } from "./unit/admin-route-auth.test.js";
 import {
+  testZipSlipReadsEachLanguage,
+  testZipSlipReportsOneFindingPerFile,
+  testZipSlipSkipsCheckedPaths,
+  testZipSlipSkipsTestsAndCanBeDisabled
+} from "./unit/zip-slip.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -920,6 +926,10 @@ const tests: Array<[string, Test]> = [
   ["admin-route-auth reports unguarded routes next to guarded ones", testAdminRouteAuthReportsUnguardedRoutesNextToGuardedOnes],
   ["admin-route-auth skips guarded routes", testAdminRouteAuthSkipsGuardedRoutes],
   ["admin-route-auth skips tests and can be disabled", testAdminRouteAuthSkipsTestsAndCanBeDisabled],
+  ["zip-slip reports one finding per file", testZipSlipReportsOneFindingPerFile],
+  ["zip-slip reads each language", testZipSlipReadsEachLanguage],
+  ["zip-slip skips checked paths, filtered tar archives, and zip archives", testZipSlipSkipsCheckedPaths],
+  ["zip-slip skips tests and can be disabled", testZipSlipSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
