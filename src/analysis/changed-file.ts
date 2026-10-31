@@ -28,6 +28,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that set a session
   // or cookie signing key to text written in the code.
   sessionSecretLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that issue a JSON
+  // Web Token without an expiry.
+  jwtExpiryLines?: number[];
   // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
   // named like a secret.
   secretLogLines?: number[];

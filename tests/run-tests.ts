@@ -570,6 +570,13 @@ import {
   testHardcodedSessionSecretSkipsSamplesAndCanBeDisabled
 } from "./unit/hardcoded-session-secret.test.js";
 import {
+  testJwtWithoutExpiryReadsEachLibrary,
+  testJwtWithoutExpiryReportsOneFindingPerFile,
+  testJwtWithoutExpirySeesLinesRedactionRewrites,
+  testJwtWithoutExpirySkipsTestsAndCanBeDisabled,
+  testJwtWithoutExpirySkipsTokensThatExpire
+} from "./unit/jwt-without-expiry.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -992,6 +999,11 @@ const tests: Array<[string, Test]> = [
   ["hardcoded-session-secret skips keys from elsewhere", testHardcodedSessionSecretSkipsKeysFromElsewhere],
   ["hardcoded-session-secret skips samples and can be disabled", testHardcodedSessionSecretSkipsSamplesAndCanBeDisabled],
   ["hardcoded-session-secret sees lines redaction rewrites", testHardcodedSessionSecretSeesLinesRedactionRewrites],
+  ["jwt-without-expiry reports one finding per file", testJwtWithoutExpiryReportsOneFindingPerFile],
+  ["jwt-without-expiry reads each library", testJwtWithoutExpiryReadsEachLibrary],
+  ["jwt-without-expiry skips tokens that expire", testJwtWithoutExpirySkipsTokensThatExpire],
+  ["jwt-without-expiry skips tests and can be disabled", testJwtWithoutExpirySkipsTestsAndCanBeDisabled],
+  ["jwt-without-expiry sees lines redaction rewrites", testJwtWithoutExpirySeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

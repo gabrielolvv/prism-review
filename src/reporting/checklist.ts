@@ -57,6 +57,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "command-injection": "Do commands run a fixed program, with request values passed as separate arguments and no shell?",
   "weak-password-hashing": "Do password hashes use a bcrypt cost of at least 10, enough PBKDF2 iterations, or Argon2id?",
   "hardcoded-session-secret": "Is the session signing key loaded from a secret store, and was any committed key replaced?",
+  "jwt-without-expiry": "Does every token expire, with longer sessions kept by refresh tokens the server can revoke?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
