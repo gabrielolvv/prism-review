@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -130,6 +130,8 @@ rules:
   zipSlip:
     enabled: true
   regexInjection:
+    enabled: true
+  electronSecurity:
     enabled: true
   remoteScripts:
     enabled: true
@@ -765,6 +767,29 @@ These are not reported:
 
 On about 98,000 files of library and application code, the rule reports none. Keystone's sign-in, which escapes the email before it builds a pattern, is not reported.
 
+## Electron Security
+
+### `rules.electronSecurity.enabled`
+
+The `electron-security` rule reports one finding per file that weakens the isolation between the web content an Electron window shows and the user's computer. Most of Electron's security rests on its window defaults; with them turned off, a script injected into a page, through cross-site scripting or a URL the window loads, can call Node.js and run commands as the user.
+
+| Setting | Severity |
+| --- | --- |
+| `nodeIntegration: true`, `nodeIntegrationInWorker: true`, `nodeIntegrationInSubFrames: true` | High |
+| `contextIsolation: false` | High |
+| `webSecurity: false` | High |
+| `app.commandLine.appendSwitch("ignore-certificate-errors")` or `"disable-web-security"` | High |
+| A `certificate-error` handler or `setCertificateVerifyProc` that calls `callback(true)` or `callback(0)`, accepting every certificate | High |
+| `<webview nodeintegration>`, `<webview disablewebsecurity>` | High |
+| `sandbox: false`, `allowRunningInsecureContent: true`, `experimentalFeatures: true`, `enableRemoteModule: true` | Warning |
+| `appendSwitch("no-sandbox")` or `"allow-running-insecure-content"` | Warning |
+
+The finding is high risk when any of its lines is. Settings are read in JavaScript, TypeScript, HTML, Vue, Svelte, and JSON files, as properties or quoted keys, and only when the patch shows Electron: `BrowserWindow`, `BrowserView`, `WebContentsView`, `webPreferences`, `electron`, or a `<webview>` tag, since an iframe's `sandbox` or Puppeteer's options use the same names.
+
+These are not reported: the safe values, such as `nodeIntegration: false` or `contextIsolation: true`, a `certificate-error` handler that calls `callback(false)`, text that mentions a setting, such as a message, comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 40 npm packages that open Electron windows, the rule reports the dialog and window helpers that turn on `nodeIntegration` and turn off `contextIsolation` or `webSecurity`, such as electron-prompt, electron-about-window, electron-alert, electron-progressbar, and electron-dialogs, electron-pdf's option to accept every certificate, and electron-vite's templates, which set `sandbox: false`. Electron Forge's template, which shows `nodeIntegration: true` in a comment, is not reported. On about 98,000 files of other code, it reports none.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1314,7 +1339,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
