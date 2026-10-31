@@ -39,6 +39,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "jwt-without-expiry": "JWT Expiry",
   "weak-tls": "Weak TLS",
   "security-headers": "Security Headers",
+  "debug-endpoint": "Debug Endpoints",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

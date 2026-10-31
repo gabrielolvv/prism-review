@@ -590,6 +590,12 @@ import {
   testSecurityHeadersSkipsTestsAndCanBeDisabled
 } from "./unit/security-headers.test.js";
 import {
+  testDebugEndpointReadsEachKind,
+  testDebugEndpointReportsOneFindingPerFile,
+  testDebugEndpointSkipsSafeSettings,
+  testDebugEndpointSkipsTestsAndCanBeDisabled
+} from "./unit/debug-endpoint.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1026,6 +1032,10 @@ const tests: Array<[string, Test]> = [
   ["security-headers reports every kind when all headers are off", testSecurityHeadersReportsEveryKindWhenAllHeadersAreOff],
   ["security-headers skips strong settings", testSecurityHeadersSkipsStrongSettings],
   ["security-headers skips tests and can be disabled", testSecurityHeadersSkipsTestsAndCanBeDisabled],
+  ["debug-endpoint reports one finding per file", testDebugEndpointReportsOneFindingPerFile],
+  ["debug-endpoint reads each kind", testDebugEndpointReadsEachKind],
+  ["debug-endpoint skips safe settings", testDebugEndpointSkipsSafeSettings],
+  ["debug-endpoint skips tests and can be disabled", testDebugEndpointSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

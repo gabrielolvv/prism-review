@@ -28,6 +28,7 @@ import { hardcodedSessionSecretRule } from "./hardcoded-session-secret.js";
 import { jwtWithoutExpiryRule } from "./jwt-without-expiry.js";
 import { weakTlsRule } from "./weak-tls.js";
 import { securityHeadersRule } from "./security-headers.js";
+import { debugEndpointRule } from "./debug-endpoint.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -99,6 +100,7 @@ export const defaultRules: Rule[] = [
   jwtWithoutExpiryRule,
   weakTlsRule,
   securityHeadersRule,
+  debugEndpointRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
