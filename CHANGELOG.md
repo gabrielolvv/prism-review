@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.88.0 - 2026-10-31
+
+### Added
+
+- `mobile-security` rule: reports Android and iOS settings that weaken transport security or open WebViews. High: `handler.proceed()` in `onReceivedSslError`, `android:debuggable="true"`, and WebView file access from `file://` URLs. Warning: `usesCleartextTraffic="true"`, `cleartextTrafficPermitted="true"` on `<base-config>`, `NSAllowsArbitraryLoads`, user certificate authorities outside `<debug-overrides>`, `MIXED_CONTENT_ALWAYS_ALLOW`, and WebView remote debugging, including react-native-webview props and Expo and Capacitor settings. Settings behind a condition or debug check, as libraries put them, are not reported. On about 18,000 files of React Native, Capacitor, Cordova, and Expo packages, and the other 99,000 files of library and application code, it reports none.
+
 ## 0.87.0 - 2026-10-31
 
 ### Added

@@ -110,6 +110,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - TLS settings that allow old versions or broken cipher suites (0.85.0).
 - Security headers turned off or weakened (0.86.0).
 - Debug endpoints exposed outside development (0.87.0).
+- Insecure Android and iOS app settings (0.88.0).
 
 ## Later
 
