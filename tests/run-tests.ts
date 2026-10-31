@@ -539,6 +539,12 @@ import {
   testRegexInjectionSkipsTestsAndCanBeDisabled
 } from "./unit/regex-injection.test.js";
 import {
+  testElectronSecurityReadsEachSetting,
+  testElectronSecurityReportsOneFindingPerFile,
+  testElectronSecuritySkipsSafeSettingsAndOtherTools,
+  testElectronSecuritySkipsTestsAndCanBeDisabled
+} from "./unit/electron-security.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -940,6 +946,10 @@ const tests: Array<[string, Test]> = [
   ["regex-injection reads each language", testRegexInjectionReadsEachLanguage],
   ["regex-injection skips escaped and fixed patterns", testRegexInjectionSkipsEscapedAndFixedPatterns],
   ["regex-injection skips tests and can be disabled", testRegexInjectionSkipsTestsAndCanBeDisabled],
+  ["electron-security reports one finding per file", testElectronSecurityReportsOneFindingPerFile],
+  ["electron-security reads each setting", testElectronSecurityReadsEachSetting],
+  ["electron-security skips safe settings and other tools", testElectronSecuritySkipsSafeSettingsAndOtherTools],
+  ["electron-security skips tests and can be disabled", testElectronSecuritySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

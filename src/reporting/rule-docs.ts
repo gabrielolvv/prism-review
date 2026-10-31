@@ -31,6 +31,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "admin-route-auth": "Admin Route Access",
   "zip-slip": "Archive Extraction",
   "regex-injection": "Regular Expression Injection",
+  "electron-security": "Electron Security",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
