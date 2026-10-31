@@ -60,6 +60,12 @@ const destructuring = /\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*(?:await\s+)?((?:
 const requestObject =
   /^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:(?:req|request|ctx(?:\.request)?)\.(?:body|query)|request\.(?:json|get_json\s*\(\s*\))|json\.loads\s*\(\s*request\b)\s*;?\s*$/;
 const parsers = /^(?:JSON|EJSON|qs|querystring|json|bson)\.(?:parse|loads|load)$/;
+// Service and repository layers, such as Directus's `service.updateMany(keys)`, Strapi's
+// `getService("user").exists(...)`, or Feathers' `app.service("users").find(...)`, take keys or their own
+// query format and validate it. A Mongoose model named `Service` is still read.
+const serviceReceiver = /(?:\b(?:service|repository)|[\w$]Service|[\w$]Repository)(?:\s*\([^()]*\))?\s*$/;
+// Sequelize, TypeORM, and Prisma wrap the filter in `where`, and do not read `$ne` from a plain object.
+const sqlOrmFilter = /^\s*\{\s*where\s*:/;
 // How far, in lines, a filter written over several lines is read.
 const filterReach = 12;
 
@@ -145,6 +151,9 @@ function findIssues(lines: PatchLine[], language: Language): Array<{ line: numbe
     }
     language.query.lastIndex = 0;
     for (const match of content.matchAll(language.query)) {
+      if (serviceReceiver.test(content.slice(0, match.index))) {
+        continue;
+      }
       const filter = filterText(lines, index, match.index + match[0].length);
       if (filterUsesRequest(filter, language, requestNames, requestObjects)) {
         issues.push({ line, kind: "filter" });
@@ -184,6 +193,9 @@ function filterText(lines: PatchLine[], index: number, start: number): string {
 }
 
 function filterUsesRequest(filter: string, language: Language, requestNames: Set<string>, requestObjects: Set<string>): boolean {
+  if (sqlOrmFilter.test(filter)) {
+    return false;
+  }
   // The whole request as the filter, as in `find(req.query)`.
   if (new RegExp(`^\\s*(?:${language.request.source})\\s*$`).test(filter)) {
     return true;
