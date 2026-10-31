@@ -1333,7 +1333,7 @@ The API key goes in the `ai-api-key` input, from a repository secret:
 
 What is sent:
 
-- Only the files the rules review. Files left out by `ignorePaths` or marked generated or vendored in `.gitattributes` are not sent.
+- Only the files the rules review. Files left out by `ignorePaths`, marked generated or vendored in `.gitattributes`, or in a default vendored path are not sent.
 - Their patches after redaction, so detected credentials are sent as `[REDACTED]`, and after `security.maxPatchBytes`, so oversized files are sent by name only. Hidden characters, such as Unicode tag characters, are sent as visible `\u{...}` escapes.
 - The severity, rule id, title, and location of each finding, so the summary can cover what the rules did not.
 - Nothing else: no files outside the diff, no CODEOWNERS, no token.
@@ -1384,16 +1384,22 @@ Ignored files are left out of `large-diff`, `missing-tests`, `skipped-tests`, `b
 When `true`, the default, files that the repository's `.gitattributes` marks `linguist-generated` or `linguist-vendored`, the attributes GitHub uses to collapse such files in diffs, are left out the same way as `ignorePaths`, so they need not be listed twice:
 
 ```gitattributes
-dist/** linguist-generated
-third_party/** linguist-vendored
+generated/** linguist-generated
+proto/*.pb.go linguist-generated
 ```
 
-The summary counts them apart from `ignorePaths`. The action reads `.gitattributes` from the base commit, so a pull request cannot mark its own files as generated; the CLI reads it from the current directory. Only the root `.gitattributes` is read.
+Paths that GitHub's Linguist treats as vendored without any attribute are left out too: `vendor/`, `vendors/`, `third_party/`, `3rdparty/`, `node_modules/`, `bower_components/`, and `dist/` at any depth, and minified `.min.js` and `.min.css` files. They hold copies of dependencies and build output, whose source is reviewed where it is written. To review one of them, mark it `-linguist-vendored`, as GitHub expects:
+
+```gitattributes
+dist/** -linguist-vendored
+```
+
+The summary counts these files apart from `ignorePaths`, as "generated or vendored". The action reads `.gitattributes` from the base commit, so a pull request cannot mark its own files as generated; the CLI reads it from the current directory. Only the root `.gitattributes` is read.
 
 - Patterns follow gitattributes: one without a slash matches at any depth, one with a slash is anchored at the root, and a directory pattern does not reach the files in it, so `dist/` matches nothing and `dist/**` is needed.
 - For each attribute, the last matching line wins. `-linguist-generated`, `!linguist-generated`, and `linguist-generated=false` clear it, so `third_party/ours/** -linguist-vendored` brings a directory back into the review.
 - The rules that `ignorePaths` cannot hide still read these files, and a renamed file is only left out when its old path is too.
-- A `.gitattributes` that cannot be read logs a warning, and the review goes on with every file. `false` turns this off and skips reading the file.
+- A `.gitattributes` that cannot be read logs a warning, and the review goes on with every file except the default vendored paths. `false` turns this off, skips reading the file, and reviews the default vendored paths too.
 
 ## Inline Suppressions
 
