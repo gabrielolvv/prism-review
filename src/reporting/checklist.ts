@@ -55,6 +55,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "electron-security": "Do Electron windows keep Node.js out of web content, with context isolation, the sandbox, and web security on?",
   "unsafe-reflection": "Is every module, class, or method chosen by request input looked up in a fixed table or allowlist?",
   "command-injection": "Do commands run a fixed program, with request values passed as separate arguments and no shell?",
+  "weak-password-hashing": "Do password hashes use a bcrypt cost of at least 10, enough PBKDF2 iterations, or Argon2id?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

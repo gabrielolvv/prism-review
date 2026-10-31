@@ -34,6 +34,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "electron-security": "Electron Security",
   "unsafe-reflection": "Unsafe Reflection",
   "command-injection": "Command Injection",
+  "weak-password-hashing": "Weak Password Hashing",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

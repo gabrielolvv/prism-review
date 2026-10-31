@@ -23,6 +23,7 @@ import { regexInjectionRule } from "./regex-injection.js";
 import { electronSecurityRule } from "./electron-security.js";
 import { unsafeReflectionRule } from "./unsafe-reflection.js";
 import { commandInjectionRule } from "./command-injection.js";
+import { weakPasswordHashingRule } from "./weak-password-hashing.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -89,6 +90,7 @@ export const defaultRules: Rule[] = [
   electronSecurityRule,
   unsafeReflectionRule,
   commandInjectionRule,
+  weakPasswordHashingRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
