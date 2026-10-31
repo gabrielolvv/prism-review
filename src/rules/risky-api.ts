@@ -1,9 +1,21 @@
 import { minimatch } from "minimatch";
-import { matchAddedLines } from "../analysis/added-lines.js";
+import { patchLines, type PatchLine } from "../analysis/added-lines.js";
 import type { Rule } from "../analysis/rule.js";
 import { describeLines } from "./line-list.js";
 
-type Language = { files: RegExp; calls: Array<[string, RegExp]>; definitions?: RegExp };
+type Language = {
+  files: RegExp;
+  calls: Array<[string, RegExp]>;
+  definitions?: RegExp;
+  comment: RegExp;
+  // Python reads only the code outside triple-quoted strings, where docstrings mention `eval()`.
+  docstrings?: boolean;
+};
+
+const slashComment = /^\s*(?:\/\/|\/\*|\*)/;
+const hashComment = /^\s*#/;
+// Minified and bundled code puts a whole file on a few lines.
+const maxLineLength = 1_000;
 
 // Assembled so this file does not match its own pattern.
 const rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
@@ -15,6 +27,7 @@ const rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 const languages: Language[] = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    comment: slashComment,
     calls: [
       ["eval", /(?<![.\w$])eval\s*\(|\b(?:window|globalThis|self)\.eval\s*\(/],
       ["Function constructor", /\bnew\s+Function\s*\(/],
@@ -32,6 +45,8 @@ const languages: Language[] = [
   },
   {
     files: /\.py$/,
+    comment: hashComment,
+    docstrings: true,
     calls: [
       ["eval", /(?<![.\w])eval\s*\(/],
       ["exec", /(?<![.\w])exe[c]\s*\(/],
@@ -47,6 +62,7 @@ const languages: Language[] = [
   },
   {
     files: /\.(?:rb|rake|erb)$/,
+    comment: hashComment,
     calls: [
       // A string, heredoc, or variable is evaluated; a `do` or `{` block is not.
       [
@@ -70,6 +86,7 @@ const languages: Language[] = [
   },
   {
     files: /\.(?:java|kt)$/,
+    comment: slashComment,
     calls: [
       ["Runtime exec", /\bRuntime\.getRuntime\(\)\.exe[c]\s*\(/],
       [
@@ -82,6 +99,7 @@ const languages: Language[] = [
   {
     // `->` and `::` mark method calls, which are excluded like member calls in JavaScript.
     files: /\.php$/,
+    comment: /^\s*(?:\/\/|\/\*|\*|#(?!\[))/,
     calls: [
       ["eval", /(?<![>\w$:])eval\s*\(/],
       ["shell command", /(?<![>\w$:])(?:exe[c]|shell_exec|system|passthru|popen|proc_open)\s*\(/],
@@ -91,6 +109,7 @@ const languages: Language[] = [
   },
   {
     files: /\.(?:cs|cshtml|razor)$/,
+    comment: slashComment,
     calls: [
       [
         "shell command",
@@ -102,6 +121,7 @@ const languages: Language[] = [
   },
   {
     files: /\.swift$/,
+    comment: slashComment,
     calls: [
       ["shell process", /(?:fileURLWithPath:|launchPath\s*=)\s*"\/bin\/(?:sh|bash|zsh)"/],
       ["NSKeyedUnarchiver", /\bNSKeyedUnarchiver\.unarchiveObject\s*\(|\bNSUnarchiver\b/],
@@ -111,6 +131,7 @@ const languages: Language[] = [
   },
   {
     files: /\.go$/,
+    comment: slashComment,
     calls: [
       [
         "shell command",
@@ -138,7 +159,7 @@ export const riskyApiRule: Rule = {
         return [];
       }
 
-      const found = matchAddedLines(file.patch, language.calls, language.definitions);
+      const found = findCalls(patchLines(file.patch), language);
       if (found.length === 0) {
         return [];
       }
@@ -163,3 +184,52 @@ export const riskyApiRule: Rule = {
     });
   }
 };
+
+function findCalls(lines: PatchLine[], language: Language): Array<{ line: number; label: string }> {
+  const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
+  return lines.flatMap((line, index) => {
+    const content = code[index] ?? "";
+    if (
+      !line.added ||
+      line.content.length > maxLineLength ||
+      language.comment.test(content) ||
+      language.definitions?.test(content)
+    ) {
+      return [];
+    }
+    return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
+  });
+}
+
+// Each line's text outside triple-quoted strings. At the start of a hunk no string is taken to be
+// open, so a call there is still read.
+function outsideTripleQuotes(lines: PatchLine[]): string[] {
+  let open: string | undefined;
+  return lines.map((line) => {
+    if (line.startsHunk) {
+      open = undefined;
+    }
+    let code = "";
+    let rest = line.content;
+    while (rest.length > 0) {
+      if (open !== undefined) {
+        const end = rest.indexOf(open);
+        if (end === -1) {
+          break;
+        }
+        rest = rest.slice(end + 3);
+        open = undefined;
+        continue;
+      }
+      const start = /"""|'''/.exec(rest);
+      if (start === null) {
+        code += rest;
+        break;
+      }
+      code += rest.slice(0, start.index);
+      open = start[0];
+      rest = rest.slice(start.index + 3);
+    }
+    return code;
+  });
+}
