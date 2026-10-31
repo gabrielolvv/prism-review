@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.84.0 - 2026-10-31
+
+### Added
+
+- `jwt-without-expiry` rule: warns about JSON Web Tokens issued without an expiry, such as `jwt.sign({ username }, secret)`, `new SignJWT(claims)` without `setExpirationTime`, `jwt.encode({"sub": id}, key)`, `jwt.NewWithClaims(method, jwt.MapClaims{...})` without `"exp"`, `Jwts.builder()` without `setExpiration`, `JWT.create()` without `withExpiresAt`, and `new JwtSecurityToken(...)` without `expires:`. A token that leaks then works for as long as the signing key does. Claims and options held in a name are not reported, since they may set the expiry elsewhere. The calls are found before redaction, which rewrites lines such as `const token = jwt.sign({`. On about 99,000 files of library and application code, it reports one: Uptime Kuma's login tokens.
+
 ## 0.83.0 - 2026-10-31
 
 ### Added

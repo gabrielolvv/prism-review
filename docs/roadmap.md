@@ -106,6 +106,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Commands built from request input (0.81.0).
 - Password hashing with too little work (0.82.0).
 - Session and cookie signing keys written in the code (0.83.0).
+- JSON Web Tokens issued without an expiry (0.84.0).
 
 ## Later
 
