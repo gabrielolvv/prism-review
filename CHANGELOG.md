@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.76.0 - 2026-10-31
+
+### Changed
+
+- `risky-api` no longer reports comment lines, such as a commented-out `os.system(...)` or a JSDoc example that calls `exec()`, text inside Python's triple-quoted strings, such as a docstring that mentions ``eval()``, or lines over 1,000 characters, which hold minified or bundled code such as jQuery or a built admin panel.
+- On about 95,000 files of library and application code, the rule now reports 222 files instead of 289, before leaving out the default vendored paths added in 0.74.0.
+
 ## 0.75.0 - 2026-10-31
 
 ### Changed
