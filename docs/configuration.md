@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -195,6 +195,8 @@ rules:
   mobileSecurity:
     enabled: true
   insecureTempFile:
+    enabled: true
+  publicEnvSecret:
     enabled: true
   secretLogging:
     enabled: true
@@ -1397,6 +1399,23 @@ These are not reported: keys read from the environment or a secret store, includ
 
 On about 99,000 files of library and application code, the rule reports one: the configuration Flask-AppBuilder ships for new apps, which sets `SECRET_KEY` to a fixed string.
 
+## Public Environment Variables
+
+### `rules.publicEnvSecret.enabled`
+
+The `public-env-secret` rule reports, as high risk, one finding per file that puts a secret in an environment variable the build copies into the JavaScript it sends to browsers. Anyone who opens the site can read these values from the bundle, so a secret in one is public as soon as it is deployed, even if the repository is private.
+
+| Read | Examples |
+| --- | --- |
+| A public variable named like a secret | `NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `EXPO_PUBLIC_`, `NUXT_PUBLIC_`, `NUXT_ENV_`, `GATSBY_`, `VUE_APP_`, and SvelteKit's `PUBLIC_` variables whose names end in `SECRET`, `SECRET_KEY`, `SECRET_ACCESS_KEY`, `PRIVATE_KEY`, `PASSWORD`, `PASSWD`, `DB_PASS`, `SERVICE_ROLE_KEY`, `SERVICE_ACCOUNT_KEY`, `ADMIN_KEY`, `ADMIN_TOKEN`, `DATABASE_URL`, `DB_URL`, `SIGNING_KEY`, `ENCRYPTION_KEY`, or `MASTER_KEY`, in code, `.env` files including examples, CI workflows, and Dockerfiles |
+| A variable a bundler setting exposes | A variable named like a secret in Next.js's `env` in `next.config`, Vite's `define`, or webpack's `DefinePlugin` and `EnvironmentPlugin` |
+
+The names are found before redaction, which rewrites lines such as `const secret = process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY`.
+
+API keys and tokens are not reported, since browser SDKs such as Firebase, Mapbox, Stripe's publishable keys, and Supabase's anonymous key are meant to be public. Also not reported: names that only contain a secret word, such as `NEXT_PUBLIC_PASSWORD_MIN_LENGTH`; server-only variables without a public prefix; `env` outside `next.config`, such as Vitest's `test.env`; other Next.js settings, such as `serverRuntimeConfig`; comment lines; documentation; TypeScript declaration files; minified files; lockfiles; test files matched by `rules.missingTests.testGlobs`; and fixture directories. `credential-file` skips public variables, since their values are public by design, so this rule covers them.
+
+On about 117,000 files of library and application code, the rule reports none.
+
 ## Secret Logging
 
 ### `rules.secretLogging.enabled`
@@ -1574,7 +1593,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `secret-logging`, `url-credentials` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
