@@ -63,7 +63,7 @@ const railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 
 // Settings modules and app entry points, but not the ones meant for development, examples, or tests.
 const djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
-const developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
+export const developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 const railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
 
 const commentLine = /^\s*(?:#|\/\/|\*)/;
