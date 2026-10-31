@@ -29,6 +29,7 @@ import { jwtWithoutExpiryRule } from "./jwt-without-expiry.js";
 import { weakTlsRule } from "./weak-tls.js";
 import { securityHeadersRule } from "./security-headers.js";
 import { debugEndpointRule } from "./debug-endpoint.js";
+import { mobileSecurityRule } from "./mobile-security.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -101,6 +102,7 @@ export const defaultRules: Rule[] = [
   weakTlsRule,
   securityHeadersRule,
   debugEndpointRule,
+  mobileSecurityRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

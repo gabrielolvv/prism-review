@@ -596,6 +596,12 @@ import {
   testDebugEndpointSkipsTestsAndCanBeDisabled
 } from "./unit/debug-endpoint.test.js";
 import {
+  testMobileSecurityReadsEachPlatform,
+  testMobileSecurityReportsOneFindingPerFile,
+  testMobileSecuritySkipsGuardedAndSafeSettings,
+  testMobileSecuritySkipsTestsAndCanBeDisabled
+} from "./unit/mobile-security.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1036,6 +1042,10 @@ const tests: Array<[string, Test]> = [
   ["debug-endpoint reads each kind", testDebugEndpointReadsEachKind],
   ["debug-endpoint skips safe settings", testDebugEndpointSkipsSafeSettings],
   ["debug-endpoint skips tests and can be disabled", testDebugEndpointSkipsTestsAndCanBeDisabled],
+  ["mobile-security reports one finding per file", testMobileSecurityReportsOneFindingPerFile],
+  ["mobile-security reads each platform", testMobileSecurityReadsEachPlatform],
+  ["mobile-security skips guarded and safe settings", testMobileSecuritySkipsGuardedAndSafeSettings],
+  ["mobile-security skips tests and can be disabled", testMobileSecuritySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

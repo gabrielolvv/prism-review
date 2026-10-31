@@ -66,6 +66,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "weak-tls": "code",
   "security-headers": "code",
   "debug-endpoint": "code",
+  "mobile-security": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
