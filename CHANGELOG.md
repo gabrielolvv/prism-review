@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.79.0 - 2026-10-31
+
+### Added
+
+- `electron-security` rule: reports, as high risk, Electron windows that give web content Node.js or turn off its protections: `nodeIntegration: true`, `contextIsolation: false`, `webSecurity: false`, `appendSwitch("ignore-certificate-errors")` or `"disable-web-security"`, a `certificate-error` handler or `setCertificateVerifyProc` that accepts every certificate, and `<webview nodeintegration>` or `disablewebsecurity`. With them, a script injected into the page through XSS or a loaded URL can run commands on the user's computer. `sandbox: false`, `allowRunningInsecureContent: true`, `experimentalFeatures: true`, `enableRemoteModule: true`, and the `no-sandbox` switch are reported as warnings. Settings are read as properties or quoted keys, not in text that mentions them, and only in files that show Electron. On about 40 npm packages that open Electron windows, it reports the helpers known for these settings, such as electron-prompt, electron-about-window, and electron-dialogs, and electron-vite's templates; on about 98,000 files of other code, it reports none.
+
 ## 0.78.0 - 2026-10-31
 
 ### Added
