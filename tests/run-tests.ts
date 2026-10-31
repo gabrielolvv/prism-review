@@ -602,6 +602,12 @@ import {
   testMobileSecuritySkipsTestsAndCanBeDisabled
 } from "./unit/mobile-security.test.js";
 import {
+  testInsecureTempFileReadsEachLanguage,
+  testInsecureTempFileReportsOneFindingPerFile,
+  testInsecureTempFileSkipsSafeCalls,
+  testInsecureTempFileSkipsTestsAndCanBeDisabled
+} from "./unit/insecure-temp-file.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1046,6 +1052,10 @@ const tests: Array<[string, Test]> = [
   ["mobile-security reads each platform", testMobileSecurityReadsEachPlatform],
   ["mobile-security skips guarded and safe settings", testMobileSecuritySkipsGuardedAndSafeSettings],
   ["mobile-security skips tests and can be disabled", testMobileSecuritySkipsTestsAndCanBeDisabled],
+  ["insecure-temp-file reports one finding per file", testInsecureTempFileReportsOneFindingPerFile],
+  ["insecure-temp-file reads each language", testInsecureTempFileReadsEachLanguage],
+  ["insecure-temp-file skips safe calls", testInsecureTempFileSkipsSafeCalls],
+  ["insecure-temp-file skips tests and can be disabled", testInsecureTempFileSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
