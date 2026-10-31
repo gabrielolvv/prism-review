@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -191,6 +191,8 @@ rules:
   securityHeaders:
     enabled: true
   debugEndpoint:
+    enabled: true
+  mobileSecurity:
     enabled: true
   secretLogging:
     enabled: true
@@ -967,6 +969,28 @@ These are not reported: Actuator's `health`, `info`, `metrics`, and `prometheus`
 
 On about 99,000 files of library and application code, the rule reports none. gRPC's benchmark servers, which import pprof, and Parse Server's GraphQL server, which leaves introspection to a plugin, are not reported.
 
+## Mobile App Settings
+
+### `rules.mobileSecurity.enabled`
+
+The `mobile-security` rule reports, once per file, Android and iOS settings that weaken an app's transport security or open its WebViews to other pages and files.
+
+| Reported | Severity | Read |
+| --- | --- | --- |
+| A WebView that loads pages despite certificate errors | High | `handler.proceed()` in a file that overrides `onReceivedSslError` |
+| A debuggable Android build | High | `android:debuggable="true"` in `AndroidManifest.xml` |
+| WebView pages from `file://` URLs that can read other files and origins | High | `setAllowUniversalAccessFromFileURLs(true)` and `setAllowFileAccessFromFileURLs(true)`, Kotlin's `allowUniversalAccessFromFileURLs = true`, and react-native-webview's `allowUniversalAccessFromFileURLs` and `allowFileAccessFromFileURLs` props |
+| Plain HTTP traffic | Warning | `android:usesCleartextTraffic="true"`, `cleartextTrafficPermitted="true"` on a network security config's `<base-config>`, `NSAllowsArbitraryLoads` or `NSAllowsArbitraryLoadsInWebContent` set to `<true/>` in an `Info.plist`, and `usesCleartextTraffic`, `NSAllowsArbitraryLoads`, or Capacitor's `cleartext` set to `true` in `app.json`, `app.config`, or `capacitor.config` |
+| Trust in certificate authorities the user installs | Warning | `<certificates src="user" />` in a network security config, outside `<debug-overrides>` |
+| HTTP content inside HTTPS pages | Warning | `MIXED_CONTENT_ALWAYS_ALLOW`, react-native-webview's `mixedContentMode="always"`, and Capacitor's `allowMixedContent: true` |
+| WebView remote debugging | Warning | `setWebContentsDebuggingEnabled(true)`, WKWebView's `isInspectable = true`, react-native-webview's `webviewDebuggingEnabled`, and Capacitor's `webContentsDebuggingEnabled: true` |
+
+In code, a setting is not reported when a condition or debug check comes in the 3 lines before it or opens the block it is in, such as `if (BuildConfig.DEBUG)`, `#if DEBUG`, `__DEV__`, or a check of `FLAG_DEBUGGABLE`. Libraries such as react-native-webview, Cordova, and Capacitor put these settings behind an option or a debug build, and the rule reports what an app turns on for every build.
+
+These are not reported: `cleartextTrafficPermitted` on a `<domain-config>`, which names its hosts; `handler.proceed(user, password)` for HTTP authentication; Android's `src/debug/` source set; files whose path names development, local, test, CI, example, sample, or demo code; comment lines; documentation; TypeScript declaration files; minified files; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 18,000 files of React Native, Capacitor, Cordova, and Expo packages, which ship Android and iOS code, and on the other 99,000 files of library and application code, the rule reports none. The settings these libraries turn on behind an option or a debug check are not reported.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1536,7 +1560,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
