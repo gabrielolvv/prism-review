@@ -221,7 +221,7 @@ With the [pre-commit](https://pre-commit.com) framework, add the hook to `.pre-c
 ```yaml
 repos:
   - repo: https://github.com/gabrielolvv/prism-review
-    rev: v0.72.0
+    rev: v0.73.0
     hooks:
       - id: prism-review
 ```
@@ -256,7 +256,7 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.72.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.73.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
 ```
 
 The review is printed in the job log, and a high-risk finding fails the job. `GIT_DEPTH: 0` fetches the full history, which `--base` needs to find where the branch started. GitHub-only features, such as the pull request comment, CODEOWNERS from the base commit, and annotations, need the GitHub Action.
