@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.90.0 - 2026-10-31
+
+### Added
+
+- `public-env-secret` rule: flags, as high risk, secrets in environment variables the build copies into the JavaScript it sends to browsers, such as `NEXT_PUBLIC_STRIPE_SECRET_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY`, `REACT_APP_CLIENT_SECRET`, or SvelteKit's `PUBLIC_JWT_SECRET`, and secrets exposed through Next.js's `env`, Vite's `define`, or webpack's `DefinePlugin` and `EnvironmentPlugin`. Public API keys and tokens, such as Firebase's API key, Stripe's publishable key, and Supabase's anonymous key, are not reported. The names are found before redaction. `credential-file` skips public variables, so this rule covers them. On about 117,000 files of library and application code, it reports none.
+
 ## 0.89.0 - 2026-10-31
 
 ### Added

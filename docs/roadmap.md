@@ -112,6 +112,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Debug endpoints exposed outside development (0.87.0).
 - Insecure Android and iOS app settings (0.88.0).
 - Predictable temporary files (0.89.0).
+- Secrets in environment variables sent to browsers (0.90.0).
 
 ## Later
 
