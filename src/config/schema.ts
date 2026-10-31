@@ -300,6 +300,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      electronSecurity: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)
