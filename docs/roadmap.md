@@ -100,6 +100,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - No blanket suppression findings for Python markers that can only cover one check (0.75.0).
 - No risky API findings in comments, docstrings, or minified lines (0.76.0).
 - Zip Slip: archive entries written outside the destination (0.77.0).
+- Regular expressions built from request input (0.78.0).
 
 ## Later
 

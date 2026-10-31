@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.78.0 - 2026-10-31
+
+### Added
+
+- `regex-injection` rule: warns when a regular expression is compiled from a request value without escaping it, as in `new RegExp(req.query.q)`, `re.compile(request.args["q"])`, `Regexp.new(params[:q])`, `Pattern.compile(request.getParameter("q"))`, `Regex.IsMatch(name, Request.Query["q"])`, `preg_match('/' . $_GET['q'] . '/', ...)`, a Django `title__iregex=q` lookup, or a MongoDB `{ $regex: req.query.name }` filter. A request can then send a pattern such as `(a+)+$` that takes exponential time to fail (ReDoS), or `.*` that matches every record. It follows names assigned or destructured from the request, and skips values escaped with `escapeRegExp`, `re.escape`, `Regexp.escape`, `Pattern.quote`, `Regex.Escape`, or `preg_quote`. On about 98,000 files of library and application code, it reports none.
+
 ## 0.77.0 - 2026-10-31
 
 ### Added
