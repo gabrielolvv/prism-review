@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.81.0 - 2026-10-31
+
+### Added
+
+- `command-injection` rule: reports, as high risk, commands run with a value from the request in the program or in the text a shell parses, such as ``exec(`ping ${req.query.host}`)``, `os.system("ping " + request.args["host"])`, `subprocess.check_output(f"dig {host}", shell=True)`, Ruby's `` `whois #{params[:domain]}` ``, PHP's `shell_exec('ping ' . $_GET['host'])`, `Runtime.getRuntime().exec(...)`, Go's `exec.Command("sh", "-c", ...)`, and `Process.Start("cmd.exe", "/c ..." + Request.Query["host"])`. `risky-api` warns about every call that starts a shell; this rule reports the ones a request value reaches. A fixed program with the request value as a separate argument and no shell, values quoted with `shlex.quote`, `escapeshellarg`, or `Shellwords.escape`, and values turned into numbers are not reported. On about 99,000 files of library and application code, it reports none.
+
 ## 0.80.0 - 2026-10-31
 
 ### Added
