@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.77.0 - 2026-10-31
+
+### Added
+
+- `zip-slip` rule: warns when the entries of a zip or tar archive are written to a path built from the entry's own name, such as `path.join(dest, entry.path)`, `filepath.Join(dest, f.Name)`, `os.path.join(dest, member.name)`, `new File(dir, entry.getName())`, or `Path.Combine(dest, entry.FullName)`, without a check that the path stays in the destination, so an entry named `../../etc/cron.d/job` is written outside it. It reads JavaScript, TypeScript, Python, Go, Java, Kotlin, C#, and Ruby, follows names assigned from an entry, and also reports Python `tarfile` extraction without a `filter`. Paths checked nearby with `startsWith`, `HasPrefix`, `getCanonicalPath`, `path.relative`, or a helper such as `sanitizeExtractPath`, and names reduced with `basename`, are not reported. On versions of adm-zip, unzipper, zt-zip, zip4j, plexus-archiver, and codeclysm/extract with a known Zip Slip vulnerability, it reports the extraction code, and on the fixed versions it does not, except zt-zip's `Zips` builder, which still joins entry names without a check; on about 95,000 files of other library and application code, it reports one file.
+
 ## 0.76.0 - 2026-10-31
 
 ### Changed

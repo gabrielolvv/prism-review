@@ -99,6 +99,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Findings below a key whose value is on the next line keep their line numbers (0.74.1).
 - No blanket suppression findings for Python markers that can only cover one check (0.75.0).
 - No risky API findings in comments, docstrings, or minified lines (0.76.0).
+- Zip Slip: archive entries written outside the destination (0.77.0).
 
 ## Later
 
