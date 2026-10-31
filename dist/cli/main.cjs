@@ -10620,7 +10620,7 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
   def.format = def.format || "float64";
   const isInt = def.format?.includes("int");
   const origin = isInt ? "int" : "number";
-  const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
+  const [minimum2, maximum] = NUMBER_FORMAT_RANGES[def.format];
   inst._zod.check = (payload) => {
     const input = payload.value;
     if (isInt) {
@@ -10662,12 +10662,12 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
         return;
       }
     }
-    if (input < minimum) {
+    if (input < minimum2) {
       payload.issues.push({
         origin: "number",
         input,
         code: "too_small",
-        minimum,
+        minimum: minimum2,
         inclusive: true,
         inst,
         continue: !def.abort
@@ -13260,11 +13260,11 @@ function _maxLength(maximum, params) {
   return ch;
 }
 // @__NO_SIDE_EFFECTS__
-function _minLength(minimum, params) {
+function _minLength(minimum2, params) {
   return new $ZodCheckMinLength({
     check: "min_length",
     ...normalizeParams(params),
-    minimum
+    minimum: minimum2
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -13971,8 +13971,8 @@ var minContributor = (agg, def) => narrowMin(agg, "minimum", def.minimum);
 var maxContributor = (agg, def) => narrowMax(agg, "maximum", def.maximum);
 var formatContributor = (ranges) => (agg, def) => {
   setFormat(agg, def.format);
-  const [minimum, maximum] = ranges[def.format];
-  narrowMin(agg, "minimum", minimum);
+  const [minimum2, maximum] = ranges[def.format];
+  narrowMin(agg, "minimum", minimum2);
   narrowMax(agg, "maximum", maximum);
 };
 var contributors = {
@@ -14042,9 +14042,9 @@ var exactPattern = (p) => exactPatterns.get(p) ?? p;
 var stringProcessor = (schema, ctx, _json, _params) => {
   const json = _json;
   json.type = "string";
-  const { minimum, maximum, format, patterns: patterns3, contentEncoding, laxFormat } = aggregateChecks(schema);
-  if (typeof minimum === "number")
-    json.minLength = minimum;
+  const { minimum: minimum2, maximum, format, patterns: patterns3, contentEncoding, laxFormat } = aggregateChecks(schema);
+  if (typeof minimum2 === "number")
+    json.minLength = minimum2;
   if (typeof maximum === "number")
     json.maxLength = maximum;
   if (format) {
@@ -14073,9 +14073,9 @@ var stringProcessor = (schema, ctx, _json, _params) => {
 };
 var numberProcessor = (schema, ctx, _json, params) => {
   const json = _json;
-  const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
+  const { minimum: minimum2, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
   json.type = isInt ? "integer" : "number";
-  const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
+  const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum2 ?? Number.NEGATIVE_INFINITY);
   const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
   const legacy = ctx.target === "draft-04" || ctx.target === "openapi-3.0";
   if (exMin) {
@@ -14085,8 +14085,8 @@ var numberProcessor = (schema, ctx, _json, params) => {
     } else {
       json.exclusiveMinimum = exclusiveMinimum;
     }
-  } else if (typeof minimum === "number") {
-    json.minimum = minimum;
+  } else if (typeof minimum2 === "number") {
+    json.minimum = minimum2;
   }
   if (exMax) {
     if (legacy) {
@@ -14143,9 +14143,9 @@ var transformProcessor = (schema, ctx, json, params) => {
 var arrayProcessor = (schema, ctx, _json, params) => {
   const json = _json;
   const def = schema._zod.def;
-  const { minimum, maximum } = aggregateChecks(schema);
-  if (typeof minimum === "number")
-    json.minItems = minimum;
+  const { minimum: minimum2, maximum } = aggregateChecks(schema);
+  if (typeof minimum2 === "number")
+    json.minItems = minimum2;
   if (typeof maximum === "number")
     json.maxItems = maximum;
   json.type = "array";
@@ -14257,7 +14257,7 @@ function stringifyKeyNames(bySchema, json, visited) {
   const values = json.enum ?? (json.const !== void 0 ? [json.const] : void 0);
   if (!numericType && !values?.some((v) => typeof v === "number"))
     return json;
-  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
+  const { minimum: minimum2, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
   if (rest.enum)
     rest.enum = rest.enum.map((v) => typeof v === "number" ? String(v) : v);
   else if (typeof rest.const === "number")
@@ -14279,12 +14279,12 @@ function rewriteKeyNames(ctx) {
   const rewrites = /* @__PURE__ */ new Map();
   for (const record2 of pendingRecords.get(ctx) ?? []) {
     const seen = ctx.seen.get(record2);
-    const names = (seen?.def ?? seen?.schema)?.propertyNames;
-    if (!names || names === true || rewrites.has(names))
+    const names2 = (seen?.def ?? seen?.schema)?.propertyNames;
+    if (!names2 || names2 === true || rewrites.has(names2))
       continue;
-    const rewritten = stringifyKeyNames(bySchema, names, /* @__PURE__ */ new Set());
-    if (rewritten !== names)
-      rewrites.set(names, rewritten);
+    const rewritten = stringifyKeyNames(bySchema, names2, /* @__PURE__ */ new Set());
+    if (rewritten !== names2)
+      rewrites.set(names2, rewritten);
   }
   if (!rewrites.size)
     return;
@@ -14920,8 +14920,8 @@ var ZodNumber = /* @__PURE__ */ $constructor(
   },
   /* @__PURE__ */ util_exports.derived({
     minValue: (inst) => {
-      const { minimum, exclusiveMinimum } = aggregateChecks(inst);
-      return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
+      const { minimum: minimum2, exclusiveMinimum } = aggregateChecks(inst);
+      return Math.max(minimum2 ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
     },
     maxValue: (inst) => {
       const { maximum, exclusiveMaximum } = aggregateChecks(inst);
@@ -15399,6 +15399,7 @@ var ruleIds = [
   "electron-security",
   "unsafe-reflection",
   "command-injection",
+  "weak-password-hashing",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15629,6 +15630,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     commandInjection: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    weakPasswordHashing: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -16411,9 +16415,9 @@ function logsSecret(content) {
   if (call === null) {
     return false;
   }
-  return codeOutsideText(content.slice(call.index + call[0].length)).split(/[^A-Za-z0-9_$.]+/).map((chain) => chain.split(".").filter(Boolean)).some((names) => {
-    const secret = names.findIndex(isSecretName);
-    return secret !== -1 && !names.slice(secret + 1).some((name) => describes(name) || maskingCall.test(name));
+  return codeOutsideText(content.slice(call.index + call[0].length)).split(/[^A-Za-z0-9_$.]+/).map((chain) => chain.split(".").filter(Boolean)).some((names2) => {
+    const secret = names2.findIndex(isSecretName);
+    return secret !== -1 && !names2.slice(secret + 1).some((name) => describes(name) || maskingCall.test(name));
   });
 }
 var maskingCall = /^(?:slice|substring|substr|mask|redact|hash|digest|toMasked|last4)$/i;
@@ -16878,7 +16882,7 @@ function comparesSecretPair(left, right, pascalCase) {
     return false;
   }
   const [leftNames, rightNames] = [namesOf(left), namesOf(right)];
-  const fromObject = (chain, names) => names.length > 1 || /\)\s*$/.test(chain);
+  const fromObject = (chain, names2) => names2.length > 1 || /\)\s*$/.test(chain);
   if (fromObject(left, leftNames) && fromObject(right, rightNames) && (lastName(left) === lastName(right) || fieldOf(left) !== void 0 && fieldOf(left) === fieldOf(right)) && ([leftNames[0], rightNames[0]].some((name) => name !== void 0 && sameObject.test(name)) || // Members of objects, not one function applied to two values, as in `_hmac(key, a) != _hmac(key, b)`.
   [left, right].every((side) => member.test(side)) && ![...leftNames, ...rightNames].some((name) => requestNames.has(name.toLowerCase()) || name.startsWith("$_")))) {
     return false;
@@ -16916,10 +16920,10 @@ function lastName(chain) {
   return stripped.slice(stripped.lastIndexOf(".") + 1).replace(/^\?/, "");
 }
 function isSecret(chain) {
-  const names = namesOf(chain);
-  const secret = names.findIndex(isSecretName2);
+  const names2 = namesOf(chain);
+  const secret = names2.findIndex(isSecretName2);
   return secret !== -1 && // A numeric index, as in `token[1]`, reads one part of a lexer's tuple.
-  !names.slice(secret + 1).some((name) => /^\d+$/.test(name) || wordsOf2(name).some((word2) => otherWords.has(word2))) && !names.slice(0, secret).some((name) => wrappers.has(name.toLowerCase()));
+  !names2.slice(secret + 1).some((name) => /^\d+$/.test(name) || wordsOf2(name).some((word2) => otherWords.has(word2))) && !names2.slice(0, secret).some((name) => wrappers.has(name.toLowerCase()));
 }
 function isSecretName2(name) {
   const words = wordsOf2(name);
@@ -17152,9 +17156,9 @@ function findIssues2(lines, language) {
     if (object2 !== void 0) {
       requestObjects.add(object2);
     }
-    const names = destructuring.exec(content);
-    if (names !== null) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring.exec(content);
+    if (names2 !== null) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0 && !part.includes("...")) {
           requestNames2.add(name);
@@ -17384,9 +17388,9 @@ var templateInjectionRule = {
             }
           }
         }
-        const names = destructuring2.exec(content);
-        if (names !== null && fromRequest(names[2] ?? "")) {
-          for (const part of (names[1] ?? "").split(",")) {
+        const names2 = destructuring2.exec(content);
+        if (names2 !== null && fromRequest(names2[2] ?? "")) {
+          for (const part of (names2[1] ?? "").split(",")) {
             const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
             if (name !== void 0) {
               tainted.set(name, line);
@@ -17594,9 +17598,9 @@ function nestedRequestKeys(lines) {
     if (added && nested !== null && !nestedGuard.test(content) && (isTainted(nested[1] ?? "") || isTainted(nested[2] ?? ""))) {
       found.push({ line, kind: "nested-key" });
     }
-    const names = destructuring3.exec(content);
-    if (names !== null && requestValue.test(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring3.exec(content);
+    if (names2 !== null && requestValue.test(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -17817,7 +17821,7 @@ var uploadFilenameRule = {
 };
 function findUnsafeSaves(patch, language) {
   const uploads = /* @__PURE__ */ new Set();
-  const names = /* @__PURE__ */ new Map();
+  const names2 = /* @__PURE__ */ new Map();
   const found = [];
   for (const { line, content, added } of patchLines(patch)) {
     if (content.length > maxLineLength11 || commentLine13.test(content)) {
@@ -17828,7 +17832,7 @@ function findUnsafeSaves(patch, language) {
     if (uploadName !== void 0) {
       uploads.add(uploadName);
     }
-    const holdsClientName = (text) => clientNamePattern(language, uploads).test(text) || [...names].some(([name, at]) => line - at <= reach4 && new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`).test(text));
+    const holdsClientName = (text) => clientNamePattern(language, uploads).test(text) || [...names2].some(([name, at]) => line - at <= reach4 && new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`).test(text));
     const guarded2 = (text) => language.guard.test(text) || manualBasename.test(text);
     if (added && !guarded2(content) && language.sink.test(content)) {
       const afterSink = content.slice(content.search(language.sink));
@@ -17839,17 +17843,17 @@ function findUnsafeSaves(patch, language) {
     const assigned = assignment5.exec(content);
     if (assigned?.[1] !== void 0) {
       if (!guarded2(assigned[2] ?? "") && holdsClientName(assigned[2] ?? "")) {
-        names.set(assigned[1], line);
+        names2.set(assigned[1], line);
       } else {
-        names.delete(assigned[1]);
+        names2.delete(assigned[1]);
       }
     }
   }
   return found;
 }
 function clientNamePattern(language, uploads) {
-  const names = [...uploads].map((name) => name.replace(/\$/g, "\\$"));
-  const source = language.clientName.source.replace(/\\\{upload\\\}/g, names.length === 0 ? "(?!)" : `(?<![\\w$.])(?:${names.join("|")})`);
+  const names2 = [...uploads].map((name) => name.replace(/\$/g, "\\$"));
+  const source = language.clientName.source.replace(/\\\{upload\\\}/g, names2.length === 0 ? "(?!)" : `(?<![\\w$.])(?:${names2.join("|")})`);
   return new RegExp(source);
 }
 
@@ -17967,9 +17971,9 @@ function findReflections(patch, language) {
         found.push(line);
       }
     }
-    const names = destructuring4.exec(content);
-    if (names !== null && fromRequest(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring4.exec(content);
+    if (names2 !== null && fromRequest(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -18056,9 +18060,9 @@ function findInjectedLogs(path2, patch) {
         found.push(line);
       }
     }
-    const names = destructuring5.exec(content);
-    if (names !== null && fromRequest(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring5.exec(content);
+    if (names2 !== null && fromRequest(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -18575,16 +18579,16 @@ var zipSlipRule = {
   }
 };
 function findJoins(lines, language) {
-  const names = /* @__PURE__ */ new Map();
+  const names2 = /* @__PURE__ */ new Map();
   const found = [];
   lines.forEach(({ line, content, added }, index) => {
     if (content.length > maxLineLength16 || commentLine19.test(content)) {
       return;
     }
-    const holdsEntryName = (text) => language.entryName.test(text) || entryNameVariable.test(text) || [...names].some(([name, at]) => index - at <= before && new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`).test(text));
+    const holdsEntryName = (text) => language.entryName.test(text) || entryNameVariable.test(text) || [...names2].some(([name, at]) => index - at <= before && new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`).test(text));
     const loop = language.nameLoop?.exec(content)?.[1];
     if (loop !== void 0) {
-      names.set(loop, index);
+      names2.set(loop, index);
     }
     if (added && !reduced.test(content) && language.sink.test(content)) {
       const afterSink = content.slice(content.search(language.sink));
@@ -18596,9 +18600,9 @@ function findJoins(lines, language) {
     if (assigned?.[1] !== void 0 && assigned[1] !== loop) {
       const value = assigned[2] ?? "";
       if (!reduced.test(value) && !checkHelper.test(value) && holdsEntryName(value) && !checkedNearby(lines, index)) {
-        names.set(assigned[1], index);
+        names2.set(assigned[1], index);
       } else {
-        names.delete(assigned[1]);
+        names2.delete(assigned[1]);
       }
     }
   });
@@ -18744,9 +18748,9 @@ function findPatterns(patch, path2, fileSinks) {
         found.push(line);
       }
     }
-    const names = destructuring6.exec(content);
-    if (names !== null && fromRequest(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring6.exec(content);
+    if (names2 !== null && fromRequest(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -18766,8 +18770,8 @@ function findPatterns(patch, path2, fileSinks) {
 }
 
 // src/rules/electron-security.ts
-function option(names, value) {
-  return new RegExp(`(?:(?<![\\w"'\`])(?:${names})|["'](?:${names})["'])\\s*:\\s*${value}\\b`);
+function option(names2, value) {
+  return new RegExp(`(?:(?<![\\w"'\`])(?:${names2})|["'](?:${names2})["'])\\s*:\\s*${value}\\b`);
 }
 var preferences = [
   { label: "nodeIntegration: true", pattern: option("nodeIntegration(?:InWorker|InSubFrames)?", "true"), critical: true },
@@ -18959,9 +18963,9 @@ function findCalls(patch, path2, fileSinks) {
         }
       }
     }
-    const names = destructuring7.exec(content);
-    if (names !== null && fromRequest(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring7.exec(content);
+    if (names2 !== null && fromRequest(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -19089,9 +19093,9 @@ function findCommands(patch, path2, fileSinks) {
         found.push(line);
       }
     }
-    const names = destructuring8.exec(content);
-    if (names !== null && fromRequest(names[2] ?? "")) {
-      for (const part of (names[1] ?? "").split(",")) {
+    const names2 = destructuring8.exec(content);
+    if (names2 !== null && fromRequest(names2[2] ?? "")) {
+      for (const part of (names2[1] ?? "").split(",")) {
         const name = /(?:^|:)\s*([A-Za-z_$][\w$]*)\s*(?:=.*)?$/.exec(part.trim())?.[1];
         if (name !== void 0) {
           tainted.set(name, line);
@@ -19123,6 +19127,126 @@ function runsTainted(content, match2, sink, isTainted) {
     return !/^\s*\[/.test(first) && isTainted(first);
   }
   return isTainted(first);
+}
+
+// src/rules/weak-password-hashing.ts
+var minimum = { bcrypt: 10, pbkdf2: 1e5, scrypt: 16384 };
+var names = { bcrypt: "bcrypt cost", pbkdf2: "PBKDF2 iterations", scrypt: "scrypt N" };
+var javascript6 = /\.(?:[cm]?[jt]sx?)$/i;
+var sinks8 = [
+  // bcrypt and bcryptjs.
+  { kind: "bcrypt", files: javascript6, call: /\bbcrypt\w*\.(?:hash|hashSync)\s*\(/g, argument: 1 },
+  { kind: "bcrypt", files: javascript6, call: /\bbcrypt\w*\.(?:genSalt|genSaltSync)\s*\(/g, argument: 0 },
+  { kind: "pbkdf2", files: javascript6, call: /\bpbkdf2(?:Sync)?\s*\(/g, argument: 2 },
+  { kind: "scrypt", files: javascript6, call: /\bscrypt(?:Sync)?\s*\(/g, option: /\b(?:N|cost)\s*:\s*/ },
+  { kind: "pbkdf2", files: /\.py$/i, call: /\bpbkdf2_hmac\s*\(/g, argument: 3 },
+  { kind: "pbkdf2", files: /\.py$/i, call: /\b(?:PBKDF2HMAC|pbkdf2_hmac)\s*\(/g, option: /\biterations\s*=\s*/ },
+  { kind: "bcrypt", files: /\.py$/i, call: /\bbcrypt\.gensalt\s*\(/g, argument: 0 },
+  { kind: "bcrypt", files: /\.py$/i, call: /\bbcrypt\.gensalt\s*\(/g, option: /\brounds\s*=\s*/ },
+  { kind: "scrypt", files: /\.py$/i, call: /\b(?:hashlib\.scrypt|Scrypt)\s*\(/g, option: /\bn\s*=\s*/ },
+  { kind: "pbkdf2", files: /\.(?:java|kt)$/i, call: /\bPBEKeySpec\s*\(/g, argument: 2 },
+  { kind: "bcrypt", files: /\.(?:java|kt)$/i, call: /\b(?:BCrypt\.gensalt|BCryptPasswordEncoder)\s*\(/g, argument: 0 },
+  { kind: "pbkdf2", files: /\.cs$/i, call: /\bRfc2898DeriveBytes(?:\.Pbkdf2)?\s*\(/g, argument: 2 },
+  { kind: "pbkdf2", files: /\.cs$/i, call: /\bKeyDerivation\.Pbkdf2\s*\(/g, option: /\biterationCount\s*:\s*/ },
+  { kind: "pbkdf2", files: /\.go$/i, call: /\bpbkdf2\.Key\s*\(/g, argument: 2 },
+  { kind: "bcrypt", files: /\.go$/i, call: /\bbcrypt\.GenerateFromPassword\s*\(/g, argument: 1 },
+  { kind: "scrypt", files: /\.go$/i, call: /\bscrypt\.Key\s*\(/g, argument: 2 },
+  { kind: "bcrypt", files: /\.php$/i, call: /\bpassword_hash\s*\(/g, option: /["']cost["']\s*=>\s*/ },
+  { kind: "pbkdf2", files: /\.php$/i, call: /\bhash_pbkdf2\s*\(/g, argument: 3 },
+  { kind: "bcrypt", files: /\.rb$/i, call: /\bBCrypt::Password\.create\s*\(/g, option: /\bcost:\s*/ },
+  { kind: "pbkdf2", files: /\.rb$/i, call: /\bpbkdf2_hmac(?:_sha1)?\s*\(/g, argument: 2 }
+];
+var namedValues = { "bcrypt.MinCost": 4 };
+var numberAssignment = /^\s*(?:(?:export\s+)?(?:const|let|var|final|static|private|public|int|long)\s+)*(?:[\w<>]+\s+)?([A-Za-z_]\w*)\s*(?::\s*\w+\s*)?(?::=|=)\s*([\d_]+(?:\.\d+)?(?:e\d+)?)\s*[;,]?\s*$/i;
+var commentLine24 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var skippedFile17 = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
+var maxLineLength21 = 1e3;
+var weakPasswordHashingRule = {
+  id: "weak-password-hashing",
+  description: "Flags bcrypt, PBKDF2, and scrypt called with a work factor below current advice.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.weakPasswordHashing.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const fileSinks = sinks8.filter((sink) => sink.files.test(file.path));
+      if (fileSinks.length === 0 || file.patch === void 0 || documentation15.test(file.path) || skippedFile17.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findWeakCalls(file.patch, fileSinks);
+      if (found.length === 0) {
+        return [];
+      }
+      const lines = [...new Set(found.map((match2) => match2.line))];
+      const details = [...new Set(found.map((match2) => `${names[match2.kind]} ${match2.value.toLocaleString("en-US")}, below ${minimum[match2.kind].toLocaleString("en-US")}`))];
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "weak-password-hashing",
+          title: "Password hashed with too little work",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "hash passwords or derive keys" : "hashes a password or derives a key"} with too little work (${details.join("; ")}), so a leaked hash can be guessed far faster on a GPU.`,
+          recommendation: "Use a bcrypt cost of at least 10, at least 600,000 PBKDF2-SHA256 iterations, or scrypt with N of at least 2^14, or switch to Argon2id. Raise the cost again as hardware gets faster, and rehash passwords at the next login."
+        }
+      ];
+    });
+  }
+};
+function findWeakCalls(patch, fileSinks) {
+  const constants = new Map(Object.entries(namedValues));
+  const found = [];
+  for (const { line, content, added } of patchLines(patch)) {
+    if (content.length > maxLineLength21 || commentLine24.test(content)) {
+      continue;
+    }
+    const assigned = numberAssignment.exec(content);
+    if (assigned?.[1] !== void 0) {
+      constants.set(assigned[1], Number((assigned[2] ?? "").replace(/_/g, "")));
+    }
+    if (!added) {
+      continue;
+    }
+    for (const sink of fileSinks) {
+      for (const match2 of content.matchAll(sink.call)) {
+        const rest = content.slice((match2.index ?? 0) + match2[0].length);
+        const text = sink.argument !== void 0 ? splitArguments(rest)[sink.argument] : optionValue(rest, sink.option);
+        const value = numberOf(text ?? "", constants);
+        if (value !== void 0 && value < minimum[sink.kind]) {
+          found.push({ line, kind: sink.kind, value });
+        }
+      }
+    }
+  }
+  return found;
+}
+function optionValue(rest, option2) {
+  if (option2 === void 0) {
+    return void 0;
+  }
+  const args = splitArguments(rest).join(",");
+  const match2 = option2.exec(args);
+  return match2 === null ? void 0 : args.slice(match2.index + match2[0].length).split(/[,)}\]]/)[0];
+}
+function numberOf(text, constants) {
+  const value = text.trim();
+  const literal2 = /^([\d_]+(?:\.\d+)?(?:e\d+)?)$/i.exec(value);
+  if (literal2 !== null) {
+    return Number((literal2[1] ?? "").replace(/_/g, ""));
+  }
+  const power = /^(\d+)\s*\*\*\s*(\d+)$/.exec(value);
+  if (power !== null) {
+    return Number(power[1]) ** Number(power[2]);
+  }
+  const shift = /^(\d+)\s*<<\s*(\d+)$/.exec(value);
+  if (shift !== null) {
+    return Number(shift[1]) * 2 ** Number(shift[2]);
+  }
+  return constants.get(value);
 }
 
 // src/rules/dependency-risk.ts
@@ -19192,7 +19316,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine24 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine25 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -19250,7 +19374,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine24.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine25.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -19347,10 +19471,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine26 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation15 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -19360,11 +19484,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation15.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation16.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine25.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine26.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -21110,18 +21234,18 @@ var staleLockfileRule = {
       return [];
     }
     return files.flatMap((file) => {
-      const names = lockfilesFor(file.path);
-      const changes = names.length === 0 || file.status === "removed" ? [] : dependencyChanges([file]);
+      const names2 = lockfilesFor(file.path);
+      const changes = names2.length === 0 || file.status === "removed" ? [] : dependencyChanges([file]);
       if (changes.length === 0) {
         return [];
       }
       const directory = lockfileDirectories(file.path).find(
-        (candidate) => names.some((name) => existingLockfiles.has(joinPath(candidate, name)))
+        (candidate) => names2.some((name) => existingLockfiles.has(joinPath(candidate, name)))
       );
-      if (directory === void 0 || names.some((name) => changedPaths.has(joinPath(directory, name)))) {
+      if (directory === void 0 || names2.some((name) => changedPaths.has(joinPath(directory, name)))) {
         return [];
       }
-      const lockfile = names.map((name) => joinPath(directory, name)).find((path2) => existingLockfiles.has(path2)) ?? "";
+      const lockfile = names2.map((name) => joinPath(directory, name)).find((path2) => existingLockfiles.has(path2)) ?? "";
       const lines = changes.flatMap((change) => change.line === void 0 ? [] : [change.line]);
       const listed = changes.slice(0, maxListed2).map(describe2).join(", ");
       const more = changes.length > maxListed2 ? ` and ${changes.length - maxListed2} more` : "";
@@ -21222,8 +21346,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine26 = /^\s*#/;
-var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine27 = /^\s*#/;
+var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -21233,7 +21357,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation16.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation17.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings(file.patch);
@@ -21266,7 +21390,7 @@ function findSettings(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine26.test(content)) {
+    if (commentLine27.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -21300,7 +21424,7 @@ var labels7 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine27 = /^\s*#/;
+var commentLine28 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -21376,7 +21500,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine27.test(content)) {
+    if (commentLine28.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -21466,7 +21590,7 @@ var settings = [
   }
 ];
 var allowsEverything = settings[0];
-var commentLine28 = /^\s*(?:#|\/\/)/;
+var commentLine29 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -21507,7 +21631,7 @@ var insecureInfrastructureRule = {
 function findSettings2(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine28.test(content)) {
+    if (!added || commentLine29.test(content)) {
       continue;
     }
     for (const setting of settings) {
@@ -21558,7 +21682,7 @@ var labels8 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation17 = /(?:^|\/)docs?\//i;
+var documentation18 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -21566,7 +21690,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine29 = /^\s*#/;
+var commentLine30 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -21576,7 +21700,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation17.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation18.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -21615,7 +21739,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine29.test(content) || content.trim() === "") {
+    if (commentLine30.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -21670,8 +21794,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine30 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation18 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine31 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation19 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -21681,11 +21805,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation18.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation19.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine30.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine31.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -21812,8 +21936,8 @@ var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
-var commentLine31 = /^\s*(?:#|\/\/|\*)/;
-var documentation19 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine32 = /^\s*(?:#|\/\/|\*)/;
+var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var insecureWebConfigRule = {
   id: "insecure-web-config",
   description: "Flags CORS that allows every origin with credentials, cookies without HttpOnly or Secure, and debug modes in production.",
@@ -21823,7 +21947,7 @@ var insecureWebConfigRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation19.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation20.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings3(file.path, file.patch);
@@ -21850,7 +21974,7 @@ var insecureWebConfigRule = {
   }
 };
 function findSettings3(path2, patch) {
-  const lines = patchLines(patch).filter(({ content }) => !commentLine31.test(content));
+  const lines = patchLines(patch).filter(({ content }) => !commentLine32.test(content));
   const found = [];
   const origins = lines.filter(({ content }) => anyOrigin.some((pattern) => pattern.test(content)));
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
@@ -21907,10 +22031,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine32 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine33 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength21 = 500;
-var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength22 = 500;
+var documentation21 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -21920,11 +22044,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation20.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation21.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine32.test(content) && content.length <= maxLineLength21 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine33.test(content) && content.length <= maxLineLength22 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -21983,8 +22107,8 @@ var settings2 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine33 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation21 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine34 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation22 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -21994,11 +22118,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation21.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation22.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine33.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine34.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -22047,8 +22171,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine34 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation22 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine35 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation23 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -22058,13 +22182,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation22.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation23.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine34.test(content)) {
+        if (!added || commentLine35.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -22320,10 +22444,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine35 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation23 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine36 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation24 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength22 = 1e3;
+var maxLineLength23 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -22334,11 +22458,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation23.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation24.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine35.test(content) || content.length > maxLineLength22) {
+        if (!added || commentLine36.test(content) || content.length > maxLineLength23) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -22540,8 +22664,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine36 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation24 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine37 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation25 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -22552,7 +22676,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation24.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation25.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -22604,7 +22728,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine36.test(content)) {
+    if (commentLine37.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -22630,7 +22754,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength23 = 1e3;
+var maxLineLength24 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -22787,7 +22911,7 @@ function findCalls2(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength23 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength24 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -22897,9 +23021,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation25 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation26 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory.test(path2) || documentation25.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory.test(path2) || documentation26.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -22928,7 +23052,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation26 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation27 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -22938,7 +23062,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation26.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation27.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -23358,8 +23482,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine37 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation27 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine38 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation28 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -23369,7 +23493,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation27.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation28.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -23400,7 +23524,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine37.test(content)) {
+    if (commentLine38.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -23532,6 +23656,7 @@ var defaultRules = [
   electronSecurityRule,
   unsafeReflectionRule,
   commandInjectionRule,
+  weakPasswordHashingRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -23569,8 +23694,8 @@ var weights = {
 function compareSeverity(left, right) {
   return weights[right] - weights[left];
 }
-function isAtLeast(severity, minimum) {
-  return weights[severity] >= weights[minimum];
+function isAtLeast(severity, minimum2) {
+  return weights[severity] >= weights[minimum2];
 }
 
 // src/analysis/suppressions.ts
@@ -23850,18 +23975,18 @@ function truncate(value, maxLength) {
 var maxDirectories = 20;
 async function findLockfiles(files, list2) {
   const directories = /* @__PURE__ */ new Set();
-  const names = /* @__PURE__ */ new Set();
+  const names2 = /* @__PURE__ */ new Set();
   for (const file of files) {
     const lockfiles = lockfilesFor(file.path);
     if (lockfiles.length > 0 && dependencyChanges([file]).length > 0) {
-      lockfiles.forEach((name) => names.add(name));
+      lockfiles.forEach((name) => names2.add(name));
       lockfileDirectories(file.path).forEach((directory) => directories.add(directory));
     }
   }
   const existing = /* @__PURE__ */ new Set();
   for (const directory of [...directories].slice(0, maxDirectories)) {
     for (const name of await list2(directory)) {
-      if (names.has(name)) {
+      if (names2.has(name)) {
         existing.add(joinPath(directory, name));
       }
     }
@@ -24061,6 +24186,7 @@ var ruleAreas = {
   "electron-security": "code",
   "unsafe-reflection": "code",
   "command-injection": "code",
+  "weak-password-hashing": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -24160,6 +24286,7 @@ var ruleQuestions = {
   "electron-security": "Do Electron windows keep Node.js out of web content, with context isolation, the sandbox, and web security on?",
   "unsafe-reflection": "Is every module, class, or method chosen by request input looked up in a fixed table or allowlist?",
   "command-injection": "Do commands run a fixed program, with request values passed as separate arguments and no shell?",
+  "weak-password-hashing": "Do password hashes use a bcrypt cost of at least 10, enough PBKDF2 iterations, or Argon2id?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -24228,6 +24355,7 @@ var ruleSections = {
   "electron-security": "Electron Security",
   "unsafe-reflection": "Unsafe Reflection",
   "command-injection": "Command Injection",
+  "weak-password-hashing": "Weak Password Hashing",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
