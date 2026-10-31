@@ -497,6 +497,8 @@ These are not reported:
 - Values passed through any other function first, such as a validator or `launder.string(...)`, except `JSON.parse`, `EJSON.parse`, `qs.parse`, and `json.loads`, which return objects.
 - Route parameters (`req.params`) and Flask's `request.args` and `request.form`, which are always text.
 - `findById`, which casts its argument, and arrays' `find`, which takes a function.
+- Calls on a service or repository, such as `service.updateMany(req.body.keys)` in Directus, `getService("user").exists(...)` in Strapi, `app.service("users").find(...)` in Feathers, or `this.usersService.find(...)`. These layers take keys or their own query format and validate it. A model named `Service` is still read.
+- Filters wrapped in `where`, as in `User.findOne({ where: { email: req.body.email } })`. Sequelize, TypeORM, and Prisma use this form, and do not read `$ne` from a plain object.
 - Comment lines, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
 Sanitizing middleware, such as express-mongo-sanitize, or Mongoose's `sanitizeFilter` option also prevents this; the rule cannot see them, so disable it when every request passes through one.
