@@ -76,7 +76,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Links each finding to its rule's documentation, so a reviewer can see why it was flagged and how to tune it
 - Sets rule severity for the whole repository or for chosen paths
 - Optionally fails the job on high-risk or warning findings, so branch protection can block the merge
-- Ignores generated or vendored paths for noise rules, including files marked `linguist-generated` or `linguist-vendored` in `.gitattributes`, while secret, hidden Unicode, and configuration checks still read every file
+- Ignores generated or vendored paths for noise rules, including files marked `linguist-generated` or `linguist-vendored` in `.gitattributes` and the paths GitHub treats as vendored, such as `vendor/`, `third_party/`, `dist/`, and `.min.js` files, while secret, hidden Unicode, and configuration checks still read every file
 - Optionally adds an advisory AI summary of the change, written from the redacted diff, which cannot change the risk level, the findings, or the check
 - Reviews local diffs from the command line, for example in a pre-push hook
 - Includes unit tests for parsing, rules, redaction, rendering, and the GitHub client, plus end-to-end runs of the bundled action and CLI
