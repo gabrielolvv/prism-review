@@ -108,6 +108,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Session and cookie signing keys written in the code (0.83.0).
 - JSON Web Tokens issued without an expiry (0.84.0).
 - TLS settings that allow old versions or broken cipher suites (0.85.0).
+- Security headers turned off or weakened (0.86.0).
 
 ## Later
 
