@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.87.0 - 2026-10-31
+
+### Added
+
+- `debug-endpoint` rule: reports diagnostic endpoints and debuggers exposed outside development. High: Spring Boot Actuator's `exposure.include` with `*`, `env`, `heapdump`, `shutdown`, or the other endpoints that show settings or memory, `show-values: ALWAYS`, and Boot 1's `management.security.enabled=false`, and the Node.js inspector on `--inspect=0.0.0.0`. Warning: `import _ "net/http/pprof"`, ASP.NET Core's `UseDeveloperExceptionPage()` and the `errorhandler` middleware without an environment check, `introspection: true` in a GraphQL server, and `phpinfo()`. Development settings, benchmarks, and introspection left to a plugin are not reported. On about 99,000 files of library and application code, it reports none.
+
 ## 0.86.0 - 2026-10-31
 
 ### Added
