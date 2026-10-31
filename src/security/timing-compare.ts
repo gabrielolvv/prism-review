@@ -27,21 +27,32 @@ const otherWords = new Set([
 // Names that say the other side is about a value, not a secret, as in `signature.equals(Boolean.TYPE.getName())`.
 const aboutWords = new Set(["type", "types", "kind", "class", "name", "length", "len", "size", "count", "id", "ttype", "username", "user", "method", "data"]);
 // Functions that read something about a value rather than the value, as in `len(token)`.
-const wrappers = new Set(["len", "length", "size", "count", "typeof", "type", "sizeof", "strlen", "cap", "isinstance", "bool", "hash"]);
+// `JSON.stringify(prev.accessToken) === JSON.stringify(next.accessToken)` compares state, not a secret.
+const wrappers = new Set(["len", "length", "size", "count", "typeof", "type", "sizeof", "strlen", "cap", "isinstance", "bool", "hash", "stringify"]);
 // Secret-named constants a request is checked against, such as `API_KEY` or `WEBHOOK_SECRET`. Other
 // constants, such as `NULL_TOKEN` or `SIGNATURE_PLAINTEXT`, name a kind of token.
 const secretConstant = /(?:^|_)(?:SECRET|API_?KEY|SECRET_?KEY|AUTH_?TOKEN|ACCESS_?TOKEN|API_?TOKEN)$/;
 const constant = /^_?[A-Z][A-Z0-9_]*$/;
 // Receivers of an equals method comparing two objects field by field, as in `this.token == other.token`.
 const sameObject = /^(?:this|that|other|self|o|obj|rhs|lhs)$/;
+// Names of request input. The same field of two other objects, as in `existing.token !== gift.token`, or
+// of two versions of one, as in `this.previous('secret') !== this.get('secret')`, compares stored values.
+const requestNames = new Set(["req", "request", "params", "param", "query", "body", "headers", "header", "cookies", "cookie", "ctx", "args", "form", "input", "payload"]);
+const member = /^[\w$]+\s*(?:\??\.|\[)/;
+// Babel's and TypeScript's re-export helpers, as in `exports[key] === _token[key]`, and the memo cache
+// React Compiler writes, as in `$[8] !== token`.
+const generatedSide = /^(?:module\.)?exports\b|^\$\[\d+\]$/;
+// Mocks and test values, as in `mockAccessTokenExpiredError === token`.
+const testValue = /^(?:mock|fake|dummy|stub|test)(?:[A-Z_]|$)/;
 // Lexers, parsers, and compilers use tokens that are not secret.
 const languageTooling = /(?:^|[/_.-])(?:lexer|lex|parser|parse|compiler|tokenizer|tokenize|scanner|grammar|formatter|syntax|ast)(?:[/_.-]|s\/|$)/i;
 
 // `==`, `!=`, `===`, and `!==`, but not `<=`, `>=`, or `=>`.
 const equality = /(?<![=!<>])(?:===|!==|==|!=)(?!=)/g;
-// A name, member, call, or index chain, such as `req.headers['x-api-key']` or `hmac.digest('hex')`.
-const chainBefore = /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\s*$/;
-const chainAfter = /^\s*([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)/;
+// A name, member, call, or index chain, such as `req.headers['x-api-key']`, `hmac.digest('hex')`, or
+// PHP's `$token->getLine()`.
+const chainBefore = /([\w$]+(?:\??\.[\w$]+|->[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\s*$/;
+const chainAfter = /^\s*([\w$]+(?:\??\.[\w$]+|->[\w$]+|\([^()]*\)|\[[^[\]]*\])*)/;
 // Methods and functions that compare two values and return at the first difference.
 const equalityCalls = [
   /([\w$]+(?:\??\.[\w$]+|\([^()]*\)|\[[^[\]]*\])*)\.(?:equals|Equals|contentEquals|SequenceEqual)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
@@ -96,22 +107,29 @@ function comparesSecret(content: string, pascalCase: boolean): boolean {
       pairs.push([args[0] ?? "", args[1] ?? ""]);
     }
   }
-  return pairs.some(([left, right]) => comparesSecretPair(left.trim(), right.trim(), pascalCase));
+  return pairs.some(([left, right]) => comparesSecretPair(left.trim().replace(/->/g, "."), right.trim().replace(/->/g, "."), pascalCase));
 }
 
 function comparesSecretPair(left: string, right: string, pascalCase: boolean): boolean {
-  if ([left, right].some((side) => literal.test(side) || isFixedValue(side, pascalCase))) {
+  if (
+    [left, right].some(
+      (side) => literal.test(side) || isFixedValue(side, pascalCase) || generatedSide.test(side) || testValue.test(namesOf(side)[0] ?? "")
+    )
+  ) {
     return false;
   }
-  // An equals method comparing one field of two objects.
+  // An equals method comparing one field of two objects, or the same field of two stored objects.
   const [leftNames, rightNames] = [namesOf(left), namesOf(right)];
   // A side with one bare name, as in `secret == self.secret`, is a value from elsewhere.
   const fromObject = (chain: string, names: string[]) => names.length > 1 || /\)\s*$/.test(chain);
   if (
     fromObject(left, leftNames) &&
     fromObject(right, rightNames) &&
-    lastName(left) === lastName(right) &&
-    [leftNames[0], rightNames[0]].some((name) => name !== undefined && sameObject.test(name))
+    (lastName(left) === lastName(right) || (fieldOf(left) !== undefined && fieldOf(left) === fieldOf(right))) &&
+    ([leftNames[0], rightNames[0]].some((name) => name !== undefined && sameObject.test(name)) ||
+      // Members of objects, not one function applied to two values, as in `_hmac(key, a) != _hmac(key, b)`.
+      ([left, right].every((side) => member.test(side)) &&
+        ![...leftNames, ...rightNames].some((name) => requestNames.has(name.toLowerCase()) || name.startsWith("$_"))))
   ) {
     return false;
   }
@@ -133,6 +151,11 @@ function isFixedValue(chain: string, pascalCase: boolean): boolean {
   }
   const call = /\)\s*$/.test(chain);
   return !call && /^[A-Z]/.test(last) && (pascalCase || /^[A-Z]/.test(first));
+}
+
+// The key a getter reads, as in `this.get('secret')`.
+function fieldOf(chain: string): string | undefined {
+  return /\(\s*["']([\w-]+)["']\s*\)\s*$/.exec(chain)?.[1];
 }
 
 function isAbout(chain: string): boolean {
