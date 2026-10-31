@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { prismConfigSchema } from "../../src/config/schema.js";
+import { analyzePullRequest } from "../../src/analysis/analyze-pull-request.js";
+import { defaultConfig, prismConfigSchema } from "../../src/config/schema.js";
 import { prepareChangedFiles } from "../../src/security/prepare-changed-files.js";
 import { redactChangedFiles, redactSecrets } from "../../src/security/redact-secrets.js";
 import { loadDiffFixture } from "../../src/testing/fixture-loader.js";
@@ -11,6 +12,20 @@ export function testRedactSecrets(): void {
 
   assert.match(output, /\[REDACTED\]/);
   assert.doesNotMatch(output, /sk-thisShouldNeverAppear/);
+}
+
+export function testRedactSecretsKeepsEveryLine(): void {
+  // A key whose value is on the next line, as in a JavaScript object or a YAML mapping.
+  const patch = ["@@ -0,0 +1,6 @@", "+const options = {", "+  token:", "+    process.env.TOKEN,", "+};", "+password =", "+eval(code);"].join("\n");
+
+  const output = redactSecrets(patch);
+
+  assert.equal(output.split("\n").length, patch.split("\n").length);
+  const [finding] = analyzePullRequest(
+    prepareChangedFiles([{ path: "src/client.js", status: "added", additions: 6, deletions: 0, patch }], defaultConfig),
+    defaultConfig
+  ).findings.filter((candidate) => candidate.ruleId === "risky-api");
+  assert.equal(finding?.line, 6);
 }
 
 export function testRedactChangedFilesDoesNotMutateOriginal(): void {
