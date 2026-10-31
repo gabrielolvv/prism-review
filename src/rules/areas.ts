@@ -56,6 +56,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "plaintext-password": "code",
   "admin-route-auth": "code",
   "zip-slip": "code",
+  "regex-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

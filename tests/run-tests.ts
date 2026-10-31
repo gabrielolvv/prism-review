@@ -533,6 +533,12 @@ import {
   testZipSlipSkipsTestsAndCanBeDisabled
 } from "./unit/zip-slip.test.js";
 import {
+  testRegexInjectionReadsEachLanguage,
+  testRegexInjectionReportsOneFindingPerFile,
+  testRegexInjectionSkipsEscapedAndFixedPatterns,
+  testRegexInjectionSkipsTestsAndCanBeDisabled
+} from "./unit/regex-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -930,6 +936,10 @@ const tests: Array<[string, Test]> = [
   ["zip-slip reads each language", testZipSlipReadsEachLanguage],
   ["zip-slip skips checked paths, filtered tar archives, and zip archives", testZipSlipSkipsCheckedPaths],
   ["zip-slip skips tests and can be disabled", testZipSlipSkipsTestsAndCanBeDisabled],
+  ["regex-injection reports one finding per file", testRegexInjectionReportsOneFindingPerFile],
+  ["regex-injection reads each language", testRegexInjectionReadsEachLanguage],
+  ["regex-injection skips escaped and fixed patterns", testRegexInjectionSkipsEscapedAndFixedPatterns],
+  ["regex-injection skips tests and can be disabled", testRegexInjectionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

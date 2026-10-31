@@ -295,6 +295,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      regexInjection: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)
