@@ -608,6 +608,13 @@ import {
   testInsecureTempFileSkipsTestsAndCanBeDisabled
 } from "./unit/insecure-temp-file.test.js";
 import {
+  testPublicEnvSecretReadsEachFramework,
+  testPublicEnvSecretReportsOneFindingPerFile,
+  testPublicEnvSecretSeesLinesRedactionRewrites,
+  testPublicEnvSecretSkipsPublicValues,
+  testPublicEnvSecretSkipsTestsAndCanBeDisabled
+} from "./unit/public-env-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1056,6 +1063,11 @@ const tests: Array<[string, Test]> = [
   ["insecure-temp-file reads each language", testInsecureTempFileReadsEachLanguage],
   ["insecure-temp-file skips safe calls", testInsecureTempFileSkipsSafeCalls],
   ["insecure-temp-file skips tests and can be disabled", testInsecureTempFileSkipsTestsAndCanBeDisabled],
+  ["public-env-secret reports one finding per file", testPublicEnvSecretReportsOneFindingPerFile],
+  ["public-env-secret reads each framework", testPublicEnvSecretReadsEachFramework],
+  ["public-env-secret skips public values", testPublicEnvSecretSkipsPublicValues],
+  ["public-env-secret skips tests and can be disabled", testPublicEnvSecretSkipsTestsAndCanBeDisabled],
+  ["public-env-secret sees lines redaction rewrites", testPublicEnvSecretSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
