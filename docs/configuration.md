@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -187,6 +187,8 @@ rules:
   jwtWithoutExpiry:
     enabled: true
   weakTls:
+    enabled: true
+  securityHeaders:
     enabled: true
   secretLogging:
     enabled: true
@@ -922,6 +924,28 @@ These are not reported: TLS 1.2 and 1.3 settings, `"TLS"` in Java, which negotia
 
 On about 99,000 files of library and application code, the rule reports none.
 
+## Security Headers
+
+### `rules.securityHeaders.enabled`
+
+The `security-headers` rule warns, once per file, about response headers that a change turns off or weakens. These headers are a second layer: a Content-Security-Policy keeps an injected script from running when an escaping bug lets one in, `X-Frame-Options` and `frame-ancestors` keep other sites from framing a page to trick users into clicks, HSTS keeps browsers from falling back to plain HTTP, and `nosniff` keeps them from running an upload as a script.
+
+| Where | Read |
+| --- | --- |
+| helmet | `contentSecurityPolicy: false`, `frameguard: false` or `xFrameOptions: false`, `hsts: false` or `strictTransportSecurity: false`, and `noSniff: false` or `xContentTypeOptions: false` |
+| Headers in code | `X-Frame-Options` removed with `removeHeader`, `remove`, `delete`, or `Del`, or set to `ALLOWALL` |
+| Django | `SECURE_SSL_REDIRECT = False`, `SECURE_HSTS_SECONDS = 0`, `SECURE_CONTENT_TYPE_NOSNIFF = False`, `X_FRAME_OPTIONS` set to anything but `DENY` or `SAMEORIGIN`, and `@xframe_options_exempt` |
+| Flask-Talisman | `content_security_policy=None` or `False`, and `force_https`, `strict_transport_security`, or `content_type_nosniff` set to `False` |
+| Rails | `config.force_ssl = false`, and `X-Frame-Options` deleted from `default_headers` or set to `ALLOWALL` |
+| Spring Security | `headers().disable()`, and `frameOptions()`, `httpStrictTransportSecurity()`, or `contentTypeOptions()` turned off with `.disable()` or a lambda that calls it |
+| Content-Security-Policy | `script-src` or `default-src` that allows `'unsafe-inline'`, `'unsafe-eval'`, or `*`, in a header, a `<meta>` tag, nginx's `add_header`, helmet's `scriptSrc` and `defaultSrc`, django-csp's `CSP_SCRIPT_SRC` and `CSP_DEFAULT_SRC`, and Rails' `policy.script_src :unsafe_inline` |
+
+`'unsafe-inline'` in `style-src` is not reported, since it lets in styles and not scripts. Turning off CSRF protection, such as `@csrf_exempt`, is reported by `disabled-security-check`, and CORS and cookie settings by `insecure-web-config`.
+
+These are not reported: files whose path names development, local, test, CI, example, sample, or demo code, such as `settings/local.py` or `config/environments/development.rb`, Django's own `global_settings.py`, text in Python docstrings, comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 99,000 files of library and application code, the rule reports one: Directus, which adds `'unsafe-eval'` to helmet's `scriptSrc`. Django's decorator docstrings and its defaults file are not reported.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1491,7 +1515,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
