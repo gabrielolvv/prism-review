@@ -43,7 +43,11 @@ export function testTimingUnsafeComparisonReadsEachLanguage(): void {
     ["src/main/java/Auth.java", "if (!presentedToken.equals(storedToken)) {"],
     ["src/Auth.php", "if ($request->header('X-Signature') == $signature) {"],
     ["Services/Auth.cs", "if (apiKey != _options.ApiKey) return Unauthorized();"],
-    ["src/debug.py", "elif cmd == 'pinauth' and secret == self.secret:"]
+    ["src/debug.py", "elif cmd == 'pinauth' and secret == self.secret:"],
+    // One function applied to two values, and the same field of a stored object and of the request.
+    ["src/crypt.py", "if _hmac(key, hmac) != _hmac(key, hmac2):"],
+    ["src/invite.js", "if (invite.token !== query.token) return;"],
+    ["src/Auth.php", "if ($user->token != $_POST['token']) {"]
   ];
   for (const [path, line] of cases) {
     assert.equal(findings([added(path, [line])]).length, 1, `${path}: ${line}`);
@@ -71,7 +75,17 @@ export function testTimingUnsafeComparisonSkipsOtherComparisons(): void {
     ["src/Model.java", "return Objects.equals(this.token, that.token);"],
     ["src/model.py", "return self.token == other.token"],
     ["src/auth.js", "// if (signature !== expected)"],
-    ["app/views.py", "if token == expected:  # nosec"]
+    ["app/views.py", "if token == expected:  # nosec"],
+    // The same field of two stored objects, or of two versions of one.
+    ["src/gifts.ts", "if (existingActiveGift && existingActiveGift.token !== gift.token) {"],
+    ["src/refresh-token.js", "return a.refreshToken === b.refreshToken;"],
+    ["src/models/api-key.js", "if (this.previous('secret') !== this.get('secret')) {"],
+    ["src/state.js", "&& JSON.stringify(prevState.accessToken) === JSON.stringify(state.accessToken)"],
+    // Generated code, mocks, and PHP method calls about a token.
+    ["dist/index.js", "if (key in exports && exports[key] === _refreshToken[key]) return;"],
+    ["dist/form.js", "if ($[5] !== apiRoute || $[8] !== token) {"],
+    ["src/drive.ts", "if (mockAccessTokenExpiredError === token) {"],
+    ["src/Stream.php", "$traitEndLine == $token->getLine()) {"]
   ];
   for (const [path, line] of cases) {
     assert.deepEqual(findings([added(path, [line])]), [], `${path}: ${line}`);
