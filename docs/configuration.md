@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -136,6 +136,8 @@ rules:
   unsafeReflection:
     enabled: true
   commandInjection:
+    enabled: true
+  weakPasswordHashing:
     enabled: true
   remoteScripts:
     enabled: true
@@ -847,6 +849,24 @@ These are not reported:
 
 On about 99,000 files of library and application code, the rule reports none: libraries receive commands as arguments of their own functions, which the rule does not follow.
 
+## Weak Password Hashing
+
+### `rules.weakPasswordHashing.enabled`
+
+The `weak-password-hashing` rule warns, once per file, about bcrypt, PBKDF2, and scrypt called with a work factor below current advice. These functions are slow on purpose, so that a leaked hash takes years to guess; with too little work, a GPU guesses common passwords in hours.
+
+| Function | Reported below | Calls read |
+| --- | --- | --- |
+| bcrypt | a cost of 10 | `bcrypt.hash`, `hashSync`, `genSalt`, `genSaltSync` (bcrypt and bcryptjs), Python's `bcrypt.gensalt`, Java's `BCrypt.gensalt` and `BCryptPasswordEncoder`, Go's `bcrypt.GenerateFromPassword`, PHP's `password_hash` with `cost`, Ruby's `BCrypt::Password.create` with `cost:` |
+| PBKDF2 | 100,000 iterations | Node.js `pbkdf2` and `pbkdf2Sync`, Python's `hashlib.pbkdf2_hmac` and `PBKDF2HMAC(iterations=...)`, Java's `PBEKeySpec`, .NET's `Rfc2898DeriveBytes` and `KeyDerivation.Pbkdf2`, Go's `pbkdf2.Key`, PHP's `hash_pbkdf2`, Ruby's `OpenSSL::PKCS5.pbkdf2_hmac` |
+| scrypt | N of 16,384 (2^14) | Node.js `scrypt` and `scryptSync` with `N` or `cost`, Python's `hashlib.scrypt` and `Scrypt` with `n`, Go's `scrypt.Key` |
+
+OWASP's current advice is a bcrypt cost of 10 or more and 600,000 PBKDF2-SHA256 iterations; the rule reports PBKDF2 below 100,000, which most code written before that advice uses, so that older settings stand out without reporting every one.
+
+Only values written in the call, such as `1000`, `10_000`, `1e4`, `2 ** 10`, or `1 << 10`, names given a number in the same patch, as in `const ITERATIONS = 1000`, and Go's `bcrypt.MinCost` are read. Values from configuration, environment variables, or expressions are not. Test files matched by `rules.missingTests.testGlobs` and fixture directories are skipped, because tests lower the cost on purpose to run fast, and so are comment lines, documentation, TypeScript declaration files, and minified files.
+
+On about 99,000 files of library and application code, the rule reports three: encrypt-with-password, which runs PBKDF2 once with a fixed salt, Spring Security's `AesBytesEncryptor`, which uses 1,024 PBKDF2-SHA1 iterations, and Flyway's license encryption, which uses 65,536.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1396,7 +1416,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
