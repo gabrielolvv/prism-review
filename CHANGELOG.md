@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.74.1 - 2026-10-31
+
+### Fixed
+
+- Findings below a line that ends in a key such as `token:` or `password =`, with the value on the next line, are reported on the right line. Redaction allowed a line break after the separator, so it joined the next line to that one, and every finding further down the file was reported one line too early, including line comments and annotations. About 0.45% of files in a corpus of library code had such a line, among them Django's `contrib/auth/forms.py` and httpx's client.
+
 ## 0.74.0 - 2026-10-31
 
 ### Changed
