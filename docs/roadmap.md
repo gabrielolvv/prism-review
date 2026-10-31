@@ -113,6 +113,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Insecure Android and iOS app settings (0.88.0).
 - Predictable temporary files (0.89.0).
 - Secrets in environment variables sent to browsers (0.90.0).
+- Links built from the Host header, and host validation turned off (0.91.0).
 
 ## Later
 
