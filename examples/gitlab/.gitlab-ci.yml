@@ -9,4 +9,4 @@ prism-review:
     GIT_DEPTH: 0
   script:
     - git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - npx --yes @gabrielolvv/prism-review@0.80.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
+    - npx --yes @gabrielolvv/prism-review@0.81.0 analyze --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --fail-on high
