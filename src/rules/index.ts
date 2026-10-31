@@ -22,6 +22,7 @@ import { zipSlipRule } from "./zip-slip.js";
 import { regexInjectionRule } from "./regex-injection.js";
 import { electronSecurityRule } from "./electron-security.js";
 import { unsafeReflectionRule } from "./unsafe-reflection.js";
+import { commandInjectionRule } from "./command-injection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -87,6 +88,7 @@ export const defaultRules: Rule[] = [
   regexInjectionRule,
   electronSecurityRule,
   unsafeReflectionRule,
+  commandInjectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

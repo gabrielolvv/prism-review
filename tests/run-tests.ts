@@ -551,6 +551,12 @@ import {
   testUnsafeReflectionSkipsTestsAndCanBeDisabled
 } from "./unit/unsafe-reflection.test.js";
 import {
+  testCommandInjectionReadsEachLanguage,
+  testCommandInjectionReportsOneFindingPerFile,
+  testCommandInjectionSkipsArgumentsAndQuotedValues,
+  testCommandInjectionSkipsTestsAndCanBeDisabled
+} from "./unit/command-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -960,6 +966,10 @@ const tests: Array<[string, Test]> = [
   ["unsafe-reflection reads each language", testUnsafeReflectionReadsEachLanguage],
   ["unsafe-reflection skips fixed tables and allowlists", testUnsafeReflectionSkipsFixedTablesAndAllowlists],
   ["unsafe-reflection skips tests and can be disabled", testUnsafeReflectionSkipsTestsAndCanBeDisabled],
+  ["command-injection reports one finding per file", testCommandInjectionReportsOneFindingPerFile],
+  ["command-injection reads each language", testCommandInjectionReadsEachLanguage],
+  ["command-injection skips separate arguments and quoted values", testCommandInjectionSkipsArgumentsAndQuotedValues],
+  ["command-injection skips tests and can be disabled", testCommandInjectionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

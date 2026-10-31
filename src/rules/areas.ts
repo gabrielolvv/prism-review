@@ -59,6 +59,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "regex-injection": "code",
   "electron-security": "code",
   "unsafe-reflection": "code",
+  "command-injection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
