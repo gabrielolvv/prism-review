@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.83.0 - 2026-10-31
+
+### Added
+
+- `hardcoded-session-secret` rule: reports, as high risk, session and cookie signing keys set to text written in the code, such as `session({ secret: "..." })`, `cookieParser("...")`, Koa's `app.keys`, iron-session's `password`, Flask's `app.secret_key`, Django's `SECRET_KEY`, Rails' `secret_key_base`, Sinatra's `session_secret`, Phoenix's `secret_key_base`, and Go's `sessions.NewCookieStore([]byte("..."))`. Anyone who can read the code can make a cookie for any user, and with Flask, Django, and Rails a forged cookie can run code on the server. Keys read from the environment, template placeholders, docstrings, tests, and example apps are not reported. On about 99,000 files of library and application code, it reports one: the configuration Flask-AppBuilder ships for new apps.
+
+### Changed
+
+- Redaction also hides values assigned to `secret_key`, `secret_key_base`, and `session_secret`, such as Django's `SECRET_KEY = "..."`, which were shown in the review before.
+
 ## 0.82.0 - 2026-10-31
 
 ### Added
