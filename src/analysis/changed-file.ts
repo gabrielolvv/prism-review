@@ -31,6 +31,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that issue a JSON
   // Web Token without an expiry.
   jwtExpiryLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that name a secret
+  // in a variable the build sends to browsers.
+  publicSecretLines?: number[];
   // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
   // named like a secret.
   secretLogLines?: number[];

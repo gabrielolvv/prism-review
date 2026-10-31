@@ -9,6 +9,7 @@ import { findSecretLogLines } from "./secret-logs.js";
 import { findSessionSecretLines } from "./session-secrets.js";
 import { findUrlCredentialLines } from "./url-credentials.js";
 import { findTimingCompareLines } from "./timing-compare.js";
+import { findPublicSecretLines } from "./public-env-secrets.js";
 import { findLockfileSources, isSourceFile } from "./lockfile-sources.js";
 import { limitPatchSizes } from "./limit-patches.js";
 import { redactChangedFiles } from "./redact-secrets.js";
@@ -28,6 +29,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     jwtKeyLines: file.patch === undefined ? [] : findJwtKeyLines(file.path, file.patch),
     sessionSecretLines: file.patch === undefined ? [] : findSessionSecretLines(file.path, file.patch),
     jwtExpiryLines: file.patch === undefined ? [] : findJwtWithoutExpiryLines(file.path, file.patch),
+    publicSecretLines: file.patch === undefined ? [] : findPublicSecretLines(file.path, file.patch),
     secretLogLines: file.patch === undefined ? [] : findSecretLogLines(file.path, file.patch),
     urlCredentialLines: file.patch === undefined ? [] : findUrlCredentialLines(file.path, file.patch, allowlist),
     timingCompareLines: file.patch === undefined ? [] : findTimingCompareLines(file.path, file.patch),
