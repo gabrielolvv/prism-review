@@ -96,6 +96,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - No NoSQL injection findings for service layers and SQL ORM filters (0.72.0).
 - Fewer timing findings for stored fields, generated code, and mocks (0.73.0).
 - Vendored dependencies and build output left out of noise rules by default (0.74.0).
+- Findings below a key whose value is on the next line keep their line numbers (0.74.1).
 
 ## Later
 
