@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -126,6 +126,8 @@ rules:
   plaintextPassword:
     enabled: true
   adminRouteAuth:
+    enabled: true
+  zipSlip:
     enabled: true
   remoteScripts:
     enabled: true
@@ -706,6 +708,34 @@ A new file shows everything that could protect its routes. In a changed file, pr
 
 Spring, Django, and Rails usually protect routes in central configuration, such as a `SecurityFilterChain`, `admin.site`, or a base controller, so their routes are not read. Test files matched by `rules.missingTests.testGlobs`, fixture directories, and comment lines are skipped.
 
+## Archive Extraction
+
+### `rules.zipSlip.enabled`
+
+The `zip-slip` rule reports one warning per file that writes the entries of a zip or tar archive to a path built from each entry's own name, without checking that the path stays in the destination directory. An entry named `../../etc/cron.d/job`, or with an absolute path, is then written outside it, over any file the process can write (Zip Slip).
+
+| Language | Entry names read | Paths read |
+| --- | --- | --- |
+| JavaScript, TypeScript | `entry.path`, `entry.name`, `header.name` (unzipper, tar-stream, node-stream-zip), `entryName` (adm-zip) | `path.join`, `path.resolve`, `fs.writeFile`, `fs.createWriteStream`, `fs.mkdir` |
+| Python | `member.name` (tarfile), `info.filename` (zipfile), and the names `namelist()` and `getnames()` list | `os.path.join`, `open`, `Path`, `joinpath` |
+| Go | `f.Name` of a `*zip.File`, `hdr.Name` of a `*tar.Header` | `filepath.Join`, `path.Join`, `os.Create`, `os.OpenFile`, `os.MkdirAll` |
+| Java, Kotlin | `entry.getName()` (`ZipEntry`, `TarArchiveEntry`), `header.getFileName()` (zip4j) | `new File(dir, name)`, `Paths.get`, `resolve`, `FileUtils.resolveFile`, `File.separator` |
+| C# | `entry.FullName`, `entry.Name`, `entry.Key` | `Path.Combine`, `ExtractToFile`, `File.Create`, `new FileStream` |
+| Ruby | `entry.name`, `entry.full_name` (rubyzip, RubyGems) | `File.join`, `File.expand_path`, `File.open`, `entry.extract` |
+
+The rule follows a name assigned from an entry, as in `name := f.Name` or `entryName = path.normalize(entry.entryName)`, and variables named `entryName`. A file only counts when the patch shows an archive API, such as `archive/zip`, `ZipEntry`, `tarfile`, or `adm-zip`, since `entry.path` and `f.Name` are common names elsewhere.
+
+It also reports Python's `tarfile` `extract()` and `extractall()` called without a `filter`. Before Python 3.14, tarfile writes `../` paths, absolute paths, and links as they are unless a filter such as `filter="data"` is given. zipfile drops such paths itself, so `ZipFile.extractall` is not reported.
+
+These are not reported:
+
+- A path with a check within 30 lines before or 12 lines after it, in the same hunk: `startsWith` or `startswith`, Go's `strings.HasPrefix` or `filepath.IsLocal`, `getCanonicalPath`, `toRealPath`, `path.relative`, `os.path.commonpath`, `is_relative_to`, a `..` test, or a helper named for the check, such as `sanitizeExtractPath`, `CheckPath`, `check_path`, `is_within_directory`, `containsDotDot`, `is_subpath`, or Django's `target_filename`.
+- A name reduced to its last part, with `path.basename`, `filepath.Base`, `os.path.basename`, `Path.GetFileName`, or `FilenameUtils.getName`, or joined below `/` first, as in tar-fs's `path.join(cwd, path.join("/", header.name))`.
+- yauzl's `entry.fileName`, since yauzl rejects `..` and absolute paths itself, and a tar archive whose `extraction_filter` is set.
+- Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On versions of adm-zip, unzipper, zt-zip, zip4j, plexus-archiver, and codeclysm/extract with a known Zip Slip vulnerability, the rule reports the extraction code. On the versions that fixed it, it does not, except zt-zip's `Zips` builder, which still joins the entry name without a check. On about 95,000 files of other library and application code, it reports one file: a build script that falls back to `tar.extractall` without a filter on older Pythons.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1255,7 +1285,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
