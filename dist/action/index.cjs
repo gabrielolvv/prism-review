@@ -36884,6 +36884,22 @@ function describeLines(lines) {
 }
 
 // src/rules/blanket-suppression.ts
+var noqa = /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i;
+var importLine = /^\s*(?:from\s+[\w.]+\s+)?import\s/;
+function pythonExempt({ content }, label, closesString) {
+  if (importLine.test(content)) {
+    return true;
+  }
+  if (label !== "flake8 or Ruff") {
+    return false;
+  }
+  const marker2 = noqa.exec(content);
+  if (marker2 === null || /(?:flake8|ruff)\s*:\s*noqa/i.test(marker2[0])) {
+    return false;
+  }
+  const comment = /^\s*#/.exec(content);
+  return closesString || comment !== null && content.slice(comment[0].length, marker2.index).trim() !== "";
+}
 var languages = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
@@ -36896,10 +36912,11 @@ var languages = [
   {
     files: /\.pyi?$/,
     markers: [
-      ["flake8 or Ruff", /#\s*(?:(?:flake8|ruff):\s*)?noqa\b(?!\s*:)/i],
+      ["flake8 or Ruff", noqa],
       ["Python type checker", /#\s*type:\s*ignore\b(?!\[)|#\s*mypy:\s*ignore-errors\b/],
       ["Pylint", /#\s*pylint:\s*disable\s*=\s*all\b/]
-    ]
+    ],
+    exempt: pythonExempt
   },
   { files: /\.go$/, markers: [["golangci-lint", /\/\/\s*nolint\b(?!:)/]] },
   {
@@ -36947,7 +36964,7 @@ var blanketSuppressionRule = {
       if (!language || file.patch === void 0) {
         return [];
       }
-      const found = matchAddedLines(file.patch, language.markers);
+      const found = findMarkers(patchLines(file.patch), language);
       if (found.length === 0) {
         return [];
       }
@@ -36968,6 +36985,29 @@ var blanketSuppressionRule = {
     });
   }
 };
+function findMarkers(lines, language) {
+  const found = [];
+  let inString = false;
+  for (const line of lines) {
+    if (line.startsHunk) {
+      inString = false;
+    }
+    const quotes = (line.content.match(/"""|'''/g) ?? []).length;
+    const closesString = inString && quotes % 2 === 1;
+    if (quotes % 2 === 1) {
+      inString = !inString;
+    }
+    if (!line.added) {
+      continue;
+    }
+    for (const [label, pattern] of language.markers) {
+      if (pattern.test(line.content) && !language.exempt?.(line, label, closesString)) {
+        found.push({ line: line.line, label });
+      }
+    }
+  }
+  return found;
+}
 
 // src/analysis/repository-path.ts
 function normalizeRepositoryPath(path5) {
@@ -39762,7 +39802,7 @@ var csrf = {
 };
 var checks = [tls, token, csrf];
 var commentLine20 = /^\s*(?:#|\/\/|\/\*|\*)/;
-var importLine = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
+var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation11 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
@@ -39778,7 +39818,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine20.test(content) || importLine.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine20.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -43874,7 +43914,7 @@ var closer = /(?:\*\/|-->|%>|#>)\s*$/;
 var maxReasonLength = 200;
 var standalone = /^\s*(?:#|\/\/|\/\*+|--|<!--|;|%|<%#|\{\/\*|'|REM\b)?\s*prism-review-ignore\b/i;
 function applySuppressions(files, findings, protectedRules) {
-  const markers = findMarkers(files);
+  const markers = findMarkers2(files);
   const kept = [];
   const suppressed = [];
   for (const finding2 of findings) {
@@ -43896,7 +43936,7 @@ function reasonFor(finding2, markers) {
   const reasons = lines.map((line) => fileMarkers.get(line)?.get(finding2.ruleId));
   return reasons.every((reason) => reason !== void 0) ? reasons[0] : void 0;
 }
-function findMarkers(files) {
+function findMarkers2(files) {
   const markers = /* @__PURE__ */ new Map();
   for (const file of files) {
     if (file.patch === void 0 || !file.patch.includes("prism-review-ignore")) {
