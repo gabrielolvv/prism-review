@@ -577,6 +577,12 @@ import {
   testJwtWithoutExpirySkipsTokensThatExpire
 } from "./unit/jwt-without-expiry.test.js";
 import {
+  testWeakTlsReadsEachLanguage,
+  testWeakTlsReportsOneFindingPerFile,
+  testWeakTlsSkipsCurrentSettings,
+  testWeakTlsSkipsTestsAndCanBeDisabled
+} from "./unit/weak-tls.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1004,6 +1010,10 @@ const tests: Array<[string, Test]> = [
   ["jwt-without-expiry skips tokens that expire", testJwtWithoutExpirySkipsTokensThatExpire],
   ["jwt-without-expiry skips tests and can be disabled", testJwtWithoutExpirySkipsTestsAndCanBeDisabled],
   ["jwt-without-expiry sees lines redaction rewrites", testJwtWithoutExpirySeesLinesRedactionRewrites],
+  ["weak-tls reports one finding per file", testWeakTlsReportsOneFindingPerFile],
+  ["weak-tls reads each language", testWeakTlsReadsEachLanguage],
+  ["weak-tls skips current settings", testWeakTlsSkipsCurrentSettings],
+  ["weak-tls skips tests and can be disabled", testWeakTlsSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
