@@ -452,6 +452,9 @@ These are not reported:
 - Comparisons with fixed values, such as `null`, `undefined`, `None`, numbers, text, `TOKEN_LENGTH`, or enum members such as `JsonToken.START_OBJECT`. Constants named like a secret, such as `API_KEY` or `WEBHOOK_SECRET`, still count.
 - Names about a token rather than its value, such as `token.length`, `len(token)`, `typeof token`, `tokenType`, `token.type`, `nextToken`, `pageToken`, or `CancellationToken`, and OpenID nonces, which are not secret.
 - `equals` methods that compare one field of two objects, such as `Objects.equals(this.token, that.token)`.
+- The same field of two stored objects, or of two versions of one, such as `existing.token !== gift.token`, `a.refreshToken === b.refreshToken`, or `this.previous('secret') !== this.get('secret')`, unless a side reads the request, as in `invite.token !== query.token`. One function applied to two values, as in `_hmac(key, a) != _hmac(key, b)`, is still reported.
+- `JSON.stringify(...)` on both sides, Babel's and TypeScript's re-export helpers (`exports[key] === _token[key]`), React Compiler's memo cache (`$[8] !== token`), and mocks and test values such as `mockAccessTokenExpiredError`.
+- PHP methods about a token, such as `$token->getLine()`, which are read like `token.getLine()`.
 - Files of lexers, parsers, compilers, tokenizers, scanners, and grammars, whose tokens are pieces of text.
 - Comment lines, lines marked `# nosec` or `nosemgrep`, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
 
