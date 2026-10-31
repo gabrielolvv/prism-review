@@ -30,6 +30,7 @@ export const ruleIds: readonly string[] = [
   "zip-slip",
   "regex-injection",
   "electron-security",
+  "unsafe-reflection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

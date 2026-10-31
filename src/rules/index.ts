@@ -21,6 +21,7 @@ import { adminRouteAuthRule } from "./admin-route-auth.js";
 import { zipSlipRule } from "./zip-slip.js";
 import { regexInjectionRule } from "./regex-injection.js";
 import { electronSecurityRule } from "./electron-security.js";
+import { unsafeReflectionRule } from "./unsafe-reflection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -85,6 +86,7 @@ export const defaultRules: Rule[] = [
   zipSlipRule,
   regexInjectionRule,
   electronSecurityRule,
+  unsafeReflectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

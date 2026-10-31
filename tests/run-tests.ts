@@ -545,6 +545,12 @@ import {
   testElectronSecuritySkipsTestsAndCanBeDisabled
 } from "./unit/electron-security.test.js";
 import {
+  testUnsafeReflectionReadsEachLanguage,
+  testUnsafeReflectionReportsOneFindingPerFile,
+  testUnsafeReflectionSkipsFixedTablesAndAllowlists,
+  testUnsafeReflectionSkipsTestsAndCanBeDisabled
+} from "./unit/unsafe-reflection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -950,6 +956,10 @@ const tests: Array<[string, Test]> = [
   ["electron-security reads each setting", testElectronSecurityReadsEachSetting],
   ["electron-security skips safe settings and other tools", testElectronSecuritySkipsSafeSettingsAndOtherTools],
   ["electron-security skips tests and can be disabled", testElectronSecuritySkipsTestsAndCanBeDisabled],
+  ["unsafe-reflection reports one finding per file", testUnsafeReflectionReportsOneFindingPerFile],
+  ["unsafe-reflection reads each language", testUnsafeReflectionReadsEachLanguage],
+  ["unsafe-reflection skips fixed tables and allowlists", testUnsafeReflectionSkipsFixedTablesAndAllowlists],
+  ["unsafe-reflection skips tests and can be disabled", testUnsafeReflectionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
