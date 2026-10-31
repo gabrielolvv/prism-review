@@ -32,6 +32,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "zip-slip": "Archive Extraction",
   "regex-injection": "Regular Expression Injection",
   "electron-security": "Electron Security",
+  "unsafe-reflection": "Unsafe Reflection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

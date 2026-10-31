@@ -53,6 +53,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "zip-slip": "Is every archive entry checked to stay inside the destination before it is written?",
   "regex-injection": "Is every request value escaped before it goes into a regular expression?",
   "electron-security": "Do Electron windows keep Node.js out of web content, with context isolation, the sandbox, and web security on?",
+  "unsafe-reflection": "Is every module, class, or method chosen by request input looked up in a fixed table or allowlist?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
