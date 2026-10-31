@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.85.0 - 2026-10-31
+
+### Added
+
+- `weak-tls` rule: warns about TLS settings that allow SSL 3, TLS 1.0, or TLS 1.1, such as `minVersion: "TLSv1"`, `ssl.SSLContext(ssl.PROTOCOL_TLSv1)`, `MinVersion: tls.VersionTLS10`, `SSLContext.getInstance("TLSv1.1")`, `SecurityProtocolType.Tls11`, `CURL_SSLVERSION_TLSv1_0`, nginx's `ssl_protocols TLSv1 TLSv1.1`, Apache's `SSLProtocol all` without `-TLSv1`, Spring's `enabled-protocols`, AWS's `ELBSecurityPolicy-2016-08`, and CloudFront's `TLSv1_2016`, and cipher lists that add RC4, DES, NULL, export, or anonymous suites. Python compatibility tables, docstrings, and suites removed with `!` are not reported. On about 99,000 files of library and application code, it reports none.
+
 ## 0.84.0 - 2026-10-31
 
 ### Added
