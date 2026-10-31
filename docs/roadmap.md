@@ -95,6 +95,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - No private key findings for throwaway keys in tests, examples, and docs (0.71.0).
 - No NoSQL injection findings for service layers and SQL ORM filters (0.72.0).
 - Fewer timing findings for stored fields, generated code, and mocks (0.73.0).
+- Vendored dependencies and build output left out of noise rules by default (0.74.0).
 
 ## Later
 

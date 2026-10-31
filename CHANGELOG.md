@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.74.0 - 2026-10-31
+
+### Changed
+
+- With `ignoreGenerated`, the default, files under `vendor/`, `vendors/`, `third_party/`, `3rdparty/`, `node_modules/`, `bower_components/`, or `dist/`, at any depth, and minified `.min.js` and `.min.css` files, are left out of the noise rules like files marked `linguist-vendored`. GitHub's Linguist treats these paths as vendored and collapses them in diffs; they hold copies of dependencies and build output, whose source is reviewed where it is written. `-linguist-vendored` in `.gitattributes` brings a path back into the review, as it does on GitHub. Secret, hidden Unicode, credential file, workflow, and configuration checks still read these files.
+- The summary counts these files, and the ones `.gitattributes` marks, as "generated or vendored". It said "marked generated or vendored in .gitattributes" before.
+- On about 95,000 files of library and application code, about 300 of 2,030 findings were in these paths, most of them from `risky-api`, `destructive-migration` in compiled migrations, and `mass-assignment` in bundles.
+
 ## 0.73.0 - 2026-10-31
 
 ### Changed
