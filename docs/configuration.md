@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -132,6 +132,8 @@ rules:
   regexInjection:
     enabled: true
   electronSecurity:
+    enabled: true
+  unsafeReflection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -790,6 +792,33 @@ These are not reported: the safe values, such as `nodeIntegration: false` or `co
 
 On about 40 npm packages that open Electron windows, the rule reports the dialog and window helpers that turn on `nodeIntegration` and turn off `contextIsolation` or `webSecurity`, such as electron-prompt, electron-about-window, electron-alert, electron-progressbar, and electron-dialogs, electron-pdf's option to accept every certificate, and electron-vite's templates, which set `sandbox: false`. Electron Forge's template, which shows `nodeIntegration: true` in a comment, is not reported. On about 98,000 files of other code, it reports none.
 
+## Unsafe Reflection
+
+### `rules.unsafeReflection.enabled`
+
+The `unsafe-reflection` rule reports, as high risk, one finding per file that loads a module or class, or calls a method, by a name that comes from the request. The person sending the request then chooses the code that runs: a module such as `child_process`, a class such as `Kernel`, or a method such as `eval`, `system`, `destroy`, or `constructor`.
+
+| Language | Calls read |
+| --- | --- |
+| JavaScript, TypeScript | `require(...)`, `import(...)`, and a method looked up by name and called, as in `res[req.query.output](result)` |
+| Python | `importlib.import_module`, `__import__`, `getattr(object, name)`, and `globals()[name]` |
+| Ruby | `constantize` and `safe_constantize` on the name, `const_get`, `send`, `public_send`, `__send__`, `method`, and `try` |
+| Java, Kotlin | `Class.forName`, `loadClass`, `getMethod`, `getDeclaredMethod` |
+| C# | `Type.GetType`, `Assembly.Load`, `GetMethod`, `Activator.CreateInstance` |
+| PHP | `call_user_func`, `call_user_func_array`, `new $class()`, `$function()`, `$object->$method()` |
+| Go | `MethodByName` |
+
+Request values are the ones `untrusted-input` reads, and the rule follows names assigned or destructured from them within 30 lines.
+
+These are not reported:
+
+- A name checked against a list within 10 lines before the call: `%w[...].include?(name)`, `name in ALLOWED`, `in_array($name, $allowed)`, `allowed.includes(name)`, `name in table`, `hasOwnProperty`, or any name with `allow`, `whitelist`, or `permitted` in it.
+- A method looked up in a table named as one, such as `handlers[name]`, `converters[type]`, or `sectionToController[section]`, which maps names to fixed functions.
+- A fixed name, as in `getattr(view, 'ordering')`, and a name after a fixed prefix, as in `getattr(actions, f"on_{name}")`, which only reaches methods with that prefix. A path such as `` require(`./plugins/${name}`) `` is still reported, since `../` leaves the directory.
+- Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 99,000 files of library and application code, the rule reports four: mongodb-rest calling `res[req.query.output]`, next-auth calling a logger method named in the request body, NodeBB loading a theme's `theme.json` from a directory the request names, and Rails' actionable exceptions, which run `safe_constantize` on a request parameter.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1339,7 +1368,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
