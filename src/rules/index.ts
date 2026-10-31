@@ -32,6 +32,7 @@ import { debugEndpointRule } from "./debug-endpoint.js";
 import { mobileSecurityRule } from "./mobile-security.js";
 import { insecureTempFileRule } from "./insecure-temp-file.js";
 import { publicEnvSecretRule } from "./public-env-secret.js";
+import { hostHeaderRule } from "./host-header.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -107,6 +108,7 @@ export const defaultRules: Rule[] = [
   mobileSecurityRule,
   insecureTempFileRule,
   publicEnvSecretRule,
+  hostHeaderRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -615,6 +615,12 @@ import {
   testPublicEnvSecretSkipsTestsAndCanBeDisabled
 } from "./unit/public-env-secret.test.js";
 import {
+  testHostHeaderReadsEachFramework,
+  testHostHeaderReportsOneFindingPerFile,
+  testHostHeaderSkipsSafeUses,
+  testHostHeaderSkipsTestsAndCanBeDisabled
+} from "./unit/host-header.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1068,6 +1074,10 @@ const tests: Array<[string, Test]> = [
   ["public-env-secret skips public values", testPublicEnvSecretSkipsPublicValues],
   ["public-env-secret skips tests and can be disabled", testPublicEnvSecretSkipsTestsAndCanBeDisabled],
   ["public-env-secret sees lines redaction rewrites", testPublicEnvSecretSeesLinesRedactionRewrites],
+  ["host-header reports one finding per file", testHostHeaderReportsOneFindingPerFile],
+  ["host-header reads each framework", testHostHeaderReadsEachFramework],
+  ["host-header skips safe uses", testHostHeaderSkipsSafeUses],
+  ["host-header skips tests and can be disabled", testHostHeaderSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
