@@ -11864,7 +11864,7 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
   defineLazyInternal(inst, "optout", (zod) => zod.def.options.some((o) => o._zod.optout === "optional") ? "optional" : void 0);
   defineLazyInternal(inst, "values", (zod) => {
     if (zod.def.options.every((o) => o._zod.values)) {
-      return new Set(zod.def.options.flatMap((option) => Array.from(option._zod.values)));
+      return new Set(zod.def.options.flatMap((option2) => Array.from(option2._zod.values)));
     }
     return void 0;
   });
@@ -11882,8 +11882,8 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
     }
     let async = false;
     const results = [];
-    for (const option of def.options) {
-      const result = option._zod.run({
+    for (const option2 of def.options) {
+      const result = option2._zod.run({
         value: payload.value,
         issues: []
       }, ctx);
@@ -13609,14 +13609,14 @@ function compactTypeUnion(schema) {
   if (!Array.isArray(options) || options.length === 0 || schema.type !== void 0)
     return;
   const types2 = [];
-  for (const option of options) {
-    if (!option || typeof option !== "object")
+  for (const option2 of options) {
+    if (!option2 || typeof option2 !== "object")
       return;
-    compactTypeUnion(option);
-    const keys = Object.keys(option);
+    compactTypeUnion(option2);
+    const keys = Object.keys(option2);
     if (keys.length !== 1 || keys[0] !== "type")
       return;
-    const type = option.type;
+    const type = option2.type;
     for (const member2 of Array.isArray(type) ? type : [type]) {
       if (typeof member2 !== "string")
         return;
@@ -13906,8 +13906,8 @@ function isTransforming(_schema, _ctx) {
     return false;
   }
   if (def.type === "union") {
-    for (const option of def.options) {
-      if (isTransforming(option, ctx))
+    for (const option2 of def.options) {
+      if (isTransforming(option2, ctx))
         return true;
     }
     return false;
@@ -15396,6 +15396,7 @@ var ruleIds = [
   "admin-route-auth",
   "zip-slip",
   "regex-injection",
+  "electron-security",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15617,6 +15618,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     regexInjection: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    electronSecurity: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -18753,6 +18757,111 @@ function findPatterns(patch, path2, fileSinks) {
   return [...new Set(found)];
 }
 
+// src/rules/electron-security.ts
+function option(names, value) {
+  return new RegExp(`(?:(?<![\\w"'\`])(?:${names})|["'](?:${names})["'])\\s*:\\s*${value}\\b`);
+}
+var preferences = [
+  { label: "nodeIntegration: true", pattern: option("nodeIntegration(?:InWorker|InSubFrames)?", "true"), critical: true },
+  { label: "contextIsolation: false", pattern: option("contextIsolation", "false"), critical: true },
+  { label: "webSecurity: false", pattern: option("webSecurity", "false"), critical: true },
+  { label: "sandbox: false", pattern: option("sandbox", "false"), critical: false },
+  { label: "allowRunningInsecureContent: true", pattern: option("allowRunningInsecureContent", "true"), critical: false },
+  { label: "experimentalFeatures: true", pattern: option("experimentalFeatures", "true"), critical: false },
+  { label: "enableRemoteModule: true", pattern: option("enableRemoteModule", "true"), critical: false }
+];
+var switches = [
+  {
+    label: "a command line switch that turns off certificate or same-origin checks",
+    pattern: /\bappendSwitch\s*\(\s*["'](?:ignore-certificate-errors|disable-web-security)["']/,
+    critical: true
+  },
+  {
+    label: "a command line switch that turns off the sandbox or allows insecure content",
+    pattern: /\bappendSwitch\s*\(\s*["'](?:no-sandbox|allow-running-insecure-content)["']/,
+    critical: false
+  },
+  // A `<webview>` tag's attributes.
+  { label: "<webview nodeintegration>", pattern: /<webview\b[^>]*\snodeintegration(?:insubframes)?\b/i, critical: true },
+  { label: "<webview disablewebsecurity>", pattern: /<webview\b[^>]*\sdisablewebsecurity\b/i, critical: true }
+];
+var certificateHandler = /\.on\s*\(\s*["']certificate-error["']|\bsetCertificateVerifyProc\s*\(/;
+var acceptsCertificate = /\b(?:callback|cb|done)\s*\(\s*(?:true|0)\s*\)/;
+var handlerReach = 8;
+var electronContext = /\b(?:BrowserWindow|BrowserView|WebContentsView|webPreferences|electron)\b|<webview\b/;
+var sourceFile7 = /\.(?:[cm]?[jt]sx?|html?|vue|svelte|json)$/i;
+var commentLine21 = /^\s*(?:\/\/|\/\*|\*|<!--)/;
+var skippedFile14 = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
+var maxLineLength18 = 1e3;
+var electronSecurityRule = {
+  id: "electron-security",
+  description: "Flags Electron windows that give web content Node.js, turn off context isolation or web security, or accept any certificate.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.electronSecurity.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!sourceFile7.test(file.path) || file.patch === void 0 || skippedFile14.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      if (!lines.some(({ content }) => electronContext.test(content))) {
+        return [];
+      }
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (!added || content.length > maxLineLength18 || commentLine21.test(content)) {
+          return;
+        }
+        const code = withoutText(content);
+        for (const setting of [...preferences, ...switches]) {
+          if (setting.pattern.test(code)) {
+            found.push({ line, setting });
+          }
+        }
+        if (acceptsCertificate.test(content) && acceptsEveryCertificate(lines, index)) {
+          found.push({ line, setting: { label: "a certificate check that accepts every certificate", pattern: acceptsCertificate, critical: true } });
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const numbers = [...new Set(found.map((match2) => match2.line))];
+      const labels14 = [...new Set(found.map((match2) => match2.setting.label))];
+      const critical = found.some((match2) => match2.setting.critical);
+      const { text, plural } = describeLines(numbers);
+      return [
+        {
+          ruleId: "electron-security",
+          title: "Electron security setting weakened",
+          severity: critical ? "high" : "warning",
+          file: file.path,
+          line: numbers[0],
+          lines: numbers,
+          message: `${text} ${plural ? "weaken" : "weakens"} Electron's isolation between web content and the computer (${labels14.join(", ")}). ${critical ? "A script injected into the page, through XSS or a URL it loads, can then use Node.js or other sites' data and run commands on the user's computer." : "A compromised page then has more of the system within its reach."}`,
+          recommendation: "Keep Electron's defaults: `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`, and `webSecurity: true`, and expose only the functions the page needs through a preload script with `contextBridge.exposeInMainWorld`. Trust a private certificate authority by adding its certificate instead of accepting every certificate."
+        }
+      ];
+    });
+  }
+};
+function withoutText(content) {
+  return content.replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g, (quoted3) => /\s/.test(quoted3) ? " ".repeat(quoted3.length) : quoted3);
+}
+function acceptsEveryCertificate(lines, index) {
+  for (let other = index; other >= Math.max(0, index - handlerReach); other -= 1) {
+    const content = lines[other]?.content ?? "";
+    if (certificateHandler.test(content)) {
+      return true;
+    }
+    if (lines[other]?.startsHunk) {
+      break;
+    }
+  }
+  return false;
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -18820,7 +18929,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine21 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine22 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -18878,7 +18987,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine21.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine22.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -18975,7 +19084,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine22 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine23 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation13 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -18992,7 +19101,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine22.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine23.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -20850,7 +20959,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine23 = /^\s*#/;
+var commentLine24 = /^\s*#/;
 var documentation14 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -20894,7 +21003,7 @@ function findSettings(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine23.test(content)) {
+    if (commentLine24.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -20928,7 +21037,7 @@ var labels7 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine24 = /^\s*#/;
+var commentLine25 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -21004,7 +21113,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine24.test(content)) {
+    if (commentLine25.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -21094,7 +21203,7 @@ var settings = [
   }
 ];
 var allowsEverything = settings[0];
-var commentLine25 = /^\s*(?:#|\/\/)/;
+var commentLine26 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -21135,7 +21244,7 @@ var insecureInfrastructureRule = {
 function findSettings2(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine25.test(content)) {
+    if (!added || commentLine26.test(content)) {
       continue;
     }
     for (const setting of settings) {
@@ -21194,7 +21303,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine26 = /^\s*#/;
+var commentLine27 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -21243,7 +21352,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine26.test(content) || content.trim() === "") {
+    if (commentLine27.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -21298,7 +21407,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine27 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine28 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation16 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -21313,7 +21422,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine27.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine28.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -21440,7 +21549,7 @@ var railsLocalErrors = /\bconfig\.consider_all_requests_local\s*=\s*true\b/;
 var djangoSettings = /(?:^|\/)settings(?:\/[\w.-]+|[\w.-]*)\.py$/;
 var developmentPath = /(?:^|[\/_.-])(?:dev|develop|development|local|test|testing|ci|examples?|samples?|demos?)(?:[\/_.-]|$)/i;
 var railsProduction = /(?:^|\/)config\/environments\/production\.rb$/;
-var commentLine28 = /^\s*(?:#|\/\/|\*)/;
+var commentLine29 = /^\s*(?:#|\/\/|\*)/;
 var documentation17 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var insecureWebConfigRule = {
   id: "insecure-web-config",
@@ -21478,7 +21587,7 @@ var insecureWebConfigRule = {
   }
 };
 function findSettings3(path2, patch) {
-  const lines = patchLines(patch).filter(({ content }) => !commentLine28.test(content));
+  const lines = patchLines(patch).filter(({ content }) => !commentLine29.test(content));
   const found = [];
   const origins = lines.filter(({ content }) => anyOrigin.some((pattern) => pattern.test(content)));
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
@@ -21535,9 +21644,9 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine29 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine30 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength18 = 500;
+var maxLineLength19 = 500;
 var documentation18 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
@@ -21552,7 +21661,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine29.test(content) && content.length <= maxLineLength18 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine30.test(content) && content.length <= maxLineLength19 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -21611,7 +21720,7 @@ var settings2 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine30 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine31 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation19 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -21626,7 +21735,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine30.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine31.test(content) && settings2.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -21675,7 +21784,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine31 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine32 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation20 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -21692,7 +21801,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine31.test(content)) {
+        if (!added || commentLine32.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -21948,10 +22057,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine32 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine33 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation21 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength19 = 1e3;
+var maxLineLength20 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -21966,7 +22075,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine32.test(content) || content.length > maxLineLength19) {
+        if (!added || commentLine33.test(content) || content.length > maxLineLength20) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -22168,7 +22277,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine33 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine34 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation22 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -22232,7 +22341,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine33.test(content)) {
+    if (commentLine34.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -22258,7 +22367,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength20 = 1e3;
+var maxLineLength21 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -22415,7 +22524,7 @@ function findCalls(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength20 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength21 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -22986,7 +23095,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine34 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine35 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation25 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -23028,7 +23137,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine34.test(content)) {
+    if (commentLine35.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -23157,6 +23266,7 @@ var defaultRules = [
   adminRouteAuthRule,
   zipSlipRule,
   regexInjectionRule,
+  electronSecurityRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -23683,6 +23793,7 @@ var ruleAreas = {
   "admin-route-auth": "code",
   "zip-slip": "code",
   "regex-injection": "code",
+  "electron-security": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -23779,6 +23890,7 @@ var ruleQuestions = {
   "admin-route-auth": "Does every new admin or internal route check who is calling and what role they have?",
   "zip-slip": "Is every archive entry checked to stay inside the destination before it is written?",
   "regex-injection": "Is every request value escaped before it goes into a regular expression?",
+  "electron-security": "Do Electron windows keep Node.js out of web content, with context isolation, the sandbox, and web security on?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -23844,6 +23956,7 @@ var ruleSections = {
   "admin-route-auth": "Admin Route Access",
   "zip-slip": "Archive Extraction",
   "regex-injection": "Regular Expression Injection",
+  "electron-security": "Electron Security",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
