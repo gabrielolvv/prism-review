@@ -557,6 +557,12 @@ import {
   testCommandInjectionSkipsTestsAndCanBeDisabled
 } from "./unit/command-injection.test.js";
 import {
+  testWeakPasswordHashingReadsEachLanguage,
+  testWeakPasswordHashingReportsOneFindingPerFile,
+  testWeakPasswordHashingSkipsEnoughWorkAndUnknownValues,
+  testWeakPasswordHashingSkipsTestsAndCanBeDisabled
+} from "./unit/weak-password-hashing.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -970,6 +976,10 @@ const tests: Array<[string, Test]> = [
   ["command-injection reads each language", testCommandInjectionReadsEachLanguage],
   ["command-injection skips separate arguments and quoted values", testCommandInjectionSkipsArgumentsAndQuotedValues],
   ["command-injection skips tests and can be disabled", testCommandInjectionSkipsTestsAndCanBeDisabled],
+  ["weak-password-hashing reports one finding per file", testWeakPasswordHashingReportsOneFindingPerFile],
+  ["weak-password-hashing reads each language", testWeakPasswordHashingReadsEachLanguage],
+  ["weak-password-hashing skips enough work and unknown values", testWeakPasswordHashingSkipsEnoughWorkAndUnknownValues],
+  ["weak-password-hashing skips tests and can be disabled", testWeakPasswordHashingSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
