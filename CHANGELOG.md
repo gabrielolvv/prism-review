@@ -2,6 +2,14 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.72.0 - 2026-10-31
+
+### Changed
+
+- `nosql-injection` no longer reports calls on a service or repository, such as `service.updateMany(req.body.keys, req.body.data)` in Directus, `getService("user").exists(...)` in Strapi, or `app.service("users").find(...)` in Feathers, since these layers take keys or their own query format and validate it. A Mongoose model named `Service` is still read.
+- `nosql-injection` no longer reports filters wrapped in `where`, as in `User.findOne({ where: { email: req.body.email } })`, which is how Sequelize, TypeORM, and Prisma query, and they do not read `$ne` from a plain object.
+- On about 95,000 files of library and application code, the rule now reports no file instead of 23, all of them Directus and Strapi controllers.
+
 ## 0.71.0 - 2026-10-30
 
 ### Changed

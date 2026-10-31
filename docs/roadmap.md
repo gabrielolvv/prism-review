@@ -93,6 +93,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - `admin-route-auth` rule for admin routes without an access check (0.69.0).
 - Security severities, related locations, and rule help in the SARIF report (0.70.0).
 - No private key findings for throwaway keys in tests, examples, and docs (0.71.0).
+- No NoSQL injection findings for service layers and SQL ORM filters (0.72.0).
 
 ## Later
 
