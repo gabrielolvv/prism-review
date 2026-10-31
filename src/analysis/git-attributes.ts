@@ -6,6 +6,11 @@ export type GeneratedFiles = { isGenerated: (path: string) => boolean };
 
 type AttributeRule = { matcher: Minimatch; generated?: boolean; vendored?: boolean };
 
+// Paths GitHub's Linguist treats as vendored without any attribute: dependencies copied into the
+// repository, build output, and minified files. GitHub collapses them in diffs too.
+const defaultVendored =
+  /(?:^|\/)(?:vendor|vendors|third[-_]?party|3rd[-_]?party|node_modules|bower_components|dist)\/|[.-]min\.(?:js|css)$/i;
+
 const maxRules = 5_000;
 const maxPatternLength = 500;
 
@@ -44,17 +49,21 @@ export function parseGitAttributes(text: string): GeneratedFiles {
   return {
     isGenerated(path) {
       let generated = false;
-      let vendored = false;
+      let vendored: boolean | undefined;
       for (const rule of rules) {
         if (rule.matcher.match(path)) {
           generated = rule.generated ?? generated;
           vendored = rule.vendored ?? vendored;
         }
       }
-      return generated || vendored;
+      // `-linguist-vendored` brings a default vendored path back, as it does on GitHub.
+      return generated || (vendored ?? defaultVendored.test(path));
     }
   };
 }
+
+// The default vendored paths, for a repository without a .gitattributes.
+export const defaultGeneratedFiles: GeneratedFiles = parseGitAttributes("");
 
 function patternGlob(pattern: string): string {
   return pattern.includes("/") ? pattern.replace(/^\/+/, "") : `**/${pattern}`;

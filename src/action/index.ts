@@ -4,6 +4,7 @@ import { createAnthropicProvider } from "../ai/anthropic-provider.js";
 import { summarizePullRequest, type AiSummary } from "../ai/summary.js";
 import { analyzePullRequest, partitionFiles } from "../analysis/analyze-pull-request.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
+import { defaultGeneratedFiles } from "../analysis/git-attributes.js";
 import { defaultConfig, type PrismConfig } from "../config/schema.js";
 import type { ChangedFile } from "../analysis/changed-file.js";
 import type { Finding, ReviewResult } from "../analysis/finding.js";
@@ -56,9 +57,9 @@ async function run(): Promise<void> {
     config
   );
   const generated = config.ignoreGenerated
-    ? await loadOptional(".gitattributes, so generated files are reviewed", () =>
+    ? ((await loadOptional(".gitattributes, so the files it marks generated are reviewed", () =>
         loadBaseGitAttributes(client, owner, repo, baseSha)
-      )
+      )) ?? defaultGeneratedFiles)
     : undefined;
   const existingLockfiles = config.rules.staleLockfiles.enabled
     ? await loadOptional("the base commit's lockfiles, so stale lockfiles are not checked", () =>

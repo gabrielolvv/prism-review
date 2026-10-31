@@ -460,7 +460,7 @@ const scenarios: Array<[string, () => void]> = [
         // The local .gitattributes leaves generated files out, unless ignoreGenerated is off.
         writeFileSync(join(workDir, ".gitattributes"), "src/auth/** linguist-generated\n");
         const generated = runCli(["analyze", "--diff", "-"], riskyDiff);
-        assert.match(generated.stdout, /^Reviewed 1 changed file\(s\), 1 more marked generated or vendored in \.gitattributes\./m);
+        assert.match(generated.stdout, /^Reviewed 1 changed file\(s\), 1 more generated or vendored\./m);
         assert.doesNotMatch(generated.stdout, /Sensitive file changed/);
         const reviewed = runCli(["analyze", "--diff", "-", "--config", writeConfig("all.yml", "ignoreGenerated: false\n")], riskyDiff);
         assert.match(reviewed.stdout, /Sensitive file changed/);
@@ -543,7 +543,7 @@ const scenarios: Array<[string, () => void]> = [
       // Only a word in its path marks src/billing/charge.ts sensitive, so it is a warning.
       assert.match(body, /^#### Warning - Sensitive file changed \(new\)$/m);
       // .gitattributes on the base commit marks src/gen as generated.
-      assert.match(body, /^Reviewed 1 changed file\(s\), 1 more marked generated or vendored in \.gitattributes\./m);
+      assert.match(body, /^Reviewed 1 changed file\(s\), 1 more generated or vendored\./m);
       assert.doesNotMatch(body, /src\/gen\/client\.ts/);
       // The owners come from CODEOWNERS on the base commit, in code spans so nobody is notified.
       assert.match(body, /^File: `src\/billing\/charge\.ts`\n\nOwners: `@acme\/payments`$/m);

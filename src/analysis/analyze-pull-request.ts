@@ -13,7 +13,8 @@ export type AnalyzeOptions = {
   configPath?: string;
   extendedConfigPaths?: readonly string[];
   expectedFileCount?: number;
-  // Files marked `linguist-generated` or `linguist-vendored`, which are left out like `ignorePaths`.
+  // Files marked `linguist-generated` or `linguist-vendored`, and paths Linguist treats as vendored,
+  // which are left out like `ignorePaths`.
   isGenerated?: (path: string) => boolean;
   // Lockfiles that exist on the base commit, for `stale-lockfile`.
   existingLockfiles?: ReadonlySet<string>;
@@ -126,7 +127,7 @@ function buildSummary(
 ): string {
   const ignored = ignoredCount > 0 ? `, ${ignoredCount} more ignored by ignorePaths` : "";
   const generated =
-    generatedCount > 0 ? `, ${generatedCount} more marked generated or vendored in .gitattributes` : "";
+    generatedCount > 0 ? `, ${generatedCount} more generated or vendored` : "";
   const reviewed = `Reviewed ${reviewedCount} changed file(s)${ignored}${generated}.`;
   const found =
     findings.length === 0

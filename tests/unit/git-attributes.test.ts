@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { analyzePullRequest } from "../../src/analysis/analyze-pull-request.js";
 import type { ChangedFile } from "../../src/analysis/changed-file.js";
-import { parseGitAttributes } from "../../src/analysis/git-attributes.js";
+import { defaultGeneratedFiles, parseGitAttributes } from "../../src/analysis/git-attributes.js";
 import { defaultConfig, prismConfigSchema } from "../../src/config/schema.js";
 
 export function testGitAttributesFollowGitRules(): void {
@@ -9,7 +9,7 @@ export function testGitAttributesFollowGitRules(): void {
     [
       "# Generated code",
       "*.min.js linguist-generated",
-      "/dist/** linguist-generated=true",
+      "/out/** linguist-generated=true",
       "api/client.ts linguist-generated -diff",
       "third_party/** linguist-vendored",
       "third_party/ours/** -linguist-vendored",
@@ -17,7 +17,7 @@ export function testGitAttributesFollowGitRules(): void {
       "proto/hand-written.ts linguist-generated=false",
       "lib/** linguist-generated",
       "lib/keep.ts !linguist-generated",
-      "vendor/ linguist-vendored",
+      "generated/ linguist-generated",
       "vendored linguist-vendored",
       "!negated linguist-generated",
       '"quoted path.ts" linguist-generated',
@@ -29,8 +29,8 @@ export function testGitAttributesFollowGitRules(): void {
   const cases: Array<[string, boolean]> = [
     ["assets/app.min.js", true],
     ["app.min.js", true],
-    ["dist/index.cjs", true],
-    ["src/dist/index.cjs", false],
+    ["out/index.cjs", true],
+    ["src/out/index.cjs", false],
     ["api/client.ts", true],
     ["src/api/client.ts", false],
     ["third_party/lib/a.c", true],
@@ -40,7 +40,7 @@ export function testGitAttributesFollowGitRules(): void {
     ["lib/keep.ts", false],
     ["lib/other.ts", true],
     // A directory pattern does not reach the files in it, in gitattributes.
-    ["vendor/a.js", false],
+    ["generated/a.js", false],
     ["vendored/a.js", false],
     ["src/vendored", true],
     ["negated", false],
@@ -52,6 +52,31 @@ export function testGitAttributesFollowGitRules(): void {
     assert.equal(attributes.isGenerated(path), expected, path);
   }
   assert.equal(parseGitAttributes("").isGenerated("a.ts"), false);
+}
+
+export function testGitAttributesTreatLinguistsVendoredPathsAsVendored(): void {
+  // Linguist treats these as vendored without an attribute, and GitHub collapses them in diffs.
+  const cases: Array<[string, boolean]> = [
+    ["vendor/github.com/pkg/errors/errors.go", true],
+    ["app/vendor/phpunit/Token/Stream.php", true],
+    ["third_party/zlib/inflate.c", true],
+    ["src/3rdparty/lib.js", true],
+    ["node_modules/lodash/index.js", true],
+    ["dist/index.cjs", true],
+    ["packages/web/dist/app.js", true],
+    ["public/js/jquery.min.js", true],
+    ["styles/site-min.css", true],
+    ["src/vendors.ts", false],
+    ["src/distance.ts", false],
+    ["src/admin.js", false]
+  ];
+  for (const [path, expected] of cases) {
+    assert.equal(defaultGeneratedFiles.isGenerated(path), expected, path);
+  }
+  // `-linguist-vendored` brings one back, as it does on GitHub; other attributes do not.
+  const attributes = parseGitAttributes("dist/** -linguist-vendored\nvendor/** -linguist-generated\n");
+  assert.equal(attributes.isGenerated("dist/index.cjs"), false);
+  assert.equal(attributes.isGenerated("vendor/lib.go"), true);
 }
 
 export function testGeneratedFilesAreLeftOutOfNoiseRulesOnly(): void {
@@ -74,12 +99,12 @@ export function testGeneratedFilesAreLeftOutOfNoiseRulesOnly(): void {
   assert.deepEqual(byRule("blanket-suppression"), []);
   // Secrets are found in every file, generated or not.
   assert.deepEqual(byRule("secret-in-diff"), ["src/gen/config.ts"]);
-  assert.match(result.summary, /^Reviewed 2 changed file\(s\), 2 more marked generated or vendored in \.gitattributes\./);
+  assert.match(result.summary, /^Reviewed 2 changed file\(s\), 2 more generated or vendored\./);
 
   const both = analyzePullRequest(files, prismConfigSchema.parse({ ignorePaths: ["src/gen/client.ts"] }), {
     isGenerated: attributes.isGenerated
   });
-  assert.match(both.summary, /^Reviewed 2 changed file\(s\), 1 more ignored by ignorePaths, 1 more marked generated or vendored in \.gitattributes\./);
+  assert.match(both.summary, /^Reviewed 2 changed file\(s\), 1 more ignored by ignorePaths, 1 more generated or vendored\./);
 
   assert.equal(defaultConfig.ignoreGenerated, true);
   assert.equal(prismConfigSchema.parse({ ignoreGenerated: false }).ignoreGenerated, false);
