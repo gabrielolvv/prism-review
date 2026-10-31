@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.80.0 - 2026-10-31
+
+### Added
+
+- `unsafe-reflection` rule: reports, as high risk, modules, classes, and methods loaded or called by a name that comes from the request, such as `require(req.query.name)`, `res[req.query.output](result)`, `importlib.import_module(request.GET["module"])`, `getattr(handlers, action)`, Rails' `params[:type].constantize` and `send(params[:method])`, `Class.forName(request.getParameter("type"))`, `Type.GetType(Request.Query["type"])`, PHP's `call_user_func($_GET['callback'])` and `new $class()`, and Go's `MethodByName(r.FormValue("action"))`. The request then chooses the code that runs. It follows names assigned from the request, and skips names checked against an allowlist, looked up in a table of fixed functions such as `handlers[name]`, or limited by a fixed prefix such as `f"on_{name}"`. On about 99,000 files of library and application code, it reports four: mongodb-rest, next-auth, NodeBB, and Rails' actionable exceptions.
+
 ## 0.79.0 - 2026-10-31
 
 ### Added
