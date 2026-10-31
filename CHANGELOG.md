@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.89.0 - 2026-10-31
+
+### Added
+
+- `insecure-temp-file` rule: warns about temporary file names made without creating the file, such as Python's `tempfile.mktemp()` and `os.tempnam()`, C's `tmpnam()`, `tempnam()`, and `mktemp()`, shell's `mktemp -u`, and Ruby's `Dir::Tmpname.make_tmpname`, and about writes to literal paths in `/tmp`, such as `open("/tmp/report.csv", "w")`, `fs.writeFileSync("/tmp/...")`, `os.Create("/tmp/...")`, and shell names made from `$$`. Another user on the machine can create the file, or a symbolic link with its name, first. `mkstemp()`, `NamedTemporaryFile()`, `mktemp` and `mktemp -d`, PHP's `tempnam()`, and paths built from a value are not reported. On about 117,000 files of library and application code, it reports one: libxml2's `tempnam()`, vendored by libxmljs2.
+
 ## 0.88.0 - 2026-10-31
 
 ### Added
