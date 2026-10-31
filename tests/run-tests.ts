@@ -389,6 +389,7 @@ import {
   testPrepareChangedFilesAppliesAllowlist,
   testRedactChangedFilesDoesNotMutateOriginal,
   testRedactSecrets,
+  testRedactSecretsKeepsEveryLine,
   testRedactSecretsKeepsAllowlistedAssignments,
   testRedactSecretsKeepsAllowlistedValues
 } from "./unit/redact-secrets.test.js";
@@ -620,6 +621,7 @@ const tests: Array<[string, Test]> = [
   ["sensitive files rule matches keywords as whole words", testSensitiveFilesRuleMatchesKeywordsAsWords],
   ["sensitive-files patterns stay high for every file", testSensitiveFilePatternsStayHighForEveryFile],
   ["redactSecrets masks token-like values", testRedactSecrets],
+  ["redactSecrets keeps every line, so findings keep their line numbers", testRedactSecretsKeepsEveryLine],
   ["findAddedSecrets numbers lines in the new file", testFindAddedSecretsNumbersLinesInTheNewFile],
   ["findAddedSecrets skips git headers", testFindAddedSecretsSkipsGitHeaders],
   ["findAddedSecrets honors the redaction allowlist", testFindAddedSecretsHonorsAllowlist],
