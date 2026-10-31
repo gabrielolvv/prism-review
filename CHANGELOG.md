@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.82.0 - 2026-10-31
+
+### Added
+
+- `weak-password-hashing` rule: warns about bcrypt with a cost below 10, PBKDF2 with fewer than 100,000 iterations, and scrypt with N below 2^14, such as `bcrypt.hash(password, 8)`, `crypto.pbkdf2Sync(password, salt, 1000, 32, "sha256")`, `hashlib.pbkdf2_hmac("sha256", pw, salt, 10_000)`, `new PBEKeySpec(pw, salt, 1024, 256)`, `new Rfc2898DeriveBytes(pw, salt, 1000)`, `bcrypt.GenerateFromPassword(pw, bcrypt.MinCost)`, or `password_hash($pw, PASSWORD_BCRYPT, ['cost' => 6])`. With too little work, a leaked hash can be guessed far faster on a GPU. It reads numbers written in the call and constants assigned in the same patch, not values from configuration, and skips test files, which lower the cost on purpose. On about 99,000 files of library and application code, it reports three: encrypt-with-password's single PBKDF2 iteration, Spring Security's `AesBytesEncryptor` with 1,024 iterations, and Flyway's license encryption with 65,536.
+
 ## 0.81.0 - 2026-10-31
 
 ### Added
