@@ -21944,10 +21944,14 @@ function unquoted(content) {
 }
 
 // src/rules/risky-api.ts
+var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
+var hashComment = /^\s*#/;
+var maxLineLength18 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages7 = [
   {
     files: /\.(?:[cm]?[jt]sx?|vue|svelte)$/,
+    comment: slashComment,
     calls: [
       ["eval", /(?<![.\w$])eval\s*\(|\b(?:window|globalThis|self)\.eval\s*\(/],
       ["Function constructor", /\bnew\s+Function\s*\(/],
@@ -21964,6 +21968,8 @@ var languages7 = [
   },
   {
     files: /\.py$/,
+    comment: hashComment,
+    docstrings: true,
     calls: [
       ["eval", /(?<![.\w])eval\s*\(/],
       ["exec", /(?<![.\w])exe[c]\s*\(/],
@@ -21979,6 +21985,7 @@ var languages7 = [
   },
   {
     files: /\.(?:rb|rake|erb)$/,
+    comment: hashComment,
     calls: [
       // A string, heredoc, or variable is evaluated; a `do` or `{` block is not.
       [
@@ -22002,6 +22009,7 @@ var languages7 = [
   },
   {
     files: /\.(?:java|kt)$/,
+    comment: slashComment,
     calls: [
       ["Runtime exec", /\bRuntime\.getRuntime\(\)\.exe[c]\s*\(/],
       [
@@ -22014,6 +22022,7 @@ var languages7 = [
   {
     // `->` and `::` mark method calls, which are excluded like member calls in JavaScript.
     files: /\.php$/,
+    comment: /^\s*(?:\/\/|\/\*|\*|#(?!\[))/,
     calls: [
       ["eval", /(?<![>\w$:])eval\s*\(/],
       ["shell command", /(?<![>\w$:])(?:exe[c]|shell_exec|system|passthru|popen|proc_open)\s*\(/],
@@ -22023,6 +22032,7 @@ var languages7 = [
   },
   {
     files: /\.(?:cs|cshtml|razor)$/,
+    comment: slashComment,
     calls: [
       [
         "shell command",
@@ -22034,6 +22044,7 @@ var languages7 = [
   },
   {
     files: /\.swift$/,
+    comment: slashComment,
     calls: [
       ["shell process", /(?:fileURLWithPath:|launchPath\s*=)\s*"\/bin\/(?:sh|bash|zsh)"/],
       ["NSKeyedUnarchiver", /\bNSKeyedUnarchiver\.unarchiveObject\s*\(|\bNSUnarchiver\b/],
@@ -22043,6 +22054,7 @@ var languages7 = [
   },
   {
     files: /\.go$/,
+    comment: slashComment,
     calls: [
       [
         "shell command",
@@ -22065,7 +22077,7 @@ var riskyApiRule = {
       if (!language || file.patch === void 0 || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = matchAddedLines(file.patch, language.calls, language.definitions);
+      const found = findCalls(patchLines(file.patch), language);
       if (found.length === 0) {
         return [];
       }
@@ -22087,6 +22099,46 @@ var riskyApiRule = {
     });
   }
 };
+function findCalls(lines, language) {
+  const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
+  return lines.flatMap((line, index) => {
+    const content = code[index] ?? "";
+    if (!line.added || line.content.length > maxLineLength18 || language.comment.test(content) || language.definitions?.test(content)) {
+      return [];
+    }
+    return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
+  });
+}
+function outsideTripleQuotes(lines) {
+  let open2;
+  return lines.map((line) => {
+    if (line.startsHunk) {
+      open2 = void 0;
+    }
+    let code = "";
+    let rest = line.content;
+    while (rest.length > 0) {
+      if (open2 !== void 0) {
+        const end = rest.indexOf(open2);
+        if (end === -1) {
+          break;
+        }
+        rest = rest.slice(end + 3);
+        open2 = void 0;
+        continue;
+      }
+      const start = /"""|'''/.exec(rest);
+      if (start === null) {
+        code += rest;
+        break;
+      }
+      code += rest.slice(0, start.index);
+      open2 = start[0];
+      rest = rest.slice(start.index + 3);
+    }
+    return code;
+  });
+}
 
 // src/security/detect-secrets.ts
 var privateKeyHeader = /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----/g;
