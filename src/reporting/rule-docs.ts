@@ -41,6 +41,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "security-headers": "Security Headers",
   "debug-endpoint": "Debug Endpoints",
   "mobile-security": "Mobile App Settings",
+  "insecure-temp-file": "Temporary Files",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

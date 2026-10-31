@@ -62,6 +62,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "security-headers": "Are CSP, framing protection, HSTS, and nosniff still on, narrowed only where a page needs it?",
   "debug-endpoint": "Are debug and diagnostic endpoints limited to development or to an internal, authenticated port?",
   "mobile-security": "Do release builds keep HTTPS, certificate checks, and WebView file access, mixed content, and debugging off?",
+  "insecure-temp-file": "Are temporary files created together with their names, in a private directory rather than a fixed path in /tmp?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

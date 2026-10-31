@@ -30,6 +30,7 @@ import { weakTlsRule } from "./weak-tls.js";
 import { securityHeadersRule } from "./security-headers.js";
 import { debugEndpointRule } from "./debug-endpoint.js";
 import { mobileSecurityRule } from "./mobile-security.js";
+import { insecureTempFileRule } from "./insecure-temp-file.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -103,6 +104,7 @@ export const defaultRules: Rule[] = [
   securityHeadersRule,
   debugEndpointRule,
   mobileSecurityRule,
+  insecureTempFileRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
