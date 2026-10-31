@@ -2,6 +2,13 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.75.0 - 2026-10-31
+
+### Changed
+
+- `blanket-suppression` no longer reports Python markers on lines where they can only turn off one check: a bare `# noqa` or `# type: ignore` on an import line, which keeps a re-export (F401), an import below code (E402), or a module without type stubs, and a bare `# noqa` after text in a comment or on the line that closes a long triple-quoted string, which can only cover the line's length (E501). `# flake8: noqa`, a `# type: ignore` on a line of its own, and a `# noqa` on the line that opens a string are still reported.
+- On about 95,000 files of library and application code, the rule now reports 602 files instead of 786.
+
 ## 0.74.1 - 2026-10-31
 
 ### Fixed
