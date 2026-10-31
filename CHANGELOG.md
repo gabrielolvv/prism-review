@@ -2,6 +2,15 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.73.0 - 2026-10-31
+
+### Changed
+
+- `timing-unsafe-comparison` no longer reports the same field of two stored objects, or of two versions of one, such as `existingActiveGift.token !== gift.token`, `a.refreshToken === b.refreshToken`, or Ghost's `this.previous('secret') !== this.get('secret')`, unless a side reads the request. One function applied to two values, as in `_hmac(key, a) != _hmac(key, b)`, is still reported.
+- It also skips `JSON.stringify(...)` on both sides, Babel's and TypeScript's re-export helpers (`exports[key] === _token[key]`), React Compiler's memo cache (`$[8] !== token`), and mocks and test values such as `mockAccessTokenExpiredError`.
+- PHP's `->` is read as a member access, so `$token->getLine()` is about a token rather than its value.
+- On about 95,000 files of library and application code, the rule now reports 37 files instead of 57. Those left include Ghost's unsubscribe and member HMAC checks, next-auth's CSRF check, Werkzeug's debugger PIN, and Tomcat's AJP secret.
+
 ## 0.72.0 - 2026-10-31
 
 ### Changed

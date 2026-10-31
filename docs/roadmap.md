@@ -94,6 +94,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Security severities, related locations, and rule help in the SARIF report (0.70.0).
 - No private key findings for throwaway keys in tests, examples, and docs (0.71.0).
 - No NoSQL injection findings for service layers and SQL ORM filters (0.72.0).
+- Fewer timing findings for stored fields, generated code, and mocks (0.73.0).
 
 ## Later
 
