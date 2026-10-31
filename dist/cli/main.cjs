@@ -17028,6 +17028,8 @@ var whereExpression = /["']?\$where["']?\s*(?::|=>)\s*(?:`[^`]*\$\{|f["']|["'][^
 var destructuring = /\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*(?:await\s+)?((?:req|request|ctx(?:\.request)?)\.(?:body|query))\b/;
 var requestObject = /^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:(?:req|request|ctx(?:\.request)?)\.(?:body|query)|request\.(?:json|get_json\s*\(\s*\))|json\.loads\s*\(\s*request\b)\s*;?\s*$/;
 var parsers = /^(?:JSON|EJSON|qs|querystring|json|bson)\.(?:parse|loads|load)$/;
+var serviceReceiver = /(?:\b(?:service|repository)|[\w$]Service|[\w$]Repository)(?:\s*\([^()]*\))?\s*$/;
+var sqlOrmFilter = /^\s*\{\s*where\s*:/;
 var filterReach = 12;
 var commentLine8 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var skippedFile3 = /\.d\.[cm]?ts$|\.min\.[cm]?js$/i;
@@ -17096,6 +17098,9 @@ function findIssues2(lines, language) {
     }
     language.query.lastIndex = 0;
     for (const match2 of content.matchAll(language.query)) {
+      if (serviceReceiver.test(content.slice(0, match2.index))) {
+        continue;
+      }
       const filter2 = filterText(lines, index, match2.index + match2[0].length);
       if (filterUsesRequest(filter2, language, requestNames, requestObjects)) {
         issues.push({ line, kind: "filter" });
@@ -17131,6 +17136,9 @@ function filterText(lines, index, start) {
   return text;
 }
 function filterUsesRequest(filter2, language, requestNames, requestObjects) {
+  if (sqlOrmFilter.test(filter2)) {
+    return false;
+  }
   if (new RegExp(`^\\s*(?:${language.request.source})\\s*$`).test(filter2)) {
     return true;
   }
