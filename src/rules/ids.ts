@@ -36,6 +36,7 @@ export const ruleIds: readonly string[] = [
   "hardcoded-session-secret",
   "jwt-without-expiry",
   "weak-tls",
+  "security-headers",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

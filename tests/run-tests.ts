@@ -583,6 +583,13 @@ import {
   testWeakTlsSkipsTestsAndCanBeDisabled
 } from "./unit/weak-tls.test.js";
 import {
+  testSecurityHeadersReadsEachFramework,
+  testSecurityHeadersReportsEveryKindWhenAllHeadersAreOff,
+  testSecurityHeadersReportsOneFindingPerFile,
+  testSecurityHeadersSkipsStrongSettings,
+  testSecurityHeadersSkipsTestsAndCanBeDisabled
+} from "./unit/security-headers.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1014,6 +1021,11 @@ const tests: Array<[string, Test]> = [
   ["weak-tls reads each language", testWeakTlsReadsEachLanguage],
   ["weak-tls skips current settings", testWeakTlsSkipsCurrentSettings],
   ["weak-tls skips tests and can be disabled", testWeakTlsSkipsTestsAndCanBeDisabled],
+  ["security-headers reports one finding per file", testSecurityHeadersReportsOneFindingPerFile],
+  ["security-headers reads each framework", testSecurityHeadersReadsEachFramework],
+  ["security-headers reports every kind when all headers are off", testSecurityHeadersReportsEveryKindWhenAllHeadersAreOff],
+  ["security-headers skips strong settings", testSecurityHeadersSkipsStrongSettings],
+  ["security-headers skips tests and can be disabled", testSecurityHeadersSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

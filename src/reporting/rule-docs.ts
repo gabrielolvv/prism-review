@@ -38,6 +38,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "hardcoded-session-secret": "Hardcoded Session Secrets",
   "jwt-without-expiry": "JWT Expiry",
   "weak-tls": "Weak TLS",
+  "security-headers": "Security Headers",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
