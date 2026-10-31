@@ -102,6 +102,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Zip Slip: archive entries written outside the destination (0.77.0).
 - Regular expressions built from request input (0.78.0).
 - Weakened Electron window settings (0.79.0).
+- Modules, classes, and methods chosen by request input (0.80.0).
 
 ## Later
 
