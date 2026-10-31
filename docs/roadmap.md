@@ -104,6 +104,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Weakened Electron window settings (0.79.0).
 - Modules, classes, and methods chosen by request input (0.80.0).
 - Commands built from request input (0.81.0).
+- Password hashing with too little work (0.82.0).
 
 ## Later
 
