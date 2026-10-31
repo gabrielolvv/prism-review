@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -181,6 +181,8 @@ rules:
   credentialFiles:
     enabled: true
   hardcodedJwtSecret:
+    enabled: true
+  hardcodedSessionSecret:
     enabled: true
   secretLogging:
     enabled: true
@@ -1236,6 +1238,26 @@ Anyone who can read the code, or a copy of it, can sign tokens the application a
 - The key must be written in the call itself; a key stored in a variable first is not followed. Template literals and f-strings that insert a value, and public keys or certificates (`-----BEGIN PUBLIC KEY-----`), which only verify tokens, are not reported.
 - Comment lines, Python doctest examples (`>>> ...`), documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
+## Hardcoded Session Secrets
+
+### `rules.hardcodedSessionSecret.enabled`
+
+The `hardcoded-session-secret` rule reports, as high risk, one finding per file that sets the key a framework signs session cookies with to text written in the code. Anyone who can read the code, or a copy of it, can make a cookie for any user. Flask, Django, and Rails also sign data they unpickle or unmarshal, so with the key a forged cookie can run code on the server.
+
+| Framework | Settings read |
+| --- | --- |
+| Express, Koa, Fastify, iron-session | `session({ secret: "..." })`, `cookieSession({ keys: ["..."] })`, `cookieParser("...")`, `app.keys = ["..."]`, `register(fastifyCookie, { secret: "..." })`, and `password` in iron-session's options |
+| Flask, Django | `app.secret_key = "..."`, `app.config["SECRET_KEY"] = "..."`, `SECRET_KEY = "..."`, `config.update(SECRET_KEY="...")` |
+| Rails, Sinatra, Rack | `config.secret_key_base = "..."`, `secret_key_base:` in `config/secrets.yml`, `set :session_secret, "..."`, `Rack::Session::Cookie, secret: "..."` |
+| Phoenix | `secret_key_base: "..."` in `config/*.exs` |
+| Go | `sessions.NewCookieStore([]byte("..."))`, gin-contrib's `cookie.NewStore([]byte("..."))`, `securecookie.New([]byte("..."), ...)` |
+
+The keys are found before redaction, which also hides values assigned to `secret_key`, `secret_key_base`, and `session_secret`, so the key never appears in the review.
+
+These are not reported: keys read from the environment or a secret store, including with a fallback, such as `os.environ.get("SECRET_KEY", get_random_secret_key())`; template placeholders, such as Django's `'{{ secret_key }}'` and ERB's `<%= ENV[...] %>`; empty strings; text inside Python docstrings and other strings, such as an error message that mentions `cookieParser("secret")`; comment lines; documentation; test files matched by `rules.missingTests.testGlobs`; fixture directories; and `examples/`, `samples/`, `demos/`, and `docs/`, whose apps commit a key so they run as they are.
+
+On about 99,000 files of library and application code, the rule reports one: the configuration Flask-AppBuilder ships for new apps, which sets `SECRET_KEY` to a fixed string.
+
 ## Secret Logging
 
 ### `rules.secretLogging.enabled`
@@ -1413,7 +1435,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |

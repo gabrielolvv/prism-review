@@ -62,6 +62,7 @@ Use CodeQL or Semgrep to find injection bugs that cross functions and files, and
 - Flags modules, classes, and methods loaded or called by a name from the request, such as `params[:type].constantize`, `require(req.query.name)`, or `getattr(obj, request.args["action"])`
 - Flags commands run with a request value in the program or the text a shell parses, such as ``exec(`ping ${req.query.host}`)`` or `os.system("ping " + request.args["host"])`, unless the value is quoted for the shell or passed as a separate argument
 - Flags bcrypt costs below 10, PBKDF2 below 100,000 iterations, and scrypt below N = 2^14, which let a leaked password hash be guessed quickly
+- Flags session and cookie signing keys written in the code, such as Express `session({ secret })`, Flask and Django `SECRET_KEY`, and Rails `secret_key_base`
 - Flags blanket lint and type check suppressions, such as `/* eslint-disable */`, `@ts-nocheck`, a bare `# noqa`, or `//nolint`
 - Catches tests that a pull request focuses with `.only` or disables with `.skip`, `xit`, `@pytest.mark.skip`, `t.Skip`, `#[ignore]`, and similar markers
 - Flags supply-chain risks: committed credential files, lockfile entries from untrusted sources, dependencies named like popular packages or moved to older or unbounded versions, manifests changed without their lockfile, unpinned third-party actions, and scripts piped from the internet into a shell
@@ -370,6 +371,7 @@ flowchart TD
 | `secret-in-diff` | High | Reports credentials added in the diff, on their line, without printing the value. |
 | `credential-file` | High | Flags committed private keys, key stores, Terraform state, and credential files, and secrets added to `.env`, `.npmrc`, and `.pypirc` files. |
 | `hardcoded-jwt-secret` | Warning | Flags JSON Web Tokens signed or verified with a key written in the code, such as `jwt.sign(payload, "secret")`, in Node.js, Python, Ruby, PHP, Java, Go, and .NET. |
+| `hardcoded-session-secret` | High | Flags session and cookie signing keys set to text in the code: Express, Koa, Fastify, and iron-session options, `cookieParser`, Flask and Django `SECRET_KEY`, Rails and Phoenix `secret_key_base`, Sinatra's `session_secret`, and gorilla and gin cookie stores. Keys from the environment, template placeholders, tests, and example apps are skipped. |
 | `secret-logging` | Warning | Flags log and console calls that write a password, token, API key, or other value named like a secret, such as `logger.info(user.password)` or `` console.log(`Bearer ${token}`) ``, in JavaScript, Python, Ruby, Go, Java, C#, and PHP. |
 | `url-credentials` | High | Flags URLs with a real-looking password in them, such as `postgres://app:<password>@db.acme.io/app` in code, Compose files, or Helm values. Placeholders, template syntax such as `${DB_PASSWORD}`, local development defaults, and `localhost` are skipped. |
 | `disabled-security-check` | High or Warning | Flags code that turns off TLS certificate verification or token signature checks, and warns when CSRF protection is turned off. |
