@@ -63,6 +63,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "command-injection": "code",
   "weak-password-hashing": "code",
   "jwt-without-expiry": "code",
+  "weak-tls": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
