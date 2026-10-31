@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -128,6 +128,8 @@ rules:
   adminRouteAuth:
     enabled: true
   zipSlip:
+    enabled: true
+  regexInjection:
     enabled: true
   remoteScripts:
     enabled: true
@@ -736,6 +738,33 @@ These are not reported:
 
 On versions of adm-zip, unzipper, zt-zip, zip4j, plexus-archiver, and codeclysm/extract with a known Zip Slip vulnerability, the rule reports the extraction code. On the versions that fixed it, it does not, except zt-zip's `Zips` builder, which still joins the entry name without a check. On about 95,000 files of other library and application code, it reports one file: a build script that falls back to `tar.extractall` without a filter on older Pythons.
 
+## Regular Expression Injection
+
+### `rules.regexInjection.enabled`
+
+The `regex-injection` rule reports one warning per file that compiles a regular expression from a request value without escaping it. The person sending the request then writes the pattern: `(a+)+$` can take exponential time to fail on a long input and hold the server or the database (ReDoS), and `.*` matches every record a search was meant to filter.
+
+| Language | Calls read |
+| --- | --- |
+| JavaScript, TypeScript | `new RegExp(...)`, `RegExp(...)` |
+| Python | `re.compile`, `re.match`, `re.search`, `re.fullmatch`, `re.findall`, `re.finditer`, `re.sub`, `re.split`, and the same in `regex`, and Django lookups such as `title__regex=` and `title__iregex=` |
+| Ruby | `Regexp.new`, `Regexp.compile`, and values interpolated into a literal, as in `/#{params[:q]}/` |
+| Java, Kotlin | `Pattern.compile`, `Pattern.matches`, and String's `matches`, `replaceAll`, `replaceFirst`, and `split`, which read a pattern; Kotlin's `Regex(...)` and `toRegex()` |
+| C# | `new Regex(...)`, and the pattern argument of `Regex.IsMatch`, `Match`, `Matches`, `Replace`, and `Split` |
+| PHP | `preg_match`, `preg_match_all`, `preg_replace`, `preg_replace_callback`, `preg_split`, `preg_grep` |
+| MongoDB | `$regex` in a filter, in JavaScript, Python, PHP, and Ruby |
+
+Request values are the ones `untrusted-input` reads, such as `req.query`, `req.body`, `request.args`, `request.GET`, Rails' `params`, `$_GET`, and, in Java, `request.getParameter`. The rule follows names assigned or destructured from them within 30 lines, as in `const { q } = req.query` followed by `new RegExp(q)`.
+
+These are not reported:
+
+- Values escaped first, with `escapeRegExp`, `_.escapeRegExp`, `escape-string-regexp`, `RegExp.escape`, `re.escape`, `Regexp.escape`, `Pattern.quote`, `Regex.Escape`, or `preg_quote`, including names assigned an escaped value.
+- Request values matched against a fixed pattern, as in `/^[a-z]+$/.test(req.query.name)` or `Regex.IsMatch(Request.Query["q"], "^[a-z]+$")`.
+- Go's `regexp` and Rust's `regex`, which match in linear time, and String's `match` and `search` in JavaScript, since other objects have methods with those names.
+- Comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 98,000 files of library and application code, the rule reports none. Keystone's sign-in, which escapes the email before it builds a pattern, is not reported.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1285,7 +1314,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
