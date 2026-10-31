@@ -13,7 +13,7 @@ export function testBlanketSuppressionRuleReportsEachLanguage(): void {
   const files = [
     file("src/legacy.ts", [`/* ${eslint} */`, "// @ts-" + "nocheck", "export const x = 1;"]),
     file("src/widget.tsx", ["const a = 1;", `// ${eslint}-next-line`, "use(a);"]),
-    file("app/models.py", [`import os  # ${noqa}`, `value = load()  # type: ${"ignore"}`]),
+    file("app/models.py", [`run(os.environ)  # ${noqa}`, `value = load()  # type: ${"ignore"}`]),
     file("app/settings.py", [`# pylint: disable=${"all"}`, `# mypy: ${"ignore-errors"}`]),
     file("pkg/client.go", [`func Dial() error { //${nolint}`, "\treturn nil", "}"]),
     file("src/lib.rs", [`#![allow(${allRustWarn})]`, `#[allow(clippy::${"all"})]`])
@@ -59,6 +59,34 @@ export function testBlanketSuppressionRuleIgnoresTargetedSuppressions(): void {
   ];
 
   assert.deepEqual(blanketFindings(files), []);
+}
+
+export function testBlanketSuppressionRuleSkipsPythonMarkersWithOneUse(): void {
+  const typeIgnore = `# type: ${"ignore"}`;
+  const skipped = file("app/__init__.py", [
+    // Re-exports, imports below code, and modules without type stubs.
+    `from .models import *  # ${noqa}`,
+    `import yaml  ${typeIgnore}`,
+    // A long URL in a comment, and the line that closes a long string.
+    `# See https://example.com/a/very/long/path#section  # ${noqa}`,
+    'EXPECTED = """',
+    "<td>a long row of expected output</td>",
+    `"""  # ${noqa}`
+  ]);
+  assert.deepEqual(blanketFindings([skipped]), []);
+
+  // Whole-file markers, and markers on code, are still reported.
+  const reported = blanketFindings([
+    file("app/views.py", [
+      `# flake8: ${noqa}`,
+      typeIgnore,
+      `QUERY = """  # ${noqa}`,
+      "select 1",
+      '"""',
+      `render(User)  # ${noqa}`
+    ])
+  ]);
+  assert.deepEqual(reported[0]?.lines, [1, 2, 3, 6]);
 }
 
 export function testBlanketSuppressionRuleIgnoresRemovedLines(): void {

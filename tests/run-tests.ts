@@ -413,6 +413,7 @@ import {
   testBlanketSuppressionRuleCanBeDisabled,
   testBlanketSuppressionRuleChecksMarkersInTheirLanguage,
   testBlanketSuppressionRuleIgnoresRemovedLines,
+  testBlanketSuppressionRuleSkipsPythonMarkersWithOneUse,
   testBlanketSuppressionRuleIgnoresTargetedSuppressions,
   testBlanketSuppressionRuleReportsEachLanguage
 } from "./unit/blanket-suppression.test.js";
@@ -645,6 +646,7 @@ const tests: Array<[string, Test]> = [
   ["blanket-suppression rule reports blanket suppressions in each language", testBlanketSuppressionRuleReportsEachLanguage],
   ["blanket-suppression rule ignores targeted suppressions", testBlanketSuppressionRuleIgnoresTargetedSuppressions],
   ["blanket-suppression rule ignores removed lines", testBlanketSuppressionRuleIgnoresRemovedLines],
+  ["blanket-suppression rule skips Python markers that can only cover one check", testBlanketSuppressionRuleSkipsPythonMarkersWithOneUse],
   ["blanket-suppression rule can be disabled", testBlanketSuppressionRuleCanBeDisabled],
   ["blanket-suppression rule checks markers in their own language", testBlanketSuppressionRuleChecksMarkersInTheirLanguage],
   ["risky-api rule covers Ruby, Java, and PHP", testRiskyApiRuleCoversRubyJavaAndPhp],
