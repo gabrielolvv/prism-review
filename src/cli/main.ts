@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { analyzePullRequest } from "../analysis/analyze-pull-request.js";
 import { codeOwnersPaths, parseCodeOwners, type CodeOwners } from "../analysis/code-owners.js";
-import { gitAttributesPath, parseGitAttributes } from "../analysis/git-attributes.js";
+import { defaultGeneratedFiles, gitAttributesPath, parseGitAttributes } from "../analysis/git-attributes.js";
 import { findLockfiles } from "../github/load-lockfiles.js";
 import { describeFailure, failingFindings } from "../analysis/check-outcome.js";
 import { resolveConfig } from "../config/extends.js";
@@ -116,9 +116,11 @@ async function main(): Promise<void> {
     return;
   }
   const files = prepareChangedFiles(parseDiff(diff), config);
-  const generated = config.ignoreGenerated && isFile(gitAttributesPath)
-    ? parseGitAttributes(readFileSync(gitAttributesPath, "utf8"))
-    : undefined;
+  const generated = !config.ignoreGenerated
+    ? undefined
+    : isFile(gitAttributesPath)
+      ? parseGitAttributes(readFileSync(gitAttributesPath, "utf8"))
+      : defaultGeneratedFiles;
   // The working tree stands in for the base commit: a lockfile here was there before this change.
   const existingLockfiles = config.rules.staleLockfiles.enabled
     ? await findLockfiles(files, async (directory) =>
