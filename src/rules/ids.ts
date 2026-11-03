@@ -52,6 +52,7 @@ export const ruleIds: readonly string[] = [
   "brute-force-protection",
   "ssh-host-key",
   "grpc-plaintext",
+  "service-auth-disabled",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

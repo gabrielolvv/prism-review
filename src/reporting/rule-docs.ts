@@ -54,6 +54,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "brute-force-protection": "Brute-Force Protection",
   "ssh-host-key": "SSH Host Keys",
   "grpc-plaintext": "gRPC Without TLS",
+  "service-auth-disabled": "Service Authentication",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

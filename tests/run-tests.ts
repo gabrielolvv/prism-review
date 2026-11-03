@@ -683,6 +683,12 @@ import {
   testGrpcPlaintextSkipsTestsAndCanBeDisabled
 } from "./unit/grpc-plaintext.test.js";
 import {
+  testServiceAuthDisabledReadsEachService,
+  testServiceAuthDisabledReportsOneFindingPerFile,
+  testServiceAuthDisabledSkipsAuthenticatedAndThrowawaySetups,
+  testServiceAuthDisabledSkipsTestsAndCanBeDisabled
+} from "./unit/service-auth-disabled.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1182,6 +1188,10 @@ const tests: Array<[string, Test]> = [
   ["grpc-plaintext reads each language", testGrpcPlaintextReadsEachLanguage],
   ["grpc-plaintext skips local and chosen plaintext", testGrpcPlaintextSkipsLocalAndChosenPlaintext],
   ["grpc-plaintext skips tests and can be disabled", testGrpcPlaintextSkipsTestsAndCanBeDisabled],
+  ["service-auth-disabled reports one finding per file", testServiceAuthDisabledReportsOneFindingPerFile],
+  ["service-auth-disabled reads each service", testServiceAuthDisabledReadsEachService],
+  ["service-auth-disabled skips authenticated and throwaway setups", testServiceAuthDisabledSkipsAuthenticatedAndThrowawaySetups],
+  ["service-auth-disabled skips tests and can be disabled", testServiceAuthDisabledSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
