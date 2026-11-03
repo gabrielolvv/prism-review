@@ -124,6 +124,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Login rate limits and account lockout turned off (0.99.0).
 - SSH connections that accept any host key (0.100.0).
 - gRPC without TLS (0.101.0).
+- Services started without authentication (0.102.0).
 
 ## Later
 

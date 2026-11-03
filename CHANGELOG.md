@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.102.0 - 2026-11-03
+
+### Added
+
+- `service-auth-disabled` rule: reports services started with authentication turned off. High: the Docker daemon on `tcp://0.0.0.0:2375` and Jupyter with an empty token, which let anyone who reaches them run code on the host. Warning: Elasticsearch's `xpack.security.enabled: false` and OpenSearch's security plugin turned off, Redis's `protected-mode no`, MongoDB's `--noauth`, Postgres's `POSTGRES_HOST_AUTH_METHOD=trust` and `trust` in `pg_hba.conf`, MySQL's and MariaDB's empty passwords and `skip-grant-tables`, Grafana's anonymous admins, RabbitMQ's `loopback_users.guest = false`, Kafka's and ZooKeeper's open ACLs, and the kubelet's anonymous access. CI service containers, dev containers, Compose overrides, Testcontainers, and development setups are not reported. On about 59,300 files, it reports none.
+
 ## 0.101.0 - 2026-11-03
 
 ### Added
