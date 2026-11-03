@@ -45,6 +45,7 @@ export const ruleIds: readonly string[] = [
   "unsafe-html-config",
   "websocket-origin",
   "weak-password-policy",
+  "request-size-limit",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

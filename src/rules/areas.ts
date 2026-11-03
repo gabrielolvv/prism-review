@@ -73,6 +73,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "unsafe-html-config": "code",
   "websocket-origin": "code",
   "weak-password-policy": "code",
+  "request-size-limit": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
