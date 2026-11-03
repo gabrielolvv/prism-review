@@ -7,7 +7,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
-- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
+- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
@@ -164,6 +164,8 @@ rules:
     allowedOwners:
       - "actions"
       - "github"
+  subresourceIntegrity:
+    enabled: true
   destructiveMigration:
     enabled: true
   dockerfileRisk:
@@ -1766,6 +1768,27 @@ rules:
 
 Comment lines are skipped. Like `workflow-risk`, the rule also checks workflow files matched by `ignorePaths`. `rules.unpinnedActions.enabled: false` turns it off.
 
+## Subresource Integrity
+
+### `rules.subresourceIntegrity.enabled`
+
+The `subresource-integrity` rule warns, once per file, about scripts and stylesheets loaded from public CDNs without an `integrity` hash. Without the hash, the browser runs whatever the CDN serves, so a compromised package, publisher account, or CDN reaches every page that loads it, with access to the visitor's session and to what they type. With the hash, the browser refuses a file that does not match, so a pinned version cannot be changed under the page.
+
+The rule reads `<script src>` tags, `<link rel="stylesheet">` and `<link rel="modulepreload">` tags, on one line or across several, in HTML pages and templates (ERB, EJS, Handlebars, Jinja, Twig, Blade and PHP, Razor, JSP, Liquid, Go templates), components (JSX, TSX, Vue, Svelte, Astro), and HTML written into strings in JavaScript, TypeScript, Python, Ruby, Go, Java, Kotlin, and C#, such as a GraphQL or API documentation page. It reports the tag when its URL is on one of these public CDNs:
+
+- cdnjs (`cdnjs.cloudflare.com`), jsDelivr (`cdn.jsdelivr.net`), unpkg (`unpkg.com`), esm.sh, Skypack, and JSPM
+- `code.jquery.com`, BootstrapCDN, Google Hosted Libraries (`ajax.googleapis.com`), the Microsoft Ajax CDN, and the DataTables CDN
+- BootCDN, Staticfile, and Baomitu, RawGit and githack, Statically, and the Ionic, Plotly, D3, CKEditor, and Font Awesome release CDNs
+
+These are not reported:
+
+- Tags with an `integrity` attribute, including Vue's `:integrity` and JSX's `integrity={...}`.
+- Files served from your own site, and scripts that cannot carry a hash because their provider changes them in place, such as Google Analytics, Google Tag Manager, Stripe.js, and Google Fonts' stylesheets.
+- Links that load nothing into the page, such as `preconnect` and icons.
+- Comment lines, Markdown and other documentation, TypeScript declaration files, minified files, source maps, files whose path names development, local, test, CI, example, sample, or demo code, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 62,000 files of libraries that serve their own pages, such as Swagger UI and ReDoc wrappers, GraphiQL and GraphQL playgrounds, admin themes, documentation themes, and report generators, and the apps in the other corpora, the rule reports 25 files, each a CDN tag without a hash. Among them are GraphQL Yoga's, Ariadne's, and Strawberry's GraphQL pages, Django Ninja's Swagger and ReDoc pages, better-auth's API reference, Rails' route visualizer, MkDocs' built-in themes, Docsify's starter page, express-status-monitor, and the Start Bootstrap Agency theme.
+
 ## Hidden Unicode
 
 ### `rules.hiddenUnicode.enabled`
@@ -1885,7 +1908,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Area | Rules |
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
-| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
+| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
