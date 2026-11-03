@@ -38,6 +38,7 @@ import { websocketOriginRule } from "./websocket-origin.js";
 import { weakPasswordPolicyRule } from "./weak-password-policy.js";
 import { requestSizeLimitRule } from "./request-size-limit.js";
 import { tokenStorageRule } from "./token-storage.js";
+import { longSessionRule } from "./long-session.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -119,6 +120,7 @@ export const defaultRules: Rule[] = [
   weakPasswordPolicyRule,
   requestSizeLimitRule,
   tokenStorageRule,
+  longSessionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

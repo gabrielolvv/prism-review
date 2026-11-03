@@ -652,6 +652,13 @@ import {
   testTokenStorageSkipsTestsAndCanBeDisabled
 } from "./unit/token-storage.test.js";
 import {
+  testLongSessionReadsEachFramework,
+  testLongSessionReportsOneFindingPerFile,
+  testLongSessionSeesLinesRedactionRewrites,
+  testLongSessionSkipsShortAndLongByDesign,
+  testLongSessionSkipsTestsAndCanBeDisabled
+} from "./unit/long-session.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1130,6 +1137,11 @@ const tests: Array<[string, Test]> = [
   ["token-storage skips other values", testTokenStorageSkipsOtherValues],
   ["token-storage skips tests and can be disabled", testTokenStorageSkipsTestsAndCanBeDisabled],
   ["token-storage sees lines redaction rewrites", testTokenStorageSeesLinesRedactionRewrites],
+  ["long-session reports one finding per file", testLongSessionReportsOneFindingPerFile],
+  ["long-session reads each framework", testLongSessionReadsEachFramework],
+  ["long-session skips short and long-by-design lifetimes", testLongSessionSkipsShortAndLongByDesign],
+  ["long-session skips tests and can be disabled", testLongSessionSkipsTestsAndCanBeDisabled],
+  ["long-session sees lines redaction rewrites", testLongSessionSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

@@ -37,6 +37,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that keep an auth
   // token in browser storage or unencrypted mobile storage.
   tokenStorageLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that give a session
+  // or an access token a lifetime longer than 30 days.
+  longSessionLines?: number[];
   // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
   // named like a secret.
   secretLogLines?: number[];
