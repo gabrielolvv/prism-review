@@ -43,6 +43,7 @@ import { openAccessRule } from "./open-access.js";
 import { bruteForceProtectionRule } from "./brute-force-protection.js";
 import { sshHostKeyRule } from "./ssh-host-key.js";
 import { grpcPlaintextRule } from "./grpc-plaintext.js";
+import { serviceAuthDisabledRule } from "./service-auth-disabled.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -129,6 +130,7 @@ export const defaultRules: Rule[] = [
   bruteForceProtectionRule,
   sshHostKeyRule,
   grpcPlaintextRule,
+  serviceAuthDisabledRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
