@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -203,6 +203,8 @@ rules:
   unsafeHtmlConfig:
     enabled: true
   websocketOrigin:
+    enabled: true
+  weakPasswordPolicy:
     enabled: true
   secretLogging:
     enabled: true
@@ -1068,6 +1070,29 @@ These are not reported: origin checks that compare the origin, such as `return a
 
 On about 16,300 source files of WebSocket libraries and servers, such as ws, Socket.IO, Django Channels, gorilla/websocket, coder/websocket, Centrifuge, Spring, and ActionCable, and the apps in the HTML sanitizer corpus, the rule reports two: melody's default upgrader and gorilla/websocket's deprecated `Upgrade` function, which both accept every origin.
 
+## Password Policies
+
+### `rules.weakPasswordPolicy.enabled`
+
+The `weak-password-policy` rule warns, once per file, about password policies that allow passwords shorter than 8 characters, the least NIST SP 800-63B allows, and about Django's password validators turned off. Short passwords fall quickly to online guessing and to the lists of leaked passwords attackers try first.
+
+| Where | Read |
+| --- | --- |
+| Django | `AUTH_PASSWORD_VALIDATORS = []`, `MinimumLengthValidator` with `'min_length'` below 8, and django-allauth's `ACCOUNT_PASSWORD_MIN_LENGTH` |
+| Python fields | A password field's `min_length=` or `min=`, as pydantic's `Field` and `constr`, marshmallow's `Length`, and WTForms' `Length` take it |
+| Ruby | Devise's `config.password_length = 6..128`, `validates :password` with `minimum:` or `in:`, and Rodauth's `password_minimum_length` |
+| C# | ASP.NET Core Identity's `RequiredLength` |
+| JavaScript, TypeScript | A password key with Joi's, yup's, or zod's `.min(...)`, Mongoose's `minlength` or `minLength`, express-validator's `body("password").isLength({ min })`, and class-validator's `@MinLength` above a password property |
+| Java, Kotlin | `@Size(min = ...)` and `@Length(min = ...)` above a password field |
+| PHP | Laravel's `"password" => "...|min:6"` and `Password::min(6)` |
+| AWS | The IAM account password policy's `minimum_password_length` and `MinimumPasswordLength`, and `minimum_length` and `MinimumLength` in a Cognito password policy |
+
+A password name is `password`, `new_password`, `newPassword`, or `password_confirmation`, with any suffix, but not `current_password` or `oldPassword`, which a change form asks for. Minimums of 0 and 1 are not reported, since a login form checks `.min(1)` only to make the field required.
+
+These are not reported: minimums of 8 or more; lengths of other fields, such as usernames; Django's own `global_settings.py`; files whose path names development, local, test, CI, example, sample, or demo code, such as `settings/dev.py`; comment lines; documentation; TypeScript declaration files; minified files; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 26,500 source files of authentication libraries and the apps that use them, such as Django, django-allauth, Flask-Security, fastapi-users, Devise, Rodauth, Payload, Keystone, Medusa, better-auth, Ghost, Strapi, and Wagtail, the rule reports one: the initializer Devise generates for new apps, which sets `config.password_length = 6..128`.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1654,7 +1679,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
