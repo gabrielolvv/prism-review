@@ -659,6 +659,12 @@ import {
   testLongSessionSkipsTestsAndCanBeDisabled
 } from "./unit/long-session.test.js";
 import {
+  testOpenAccessReadsEachFramework,
+  testOpenAccessReportsOneFindingPerFile,
+  testOpenAccessSkipsScopedAccess,
+  testOpenAccessSkipsTestsAndCanBeDisabled
+} from "./unit/open-access.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1142,6 +1148,10 @@ const tests: Array<[string, Test]> = [
   ["long-session skips short and long-by-design lifetimes", testLongSessionSkipsShortAndLongByDesign],
   ["long-session skips tests and can be disabled", testLongSessionSkipsTestsAndCanBeDisabled],
   ["long-session sees lines redaction rewrites", testLongSessionSeesLinesRedactionRewrites],
+  ["open-access reports one finding per file", testOpenAccessReportsOneFindingPerFile],
+  ["open-access reads each framework", testOpenAccessReadsEachFramework],
+  ["open-access skips scoped access", testOpenAccessSkipsScopedAccess],
+  ["open-access skips tests and can be disabled", testOpenAccessSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

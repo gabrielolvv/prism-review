@@ -48,6 +48,7 @@ export const ruleIds: readonly string[] = [
   "request-size-limit",
   "token-storage",
   "long-session",
+  "open-access",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

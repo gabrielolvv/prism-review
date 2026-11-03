@@ -71,6 +71,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "request-size-limit": "Do request body limits fit what each route needs, with large uploads streamed?",
   "token-storage": "Are auth tokens kept in HttpOnly cookies, memory, or the platform's secure storage?",
   "long-session": "Do sessions and access tokens expire within days, with revocable refresh tokens for longer logins?",
+  "open-access": "Does the app require authentication by default, and do database rules check who is asking?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
