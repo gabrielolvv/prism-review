@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -217,6 +217,8 @@ rules:
   bruteForceProtection:
     enabled: true
   sshHostKey:
+    enabled: true
+  grpcPlaintext:
     enabled: true
   secretLogging:
     enabled: true
@@ -1206,6 +1208,29 @@ These are not reported: `StrictHostKeyChecking yes` and `accept-new`; Paramiko's
 
 On about 31,500 files of SSH libraries and tools, such as Paramiko, Fabric, asyncssh, Netmiko, ansible-core, ssh2, golang.org/x/crypto, JSch, sshj, net-ssh, SSHKit, and Capistrano, and the apps in the other corpora, the rule reports three: Fabric's `Connection`, which uses `AutoAddPolicy()` by default, Capistrano's Git SSH wrapper, which passes `-o StrictHostKeyChecking=no`, and the `StrictHostKeyChecking=no` constant behind Ansible's `accept_hostkey` option.
 
+## gRPC Without TLS
+
+### `rules.grpcPlaintext.enabled`
+
+The `grpc-plaintext` rule warns, once per file, about gRPC channels and servers set up without TLS to hosts other than localhost. gRPC carries credentials in request metadata, such as bearer tokens and API keys, so without TLS they cross the network in plain text that anyone on the path can read or change, along with the requests and responses.
+
+| Where | Read |
+| --- | --- |
+| Python | grpcio's `grpc.insecure_channel(...)` and `grpc.aio.insecure_channel(...)`, and `add_insecure_port` on `[::]` or `0.0.0.0` |
+| Go | `grpc.WithInsecure()` and `insecure.NewCredentials()` |
+| Java, Kotlin, Scala | `usePlaintext()` on a channel builder |
+| Node.js | grpc-js's `credentials.createInsecure()`, `ChannelCredentials.createInsecure()`, and `ServerCredentials.createInsecure()` |
+| C# | `ChannelCredentials.Insecure` and `ServerCredentials.Insecure` |
+
+Plaintext is reported only when the code chooses it outright. These are not reported:
+
+- **Local targets** within 3 lines: `localhost`, `127.0.0.1`, `::1`, `unix:` sockets, `forAddress("localhost", ...)`, in-process channels, bufconn, constants named `LOCAL_TARGET` or `LOCAL_HOST`, and grpc-js's `channelOverride`.
+- **Plaintext as an option:** behind a condition in the 2 lines before or opening the block, including a `switch` case or `default:`; as a fallback, such as `credentials ?? credentials.createInsecure()` or `or grpc.insecure_channel(...)`; or next to a secure channel within 6 lines, such as `secure_channel`, `createSsl`, or `NewTLS`.
+- **The libraries' own code:** a call inside the function that defines it, such as grpc-go's `func WithInsecure()`, imports, and a call named inside a string, such as an error message.
+- Text in Python docstrings, files whose path names development, local, test, CI, example, sample, demo, benchmark, interop, stubserver, or testutil code, comment lines, documentation, TypeScript declaration files, minified files, source maps, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 31,800 files of gRPC libraries and the clients built on them, such as grpcio, grpc-js, grpc-go, grpc-java, nice-grpc, Temporal, etcd, Milvus, Qdrant, Weaviate, Triton, Dapr, OpenTelemetry's exporters, and Google Cloud Pub/Sub, and the apps in the other corpora, the rule reports two: Dapr's actor runtime, which serves its app channel with `add_insecure_port("[::]:...")`, and grpc-go's profiling command, which dials the address it is given without TLS.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1813,7 +1838,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
