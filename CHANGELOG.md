@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.93.0 - 2026-11-03
+
+### Added
+
+- `websocket-origin` rule: warns about WebSocket servers that accept connections from any origin, which lets any site a signed-in user visits open the socket with the user's cookies and read what it sends. It reads gorilla/websocket's `CheckOrigin` returning `true`, coder/websocket's `InsecureSkipVerify`, Spring WebSocket and STOMP `setAllowedOrigins("*")`, Jakarta `checkOrigin`, ws's `verifyClient`, Django Channels routes with cookie sessions and no origin validator, ActionCable's `disable_request_forgery_protection`, Phoenix's `check_origin: false`, and ASP.NET Core `AllowedOrigins`. Origin checks that compare the origin, Spring CORS settings, and development settings are not reported. On about 16,300 source files of WebSocket libraries and servers, it reports two: melody's default upgrader and gorilla/websocket's deprecated `Upgrade`, which both accept every origin.
+
 ## 0.92.0 - 2026-11-03
 
 ### Added

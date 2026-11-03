@@ -115,6 +115,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Secrets in environment variables sent to browsers (0.90.0).
 - Links built from the Host header, and host validation turned off (0.91.0).
 - HTML sanitizers configured to keep scripts, and raw HTML from Markdown (0.92.0).
+- WebSocket servers that accept any origin (0.93.0).
 
 ## Later
 
