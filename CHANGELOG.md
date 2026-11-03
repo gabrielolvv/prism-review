@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.92.0 - 2026-11-03
+
+### Added
+
+- `unsafe-html-config` rule: flags, as high risk, HTML sanitizers configured to keep scripts, event handlers, or `javascript:` links, such as DOMPurify's `ADD_TAGS: ['script']` and `ALLOW_UNKNOWN_PROTOCOLS: true`, sanitize-html's `allowedTags: false` and `allowVulnerableTags: true`, bleach and nh3 lists with `script` or `onclick`, bluemonday's `AllowUnsafe(true)`, HTMLPurifier's `HTML.Trusted`, and the OWASP Java sanitizer, Jsoup, Rails, and ammonia allow lists. Code that calls a sanitizer looks safe, and other rules treat it as sanitized. Also warns about Markdown rendered with raw HTML and no sanitizer in the file: react-markdown's `rehype-raw`, mistune's `escape=False`, Parsedown's safe mode, and league/commonmark's `html_input`. Narrow additions such as `iframe`, `FORBID_TAGS` next to an allow list, and build tools that render the site's own Markdown are not reported. On about 14,800 source files of sanitizer and Markdown libraries and the apps that use them, it reports none.
+
 ## 0.91.0 - 2026-10-31
 
 ### Added
