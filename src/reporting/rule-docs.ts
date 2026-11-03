@@ -49,6 +49,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "weak-password-policy": "Password Policies",
   "request-size-limit": "Request Size Limits",
   "token-storage": "Token Storage",
+  "long-session": "Session Lifetimes",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
