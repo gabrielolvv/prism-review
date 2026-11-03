@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -219,6 +219,8 @@ rules:
   sshHostKey:
     enabled: true
   grpcPlaintext:
+    enabled: true
+  serviceAuthDisabled:
     enabled: true
   secretLogging:
     enabled: true
@@ -1553,6 +1555,29 @@ A file anyone can write lets any process on the machine or in the container chan
 - `chmod +w` without `u`, `g`, `o`, or `a` is limited by the umask and is not reported. A umask call whose result is assigned or returned, such as `old = os.umask(0)`, reads the current umask to restore it, and is not reported either. Neither are modes held in variables, such as `chmod "$MODE"`, nor `mkdir` and file-creation calls, whose modes the umask limits.
 - Comment lines, documentation, test files matched by `rules.missingTests.testGlobs`, and fixture directories are skipped.
 
+## Service Authentication
+
+### `rules.serviceAuthDisabled.enabled`
+
+The `service-auth-disabled` rule reports, once per file, data stores, message brokers, notebooks, and container daemons started with authentication turned off. Anyone who can reach the service on the network can then read and change its data, and, for the Docker daemon and Jupyter, run code on the host. Scans for such services run constantly, so a firewall rule or a port opened later is all it takes.
+
+| Reported | Severity | Read |
+| --- | --- | --- |
+| The Docker daemon on TCP without TLS | High | `-H tcp://0.0.0.0:2375`, `--host=tcp://:2375`, and `"hosts"` with `tcp://0.0.0.0:2375` in `daemon.json` |
+| Jupyter without a token | High | `--NotebookApp.token=''`, `--ServerApp.token=`, `--IdentityProvider.token=''`, and `c.NotebookApp.token = ''` in Jupyter's config |
+| Elasticsearch and OpenSearch security off | Warning | `xpack.security.enabled: false`, `plugins.security.disabled: true`, and `DISABLE_SECURITY_PLUGIN=true` |
+| Redis protected mode off | Warning | `protected-mode no` |
+| MongoDB authentication off | Warning | `--noauth` and `authorization: disabled` |
+| Postgres trusting connections | Warning | `POSTGRES_HOST_AUTH_METHOD=trust`, and `pg_hba.conf` lines that trust `0.0.0.0/0`, `::/0`, or `all` addresses |
+| MySQL and MariaDB without passwords | Warning | `MYSQL_ALLOW_EMPTY_PASSWORD`, `MARIADB_ALLOW_EMPTY_ROOT_PASSWORD`, and Bitnami's `ALLOW_EMPTY_PASSWORD` set to yes, and `skip-grant-tables` |
+| Other services | Warning | Grafana's `GF_AUTH_ANONYMOUS_ORG_ROLE=Admin` or `Editor`, RabbitMQ's `loopback_users.guest = false`, Kafka's `allow.everyone.if.no.acl.found=true`, ZooKeeper's `ALLOW_ANONYMOUS_LOGIN=yes`, and the kubelet's `--anonymous-auth=true` and `--authorization-mode=AlwaysAllow` |
+
+The rule reads YAML, Compose, and Kubernetes files, Dockerfiles, environment files, `.conf`, `.cnf`, `.ini`, `.properties`, `.toml`, and JSON files, systemd units, shell scripts, Makefiles, Procfiles, and Jupyter's config files.
+
+These are not reported: CI service containers in GitHub Actions, GitLab CI, CircleCI, Buildkite, Azure Pipelines, Bitbucket Pipelines, and Jenkins files; dev containers; `docker-compose.override.yml`; Testcontainers' modules; files whose path names development, local, test, CI, example, sample, or demo code, such as `docker-compose.dev.yml`; other flags with similar names, such as `--noauth_local_webserver`; comment lines; documentation; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 59,300 files of web frameworks, gRPC, SSH, rate limiting, and authentication libraries, Testcontainers, Jupyter, and apps such as Gitea, n8n, and Appsmith, the rule reports none. Gitea's CI database containers, which allow empty MySQL passwords, and Testcontainers' Elasticsearch module are not reported.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -1837,7 +1862,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
