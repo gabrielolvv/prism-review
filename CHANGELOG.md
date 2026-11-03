@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.104.0 - 2026-11-03
+
+### Added
+
+- `subresource-integrity` rule: warns about `<script>` tags, stylesheets, and module preloads loaded from public CDNs, such as cdnjs, jsDelivr, unpkg, esm.sh, `code.jquery.com`, BootstrapCDN, and Google Hosted Libraries, without an `integrity` hash. Without the hash, a compromised package, publisher account, or CDN runs its code in every visitor's page. It reads HTML pages, templates, components, and HTML written into strings in code, and tags that span several lines. Tags with a hash, Vue's `:integrity`, and JSX's `integrity={...}`, your own files, scripts that cannot carry a hash, such as analytics and payment SDKs, links that load nothing, and example pages are not reported. On about 62,000 files, it reports 25, each a CDN tag without a hash, such as GraphQL Yoga's and Ariadne's GraphQL pages, Django Ninja's API docs, Rails' route visualizer, and MkDocs' built-in themes.
+
 ## 0.103.0 - 2026-11-03
 
 ### Added
