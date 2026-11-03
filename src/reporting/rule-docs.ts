@@ -45,6 +45,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-env-secret": "Public Environment Variables",
   "host-header": "Host Header",
   "unsafe-html-config": "HTML Sanitizer Settings",
+  "websocket-origin": "WebSocket Origins",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

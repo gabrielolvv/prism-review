@@ -34,6 +34,7 @@ import { insecureTempFileRule } from "./insecure-temp-file.js";
 import { publicEnvSecretRule } from "./public-env-secret.js";
 import { hostHeaderRule } from "./host-header.js";
 import { unsafeHtmlConfigRule } from "./unsafe-html-config.js";
+import { websocketOriginRule } from "./websocket-origin.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -111,6 +112,7 @@ export const defaultRules: Rule[] = [
   publicEnvSecretRule,
   hostHeaderRule,
   unsafeHtmlConfigRule,
+  websocketOriginRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
