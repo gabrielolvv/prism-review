@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.99.0 - 2026-11-03
+
+### Added
+
+- `brute-force-protection` rule: warns about login rate limits and account lockout turned off, or loosened to 100 or more failed attempts, such as django-axes' `AXES_ENABLED = False`, django-ratelimit's and Flask-Limiter's switches, `Rack::Attack.enabled = false`, Devise's `lock_strategy = :none`, ASP.NET Core Identity's `lockoutOnFailure: false`, which its scaffolding uses by default, express-rate-limit's `skip: () => true`, NestJS's `@SkipThrottle()` on login controllers, and Keycloak's `"bruteForceProtected": false`. Limiters that skip only some requests, libraries reading their own settings, and test settings are not reported. On about 27,900 source and configuration files, it reports none.
+
 ## 0.98.0 - 2026-11-03
 
 ### Added
