@@ -46,6 +46,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "host-header": "Host Header",
   "unsafe-html-config": "HTML Sanitizer Settings",
   "websocket-origin": "WebSocket Origins",
+  "weak-password-policy": "Password Policies",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
