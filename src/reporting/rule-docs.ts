@@ -52,6 +52,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "long-session": "Session Lifetimes",
   "open-access": "Open Access",
   "brute-force-protection": "Brute-Force Protection",
+  "ssh-host-key": "SSH Host Keys",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

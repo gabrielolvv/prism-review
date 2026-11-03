@@ -41,6 +41,7 @@ import { tokenStorageRule } from "./token-storage.js";
 import { longSessionRule } from "./long-session.js";
 import { openAccessRule } from "./open-access.js";
 import { bruteForceProtectionRule } from "./brute-force-protection.js";
+import { sshHostKeyRule } from "./ssh-host-key.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -125,6 +126,7 @@ export const defaultRules: Rule[] = [
   longSessionRule,
   openAccessRule,
   bruteForceProtectionRule,
+  sshHostKeyRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
