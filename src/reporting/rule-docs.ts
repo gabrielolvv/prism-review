@@ -55,6 +55,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "ssh-host-key": "SSH Host Keys",
   "grpc-plaintext": "gRPC Without TLS",
   "service-auth-disabled": "Service Authentication",
+  "error-details": "Error Details",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

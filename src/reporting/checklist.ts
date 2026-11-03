@@ -76,6 +76,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "ssh-host-key": "Do SSH connections check the server's host key against a pinned known_hosts entry?",
   "grpc-plaintext": "Do gRPC connections to other hosts use TLS, or a service mesh that adds it?",
   "service-auth-disabled": "Do databases, brokers, notebooks, and the Docker daemon require authentication outside a developer's machine?",
+  "error-details": "Do errors reach clients as generic messages, with stack traces and exception details kept in server logs?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
