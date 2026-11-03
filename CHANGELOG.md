@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.95.0 - 2026-11-03
+
+### Added
+
+- `request-size-limit` rule: warns about request body limits turned off, or raised to 100 MB or more for parsers that read the whole body into memory, such as `express.json({ limit: '1gb' })`, `bodyParser.text({ limit: Infinity })`, Fastify's `bodyLimit`, koa-body's `jsonLimit`, Multer's `fileSize: Infinity`, nginx's `client_max_body_size 0`, Django's `DATA_UPLOAD_MAX_MEMORY_SIZE = None`, Spring Boot's multipart limits of `-1`, ASP.NET Core's `[DisableRequestSizeLimit]` and `MaxRequestBodySize = null`, and PHP's `post_max_size = 0`. A few large requests can then fill the server's memory or keep it busy parsing. Limits under 100 MB, `raw` bodies, upload limits with a size, and limits read from configuration are not reported. On about 26,800 source and configuration files, it reports none.
+
 ## 0.94.0 - 2026-11-03
 
 ### Added
