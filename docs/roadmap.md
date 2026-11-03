@@ -121,6 +121,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Auth tokens kept in readable storage (0.96.0).
 - Sessions and access tokens that last longer than 30 days (0.97.0).
 - Authentication turned off for a whole app, and open database rules (0.98.0).
+- Login rate limits and account lockout turned off (0.99.0).
 
 ## Later
 
