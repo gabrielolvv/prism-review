@@ -122,6 +122,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Sessions and access tokens that last longer than 30 days (0.97.0).
 - Authentication turned off for a whole app, and open database rules (0.98.0).
 - Login rate limits and account lockout turned off (0.99.0).
+- SSH connections that accept any host key (0.100.0).
 
 ## Later
 
