@@ -3,7 +3,7 @@ import { patchLines } from "../analysis/added-lines.js";
 import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 import { developmentPath } from "./insecure-web-config.js";
-import { describeLines } from "./line-list.js";
+import { describeLines, listOf } from "./line-list.js";
 
 type Setting = { label: string; high?: boolean; pattern: RegExp };
 
@@ -107,11 +107,3 @@ export const serviceAuthDisabledRule: Rule = {
     });
   }
 };
-
-// "a", "a and b", or "a, b, and c".
-function listOf(items: string[]): string {
-  if (items.length <= 2) {
-    return items.join(" and ");
-  }
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-}

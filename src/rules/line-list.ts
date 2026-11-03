@@ -9,3 +9,11 @@ export function describeLines(lines: number[]): { text: string; plural: boolean 
 
   return { text: `${plural ? "Lines" : "Line"} ${listed}${more}`, plural };
 }
+
+// Joins items as "a", "a and b", or "a, b, and c".
+export function listOf(items: string[]): string {
+  if (items.length <= 2) {
+    return items.join(" and ");
+  }
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
