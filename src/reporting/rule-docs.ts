@@ -44,6 +44,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "insecure-temp-file": "Temporary Files",
   "public-env-secret": "Public Environment Variables",
   "host-header": "Host Header",
+  "unsafe-html-config": "HTML Sanitizer Settings",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

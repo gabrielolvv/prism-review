@@ -621,6 +621,12 @@ import {
   testHostHeaderSkipsTestsAndCanBeDisabled
 } from "./unit/host-header.test.js";
 import {
+  testUnsafeHtmlConfigReadsEachLibrary,
+  testUnsafeHtmlConfigReportsOneFindingPerFile,
+  testUnsafeHtmlConfigSkipsSafeSettings,
+  testUnsafeHtmlConfigSkipsTestsAndCanBeDisabled
+} from "./unit/unsafe-html-config.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1078,6 +1084,10 @@ const tests: Array<[string, Test]> = [
   ["host-header reads each framework", testHostHeaderReadsEachFramework],
   ["host-header skips safe uses", testHostHeaderSkipsSafeUses],
   ["host-header skips tests and can be disabled", testHostHeaderSkipsTestsAndCanBeDisabled],
+  ["unsafe-html-config reports one finding per file", testUnsafeHtmlConfigReportsOneFindingPerFile],
+  ["unsafe-html-config reads each library", testUnsafeHtmlConfigReadsEachLibrary],
+  ["unsafe-html-config skips safe settings", testUnsafeHtmlConfigSkipsSafeSettings],
+  ["unsafe-html-config skips tests and can be disabled", testUnsafeHtmlConfigSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
