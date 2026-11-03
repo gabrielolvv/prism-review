@@ -645,6 +645,13 @@ import {
   testRequestSizeLimitSkipsTestsAndCanBeDisabled
 } from "./unit/request-size-limit.test.js";
 import {
+  testTokenStorageReadsEachPlatform,
+  testTokenStorageReportsOneFindingPerFile,
+  testTokenStorageSeesLinesRedactionRewrites,
+  testTokenStorageSkipsOtherValues,
+  testTokenStorageSkipsTestsAndCanBeDisabled
+} from "./unit/token-storage.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1118,6 +1125,11 @@ const tests: Array<[string, Test]> = [
   ["request-size-limit reads each server", testRequestSizeLimitReadsEachServer],
   ["request-size-limit skips bounded limits", testRequestSizeLimitSkipsBoundedLimits],
   ["request-size-limit skips tests and can be disabled", testRequestSizeLimitSkipsTestsAndCanBeDisabled],
+  ["token-storage reports one finding per file", testTokenStorageReportsOneFindingPerFile],
+  ["token-storage reads each platform", testTokenStorageReadsEachPlatform],
+  ["token-storage skips other values", testTokenStorageSkipsOtherValues],
+  ["token-storage skips tests and can be disabled", testTokenStorageSkipsTestsAndCanBeDisabled],
+  ["token-storage sees lines redaction rewrites", testTokenStorageSeesLinesRedactionRewrites],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
