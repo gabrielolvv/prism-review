@@ -34,6 +34,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that name a secret
   // in a variable the build sends to browsers.
   publicSecretLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that keep an auth
+  // token in browser storage or unencrypted mobile storage.
+  tokenStorageLines?: number[];
   // Set by prepareChangedFiles before the size limit and redaction: added lines that log a value
   // named like a secret.
   secretLogLines?: number[];
