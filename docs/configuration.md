@@ -9,7 +9,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions)
-- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
+- **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
 
@@ -213,6 +213,8 @@ rules:
   longSession:
     enabled: true
   openAccess:
+    enabled: true
+  bruteForceProtection:
     enabled: true
   secretLogging:
     enabled: true
@@ -1159,6 +1161,26 @@ These are not reported: public routes named one by one, such as `requestMatchers
 
 On about 8,700 Java, Kotlin, Python, Ruby, C#, PHP, rules, JSON, and SQL files of web frameworks, authentication libraries, and apps such as Wagtail, Django CMS, Zulip, Flask-Login, and Devise, the rule reports none.
 
+## Brute-Force Protection
+
+### `rules.bruteForceProtection.enabled`
+
+The `brute-force-protection` rule warns, once per file, about login rate limits and account lockout that a change turns off, or loosens to 100 or more failed attempts. Without them, an attacker can try password after password against an account, from lists of leaked passwords or by guessing, until one works.
+
+| Where | Read |
+| --- | --- |
+| Python | django-axes' `AXES_ENABLED = False` and `AXES_FAILURE_LIMIT` of 100 or more, django-ratelimit's `RATELIMIT_ENABLE = False`, and Flask-Limiter's `RATELIMIT_ENABLED = False` and `limiter.enabled = False` |
+| Ruby | `Rack::Attack.enabled = false`, and Devise's `config.lock_strategy = :none` and `config.maximum_attempts` of 100 or more |
+| C# | ASP.NET Core Identity's `lockoutOnFailure: false`, `Lockout.AllowedForNewUsers = false`, and `MaxFailedAccessAttempts` of 100 or more |
+| Node.js | `skip: () => true` in express-rate-limit and express-slow-down options, and NestJS's `@SkipThrottle()` in a file whose name mentions auth, login, sign-in, or session |
+| Keycloak | `"bruteForceProtected": false` and a `failureFactor` of 100 or more in a realm export |
+
+ASP.NET Core's Identity scaffolding signs in with `lockoutOnFailure: false` by default, so a login page added from it is reported until lockout is turned on.
+
+These are not reported: limits under 100; limiters that skip only some requests, such as `skip: (req) => req.ip === "127.0.0.1"`; `skip` outside a rate limiter; `@SkipThrottle()` on controllers that are not about logins; libraries reading their own settings, such as django-axes' `getattr(settings, "AXES_ENABLED", True)`; files whose path names development, local, test, CI, example, sample, or demo code, such as `settings/test.py` or Rack::Attack's specs; comment lines; documentation; TypeScript declaration files; minified files; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 27,900 source and configuration files of rate limiting and authentication libraries, such as django-axes, django-ratelimit, Flask-Limiter, django-defender, Rack::Attack, express-rate-limit, express-brute, rate-limiter-flexible, and NestJS's throttler, and the apps in the other corpora, the rule reports none.
+
 ## Disabled Security Checks
 
 ### `rules.disabledSecurityChecks.enabled`
@@ -1766,7 +1788,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions` |
-| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
+| Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
 
