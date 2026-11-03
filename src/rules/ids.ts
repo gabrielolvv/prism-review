@@ -42,6 +42,7 @@ export const ruleIds: readonly string[] = [
   "insecure-temp-file",
   "public-env-secret",
   "host-header",
+  "unsafe-html-config",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

@@ -70,6 +70,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "insecure-temp-file": "code",
   "public-env-secret": "secrets",
   "host-header": "code",
+  "unsafe-html-config": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
