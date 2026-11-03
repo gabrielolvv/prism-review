@@ -370,6 +370,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      websocketOrigin: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)

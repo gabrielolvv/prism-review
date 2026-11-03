@@ -43,6 +43,7 @@ export const ruleIds: readonly string[] = [
   "public-env-secret",
   "host-header",
   "unsafe-html-config",
+  "websocket-origin",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

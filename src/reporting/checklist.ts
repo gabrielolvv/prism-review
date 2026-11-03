@@ -66,6 +66,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "public-env-secret": "Are secrets read only by server code, and never in variables the build sends to browsers?",
   "host-header": "Do emailed links use a configured base URL, and does the app accept only its own host names?",
   "unsafe-html-config": "Do sanitizers keep their default allow lists, and is raw HTML from Markdown sanitized?",
+  "websocket-origin": "Do WebSocket servers check the Origin header against the app's own origins?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

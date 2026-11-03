@@ -627,6 +627,12 @@ import {
   testUnsafeHtmlConfigSkipsTestsAndCanBeDisabled
 } from "./unit/unsafe-html-config.test.js";
 import {
+  testWebsocketOriginReadsEachFramework,
+  testWebsocketOriginReportsOneFindingPerFile,
+  testWebsocketOriginSkipsOriginChecks,
+  testWebsocketOriginSkipsTestsAndCanBeDisabled
+} from "./unit/websocket-origin.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1088,6 +1094,10 @@ const tests: Array<[string, Test]> = [
   ["unsafe-html-config reads each library", testUnsafeHtmlConfigReadsEachLibrary],
   ["unsafe-html-config skips safe settings", testUnsafeHtmlConfigSkipsSafeSettings],
   ["unsafe-html-config skips tests and can be disabled", testUnsafeHtmlConfigSkipsTestsAndCanBeDisabled],
+  ["websocket-origin reports one finding per file", testWebsocketOriginReportsOneFindingPerFile],
+  ["websocket-origin reads each framework", testWebsocketOriginReadsEachFramework],
+  ["websocket-origin skips origin checks", testWebsocketOriginSkipsOriginChecks],
+  ["websocket-origin skips tests and can be disabled", testWebsocketOriginSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
