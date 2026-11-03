@@ -689,6 +689,12 @@ import {
   testServiceAuthDisabledSkipsTestsAndCanBeDisabled
 } from "./unit/service-auth-disabled.test.js";
 import {
+  testErrorDetailsReadsEachFrameworkAndSetting,
+  testErrorDetailsReportsOneFindingPerFile,
+  testErrorDetailsSkipsGuardedAndSafeCode,
+  testErrorDetailsSkipsTestsAndCanBeDisabled
+} from "./unit/error-details.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1192,6 +1198,10 @@ const tests: Array<[string, Test]> = [
   ["service-auth-disabled reads each service", testServiceAuthDisabledReadsEachService],
   ["service-auth-disabled skips authenticated and throwaway setups", testServiceAuthDisabledSkipsAuthenticatedAndThrowawaySetups],
   ["service-auth-disabled skips tests and can be disabled", testServiceAuthDisabledSkipsTestsAndCanBeDisabled],
+  ["error-details reports one finding per file", testErrorDetailsReportsOneFindingPerFile],
+  ["error-details reads each framework and setting", testErrorDetailsReadsEachFrameworkAndSetting],
+  ["error-details skips guarded and safe code", testErrorDetailsSkipsGuardedAndSafeCode],
+  ["error-details skips tests and can be disabled", testErrorDetailsSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
