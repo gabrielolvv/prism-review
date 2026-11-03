@@ -3122,9 +3122,9 @@ var require_timestamp = __commonJS({
         const match2 = str.match(timestamp.test);
         if (!match2)
           throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
-        const [, year, month, day, hour, minute, second] = match2.map(Number);
+        const [, year2, month, day2, hour2, minute2, second2] = match2.map(Number);
         const millisec = match2[7] ? Number((match2[7] + "00").substr(1, 3)) : 0;
-        let date2 = Date.UTC(year, month - 1, day, hour || 0, minute || 0, second || 0, millisec);
+        let date2 = Date.UTC(year2, month - 1, day2, hour2 || 0, minute2 || 0, second2 || 0, millisec);
         const tz = match2[8];
         if (tz && tz !== "Z") {
           let d = parseSexagesimal(tz, false);
@@ -15414,6 +15414,7 @@ var ruleIds = [
   "weak-password-policy",
   "request-size-limit",
   "token-storage",
+  "long-session",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15689,6 +15690,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     tokenStorage: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    longSession: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -16496,7 +16500,7 @@ function isSecretName(name) {
   if (words.some((word2) => describingWords.has(word2))) {
     return false;
   }
-  return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords.has(word2)) || secretPairs.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
 
 // src/rules/secret-logging.ts
@@ -16986,7 +16990,7 @@ function isSecretName2(name) {
   if (words.some((word2) => otherWords.has(word2))) {
     return false;
   }
-  return words.some((word2) => secretWords2.has(word2)) || secretPairs2.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords2.has(word2)) || secretPairs2.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
 function wordsOf2(name) {
   return name.split(/[_$-]/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word2) => word2.toLowerCase());
@@ -19333,7 +19337,7 @@ var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var maxLineLength22 = 1e3;
 function findSessionSecretLines(path2, patch) {
   const fileAssignments = assignments.filter(({ files }) => files.test(path2));
-  const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(path2);
+  const javascript10 = /\.(?:[cm]?[jt]sx?)$/i.test(path2);
   if (fileAssignments.length === 0) {
     return [];
   }
@@ -19354,7 +19358,7 @@ function findSessionSecretLines(path2, patch) {
     if (content.length > maxLineLength22 || commentLine25.test(content) || wasInDocstring) {
       continue;
     }
-    const call = javascript9 ? sessionCall.exec(content) : null;
+    const call = javascript10 ? sessionCall.exec(content) : null;
     if (call !== null) {
       optionsLeft = optionsReach;
       depth = 0;
@@ -19950,14 +19954,14 @@ var debugEndpointRule = {
       const readsInspector = inspectorFiles.test(file.path);
       const go2 = /\.go$/i.test(file.path);
       const errorPages = /\.(?:cs|[cm]?[jt]sx?)$/i.test(file.path);
-      const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
+      const javascript10 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
       const php4 = /\.php$/i.test(file.path);
       if (!spring && !readsInspector && !go2 && !errorPages && !php4) {
         return [];
       }
       const lines = patchLines(file.patch);
-      const graphql = javascript9 && lines.some(({ content }) => graphqlServer.test(content));
-      const errorhandlerName = javascript9 ? lines.map(({ content }) => errorhandlerImport.exec(content)).find((match2) => match2 !== null) : void 0;
+      const graphql = javascript10 && lines.some(({ content }) => graphqlServer.test(content));
+      const errorhandlerName = javascript10 ? lines.map(({ content }) => errorhandlerImport.exec(content)).find((match2) => match2 !== null) : void 0;
       const errorhandler = errorhandlerName?.[1] ?? errorhandlerName?.[2];
       const found = [];
       let underExposure = false;
@@ -20813,9 +20817,9 @@ var requestSizeLimitRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
+      const javascript10 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
       const settings9 = turnedOff.filter(({ files: pattern }) => pattern.test(file.path));
-      if (settings9.length === 0 && !javascript9 || file.patch === void 0 || documentation29.test(file.path) || skippedFile29.test(file.path) || // Development, example, and test apps lift limits on purpose.
+      if (settings9.length === 0 && !javascript10 || file.patch === void 0 || documentation29.test(file.path) || skippedFile29.test(file.path) || // Development, example, and test apps lift limits on purpose.
       developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
@@ -20824,7 +20828,7 @@ var requestSizeLimitRule = {
         if (!added || content.length > maxLineLength34 || commentLine38.test(content)) {
           continue;
         }
-        if (settings9.some(({ pattern }) => pattern.test(content)) || javascript9 && liftsParserLimit(content)) {
+        if (settings9.some(({ pattern }) => pattern.test(content)) || javascript10 && liftsParserLimit(content)) {
           found.push(line);
         }
       }
@@ -20868,11 +20872,11 @@ function isLarge(value) {
   return bytes(value) >= largeMegabytes * 1024 * 1024;
 }
 function bytes(value) {
-  const product = /^\s*(\d+(?:\s*\*\s*\d+)*)\s*$/.exec(value);
-  if (product === null) {
+  const product2 = /^\s*(\d+(?:\s*\*\s*\d+)*)\s*$/.exec(value);
+  if (product2 === null) {
     return 0;
   }
-  return product[1].split("*").reduce((total, factor) => total * Number(factor.trim()), 1);
+  return product2[1].split("*").reduce((total, factor) => total * Number(factor.trim()), 1);
 }
 
 // src/security/token-storage.ts
@@ -20965,6 +20969,226 @@ function tokenStorageLines(file) {
   return file.patch === void 0 ? [] : findTokenStorageLines(file.path, file.patch);
 }
 
+// src/security/session-lifetime.ts
+var maxLifetimeSeconds = 30 * 24 * 60 * 60;
+var second = 1;
+var minute = 60;
+var hour = 60 * minute;
+var day = 24 * hour;
+var week = 7 * day;
+var year = 365 * day;
+var durationText = /^["'`]\s*(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|secs?|seconds?|m|mins?|minutes?|h|hrs?|hours?|d|days?|w|weeks?|y|yrs?|years?)\s*["'`]$/i;
+var textUnits = [
+  [/^(?:ms|milliseconds?)$/i, 1e-3],
+  [/^(?:s|secs?|seconds?)$/i, second],
+  [/^(?:m|mins?|minutes?)$/i, minute],
+  [/^(?:h|hrs?|hours?)$/i, hour],
+  [/^(?:d|days?)$/i, day],
+  [/^(?:w|weeks?)$/i, week],
+  [/^(?:y|yrs?|years?)$/i, year]
+];
+function product(expression) {
+  const factors = expression.split("*").map((factor) => factor.trim().replace(/_/g, "").replace(/[lL]$/, ""));
+  if (factors.length === 0 || factors.some((factor) => !/^\d+(?:\.\d+)?$/.test(factor))) {
+    return void 0;
+  }
+  return factors.reduce((total, factor) => total * Number(factor), 1);
+}
+function seconds(expression, numberUnit) {
+  const value = expression.trim();
+  const text = durationText.exec(value);
+  if (text !== null) {
+    const unit = textUnits.find(([pattern]) => pattern.test(text[2] ?? ""))?.[1];
+    return unit === void 0 ? void 0 : Number(text[1]) * unit;
+  }
+  const number3 = product(value);
+  return number3 === void 0 ? void 0 : number3 * numberUnit;
+}
+function timedelta(argumentsText) {
+  const units = { weeks: week, days: day, hours: hour, minutes: minute, seconds: second };
+  let total = 0;
+  let found = false;
+  for (const match2 of argumentsText.matchAll(/\b(weeks|days|hours|minutes|seconds)\s*=\s*([\d_.*\s]+)/g)) {
+    const amount = product(match2[2] ?? "");
+    if (amount === void 0) {
+      return void 0;
+    }
+    total += amount * (units[match2[1] ?? ""] ?? 0);
+    found = true;
+  }
+  const positional = /^\s*([\d_]+)\s*(?:,|$)/.exec(argumentsText);
+  if (!found && positional !== null) {
+    return Number(positional[1]?.replace(/_/g, "")) * day;
+  }
+  return found ? total : void 0;
+}
+function rubyDuration(expression) {
+  const match2 = /^\s*(\d+)\.(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b/.exec(expression);
+  if (match2 === null) {
+    return void 0;
+  }
+  const unit = (match2[2] ?? "").replace(/s$/, "");
+  const units = { second, minute, hour, day, week, month: 30 * day, year };
+  return Number(match2[1]) * (units[unit] ?? 0);
+}
+function goDuration(expression) {
+  const units = { Second: second, Minute: minute, Hour: hour };
+  const unit = /\btime\.(Second|Minute|Hour)\b/.exec(expression);
+  if (unit === null) {
+    return void 0;
+  }
+  const rest = expression.replace(/\btime\.(?:Second|Minute|Hour)\b/, "1");
+  const amount = product(rest);
+  return amount === void 0 ? void 0 : amount * (units[unit[1] ?? ""] ?? 0);
+}
+function expressionAt(text) {
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === "(" || character === "[" || character === "{") {
+      depth += 1;
+    } else if (character === ")" || character === "]" || character === "}") {
+      if (depth === 0) {
+        return text.slice(0, index);
+      }
+      depth -= 1;
+    } else if ((character === "," || character === ";") && depth === 0) {
+      return text.slice(0, index);
+    }
+  }
+  return text;
+}
+var javascript9 = /\.(?:[cm]?[jt]sx?)$/i;
+var nextAuth = /\bNextAuth\b|next-auth|@auth\/|\bAuthOptions\b|\bauthOptions\b/;
+var readers = [
+  // jsonwebtoken's expiresIn, in seconds or as text, and jose's setExpirationTime.
+  {
+    files: javascript9,
+    context: /\bjsonwebtoken\b|\bjwt\.sign\b|\bsign\s*\(|\bSignJWT\b/,
+    pattern: /\bexpiresIn\s*:\s*(.+)$/,
+    lifetime: (value) => seconds(expressionAt(value), second)
+  },
+  { files: javascript9, pattern: /\.setExpirationTime\s*\(\s*(["'`][^"'`]+["'`])\s*\)/, lifetime: (value) => seconds(value, second) },
+  // Session cookies.
+  {
+    files: javascript9,
+    context: /\bexpress-session\b|\bcookie-session\b|\bcookieSession\b|\bsession\s*\(\s*\{|\bNextAuth\b|next-auth|\bAuthOptions\b|\bauthOptions\b/,
+    pattern: /\bmaxAge\s*:\s*(.+)$/,
+    lifetime: (value, text) => seconds(expressionAt(value), nextAuth.test(text) ? second : 1e-3)
+  },
+  // Django's and Flask's sessions, and access token lifetimes in Simple JWT, Flask-JWT-Extended,
+  // and django-rest-framework-jwt.
+  {
+    files: /\.py$/i,
+    pattern: /^\s*["']?(?:SESSION_COOKIE_AGE|PERMANENT_SESSION_LIFETIME|ACCESS_TOKEN_LIFETIME|JWT_ACCESS_TOKEN_EXPIRES|JWT_EXPIRATION_DELTA)["']?\s*[:=]\s*(.+)$/,
+    lifetime: (value) => {
+      const delta = /\btimedelta\s*\(([^)]*)\)/.exec(value);
+      return delta !== null ? timedelta(delta[1] ?? "") : seconds(expressionAt(value), second);
+    }
+  },
+  // A JWT's exp claim set to now plus a timedelta.
+  {
+    files: /\.py$/i,
+    context: /\bjwt\.encode\b/,
+    pattern: /["']exp["']\s*:\s*[^,}]*?\btimedelta\s*\(([^)]*)\)/,
+    lifetime: (value) => timedelta(value)
+  },
+  // Rails' session store, Devise's timeout, and a JWT's exp claim.
+  {
+    files: /\.rb$/i,
+    pattern: /\bexpire_after:\s*(.+)$|\bconfig\.timeout_in\s*=\s*(.+)$|\bexp:\s*(\d+\.\w+)\.from_now\b/,
+    lifetime: (value) => rubyDuration(value)
+  },
+  // Go JWT claims and gorilla sessions, in seconds.
+  {
+    files: /\.go$/i,
+    pattern: /\b(?:ExpiresAt|"exp")\s*:\s*[^\n]*?time\.Now\(\)\.Add\(\s*([^)]+)\)/,
+    lifetime: (value) => goDuration(value)
+  },
+  { files: /\.go$/i, context: /\bsessions\./, pattern: /\bMaxAge\s*:\s*([^,}\n]+)/, lifetime: (value) => seconds(value, second) },
+  // jjwt's expiration in milliseconds from now.
+  {
+    files: /\.(?:java|kt)$/i,
+    pattern: /\b(?:setExpiration|expiration)\s*\(\s*new\s+Date\s*\(\s*System\.currentTimeMillis\(\)\s*\+\s*([^)]+)\)/,
+    lifetime: (value) => seconds(value.replace(/[()]/g, ""), 1e-3)
+  }
+];
+var longByDesign = /refresh|remember|persistent|long[_-]?lived|offline/i;
+var contextWindow2 = 3;
+var commentLine40 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var documentation31 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var skippedFile31 = /\.d\.[cm]?ts$|\.min\.[cm]?js$|\.map$/i;
+var maxLineLength36 = 1e3;
+function findLongSessionLines(path2, patch) {
+  const fileReaders = readers.filter(({ files }) => files.test(path2));
+  if (fileReaders.length === 0 || documentation31.test(path2) || skippedFile31.test(path2)) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  const text = lines.map(({ content }) => content).join("\n");
+  const active = fileReaders.filter(({ context }) => context === void 0 || context.test(text));
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (!added || content.length > maxLineLength36 || commentLine40.test(content)) {
+      return;
+    }
+    for (const reader of active) {
+      const match2 = reader.pattern.exec(content);
+      const value = match2?.slice(1).find((group) => group !== void 0);
+      if (value === void 0) {
+        continue;
+      }
+      const lifetime = reader.lifetime(value, text);
+      if (lifetime !== void 0 && lifetime > maxLifetimeSeconds && !lines.slice(Math.max(0, index - contextWindow2), index + contextWindow2 + 1).some(({ content: near }) => longByDesign.test(near))) {
+        found.push(line);
+        return;
+      }
+    }
+  });
+  return found;
+}
+
+// src/rules/long-session.ts
+var longSessionRule = {
+  id: "long-session",
+  description: "Flags sessions and access tokens that last longer than 30 days.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.longSession.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || // Development, example, and test apps keep sessions long on purpose.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = longSessionLines(file);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "long-session",
+          title: "Session lasts too long",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "give sessions or access tokens" : "gives a session or an access token"} a lifetime longer than 30 days, so one that is stolen, from a log, a shared computer, or a cross-site scripting bug, keeps working that long, and a JSON Web Token cannot be revoked before it expires.`,
+          recommendation: 'Keep access tokens short, minutes to hours, and sessions to days, and use refresh tokens that the server can revoke, or a separate "remember me" token, for longer logins. Expire sessions after a period of inactivity too.'
+        }
+      ];
+    });
+  }
+};
+function longSessionLines(file) {
+  if (file.longSessionLines !== void 0) {
+    return file.longSessionLines;
+  }
+  return file.patch === void 0 ? [] : findLongSessionLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -21032,7 +21256,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine40 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine41 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -21090,7 +21314,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine40.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine41.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -21187,10 +21411,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine41 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine42 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation31 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation32 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -21200,11 +21424,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation31.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation32.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine41.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine42.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -21412,7 +21636,7 @@ var firstUrl = (pattern) => (content) => {
   const url = pattern.exec(content)?.[1];
   return url === void 0 ? [] : [{ url }];
 };
-var readers = [
+var readers2 = [
   // npm's `"resolved": "..."` (`"version"` in lockfile v1), yarn v1's `resolved "..."`, yarn berry's
   // `resolution: "pkg@https://..."`, and pnpm's `tarball: ...` and `repo: ...`.
   {
@@ -21484,10 +21708,10 @@ var readers = [
   }
 ];
 function isSourceFile(path2) {
-  return !isTestDataPath(path2) && readers.some((reader) => reader.files.test(path2));
+  return !isTestDataPath(path2) && readers2.some((reader) => reader.files.test(path2));
 }
 function findLockfileSources(path2, patch, allowedSources) {
-  const reader = readers.find((candidate) => candidate.files.test(path2));
+  const reader = readers2.find((candidate) => candidate.files.test(path2));
   if (reader === void 0 || isTestDataPath(path2)) {
     return [];
   }
@@ -22813,8 +23037,8 @@ function oneEditApart(left, right) {
       const [index2 = 0] = differences;
       return !(/\d/.test(left[index2] ?? "") && /\d/.test(right[index2] ?? ""));
     }
-    const [first = 0, second = 0] = differences;
-    return differences.length === 2 && second === first + 1 && left[first] === right[second] && left[second] === right[first];
+    const [first = 0, second2 = 0] = differences;
+    return differences.length === 2 && second2 === first + 1 && left[first] === right[second2] && left[second2] === right[first];
   }
   const [shorter, longer] = left.length < right.length ? [left, right] : [right, left];
   let index = 0;
@@ -23062,8 +23286,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine42 = /^\s*#/;
-var documentation32 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine43 = /^\s*#/;
+var documentation33 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -23073,7 +23297,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation32.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation33.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -23106,7 +23330,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine42.test(content)) {
+    if (commentLine43.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -23140,7 +23364,7 @@ var labels16 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine43 = /^\s*#/;
+var commentLine44 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -23216,7 +23440,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine43.test(content)) {
+    if (commentLine44.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -23264,7 +23488,7 @@ function isSecretName3(name) {
   if (words.length === 0 || locationWords.has(words[words.length - 1] ?? "") || words.includes("public")) {
     return false;
   }
-  return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
 function joinLabels5(labels22) {
   return labels22.length > 1 ? `${labels22.slice(0, -1).join(", ")}, and ${labels22.at(-1)}` : labels22[0] ?? "";
@@ -23306,7 +23530,7 @@ var settings6 = [
   }
 ];
 var allowsEverything = settings6[0];
-var commentLine44 = /^\s*(?:#|\/\/)/;
+var commentLine45 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -23347,7 +23571,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine44.test(content)) {
+    if (!added || commentLine45.test(content)) {
       continue;
     }
     for (const setting of settings6) {
@@ -23398,7 +23622,7 @@ var labels17 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation33 = /(?:^|\/)docs?\//i;
+var documentation34 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -23406,7 +23630,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine45 = /^\s*#/;
+var commentLine46 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -23416,7 +23640,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation33.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation34.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -23455,7 +23679,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine45.test(content) || content.trim() === "") {
+    if (commentLine46.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -23510,8 +23734,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine46 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation34 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine47 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation35 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -23521,11 +23745,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation34.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation35.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine46.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine47.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -23621,10 +23845,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine47 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine48 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength36 = 500;
-var documentation35 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength37 = 500;
+var documentation36 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -23634,11 +23858,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation35.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation36.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine47.test(content) && content.length <= maxLineLength36 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine48.test(content) && content.length <= maxLineLength37 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -23672,7 +23896,7 @@ function kindsIn2(content) {
 }
 function mentionsSecret(content) {
   const words = content.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word2) => word2.toLowerCase());
-  return words.some((word2) => secretWords4.has(word2)) || secretPairs4.some(([first, second]) => words.some((word2, index) => word2 === first && words[index + 1] === second));
+  return words.some((word2) => secretWords4.has(word2)) || secretPairs4.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
 function joinLabels9(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
@@ -23697,8 +23921,8 @@ var settings7 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine48 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation36 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation37 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -23708,11 +23932,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation36.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation37.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine48.test(content) && settings7.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine49.test(content) && settings7.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -23761,8 +23985,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation37 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine50 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -23772,13 +23996,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation37.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation38.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine49.test(content)) {
+        if (!added || commentLine50.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -24034,10 +24258,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine50 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine51 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation39 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength37 = 1e3;
+var maxLineLength38 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -24048,11 +24272,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation38.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation39.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine50.test(content) || content.length > maxLineLength37) {
+        if (!added || commentLine51.test(content) || content.length > maxLineLength38) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -24254,8 +24478,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine51 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation39 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine52 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation40 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -24266,7 +24490,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation39.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation40.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -24318,7 +24542,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine51.test(content)) {
+    if (commentLine52.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -24344,7 +24568,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength38 = 1e3;
+var maxLineLength39 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -24501,7 +24725,7 @@ function findCalls2(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength38 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength39 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -24611,9 +24835,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation40 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation41 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation40.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation41.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -24642,7 +24866,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -24652,7 +24876,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation41.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation42.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -25072,8 +25296,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine52 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine53 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation43 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -25083,7 +25307,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation42.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation43.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -25114,7 +25338,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine52.test(content)) {
+    if (commentLine53.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -25261,6 +25485,7 @@ var defaultRules = [
   weakPasswordPolicyRule,
   requestSizeLimitRule,
   tokenStorageRule,
+  longSessionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -25805,6 +26030,7 @@ var ruleAreas = {
   "weak-password-policy": "code",
   "request-size-limit": "code",
   "token-storage": "secrets",
+  "long-session": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -25919,6 +26145,7 @@ var ruleQuestions = {
   "weak-password-policy": "Do new passwords need at least 8 characters, checked against common and breached passwords?",
   "request-size-limit": "Do request body limits fit what each route needs, with large uploads streamed?",
   "token-storage": "Are auth tokens kept in HttpOnly cookies, memory, or the platform's secure storage?",
+  "long-session": "Do sessions and access tokens expire within days, with revocable refresh tokens for longer logins?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -26002,6 +26229,7 @@ var ruleSections = {
   "weak-password-policy": "Password Policies",
   "request-size-limit": "Request Size Limits",
   "token-storage": "Token Storage",
+  "long-session": "Session Lifetimes",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -26531,6 +26759,7 @@ function prepareChangedFiles(files, config2) {
     jwtExpiryLines: file.patch === void 0 ? [] : findJwtWithoutExpiryLines(file.path, file.patch),
     publicSecretLines: file.patch === void 0 ? [] : findPublicSecretLines(file.path, file.patch),
     tokenStorageLines: file.patch === void 0 ? [] : findTokenStorageLines(file.path, file.patch),
+    longSessionLines: file.patch === void 0 ? [] : findLongSessionLines(file.path, file.patch),
     secretLogLines: file.patch === void 0 ? [] : findSecretLogLines(file.path, file.patch),
     urlCredentialLines: file.patch === void 0 ? [] : findUrlCredentialLines(file.path, file.patch, allowlist2),
     timingCompareLines: file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch),
@@ -26584,13 +26813,13 @@ function readHeaderPaths(header2) {
       return void 0;
     }
     const rest = header2.slice(first.end).trimStart();
-    const second = rest.charCodeAt(0) === QUOTE ? readQuoted(rest, 0)?.value : rest;
-    return second ? [first.value, second] : void 0;
+    const second2 = rest.charCodeAt(0) === QUOTE ? readQuoted(rest, 0)?.value : rest;
+    return second2 ? [first.value, second2] : void 0;
   }
   const quotedSecond = header2.indexOf(' "');
   if (quotedSecond > 0) {
-    const second = readQuoted(header2, quotedSecond + 1);
-    return second ? [header2.slice(0, quotedSecond), second.value] : void 0;
+    const second2 = readQuoted(header2, quotedSecond + 1);
+    return second2 ? [header2.slice(0, quotedSecond), second2.value] : void 0;
   }
   const prefixed = /^([a-z]\/.+?) ([a-z]\/.+)$/.exec(header2);
   if (prefixed?.[1] && prefixed[2] && prefixed[1][0] !== prefixed[2][0]) {
