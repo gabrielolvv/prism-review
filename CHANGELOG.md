@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.94.0 - 2026-11-03
+
+### Added
+
+- `weak-password-policy` rule: warns about password policies that allow passwords shorter than 8 characters, the least NIST SP 800-63B allows, such as Django's `MinimumLengthValidator` and django-allauth's `ACCOUNT_PASSWORD_MIN_LENGTH`, Devise's `config.password_length = 6..128`, Rails' `validates :password, length: { minimum: 6 }`, ASP.NET Core Identity's `RequiredLength`, Joi, yup, zod, and Mongoose schemas, class-validator's `@MinLength` and Bean Validation's `@Size` on password fields, Laravel's `min:6`, and AWS IAM and Cognito password policies, and about `AUTH_PASSWORD_VALIDATORS = []`. Login forms' `.min(1)`, current-password fields, other fields, and Django's defaults file are not reported. On about 26,500 source files of authentication libraries and apps, it reports one: the initializer Devise generates for new apps.
+
 ## 0.93.0 - 2026-11-03
 
 ### Added

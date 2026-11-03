@@ -116,6 +116,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Links built from the Host header, and host validation turned off (0.91.0).
 - HTML sanitizers configured to keep scripts, and raw HTML from Markdown (0.92.0).
 - WebSocket servers that accept any origin (0.93.0).
+- Password policies shorter than 8 characters (0.94.0).
 
 ## Later
 
