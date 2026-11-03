@@ -36586,6 +36586,7 @@ var ruleIds = [
   "websocket-origin",
   "weak-password-policy",
   "request-size-limit",
+  "token-storage",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -36858,6 +36859,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     requestSizeLimit: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    tokenStorage: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -40467,7 +40471,7 @@ var commentLine25 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var maxLineLength22 = 1e3;
 function findSessionSecretLines(path5, patch) {
   const fileAssignments = assignments.filter(({ files }) => files.test(path5));
-  const javascript8 = /\.(?:[cm]?[jt]sx?)$/i.test(path5);
+  const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(path5);
   if (fileAssignments.length === 0) {
     return [];
   }
@@ -40488,7 +40492,7 @@ function findSessionSecretLines(path5, patch) {
     if (content.length > maxLineLength22 || commentLine25.test(content) || wasInDocstring) {
       continue;
     }
-    const call = javascript8 ? sessionCall.exec(content) : null;
+    const call = javascript9 ? sessionCall.exec(content) : null;
     if (call !== null) {
       optionsLeft = optionsReach;
       depth = 0;
@@ -41084,14 +41088,14 @@ var debugEndpointRule = {
       const readsInspector = inspectorFiles.test(file.path);
       const go2 = /\.go$/i.test(file.path);
       const errorPages = /\.(?:cs|[cm]?[jt]sx?)$/i.test(file.path);
-      const javascript8 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
+      const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
       const php4 = /\.php$/i.test(file.path);
       if (!spring && !readsInspector && !go2 && !errorPages && !php4) {
         return [];
       }
       const lines = patchLines(file.patch);
-      const graphql = javascript8 && lines.some(({ content }) => graphqlServer.test(content));
-      const errorhandlerName = javascript8 ? lines.map(({ content }) => errorhandlerImport.exec(content)).find((match2) => match2 !== null) : void 0;
+      const graphql = javascript9 && lines.some(({ content }) => graphqlServer.test(content));
+      const errorhandlerName = javascript9 ? lines.map(({ content }) => errorhandlerImport.exec(content)).find((match2) => match2 !== null) : void 0;
       const errorhandler = errorhandlerName?.[1] ?? errorhandlerName?.[2];
       const found = [];
       let underExposure = false;
@@ -41239,12 +41243,12 @@ var mobileSecurityRule = {
       const fileSettings = settings3.filter(({ files: pattern }) => pattern.test(file.path));
       const plist = /\.plist$/i.test(file.path);
       const xml = /\.xml$/i.test(file.path);
-      const android = androidCode.test(file.path);
+      const android2 = androidCode.test(file.path);
       if (fileSettings.length === 0 && !plist && !xml) {
         return [];
       }
       const lines = patchLines(file.patch);
-      const handlesSslErrors = android && lines.some(({ content }) => sslErrorHandler.test(content));
+      const handlesSslErrors = android2 && lines.some(({ content }) => sslErrorHandler.test(content));
       const found = [];
       let lastPlistKey;
       let inDebugOverrides = false;
@@ -41947,9 +41951,9 @@ var requestSizeLimitRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const javascript8 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
+      const javascript9 = /\.(?:[cm]?[jt]sx?)$/i.test(file.path);
       const settings9 = turnedOff.filter(({ files: pattern }) => pattern.test(file.path));
-      if (settings9.length === 0 && !javascript8 || file.patch === void 0 || documentation29.test(file.path) || skippedFile29.test(file.path) || // Development, example, and test apps lift limits on purpose.
+      if (settings9.length === 0 && !javascript9 || file.patch === void 0 || documentation29.test(file.path) || skippedFile29.test(file.path) || // Development, example, and test apps lift limits on purpose.
       developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
@@ -41958,7 +41962,7 @@ var requestSizeLimitRule = {
         if (!added || content.length > maxLineLength34 || commentLine38.test(content)) {
           continue;
         }
-        if (settings9.some(({ pattern }) => pattern.test(content)) || javascript8 && liftsParserLimit(content)) {
+        if (settings9.some(({ pattern }) => pattern.test(content)) || javascript9 && liftsParserLimit(content)) {
           found.push(line);
         }
       }
@@ -42007,6 +42011,96 @@ function bytes(value) {
     return 0;
   }
   return product[1].split("*").reduce((total, factor) => total * Number(factor.trim()), 1);
+}
+
+// src/security/token-storage.ts
+var tokenKey = /^[@_$-]*(?:\w*[_-])?(?:\w*(?:token|jwt|bearer))$/i;
+var notSecret = /csrf|xsrf|push|fcm|apns|device|notification|expir|type|count|index|key_?name|cursor|page|pagination|next_?token|continuation/i;
+var webStorage = /\b(?:localStorage|sessionStorage)\b/;
+var storageCall = /\b(?:localStorage|sessionStorage|AsyncStorage)\s*\.\s*setItem\s*\(\s*["'`]([^"'`]+)["'`]/g;
+var storageProperty = /\b(?:localStorage|sessionStorage)\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*["'`]([^"'`]+)["'`]\s*\])\s*=(?!=)/g;
+var androidPut = /\.\s*put(?:String|StringSet)\s*\(\s*"([^"]+)"/g;
+var iosDefaults = /\bUserDefaults\b[^\n]*\bforKey\s*:\s*"([^"]+)"|\bNSUserDefaults\b[^\n]*\bforKey\s*:\s*@"([^"]+)"/g;
+var javascript8 = /\.(?:[cm]?[jt]sx?|vue|svelte)$/i;
+var android = /\.(?:java|kt)$/i;
+var ios = /\.(?:swift|m|mm)$/i;
+var commentLine39 = /^\s*(?:\/\/|\/\*|\*)/;
+var documentation30 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var skippedFile30 = /\.d\.[cm]?ts$|\.min\.[cm]?js$|\.map$/i;
+var maxLineLength35 = 1e3;
+function findTokenStorageLines(path5, patch) {
+  const readsJavaScript = javascript8.test(path5);
+  const readsAndroid = android.test(path5);
+  const readsIos = ios.test(path5);
+  if (!readsJavaScript && !readsAndroid && !readsIos || documentation30.test(path5) || skippedFile30.test(path5)) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  const encrypted = readsAndroid && lines.some(({ content }) => /\bEncryptedSharedPreferences\b/.test(content));
+  const found = [];
+  for (const { line, content, added } of lines) {
+    if (!added || content.length > maxLineLength35 || commentLine39.test(content)) {
+      continue;
+    }
+    const keys = [];
+    if (readsJavaScript) {
+      keys.push(...[...content.matchAll(storageCall)].map((match2) => match2[1]));
+      if (webStorage.test(content)) {
+        keys.push(...[...content.matchAll(storageProperty)].map((match2) => match2[1] ?? match2[2]));
+      }
+    }
+    if (readsAndroid && !encrypted) {
+      keys.push(...[...content.matchAll(androidPut)].map((match2) => match2[1]));
+    }
+    if (readsIos) {
+      keys.push(...[...content.matchAll(iosDefaults)].map((match2) => match2[1] ?? match2[2]));
+    }
+    if (keys.some((key2) => key2 !== void 0 && tokenKey.test(key2) && !notSecret.test(key2))) {
+      found.push(line);
+    }
+  }
+  return found;
+}
+
+// src/rules/token-storage.ts
+var tokenStorageRule = {
+  id: "token-storage",
+  description: "Flags auth tokens kept in localStorage, sessionStorage, AsyncStorage, SharedPreferences, or UserDefaults.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.tokenStorage.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || // Development, example, and test apps keep tokens wherever is simplest.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = tokenStorageLines(file);
+      if (lines.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "token-storage",
+          title: "Token kept in readable storage",
+          severity: "warning",
+          file: file.path,
+          line: lines[0],
+          lines,
+          message: `${text} ${plural ? "keep auth tokens" : "keeps an auth token"} where other code can read ${plural ? "them" : "it"}: any script on the page can read web storage, so one cross-site scripting bug hands the token to an attacker, and AsyncStorage, SharedPreferences, and UserDefaults are unencrypted files on the device.`,
+          recommendation: "In the browser, keep session tokens in HttpOnly, Secure, SameSite cookies that scripts cannot read, or only in memory. On mobile, use the Keychain on iOS, EncryptedSharedPreferences or the Android Keystore on Android, and expo-secure-store or react-native-keychain in React Native."
+        }
+      ];
+    });
+  }
+};
+function tokenStorageLines(file) {
+  if (file.tokenStorageLines !== void 0) {
+    return file.tokenStorageLines;
+  }
+  return file.patch === void 0 ? [] : findTokenStorageLines(file.path, file.patch);
 }
 
 // src/rules/dependency-risk.ts
@@ -42076,7 +42170,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine39 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine40 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -42134,7 +42228,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine39.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine40.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -42231,10 +42325,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine40 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine41 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation30 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation31 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -42244,11 +42338,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation30.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation31.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine40.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine41.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -44044,8 +44138,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine41 = /^\s*#/;
-var documentation31 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine42 = /^\s*#/;
+var documentation32 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -44055,7 +44149,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation31.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation32.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -44088,7 +44182,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine41.test(content)) {
+    if (commentLine42.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -44122,7 +44216,7 @@ var labels16 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine42 = /^\s*#/;
+var commentLine43 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -44198,7 +44292,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine42.test(content)) {
+    if (commentLine43.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -44288,7 +44382,7 @@ var settings6 = [
   }
 ];
 var allowsEverything = settings6[0];
-var commentLine43 = /^\s*(?:#|\/\/)/;
+var commentLine44 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -44329,7 +44423,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine43.test(content)) {
+    if (!added || commentLine44.test(content)) {
       continue;
     }
     for (const setting of settings6) {
@@ -44380,7 +44474,7 @@ var labels17 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation32 = /(?:^|\/)docs?\//i;
+var documentation33 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -44388,7 +44482,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine44 = /^\s*#/;
+var commentLine45 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -44398,7 +44492,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation32.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation33.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -44437,7 +44531,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine44.test(content) || content.trim() === "") {
+    if (commentLine45.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -44492,8 +44586,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine45 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation33 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine46 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation34 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -44503,11 +44597,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation33.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation34.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine45.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine46.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -44603,10 +44697,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine46 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine47 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength35 = 500;
-var documentation34 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength36 = 500;
+var documentation35 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -44616,11 +44710,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation34.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation35.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine46.test(content) && content.length <= maxLineLength35 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine47.test(content) && content.length <= maxLineLength36 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -44679,8 +44773,8 @@ var settings7 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine47 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation35 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine48 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation36 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -44690,11 +44784,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation35.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation36.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine47.test(content) && settings7.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine48.test(content) && settings7.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -44743,8 +44837,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine48 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation36 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation37 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -44754,13 +44848,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation36.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation37.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine48.test(content)) {
+        if (!added || commentLine49.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -45016,10 +45110,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation37 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine50 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength36 = 1e3;
+var maxLineLength37 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -45030,11 +45124,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation37.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (language === void 0 || file.patch === void 0 || documentation38.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine49.test(content) || content.length > maxLineLength36) {
+        if (!added || commentLine50.test(content) || content.length > maxLineLength37) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -45236,8 +45330,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine50 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine51 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation39 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -45248,7 +45342,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation38.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation39.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -45300,7 +45394,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine50.test(content)) {
+    if (commentLine51.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -45326,7 +45420,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength37 = 1e3;
+var maxLineLength38 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -45483,7 +45577,7 @@ function findCalls2(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength37 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength38 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -45593,9 +45687,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation39 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation40 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path5, testGlobs) {
-  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation39.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation40.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -45624,7 +45718,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation40 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -45634,7 +45728,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation40.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation41.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -46054,8 +46148,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine51 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine52 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -46065,7 +46159,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation41.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation42.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -46096,7 +46190,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine51.test(content)) {
+    if (commentLine52.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -46242,6 +46336,7 @@ var defaultRules = [
   websocketOriginRule,
   weakPasswordPolicyRule,
   requestSizeLimitRule,
+  tokenStorageRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -46660,6 +46755,7 @@ var ruleAreas = {
   "websocket-origin": "code",
   "weak-password-policy": "code",
   "request-size-limit": "code",
+  "token-storage": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -46738,6 +46834,7 @@ var ruleQuestions = {
   "websocket-origin": "Do WebSocket servers check the Origin header against the app's own origins?",
   "weak-password-policy": "Do new passwords need at least 8 characters, checked against common and breached passwords?",
   "request-size-limit": "Do request body limits fit what each route needs, with large uploads streamed?",
+  "token-storage": "Are auth tokens kept in HttpOnly cookies, memory, or the platform's secure storage?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -46820,6 +46917,7 @@ var ruleSections = {
   "websocket-origin": "WebSocket Origins",
   "weak-password-policy": "Password Policies",
   "request-size-limit": "Request Size Limits",
+  "token-storage": "Token Storage",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -47659,6 +47757,7 @@ function prepareChangedFiles(files, config2) {
     sessionSecretLines: file.patch === void 0 ? [] : findSessionSecretLines(file.path, file.patch),
     jwtExpiryLines: file.patch === void 0 ? [] : findJwtWithoutExpiryLines(file.path, file.patch),
     publicSecretLines: file.patch === void 0 ? [] : findPublicSecretLines(file.path, file.patch),
+    tokenStorageLines: file.patch === void 0 ? [] : findTokenStorageLines(file.path, file.patch),
     secretLogLines: file.patch === void 0 ? [] : findSecretLogLines(file.path, file.patch),
     urlCredentialLines: file.patch === void 0 ? [] : findUrlCredentialLines(file.path, file.patch, allowlist2),
     timingCompareLines: file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch),
