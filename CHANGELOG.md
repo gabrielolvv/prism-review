@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.101.0 - 2026-11-03
+
+### Added
+
+- `grpc-plaintext` rule: warns about gRPC channels and servers set up without TLS to hosts other than localhost, such as grpcio's `insecure_channel` and `add_insecure_port("[::]:...")`, grpc-go's `WithInsecure()` and `insecure.NewCredentials()`, grpc-java's `usePlaintext()`, grpc-js's `createInsecure()`, and .NET's `ChannelCredentials.Insecure`. Credentials in request metadata then cross the network in plain text. Local targets, plaintext behind a condition, as a fallback, or next to a TLS option, and the libraries' own definitions are not reported. On about 31,800 files of gRPC libraries and clients, it reports two: Dapr's actor runtime server and grpc-go's profiling command.
+
 ## 0.100.0 - 2026-11-03
 
 ### Added

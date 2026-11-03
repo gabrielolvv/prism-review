@@ -123,6 +123,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Authentication turned off for a whole app, and open database rules (0.98.0).
 - Login rate limits and account lockout turned off (0.99.0).
 - SSH connections that accept any host key (0.100.0).
+- gRPC without TLS (0.101.0).
 
 ## Later
 
