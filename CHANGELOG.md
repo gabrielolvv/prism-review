@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.100.0 - 2026-11-03
+
+### Added
+
+- `ssh-host-key` rule: warns about SSH connections that accept any host key, such as `StrictHostKeyChecking=no` and `UserKnownHostsFile=/dev/null` in scripts, CI workflows, and Dockerfiles, Ansible's `host_key_checking = False`, Paramiko's `AutoAddPolicy()`, asyncssh's `known_hosts=None`, Go's `ssh.InsecureIgnoreHostKey()`, JSch's `"StrictHostKeyChecking", "no"`, sshj's `PromiscuousVerifier`, ssh2's `hostVerifier: () => true`, net-ssh's `verify_host_key: :never`, and SSH.NET's `CanTrust = true`. Anyone who can intercept the connection can then pose as the server. Settings behind a condition, library calls inside strings, the libraries' own definitions, and docstrings are not reported. On about 31,500 files, it reports three: Fabric's default `AutoAddPolicy()`, Capistrano's Git SSH wrapper, and Ansible's `accept_hostkey` constant.
+
 ## 0.99.0 - 2026-11-03
 
 ### Added

@@ -42521,11 +42521,18 @@ var bruteForceProtectionRule = {
 
 // src/rules/ssh-host-key.ts
 var settings7 = [
-  // OpenSSH options anywhere they appear: `-o StrictHostKeyChecking=no`, ssh_config, and
-  // `UserKnownHostsFile=/dev/null`, which forgets every key it is shown.
+  // OpenSSH options in scripts, CI workflows, Dockerfiles, and ssh_config: `-o StrictHostKeyChecking=no`
+  // and `UserKnownHostsFile=/dev/null`, which forgets every key it is shown.
   {
-    files: /.*/,
+    files: /^(?!.*\.(?:py|rb|go|java|kt|groovy|scala|[cm]?[jt]sx?|cs|php)$)/i,
     pattern: /\bStrictHostKeyChecking\s*[=\s]\s*["']?(?:no|off)\b|\bUserKnownHostsFile\s*[=\s]\s*["']?\/dev\/null\b/i
+  },
+  // In code, only as an argument: after `-o`, as a string that starts with the option, as in
+  // Ansible's `b"StrictHostKeyChecking=no"`, or as a keyword argument. Prose that names the option,
+  // such as a description, is not a connection.
+  {
+    files: /\.(?:py|rb|go|java|kt|groovy|scala|[cm]?[jt]sx?|cs|php)$/i,
+    pattern: /(?:-o\s*["']?|(?:^|[^\w])b?["'`])(?:StrictHostKeyChecking\s*[=\s]\s*(?:no|off)|UserKnownHostsFile\s*[=\s]\s*\/dev\/null)\b|\b(?:StrictHostKeyChecking\s*=\s*["'](?:no|off)["']|UserKnownHostsFile\s*=\s*["']\/dev\/null["'])/i
   },
   // Ansible's host key checking turned off.
   { files: /(?:^|\/)ansible\.cfg$|\.(?:ini|cfg|ya?ml|sh|env)$|(?:^|\/)Dockerfile[^/]*$/i, pattern: /\b(?:ANSIBLE_)?HOST_KEY_CHECKING\s*[=:]\s*["']?(?:False|false|no|0)\b/i },
