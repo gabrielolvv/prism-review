@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.98.0 - 2026-11-03
+
+### Added
+
+- `open-access` rule: flags, as high risk, authentication turned off for a whole app, such as Spring Security's `anyRequest().permitAll()` or `requestMatchers("/**").permitAll()`, Django REST Framework's `DEFAULT_PERMISSION_CLASSES` with `AllowAny`, Flask-Login's `LOGIN_DISABLED = True`, `skip_before_action :authenticate_user!` in `ApplicationController`, ASP.NET Core's `[AllowAnonymous]` on a controller and `MapControllers().AllowAnonymous()`, and Laravel's `withoutMiddleware("auth")`, and database rules that let anyone read or write: Firebase's `allow read, write: if true`, Realtime Database's `".write": true`, and Postgres or Supabase's `disable row level security` and write policies with `using (true)`. Single public routes, conditional rules, and public `select` policies are not reported. On about 8,700 relevant files of frameworks and apps, it reports none.
+
 ## 0.97.0 - 2026-11-03
 
 ### Added
