@@ -54,6 +54,7 @@ export const ruleIds: readonly string[] = [
   "grpc-plaintext",
   "service-auth-disabled",
   "error-details",
+  "subresource-integrity",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
