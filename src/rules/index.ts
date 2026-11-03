@@ -40,6 +40,7 @@ import { requestSizeLimitRule } from "./request-size-limit.js";
 import { tokenStorageRule } from "./token-storage.js";
 import { longSessionRule } from "./long-session.js";
 import { openAccessRule } from "./open-access.js";
+import { bruteForceProtectionRule } from "./brute-force-protection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -123,6 +124,7 @@ export const defaultRules: Rule[] = [
   tokenStorageRule,
   longSessionRule,
   openAccessRule,
+  bruteForceProtectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

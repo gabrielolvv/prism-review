@@ -665,6 +665,12 @@ import {
   testOpenAccessSkipsTestsAndCanBeDisabled
 } from "./unit/open-access.test.js";
 import {
+  testBruteForceProtectionReadsEachFramework,
+  testBruteForceProtectionReportsOneFindingPerFile,
+  testBruteForceProtectionSkipsActiveLimits,
+  testBruteForceProtectionSkipsTestsAndCanBeDisabled
+} from "./unit/brute-force-protection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1152,6 +1158,10 @@ const tests: Array<[string, Test]> = [
   ["open-access reads each framework", testOpenAccessReadsEachFramework],
   ["open-access skips scoped access", testOpenAccessSkipsScopedAccess],
   ["open-access skips tests and can be disabled", testOpenAccessSkipsTestsAndCanBeDisabled],
+  ["brute-force-protection reports one finding per file", testBruteForceProtectionReportsOneFindingPerFile],
+  ["brute-force-protection reads each framework", testBruteForceProtectionReadsEachFramework],
+  ["brute-force-protection skips active limits", testBruteForceProtectionSkipsActiveLimits],
+  ["brute-force-protection skips tests and can be disabled", testBruteForceProtectionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

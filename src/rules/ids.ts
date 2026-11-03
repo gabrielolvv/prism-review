@@ -49,6 +49,7 @@ export const ruleIds: readonly string[] = [
   "token-storage",
   "long-session",
   "open-access",
+  "brute-force-protection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
