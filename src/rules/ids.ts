@@ -50,6 +50,7 @@ export const ruleIds: readonly string[] = [
   "long-session",
   "open-access",
   "brute-force-protection",
+  "ssh-host-key",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

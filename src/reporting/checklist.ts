@@ -73,6 +73,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "long-session": "Do sessions and access tokens expire within days, with revocable refresh tokens for longer logins?",
   "open-access": "Does the app require authentication by default, and do database rules check who is asking?",
   "brute-force-protection": "Do logins stay rate limited and lock out after a few dozen failed attempts at most?",
+  "ssh-host-key": "Do SSH connections check the server's host key against a pinned known_hosts entry?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

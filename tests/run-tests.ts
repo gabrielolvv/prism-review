@@ -671,6 +671,12 @@ import {
   testBruteForceProtectionSkipsTestsAndCanBeDisabled
 } from "./unit/brute-force-protection.test.js";
 import {
+  testSshHostKeyReadsEachTool,
+  testSshHostKeyReportsOneFindingPerFile,
+  testSshHostKeySkipsCheckedConnections,
+  testSshHostKeySkipsTestsAndCanBeDisabled
+} from "./unit/ssh-host-key.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1162,6 +1168,10 @@ const tests: Array<[string, Test]> = [
   ["brute-force-protection reads each framework", testBruteForceProtectionReadsEachFramework],
   ["brute-force-protection skips active limits", testBruteForceProtectionSkipsActiveLimits],
   ["brute-force-protection skips tests and can be disabled", testBruteForceProtectionSkipsTestsAndCanBeDisabled],
+  ["ssh-host-key reports one finding per file", testSshHostKeyReportsOneFindingPerFile],
+  ["ssh-host-key reads each tool", testSshHostKeyReadsEachTool],
+  ["ssh-host-key skips checked connections", testSshHostKeySkipsCheckedConnections],
+  ["ssh-host-key skips tests and can be disabled", testSshHostKeySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
