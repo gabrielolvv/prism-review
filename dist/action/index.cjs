@@ -1868,9 +1868,9 @@ function buildProvider(config2, credentialsPath, baseURL, options) {
 }
 function resolveIdentityTokenProvider(auth) {
   if (auth.identity_token) {
-    const source = auth.identity_token.source;
-    if (source !== "file") {
-      throw new WorkloadIdentityError(`identity_token.source "${source}" is not supported by this SDK version (only "file")`);
+    const source2 = auth.identity_token.source;
+    if (source2 !== "file") {
+      throw new WorkloadIdentityError(`identity_token.source "${source2}" is not supported by this SDK version (only "file")`);
     }
     if (!auth.identity_token.path) {
       throw new WorkloadIdentityError(`identity_token.source "file" requires a non-empty path`);
@@ -21250,26 +21250,26 @@ var require_directives = __commonJS({
        * @returns Resolved tag, which may also be the non-specific tag `'!'` or a
        *   `'!local'` tag, or `null` if unresolvable.
        */
-      tagName(source, onError) {
-        if (source === "!")
+      tagName(source2, onError) {
+        if (source2 === "!")
           return "!";
-        if (source[0] !== "!") {
-          onError(`Not a valid tag: ${source}`);
+        if (source2[0] !== "!") {
+          onError(`Not a valid tag: ${source2}`);
           return null;
         }
-        if (source[1] === "<") {
-          const verbatim = source.slice(2, -1);
+        if (source2[1] === "<") {
+          const verbatim = source2.slice(2, -1);
           if (verbatim === "!" || verbatim === "!!") {
-            onError(`Verbatim tags aren't resolved, so ${source} is invalid.`);
+            onError(`Verbatim tags aren't resolved, so ${source2} is invalid.`);
             return null;
           }
-          if (source[source.length - 1] !== ">")
+          if (source2[source2.length - 1] !== ">")
             onError("Verbatim tags must end with a >");
           return verbatim;
         }
-        const [, handle, suffix] = source.match(/^(.*!)([^!]*)$/s);
+        const [, handle, suffix] = source2.match(/^(.*!)([^!]*)$/s);
         if (!suffix)
-          onError(`The ${source} tag has no suffix`);
+          onError(`The ${source2} tag has no suffix`);
         const prefix = this.tags[handle];
         if (prefix) {
           try {
@@ -21280,8 +21280,8 @@ var require_directives = __commonJS({
           }
         }
         if (handle === "!")
-          return source;
-        onError(`Could not resolve tag: ${source}`);
+          return source2;
+        onError(`Could not resolve tag: ${source2}`);
         return null;
       }
       /**
@@ -21359,8 +21359,8 @@ var require_anchors = __commonJS({
       const sourceObjects = /* @__PURE__ */ new Map();
       let prevAnchors = null;
       return {
-        onAnchor: (source) => {
-          aliasObjects.push(source);
+        onAnchor: (source2) => {
+          aliasObjects.push(source2);
           prevAnchors ?? (prevAnchors = anchorNames(doc));
           const anchor2 = findNewAnchor(prefix, prevAnchors);
           prevAnchors.add(anchor2);
@@ -21372,13 +21372,13 @@ var require_anchors = __commonJS({
          * the nodes have been created.
          */
         setAnchors: () => {
-          for (const source of aliasObjects) {
-            const ref = sourceObjects.get(source);
+          for (const source2 of aliasObjects) {
+            const ref = sourceObjects.get(source2);
             if (typeof ref === "object" && ref.anchor && (identity.isScalar(ref.node) || identity.isCollection(ref.node))) {
               ref.node.anchor = ref.anchor;
             } else {
               const error2 = new Error("Failed to resolve repeated object (this should not happen)");
-              error2.source = source;
+              error2.source = source2;
               throw error2;
             }
           }
@@ -21524,9 +21524,9 @@ var require_Alias = __commonJS({
     var Node = require_Node();
     var toJS = require_toJS();
     var Alias = class extends Node.NodeBase {
-      constructor(source) {
+      constructor(source2) {
         super(identity.ALIAS);
-        this.source = source;
+        this.source = source2;
         Object.defineProperty(this, "tag", {
           set() {
             throw new Error("Alias nodes cannot have tags");
@@ -21567,15 +21567,15 @@ var require_Alias = __commonJS({
         if (!ctx)
           return { source: this.source };
         const { anchors: anchors2, doc, maxAliasCount } = ctx;
-        const source = this.resolve(doc, ctx);
-        if (!source) {
+        const source2 = this.resolve(doc, ctx);
+        if (!source2) {
           const msg = `Unresolved alias (the anchor must be set before the alias): ${this.source}`;
           throw new ReferenceError(msg);
         }
-        let data = anchors2.get(source);
+        let data = anchors2.get(source2);
         if (!data) {
-          toJS.toJS(source, null, ctx);
-          data = anchors2.get(source);
+          toJS.toJS(source2, null, ctx);
+          data = anchors2.get(source2);
         }
         if (data?.res === void 0) {
           const msg = "This should not happen: Alias anchor was not resolved?";
@@ -21584,7 +21584,7 @@ var require_Alias = __commonJS({
         if (maxAliasCount >= 0) {
           data.count += 1;
           if (data.aliasCount === 0)
-            data.aliasCount = getAliasCount(doc, source, anchors2);
+            data.aliasCount = getAliasCount(doc, source2, anchors2);
           if (data.count * data.aliasCount > maxAliasCount) {
             const msg = "Excessive alias count indicates a resource exhaustion attack";
             throw new ReferenceError(msg);
@@ -21608,8 +21608,8 @@ var require_Alias = __commonJS({
     };
     function getAliasCount(doc, node2, anchors2) {
       if (identity.isAlias(node2)) {
-        const source = node2.resolve(doc);
-        const anchor2 = anchors2 && source && anchors2.get(source);
+        const source2 = node2.resolve(doc);
+        const anchor2 = anchors2 && source2 && anchors2.get(source2);
         return anchor2 ? anchor2.count * anchor2.aliasCount : 0;
       } else if (identity.isCollection(node2)) {
         let count = 0;
@@ -22612,21 +22612,21 @@ var require_merge = __commonJS({
     };
     var isMergeKey = (ctx, key2) => (merge3.identify(key2) || identity.isScalar(key2) && (!key2.type || key2.type === Scalar.Scalar.PLAIN) && merge3.identify(key2.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge3.tag && tag.default);
     function addMergeToJSMap(ctx, map, value) {
-      const source = resolveAliasValue(ctx, value);
-      if (identity.isSeq(source))
-        for (const it of source.items)
+      const source2 = resolveAliasValue(ctx, value);
+      if (identity.isSeq(source2))
+        for (const it of source2.items)
           mergeValue(ctx, map, it);
-      else if (Array.isArray(source))
-        for (const it of source)
+      else if (Array.isArray(source2))
+        for (const it of source2)
           mergeValue(ctx, map, it);
       else
-        mergeValue(ctx, map, source);
+        mergeValue(ctx, map, source2);
     }
     function mergeValue(ctx, map, value) {
-      const source = resolveAliasValue(ctx, value);
-      if (!identity.isMap(source))
+      const source2 = resolveAliasValue(ctx, value);
+      if (!identity.isMap(source2))
         throw new Error("Merge sources must be maps or map aliases");
-      const srcMap = source.toJSON(null, ctx, Map);
+      const srcMap = source2.toJSON(null, ctx, Map);
       for (const [key2, value2] of srcMap) {
         if (map instanceof Map) {
           if (!map.has(key2))
@@ -23243,7 +23243,7 @@ var require_null = __commonJS({
       tag: "tag:yaml.org,2002:null",
       test: /^(?:~|[Nn]ull|NULL)?$/,
       resolve: () => new Scalar.Scalar(null),
-      stringify: ({ source }, ctx) => typeof source === "string" && nullTag.test.test(source) ? source : ctx.options.nullStr
+      stringify: ({ source: source2 }, ctx) => typeof source2 === "string" && nullTag.test.test(source2) ? source2 : ctx.options.nullStr
     };
     exports2.nullTag = nullTag;
   }
@@ -23260,11 +23260,11 @@ var require_bool = __commonJS({
       tag: "tag:yaml.org,2002:bool",
       test: /^(?:[Tt]rue|TRUE|[Ff]alse|FALSE)$/,
       resolve: (str) => new Scalar.Scalar(str[0] === "t" || str[0] === "T"),
-      stringify({ source, value }, ctx) {
-        if (source && boolTag.test.test(source)) {
-          const sv = source[0] === "t" || source[0] === "T";
+      stringify({ source: source2, value }, ctx) {
+        if (source2 && boolTag.test.test(source2)) {
+          const sv = source2[0] === "t" || source2[0] === "T";
           if (value === sv)
-            return source;
+            return source2;
         }
         return value ? ctx.options.trueStr : ctx.options.falseStr;
       }
@@ -23713,10 +23713,10 @@ var require_bool2 = __commonJS({
   "node_modules/yaml/dist/schema/yaml-1.1/bool.js"(exports2) {
     "use strict";
     var Scalar = require_Scalar();
-    function boolStringify({ value, source }, ctx) {
+    function boolStringify({ value, source: source2 }, ctx) {
       const boolObj = value ? trueTag : falseTag;
-      if (source && boolObj.test.test(source))
-        return source;
+      if (source2 && boolObj.test.test(source2))
+        return source2;
       return value ? ctx.options.trueStr : ctx.options.falseStr;
     }
     var trueTag = {
@@ -25048,7 +25048,7 @@ var require_resolve_end = __commonJS({
         let hasSpace = false;
         let sep2 = "";
         for (const token2 of end) {
-          const { source, type } = token2;
+          const { source: source2, type } = token2;
           switch (type) {
             case "space":
               hasSpace = true;
@@ -25056,7 +25056,7 @@ var require_resolve_end = __commonJS({
             case "comment": {
               if (reqSpace && !hasSpace)
                 onError(token2, "MISSING_CHAR", "Comments must be separated from other tokens by white space characters");
-              const cb = source.substring(1) || " ";
+              const cb = source2.substring(1) || " ";
               if (!comment)
                 comment = cb;
               else
@@ -25066,13 +25066,13 @@ var require_resolve_end = __commonJS({
             }
             case "newline":
               if (comment)
-                sep2 += source;
+                sep2 += source2;
               hasSpace = true;
               break;
             default:
               onError(token2, "UNEXPECTED_TOKEN", `Unexpected ${type} at node end`);
           }
-          offset += source.length;
+          offset += source2.length;
         }
       }
       return { comment, offset };
@@ -25454,13 +25454,13 @@ var require_resolve_block_scalar = __commonJS({
         onError(props[0], "IMPOSSIBLE", "Block scalar header not found");
         return null;
       }
-      const { source } = props[0];
-      const mode = source[0];
+      const { source: source2 } = props[0];
+      const mode = source2[0];
       let indent = 0;
       let chomp = "";
       let error2 = -1;
-      for (let i = 1; i < source.length; ++i) {
-        const ch = source[i];
+      for (let i = 1; i < source2.length; ++i) {
+        const ch = source2[i];
         if (!chomp && (ch === "-" || ch === "+"))
           chomp = ch;
         else {
@@ -25472,10 +25472,10 @@ var require_resolve_block_scalar = __commonJS({
         }
       }
       if (error2 !== -1)
-        onError(error2, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
+        onError(error2, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source2}`);
       let hasSpace = false;
       let comment = "";
-      let length = source.length;
+      let length = source2.length;
       for (let i = 1; i < props.length; ++i) {
         const token2 = props[i];
         switch (token2.type) {
@@ -25509,8 +25509,8 @@ var require_resolve_block_scalar = __commonJS({
       }
       return { mode, indent, chomp, comment, length };
     }
-    function splitLines(source) {
-      const split = source.split(/\n( *)/);
+    function splitLines(source2) {
+      const split = source2.split(/\n( *)/);
       const first = split[0];
       const m = first.match(/^( *)/);
       const line0 = m?.[1] ? [m[1], first.slice(m[1].length)] : ["", first];
@@ -25530,22 +25530,22 @@ var require_resolve_flow_scalar = __commonJS({
     var Scalar = require_Scalar();
     var resolveEnd = require_resolve_end();
     function resolveFlowScalar(scalar, strict, onError) {
-      const { offset, type, source, end } = scalar;
+      const { offset, type, source: source2, end } = scalar;
       let _type;
       let value;
       const _onError = (rel, code, msg) => onError(offset + rel, code, msg);
       switch (type) {
         case "scalar":
           _type = Scalar.Scalar.PLAIN;
-          value = plainValue(source, _onError);
+          value = plainValue(source2, _onError);
           break;
         case "single-quoted-scalar":
           _type = Scalar.Scalar.QUOTE_SINGLE;
-          value = singleQuotedValue(source, _onError);
+          value = singleQuotedValue(source2, _onError);
           break;
         case "double-quoted-scalar":
           _type = Scalar.Scalar.QUOTE_DOUBLE;
-          value = doubleQuotedValue(source, _onError);
+          value = doubleQuotedValue(source2, _onError);
           break;
         /* istanbul ignore next should not happen */
         default:
@@ -25554,10 +25554,10 @@ var require_resolve_flow_scalar = __commonJS({
             value: "",
             type: null,
             comment: "",
-            range: [offset, offset + source.length, offset + source.length]
+            range: [offset, offset + source2.length, offset + source2.length]
           };
       }
-      const valueEnd = offset + source.length;
+      const valueEnd = offset + source2.length;
       const re = resolveEnd.resolveEnd(end, valueEnd, strict, onError);
       return {
         value,
@@ -25566,9 +25566,9 @@ var require_resolve_flow_scalar = __commonJS({
         range: [offset, valueEnd, re.offset]
       };
     }
-    function plainValue(source, onError) {
+    function plainValue(source2, onError) {
       let badChar = "";
-      switch (source[0]) {
+      switch (source2[0]) {
         /* istanbul ignore next should not happen */
         case "	":
           badChar = "a tab character";
@@ -25581,25 +25581,25 @@ var require_resolve_flow_scalar = __commonJS({
           break;
         case "|":
         case ">": {
-          badChar = `block scalar indicator ${source[0]}`;
+          badChar = `block scalar indicator ${source2[0]}`;
           break;
         }
         case "@":
         case "`": {
-          badChar = `reserved character ${source[0]}`;
+          badChar = `reserved character ${source2[0]}`;
           break;
         }
       }
       if (badChar)
         onError(0, "BAD_SCALAR_START", `Plain value cannot start with ${badChar}`);
-      return foldLines(source);
+      return foldLines(source2);
     }
-    function singleQuotedValue(source, onError) {
-      if (source[source.length - 1] !== "'" || source.length === 1)
-        onError(source.length, "MISSING_CHAR", "Missing closing 'quote");
-      return foldLines(source.slice(1, -1)).replace(/''/g, "'");
+    function singleQuotedValue(source2, onError) {
+      if (source2[source2.length - 1] !== "'" || source2.length === 1)
+        onError(source2.length, "MISSING_CHAR", "Missing closing 'quote");
+      return foldLines(source2.slice(1, -1)).replace(/''/g, "'");
     }
-    function foldLines(source) {
+    function foldLines(source2) {
       let first, line;
       try {
         first = new RegExp("(.*?)(?<![ 	])[ 	]*\r?\n", "sy");
@@ -25608,14 +25608,14 @@ var require_resolve_flow_scalar = __commonJS({
         first = /(.*?)[ \t]*\r?\n/sy;
         line = /[ \t]*(.*?)[ \t]*\r?\n/sy;
       }
-      let match2 = first.exec(source);
+      let match2 = first.exec(source2);
       if (!match2)
-        return source;
+        return source2;
       let res = match2[1];
       let sep2 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
-      while (match2 = line.exec(source)) {
+      while (match2 = line.exec(source2)) {
         if (match2[1] === "") {
           if (sep2 === "\n")
             res += sep2;
@@ -25629,66 +25629,66 @@ var require_resolve_flow_scalar = __commonJS({
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
-      match2 = last.exec(source);
+      match2 = last.exec(source2);
       return res + sep2 + (match2?.[1] ?? "");
     }
-    function doubleQuotedValue(source, onError) {
+    function doubleQuotedValue(source2, onError) {
       let res = "";
-      for (let i = 1; i < source.length - 1; ++i) {
-        const ch = source[i];
-        if (ch === "\r" && source[i + 1] === "\n")
+      for (let i = 1; i < source2.length - 1; ++i) {
+        const ch = source2[i];
+        if (ch === "\r" && source2[i + 1] === "\n")
           continue;
         if (ch === "\n") {
-          const { fold, offset } = foldNewline(source, i);
+          const { fold, offset } = foldNewline(source2, i);
           res += fold;
           i = offset;
         } else if (ch === "\\") {
-          let next = source[++i];
+          let next = source2[++i];
           const cc = escapeCodes[next];
           if (cc)
             res += cc;
           else if (next === "\n") {
-            next = source[i + 1];
+            next = source2[i + 1];
             while (next === " " || next === "	")
-              next = source[++i + 1];
-          } else if (next === "\r" && source[i + 1] === "\n") {
-            next = source[++i + 1];
+              next = source2[++i + 1];
+          } else if (next === "\r" && source2[i + 1] === "\n") {
+            next = source2[++i + 1];
             while (next === " " || next === "	")
-              next = source[++i + 1];
+              next = source2[++i + 1];
           } else if (next === "x" || next === "u" || next === "U") {
             const length = next === "x" ? 2 : next === "u" ? 4 : 8;
-            res += parseCharCode(source, i + 1, length, onError);
+            res += parseCharCode(source2, i + 1, length, onError);
             i += length;
           } else {
-            const raw = source.substr(i - 1, 2);
+            const raw = source2.substr(i - 1, 2);
             onError(i - 1, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
             res += raw;
           }
         } else if (ch === " " || ch === "	") {
           const wsStart = i;
-          let next = source[i + 1];
+          let next = source2[i + 1];
           while (next === " " || next === "	")
-            next = source[++i + 1];
-          if (next !== "\n" && !(next === "\r" && source[i + 2] === "\n"))
-            res += i > wsStart ? source.slice(wsStart, i + 1) : ch;
+            next = source2[++i + 1];
+          if (next !== "\n" && !(next === "\r" && source2[i + 2] === "\n"))
+            res += i > wsStart ? source2.slice(wsStart, i + 1) : ch;
         } else {
           res += ch;
         }
       }
-      if (source[source.length - 1] !== '"' || source.length === 1)
-        onError(source.length, "MISSING_CHAR", 'Missing closing "quote');
+      if (source2[source2.length - 1] !== '"' || source2.length === 1)
+        onError(source2.length, "MISSING_CHAR", 'Missing closing "quote');
       return res;
     }
-    function foldNewline(source, offset) {
+    function foldNewline(source2, offset) {
       let fold = "";
-      let ch = source[offset + 1];
+      let ch = source2[offset + 1];
       while (ch === " " || ch === "	" || ch === "\n" || ch === "\r") {
-        if (ch === "\r" && source[offset + 2] !== "\n")
+        if (ch === "\r" && source2[offset + 2] !== "\n")
           break;
         if (ch === "\n")
           fold += "\n";
         offset += 1;
-        ch = source[offset + 1];
+        ch = source2[offset + 1];
       }
       if (!fold)
         fold = " ";
@@ -25727,14 +25727,14 @@ var require_resolve_flow_scalar = __commonJS({
       "\\": "\\",
       "	": "	"
     };
-    function parseCharCode(source, offset, length, onError) {
-      const cc = source.substr(offset, length);
+    function parseCharCode(source2, offset, length, onError) {
+      const cc = source2.substr(offset, length);
       const ok = cc.length === length && /^[0-9a-fA-F]+$/.test(cc);
       const code = ok ? parseInt(cc, 16) : NaN;
       try {
         return String.fromCodePoint(code);
       } catch {
-        const raw = source.substr(offset - 2, length + 2);
+        const raw = source2.substr(offset - 2, length + 2);
         onError(offset - 2, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
         return raw;
       }
@@ -25942,13 +25942,13 @@ var require_compose_node = __commonJS({
       }
       return node2;
     }
-    function composeAlias({ options }, { offset, source, end }, onError) {
-      const alias = new Alias.Alias(source.substring(1));
+    function composeAlias({ options }, { offset, source: source2, end }, onError) {
+      const alias = new Alias.Alias(source2.substring(1));
       if (alias.source === "")
         onError(offset, "BAD_ALIAS", "Alias cannot be an empty string");
       if (alias.source.endsWith(":"))
-        onError(offset + source.length - 1, "BAD_ALIAS", "Alias ending in : is ambiguous", true);
-      const valueEnd = offset + source.length;
+        onError(offset + source2.length - 1, "BAD_ALIAS", "Alias ending in : is ambiguous", true);
+      const valueEnd = offset + source2.length;
       const re = resolveEnd.resolveEnd(end, valueEnd, options.strict, onError);
       alias.range = [offset, valueEnd, re.offset];
       if (re.comment)
@@ -26019,18 +26019,18 @@ var require_composer = __commonJS({
         return [src, src + 1];
       if (Array.isArray(src))
         return src.length === 2 ? src : [src[0], src[1]];
-      const { offset, source } = src;
-      return [offset, offset + (typeof source === "string" ? source.length : 1)];
+      const { offset, source: source2 } = src;
+      return [offset, offset + (typeof source2 === "string" ? source2.length : 1)];
     }
     function parsePrelude(prelude) {
       let comment = "";
       let atComment = false;
       let afterEmptyLine = false;
       for (let i = 0; i < prelude.length; ++i) {
-        const source = prelude[i];
-        switch (source[0]) {
+        const source2 = prelude[i];
+        switch (source2[0]) {
           case "#":
-            comment += (comment === "" ? "" : afterEmptyLine ? "\n\n" : "\n") + (source.substring(1) || " ");
+            comment += (comment === "" ? "" : afterEmptyLine ? "\n\n" : "\n") + (source2.substring(1) || " ");
             atComment = true;
             afterEmptyLine = false;
             break;
@@ -26054,8 +26054,8 @@ var require_composer = __commonJS({
         this.prelude = [];
         this.errors = [];
         this.warnings = [];
-        this.onError = (source, code, message, warning) => {
-          const pos = getErrorPos(source);
+        this.onError = (source2, code, message, warning) => {
+          const pos = getErrorPos(source2);
           if (warning)
             this.warnings.push(new errors.YAMLWarning(pos, code, message));
           else
@@ -26241,7 +26241,7 @@ var require_cst_scalar = __commonJS({
     }
     function createScalarToken(value, context) {
       const { implicitKey = false, indent, inFlow = false, offset = -1, type = "PLAIN" } = context;
-      const source = stringifyString.stringifyString({ type, value }, {
+      const source2 = stringifyString.stringifyString({ type, value }, {
         implicitKey,
         indent: indent > 0 ? " ".repeat(indent) : "",
         inFlow,
@@ -26250,12 +26250,12 @@ var require_cst_scalar = __commonJS({
       const end = context.end ?? [
         { type: "newline", offset: -1, indent, source: "\n" }
       ];
-      switch (source[0]) {
+      switch (source2[0]) {
         case "|":
         case ">": {
-          const he = source.indexOf("\n");
-          const head = source.substring(0, he);
-          const body = source.substring(he + 1) + "\n";
+          const he = source2.indexOf("\n");
+          const head = source2.substring(0, he);
+          const body = source2.substring(he + 1) + "\n";
           const props = [
             { type: "block-scalar-header", offset, indent, source: head }
           ];
@@ -26264,11 +26264,11 @@ var require_cst_scalar = __commonJS({
           return { type: "block-scalar", offset, indent, props, source: body };
         }
         case '"':
-          return { type: "double-quoted-scalar", offset, indent, source, end };
+          return { type: "double-quoted-scalar", offset, indent, source: source2, end };
         case "'":
-          return { type: "single-quoted-scalar", offset, indent, source, end };
+          return { type: "single-quoted-scalar", offset, indent, source: source2, end };
         default:
-          return { type: "scalar", offset, indent, source, end };
+          return { type: "scalar", offset, indent, source: source2, end };
       }
     }
     function setScalarValue(token2, value, context = {}) {
@@ -26294,31 +26294,31 @@ var require_cst_scalar = __commonJS({
           default:
             type = "PLAIN";
         }
-      const source = stringifyString.stringifyString({ type, value }, {
+      const source2 = stringifyString.stringifyString({ type, value }, {
         implicitKey: implicitKey || indent === null,
         indent: indent !== null && indent > 0 ? " ".repeat(indent) : "",
         inFlow,
         options: { blockQuote: true, lineWidth: -1 }
       });
-      switch (source[0]) {
+      switch (source2[0]) {
         case "|":
         case ">":
-          setBlockScalarValue(token2, source);
+          setBlockScalarValue(token2, source2);
           break;
         case '"':
-          setFlowScalarValue(token2, source, "double-quoted-scalar");
+          setFlowScalarValue(token2, source2, "double-quoted-scalar");
           break;
         case "'":
-          setFlowScalarValue(token2, source, "single-quoted-scalar");
+          setFlowScalarValue(token2, source2, "single-quoted-scalar");
           break;
         default:
-          setFlowScalarValue(token2, source, "scalar");
+          setFlowScalarValue(token2, source2, "scalar");
       }
     }
-    function setBlockScalarValue(token2, source) {
-      const he = source.indexOf("\n");
-      const head = source.substring(0, he);
-      const body = source.substring(he + 1) + "\n";
+    function setBlockScalarValue(token2, source2) {
+      const he = source2.indexOf("\n");
+      const head = source2.substring(0, he);
+      const body = source2.substring(he + 1) + "\n";
       if (token2.type === "block-scalar") {
         const header2 = token2.props[0];
         if (header2.type !== "block-scalar-header")
@@ -26353,31 +26353,31 @@ var require_cst_scalar = __commonJS({
           }
       return false;
     }
-    function setFlowScalarValue(token2, source, type) {
+    function setFlowScalarValue(token2, source2, type) {
       switch (token2.type) {
         case "scalar":
         case "double-quoted-scalar":
         case "single-quoted-scalar":
           token2.type = type;
-          token2.source = source;
+          token2.source = source2;
           break;
         case "block-scalar": {
           const end = token2.props.slice(1);
-          let oa = source.length;
+          let oa = source2.length;
           if (token2.props[0].type === "block-scalar-header")
             oa -= token2.props[0].source.length;
           for (const tok of end)
             tok.offset += oa;
           delete token2.props;
-          Object.assign(token2, { type, source, end });
+          Object.assign(token2, { type, source: source2, end });
           break;
         }
         case "block-map":
         case "block-seq": {
-          const offset = token2.offset + source.length;
+          const offset = token2.offset + source2.length;
           const nl = { type: "newline", offset, indent: token2.indent, source: "\n" };
           delete token2.items;
-          Object.assign(token2, { type, source, end: [nl] });
+          Object.assign(token2, { type, source: source2, end: [nl] });
           break;
         }
         default: {
@@ -26386,7 +26386,7 @@ var require_cst_scalar = __commonJS({
           for (const key2 of Object.keys(token2))
             if (key2 !== "type" && key2 !== "offset")
               delete token2[key2];
-          Object.assign(token2, { type, indent, source, end });
+          Object.assign(token2, { type, indent, source: source2, end });
         }
       }
     }
@@ -26546,8 +26546,8 @@ var require_cst = __commonJS({
           return JSON.stringify(token2);
       }
     }
-    function tokenType(source) {
-      switch (source) {
+    function tokenType(source2) {
+      switch (source2) {
         case BOM:
           return "byte-order-mark";
         case DOCUMENT:
@@ -26581,7 +26581,7 @@ var require_cst = __commonJS({
         case ",":
           return "comma";
       }
-      switch (source[0]) {
+      switch (source2[0]) {
         case " ":
         case "	":
           return "space";
@@ -26663,11 +26663,11 @@ var require_lexer = __commonJS({
        *
        * @returns A generator of lexical tokens
        */
-      *lex(source, incomplete = false) {
-        if (source) {
-          if (typeof source !== "string")
+      *lex(source2, incomplete = false) {
+        if (source2) {
+          if (typeof source2 !== "string")
             throw TypeError("source is not a string");
-          this.buffer = this.buffer ? this.buffer + source : source;
+          this.buffer = this.buffer ? this.buffer + source2 : source2;
           this.lineEndPos = null;
         }
         this.atEnd = !incomplete;
@@ -27312,12 +27312,12 @@ var require_parser = __commonJS({
       }
       return prev.splice(i, prev.length);
     }
-    function arrayPushArray(target, source) {
-      if (source.length < 1e5)
-        Array.prototype.push.apply(target, source);
+    function arrayPushArray(target, source2) {
+      if (source2.length < 1e5)
+        Array.prototype.push.apply(target, source2);
       else
-        for (let i = 0; i < source.length; ++i)
-          target.push(source[i]);
+        for (let i = 0; i < source2.length; ++i)
+          target.push(source2[i]);
     }
     function fixFlowSeqItems(fc) {
       if (fc.start.type === "flow-seq-start") {
@@ -27363,10 +27363,10 @@ var require_parser = __commonJS({
        *
        * @returns A generator of tokens representing each directive, document, and other structure.
        */
-      *parse(source, incomplete = false) {
+      *parse(source2, incomplete = false) {
         if (this.onNewLine && this.offset === 0)
           this.onNewLine(0);
-        for (const lexeme of this.lexer.lex(source, incomplete))
+        for (const lexeme of this.lexer.lex(source2, incomplete))
           yield* this.next(lexeme);
         if (!incomplete)
           yield* this.end();
@@ -27374,21 +27374,21 @@ var require_parser = __commonJS({
       /**
        * Advance the parser by the `source` of one lexical token.
        */
-      *next(source) {
-        this.source = source;
+      *next(source2) {
+        this.source = source2;
         if (node_process.env.LOG_TOKENS)
-          console.log("|", cst.prettyToken(source));
+          console.log("|", cst.prettyToken(source2));
         if (this.atScalar) {
           this.atScalar = false;
           yield* this.step();
-          this.offset += source.length;
+          this.offset += source2.length;
           return;
         }
-        const type = cst.tokenType(source);
+        const type = cst.tokenType(source2);
         if (!type) {
-          const message = `Not a YAML token: ${source}`;
-          yield* this.pop({ type: "error", offset: this.offset, message, source });
-          this.offset += source.length;
+          const message = `Not a YAML token: ${source2}`;
+          yield* this.pop({ type: "error", offset: this.offset, message, source: source2 });
+          this.offset += source2.length;
         } else if (type === "scalar") {
           this.atNewLine = false;
           this.atScalar = true;
@@ -27401,17 +27401,17 @@ var require_parser = __commonJS({
               this.atNewLine = true;
               this.indent = 0;
               if (this.onNewLine)
-                this.onNewLine(this.offset + source.length);
+                this.onNewLine(this.offset + source2.length);
               break;
             case "space":
-              if (this.atNewLine && source[0] === " ")
-                this.indent += source.length;
+              if (this.atNewLine && source2[0] === " ")
+                this.indent += source2.length;
               break;
             case "explicit-key-ind":
             case "map-value-ind":
             case "seq-item-ind":
               if (this.atNewLine)
-                this.indent += source.length;
+                this.indent += source2.length;
               break;
             case "doc-mode":
             case "flow-error-end":
@@ -27419,7 +27419,7 @@ var require_parser = __commonJS({
             default:
               this.atNewLine = false;
           }
-          this.offset += source.length;
+          this.offset += source2.length;
         }
       }
       /** Call at end of input to push out any remaining constructions */
@@ -28131,26 +28131,26 @@ var require_public_api = __commonJS({
       const lineCounter$1 = options.lineCounter || prettyErrors && new lineCounter.LineCounter() || null;
       return { lineCounter: lineCounter$1, prettyErrors };
     }
-    function parseAllDocuments(source, options = {}) {
+    function parseAllDocuments(source2, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
-      const docs = Array.from(composer$1.compose(parser$1.parse(source)));
+      const docs = Array.from(composer$1.compose(parser$1.parse(source2)));
       if (prettyErrors && lineCounter2)
         for (const doc of docs) {
-          doc.errors.forEach(errors.prettifyError(source, lineCounter2));
-          doc.warnings.forEach(errors.prettifyError(source, lineCounter2));
+          doc.errors.forEach(errors.prettifyError(source2, lineCounter2));
+          doc.warnings.forEach(errors.prettifyError(source2, lineCounter2));
         }
       if (docs.length > 0)
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument(source, options = {}) {
+    function parseDocument(source2, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
       let doc = null;
-      for (const _doc of composer$1.compose(parser$1.parse(source), true, source.length)) {
+      for (const _doc of composer$1.compose(parser$1.parse(source2), true, source2.length)) {
         if (!doc)
           doc = _doc;
         else if (doc.options.logLevel !== "silent") {
@@ -28159,8 +28159,8 @@ var require_public_api = __commonJS({
         }
       }
       if (prettyErrors && lineCounter2) {
-        doc.errors.forEach(errors.prettifyError(source, lineCounter2));
-        doc.warnings.forEach(errors.prettifyError(source, lineCounter2));
+        doc.errors.forEach(errors.prettifyError(source2, lineCounter2));
+        doc.warnings.forEach(errors.prettifyError(source2, lineCounter2));
       }
       return doc;
     }
@@ -28432,10 +28432,10 @@ function cached(getter) {
 function nullish(input) {
   return input === null || input === void 0;
 }
-function cleanRegex(source) {
-  const start = source.startsWith("^") ? 1 : 0;
-  const end = source.endsWith("$") ? source.length - 1 : source.length;
-  return source.slice(start, end);
+function cleanRegex(source2) {
+  const start = source2.startsWith("^") ? 1 : 0;
+  const end = source2.endsWith("$") ? source2.length - 1 : source2.length;
+  return source2.slice(start, end);
 }
 function floatSafeRemainder(val, step) {
   const ratio = val / step;
@@ -28503,28 +28503,28 @@ function putProp(target, key2, value) {
   else
     target[key2] = value;
 }
-function mirrorShape(target, source, keys, wrap) {
-  const raw = sourceShape(source);
+function mirrorShape(target, source2, keys, wrap) {
+  const raw = sourceShape(source2);
   for (const key2 of keys) {
     const desc = Object.getOwnPropertyDescriptor(raw, key2);
     if (!desc.enumerable)
       continue;
     if (desc.get) {
       deferProp(target, key2, () => {
-        const value = source._zod.def.shape[key2];
+        const value = source2._zod.def.shape[key2];
         return wrap ? wrap(value, key2) : value;
       });
     } else
       putProp(target, key2, wrap ? wrap(desc.value, key2) : desc.value);
   }
 }
-function mirrorProps(target, source) {
-  for (const key2 of Reflect.ownKeys(source)) {
-    const desc = Object.getOwnPropertyDescriptor(source, key2);
+function mirrorProps(target, source2) {
+  for (const key2 of Reflect.ownKeys(source2)) {
+    const desc = Object.getOwnPropertyDescriptor(source2, key2);
     if (!desc.enumerable)
       continue;
     if (desc.get)
-      deferProp(target, key2, () => source[key2]);
+      deferProp(target, key2, () => source2[key2]);
     else
       putProp(target, key2, desc.value);
   }
@@ -29571,8 +29571,8 @@ var base64url = /^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$/;
 var httpProtocol = /^https?$/;
 var e164 = /^\+[1-9]\d{6,14}$/;
 var dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
-function anchor(source) {
-  return new RegExp(`^${source}$`);
+function anchor(source2) {
+  return new RegExp(`^${source2}$`);
 }
 var date = /* @__PURE__ */ anchor(dateSource);
 function timeSource(args) {
@@ -32465,10 +32465,10 @@ function _check(fn, params) {
 
 // node_modules/zod/v4/core/to-json-schema.js
 function assignProps(target, ...sources2) {
-  for (const source of sources2) {
-    for (const key2 of Reflect.ownKeys(source)) {
-      if (Object.prototype.propertyIsEnumerable.call(source, key2)) {
-        assignProp(target, key2, source[key2]);
+  for (const source2 of sources2) {
+    for (const key2 of Reflect.ownKeys(source2)) {
+      if (Object.prototype.propertyIsEnumerable.call(source2, key2)) {
+        assignProp(target, key2, source2[key2]);
       }
     }
   }
@@ -36594,6 +36594,7 @@ var ruleIds = [
   "grpc-plaintext",
   "service-auth-disabled",
   "error-details",
+  "subresource-integrity",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -36892,6 +36893,9 @@ var prismConfigSchema = object({
     errorDetails: object({
       enabled: boolean2().default(true)
     }).prefault({}),
+    subresourceIntegrity: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
     staleLockfiles: object({
       enabled: boolean2().default(true)
     }).prefault({}),
@@ -36963,9 +36967,9 @@ var prismConfigSchema = object({
     timeoutSeconds: number2().int().min(10).max(600).default(120)
   }).prefault({})
 });
-function isRegularExpression(source) {
+function isRegularExpression(source2) {
   try {
-    new RegExp(source);
+    new RegExp(source2);
     return true;
   } catch {
     return false;
@@ -36989,6 +36993,12 @@ function describeLines(lines) {
   const more = sorted.length > maxListedLines ? ` and ${sorted.length - maxListedLines} more` : "";
   const plural = sorted.length > 1;
   return { text: `${plural ? "Lines" : "Line"} ${listed}${more}`, plural };
+}
+function listOf(items) {
+  if (items.length <= 2) {
+    return items.join(" and ");
+  }
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 // src/rules/blanket-suppression.ts
@@ -37776,7 +37786,7 @@ var urlCredentialsRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const allowlist2 = config2.security.redaction.allowlist.map((source) => new RegExp(source));
+    const allowlist2 = config2.security.redaction.allowlist.map((source2) => new RegExp(source2));
     return files.flatMap((file) => {
       if (documentation3.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
@@ -39075,8 +39085,8 @@ function findUnsafeSaves(patch, language) {
 }
 function clientNamePattern(language, uploads) {
   const names2 = [...uploads].map((name) => name.replace(/\$/g, "\\$"));
-  const source = language.clientName.source.replace(/\\\{upload\\\}/g, names2.length === 0 ? "(?!)" : `(?<![\\w$.])(?:${names2.join("|")})`);
-  return new RegExp(source);
+  const source2 = language.clientName.source.replace(/\\\{upload\\\}/g, names2.length === 0 ? "(?!)" : `(?<![\\w$.])(?:${names2.join("|")})`);
+  return new RegExp(source2);
 }
 
 // src/rules/reflected-xss.ts
@@ -42860,12 +42870,6 @@ var serviceAuthDisabledRule = {
     });
   }
 };
-function listOf(items) {
-  if (items.length <= 2) {
-    return items.join(" and ");
-  }
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-}
 
 // src/rules/error-details.ts
 var settings9 = [
@@ -43034,6 +43038,83 @@ function enclosingBlocks2(lines, index) {
   return blocks;
 }
 
+// src/rules/subresource-integrity.ts
+var publicCdn = /^(?:https?:)?\/\/((?:cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fastly\.jsdelivr\.net|gcore\.jsdelivr\.net|unpkg\.com|code\.jquery\.com|(?:stackpath|maxcdn|netdna)\.bootstrapcdn\.com|ajax\.googleapis\.com|ajax\.aspnetcdn\.com|cdn\.datatables\.net|cdn\.bootcdn\.net|cdn\.bootcss\.com|cdn\.staticfile\.(?:org|net)|lib\.baomitu\.com|esm\.sh|cdn\.skypack\.dev|ga\.jspm\.io|cdn\.rawgit\.com|(?:raw|rawcdn)\.githack\.com|cdn\.statically\.io|code\.ionicframework\.com|cdn\.plot\.ly|d3js\.org|cdn\.ckeditor\.com|use\.fontawesome\.com(?=\/releases\/)))\//i;
+var markupFile = /\.(?:html?|xhtml|ejs|hbs|handlebars|mustache|njk|nunjucks|jinja2?|j2|twig|erb|php|phtml|jsx|tsx|vue|svelte|astro|cshtml|razor|jsp|liquid|tpl|gohtml|tmpl|[cm]?[jt]s|py|rb|go|java|kt|cs)$/i;
+var tagStart = /<(script|link)\b/gi;
+var tagLines = 10;
+var source = /\b(?:src|href)\s*=\s*["'{]?\s*["'`]?((?:https?:)?\/\/[^"'`\s>]+)/i;
+var loadedLink = /\brel\s*=\s*["']?(?:[\w-]+\s+)*(?:stylesheet|modulepreload)\b/i;
+var integrity = /(?:^|[\s:])integrity\s*=/i;
+var commentLine47 = /^\s*(?:<!--|#|\/\/|\/\*|\*|\{#|<%--|@\*)/;
+var skippedFile37 = /\.d\.[cm]?ts$|\.min\.[cm]?js$|\.map$/i;
+var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc)$/i;
+var maxLineLength43 = 2e3;
+var subresourceIntegrityRule = {
+  id: "subresource-integrity",
+  description: "Flags scripts and stylesheets loaded from public CDNs without an integrity hash.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.subresourceIntegrity.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!markupFile.test(file.path) || file.patch === void 0 || documentation38.test(file.path) || skippedFile37.test(file.path) || // Development, example, demo, and test pages are not served to users.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (!added || content.length > maxLineLength43 || commentLine47.test(content)) {
+          return;
+        }
+        for (const match2 of content.matchAll(tagStart)) {
+          const tag = readTag(lines, index, match2.index);
+          const url = source.exec(tag)?.[1];
+          const host = url === void 0 ? void 0 : publicCdn.exec(url)?.[1]?.toLowerCase();
+          const link = match2[1]?.toLowerCase() === "link";
+          if (host === void 0 || integrity.test(tag) || link && !loadedLink.test(tag)) {
+            continue;
+          }
+          const stylesheet = link && !/\bmodulepreload\b/i.test(tag);
+          found.push({ line, host, stylesheet });
+          break;
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const scripts2 = found.some(({ stylesheet }) => !stylesheet);
+      const stylesheets = found.some(({ stylesheet }) => stylesheet);
+      const what = scripts2 && stylesheets ? "scripts and stylesheets" : scripts2 ? plural ? "scripts" : "a script" : plural ? "stylesheets" : "a stylesheet";
+      const hosts = [...new Set(found.map(({ host }) => host))];
+      return [
+        {
+          ruleId: "subresource-integrity",
+          title: "CDN file without integrity hash",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "load" : "loads"} ${what} from ${listOf(hosts)} without an \`integrity\` hash, so if the package, its publisher's account, or the CDN is compromised, the browser runs whatever is served in every visitor's page, with access to its session and to what users type.`,
+          recommendation: 'Pin an exact version and add `integrity="sha384-..."` with `crossorigin="anonymous"`, using the hash the CDN publishes or one from `openssl dgst -sha384 -binary file | openssl base64 -A`. Better still, install the package and serve it from your own build.'
+        }
+      ];
+    });
+  }
+};
+function readTag(lines, index, start) {
+  let tag = (lines[index]?.content ?? "").slice(start);
+  for (let next = index + 1; !tag.includes(">") && next < Math.min(lines.length, index + tagLines); next += 1) {
+    tag += ` ${lines[next]?.content ?? ""}`;
+  }
+  const end = tag.indexOf(">");
+  return end === -1 ? tag : tag.slice(0, end);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -43101,7 +43182,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine47 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine48 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -43159,7 +43240,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine47.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine48.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -43256,10 +43337,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine48 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation38 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation39 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -43269,11 +43350,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation38.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation39.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine48.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine49.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -43498,7 +43579,7 @@ function findLockfileSources(path5, patch, allowedSources) {
   if (reader === void 0 || isTestDataPath(path5)) {
     return [];
   }
-  const allowed = [...defaultAllowedSources, ...allowedSources].flatMap((source) => parseUrl(source) ?? []);
+  const allowed = [...defaultAllowedSources, ...allowedSources].flatMap((source2) => parseUrl(source2) ?? []);
   let section = "";
   const found = [];
   for (const { line, content, added, startsHunk, hunkContext } of patchLines(patch)) {
@@ -43510,9 +43591,9 @@ function findLockfileSources(path5, patch, allowedSources) {
       continue;
     }
     for (const entry of reader.urls(content, section)) {
-      const source = "kind" in entry ? entry : entry.extraIndex ? { kind: "extra-index" } : classify(entry.url, allowed, section === "GIT" || entry.git === true);
-      if (source !== void 0) {
-        found.push({ line, ...source });
+      const source2 = "kind" in entry ? entry : entry.extraIndex ? { kind: "extra-index" } : classify(entry.url, allowed, section === "GIT" || entry.git === true);
+      if (source2 !== void 0) {
+        found.push({ line, ...source2 });
       }
     }
   }
@@ -43529,7 +43610,7 @@ function classify(raw, allowed, gitSection) {
   if (url === void 0 || url.protocol === "file:") {
     return void 0;
   }
-  if (allowed.some((source) => isUnder(url, source))) {
+  if (allowed.some((source2) => isUnder(url, source2))) {
     return void 0;
   }
   if (url.protocol === "http:") {
@@ -43540,12 +43621,12 @@ function classify(raw, allowed, gitSection) {
   }
   return { kind: "unlisted", host: url.hostname };
 }
-function isUnder(url, source) {
-  if (url.protocol !== source.protocol || url.host !== source.host) {
+function isUnder(url, source2) {
+  if (url.protocol !== source2.protocol || url.host !== source2.host) {
     return false;
   }
-  const base = source.pathname.endsWith("/") ? source.pathname : `${source.pathname}/`;
-  return url.pathname === source.pathname || url.pathname.startsWith(base);
+  const base = source2.pathname.endsWith("/") ? source2.pathname : `${source2.pathname}/`;
+  return url.pathname === source2.pathname || url.pathname.startsWith(base);
 }
 function parseUrl(value) {
   try {
@@ -43570,25 +43651,25 @@ var lockfileSourceRule = {
       if (sources2.length === 0) {
         return [];
       }
-      const { text, plural } = describeLines(sources2.map((source) => source.line));
-      const hosts = [...new Set(sources2.flatMap((source) => source.host ?? []))];
-      const modules = [...new Set(sources2.flatMap((source) => source.module ?? []))];
+      const { text, plural } = describeLines(sources2.map((source2) => source2.line));
+      const hosts = [...new Set(sources2.flatMap((source2) => source2.host ?? []))];
+      const modules = [...new Set(sources2.flatMap((source2) => source2.module ?? []))];
       const parts = [
         hosts.length > 0 ? `downloaded from ${hosts.length > 1 ? "hosts that are not allowed registries" : "a host that is not an allowed registry"} (${hosts.slice(0, 3).join(", ")}${hosts.length > 3 ? ", ..." : ""})` : "",
-        sources2.some((source) => source.kind === "insecure") ? "downloaded over plain HTTP" : "",
-        sources2.some((source) => source.kind === "unverified") ? "downloaded without TLS verification" : "",
-        sources2.some((source) => source.kind === "git") ? "installed from a Git repository" : "",
+        sources2.some((source2) => source2.kind === "insecure") ? "downloaded over plain HTTP" : "",
+        sources2.some((source2) => source2.kind === "unverified") ? "downloaded without TLS verification" : "",
+        sources2.some((source2) => source2.kind === "git") ? "installed from a Git repository" : "",
         modules.length > 0 ? `replaced with ${modules.length > 1 ? "different modules" : "a different module"} (${modules.slice(0, 3).join(", ")}${modules.length > 3 ? ", ..." : ""})` : "",
-        sources2.some((source) => source.kind === "extra-index") ? "fetched from an extra package index" : ""
+        sources2.some((source2) => source2.kind === "extra-index") ? "fetched from an extra package index" : ""
       ].filter(Boolean);
-      const high3 = sources2.some((source) => ["unlisted", "insecure", "unverified"].includes(source.kind));
+      const high3 = sources2.some((source2) => ["unlisted", "insecure", "unverified"].includes(source2.kind));
       return [
         {
           ruleId: "lockfile-source",
           title: high3 ? "Dependency from an untrusted source" : "Dependency from outside a registry",
           severity: high3 ? "high" : "warning",
           file: file.path,
-          line: Math.min(...sources2.map((source) => source.line)),
+          line: Math.min(...sources2.map((source2) => source2.line)),
           message: `${text} ${plural ? "add dependencies" : "adds a dependency"} ${joinParts(parts)}.`,
           recommendation: "Check that each URL is the package you expect. A lockfile can point a familiar package name at any tarball, and installs run its scripts. Add private registries to rules.lockfileSources.allowedSources, pin Git dependencies to a commit, prefer --index-url over --extra-index-url, and keep TLS verification on."
         }
@@ -45069,8 +45150,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine49 = /^\s*#/;
-var documentation39 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine50 = /^\s*#/;
+var documentation40 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -45080,7 +45161,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation39.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation40.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -45113,7 +45194,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine49.test(content)) {
+    if (commentLine50.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -45147,7 +45228,7 @@ var labels17 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine50 = /^\s*#/;
+var commentLine51 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -45223,7 +45304,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine50.test(content)) {
+    if (commentLine51.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -45313,7 +45394,7 @@ var settings10 = [
   }
 ];
 var allowsEverything = settings10[0];
-var commentLine51 = /^\s*(?:#|\/\/)/;
+var commentLine52 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -45354,7 +45435,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine51.test(content)) {
+    if (!added || commentLine52.test(content)) {
       continue;
     }
     for (const setting of settings10) {
@@ -45405,7 +45486,7 @@ var labels18 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation40 = /(?:^|\/)docs?\//i;
+var documentation41 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -45413,7 +45494,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine52 = /^\s*#/;
+var commentLine53 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -45423,7 +45504,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation40.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation41.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -45462,7 +45543,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine52.test(content) || content.trim() === "") {
+    if (commentLine53.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -45517,8 +45598,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine53 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine54 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -45528,11 +45609,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation41.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation42.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine53.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine54.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -45628,10 +45709,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine54 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine55 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength43 = 500;
-var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength44 = 500;
+var documentation43 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -45641,11 +45722,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation42.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation43.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine54.test(content) && content.length <= maxLineLength43 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine55.test(content) && content.length <= maxLineLength44 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -45704,8 +45785,8 @@ var settings11 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine55 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation43 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine56 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation44 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -45715,11 +45796,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation43.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation44.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine55.test(content) && settings11.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine56.test(content) && settings11.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -45768,8 +45849,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine56 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation44 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine57 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation45 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -45779,13 +45860,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation44.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation45.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine56.test(content)) {
+        if (!added || commentLine57.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -46041,10 +46122,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine57 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation45 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine58 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation46 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength44 = 1e3;
+var maxLineLength45 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -46055,11 +46136,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation45.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (language === void 0 || file.patch === void 0 || documentation46.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine57.test(content) || content.length > maxLineLength44) {
+        if (!added || commentLine58.test(content) || content.length > maxLineLength45) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -46261,8 +46342,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine58 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation46 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine59 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation47 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -46273,7 +46354,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation46.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation47.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands(file.patch).flatMap(({ line, content }) => {
@@ -46325,7 +46406,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine58.test(content)) {
+    if (commentLine59.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -46351,7 +46432,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength45 = 1e3;
+var maxLineLength46 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -46508,7 +46589,7 @@ function findCalls2(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength45 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength46 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -46592,7 +46673,7 @@ var secretInDiffRule = {
     if (!config2.rules.secretInDiff.enabled) {
       return [];
     }
-    const allowlist2 = config2.security.redaction.allowlist.map((source) => new RegExp(source));
+    const allowlist2 = config2.security.redaction.allowlist.map((source2) => new RegExp(source2));
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.map((file) => ({ file, secrets: secretsIn(file, allowlist2) })).map(({ file, secrets }) => ({
       file,
@@ -46618,9 +46699,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation47 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation48 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path5, testGlobs) {
-  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation47.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation48.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -46649,7 +46730,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation48 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation49 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -46659,7 +46740,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation48.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation49.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -47079,8 +47160,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine59 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation49 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine60 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation50 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -47090,7 +47171,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation49.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation50.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -47121,7 +47202,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine59.test(content)) {
+    if (commentLine60.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -47275,6 +47356,7 @@ var defaultRules = [
   grpcPlaintextRule,
   serviceAuthDisabledRule,
   errorDetailsRule,
+  subresourceIntegrityRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -47701,6 +47783,7 @@ var ruleAreas = {
   "grpc-plaintext": "code",
   "service-auth-disabled": "infrastructure",
   "error-details": "code",
+  "subresource-integrity": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -47787,6 +47870,7 @@ var ruleQuestions = {
   "grpc-plaintext": "Do gRPC connections to other hosts use TLS, or a service mesh that adds it?",
   "service-auth-disabled": "Do databases, brokers, notebooks, and the Docker daemon require authentication outside a developer's machine?",
   "error-details": "Do errors reach clients as generic messages, with stack traces and exception details kept in server logs?",
+  "subresource-integrity": "Do scripts and stylesheets from public CDNs pin a version and carry an integrity hash, or come from your own build?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -47877,6 +47961,7 @@ var ruleSections = {
   "grpc-plaintext": "gRPC Without TLS",
   "service-auth-disabled": "Service Authentication",
   "error-details": "Error Details",
+  "subresource-integrity": "Subresource Integrity",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -48323,25 +48408,25 @@ var import_yaml2 = __toESM(require_dist2(), 1);
 
 // src/config/load-config.ts
 var import_yaml = __toESM(require_dist2(), 1);
-function parseConfigObject(parsed, source) {
+function parseConfigObject(parsed, source2) {
   const result = prismConfigSchema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues.map(
       (issue2) => `${issue2.path.join(".") || "(root)"}: ${issue2.message}`
     );
-    throw invalidConfig(source, issues.join("; "));
+    throw invalidConfig(source2, issues.join("; "));
   }
   return result.data;
 }
-function invalidConfig(source, details) {
-  return new Error(`Invalid Prism Review configuration in ${source}: ${details}`);
+function invalidConfig(source2, details) {
+  return new Error(`Invalid Prism Review configuration in ${source2}: ${details}`);
 }
 
 // src/config/extends.ts
 var maxDepth = 5;
 var remote = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([\w.-]{1,100})\/([^@\s]{1,500})@([\w./-]{1,250})$/;
 var localPath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[^@\s\\]{1,500}$/;
-function parseExtends(value, source) {
+function parseExtends(value, source2) {
   const trimmed = value.trim();
   const match2 = remote.exec(trimmed);
   if (match2) {
@@ -48352,36 +48437,36 @@ function parseExtends(value, source) {
     return { kind: "local", path: trimmed.replace(/^\.\//, "") };
   }
   throw new Error(
-    `Invalid Prism Review configuration in ${source}: extends must be a path in this repository, such as .github/prism-review-base.yml, or owner/repo/path@ref, such as acme/policies/prism-review.yml@v2.`
+    `Invalid Prism Review configuration in ${source2}: extends must be a path in this repository, such as .github/prism-review-base.yml, or owner/repo/path@ref, such as acme/policies/prism-review.yml@v2.`
   );
 }
-async function resolveConfig(raw, source, read, path5) {
+async function resolveConfig(raw, source2, read, path5) {
   const extendedPaths = [];
   const chain = path5 === void 0 ? [] : [targetKey({ kind: "local", path: path5.replace(/^\.\//, "") })];
-  const merged = await resolveObject(raw, source, read, chain, extendedPaths);
-  return { config: parseConfigObject(merged, source), extendedPaths };
+  const merged = await resolveObject(raw, source2, read, chain, extendedPaths);
+  return { config: parseConfigObject(merged, source2), extendedPaths };
 }
-async function resolveObject(raw, source, read, chain, extendedPaths) {
-  const object2 = parseYaml(raw, source);
+async function resolveObject(raw, source2, read, chain, extendedPaths) {
+  const object2 = parseYaml(raw, source2);
   const { extends: target, ...settings13 } = object2;
   if (target === void 0) {
     return settings13;
   }
   if (typeof target !== "string") {
-    throw new Error(`Invalid Prism Review configuration in ${source}: extends must be a string.`);
+    throw new Error(`Invalid Prism Review configuration in ${source2}: extends must be a string.`);
   }
   if (chain.length > maxDepth) {
-    throw new Error(`Invalid Prism Review configuration in ${source}: extends goes more than ${maxDepth} files deep.`);
+    throw new Error(`Invalid Prism Review configuration in ${source2}: extends goes more than ${maxDepth} files deep.`);
   }
-  const parsed = parseExtends(target, source);
+  const parsed = parseExtends(target, source2);
   const key2 = targetKey(parsed);
   if (chain.includes(key2)) {
-    throw new Error(`Invalid Prism Review configuration in ${source}: extends ${target}, which extends it back.`);
+    throw new Error(`Invalid Prism Review configuration in ${source2}: extends ${target}, which extends it back.`);
   }
   const parent = await read(parsed);
   if (parent === void 0) {
     throw new Error(
-      `Invalid Prism Review configuration in ${source}: extends ${target}, which was not found${parsed.kind === "remote" ? " or the token cannot read it" : ""}.`
+      `Invalid Prism Review configuration in ${source2}: extends ${target}, which was not found${parsed.kind === "remote" ? " or the token cannot read it" : ""}.`
     );
   }
   if (parsed.kind === "local") {
@@ -48390,16 +48475,16 @@ async function resolveObject(raw, source, read, chain, extendedPaths) {
   const base = await resolveObject(parent.raw, parent.source, read, [...chain, key2], extendedPaths);
   return merge2(base, settings13);
 }
-function parseYaml(raw, source) {
+function parseYaml(raw, source2) {
   let parsed;
   try {
     parsed = (0, import_yaml2.parse)(raw) ?? {};
   } catch (error2) {
     const message = error2 instanceof Error ? error2.message : String(error2);
-    throw new Error(`Invalid Prism Review configuration in ${source}: ${message}`);
+    throw new Error(`Invalid Prism Review configuration in ${source2}: ${message}`);
   }
   if (!isObject2(parsed)) {
-    throw new Error(`Invalid Prism Review configuration in ${source}: (root): Expected a mapping.`);
+    throw new Error(`Invalid Prism Review configuration in ${source2}: (root): Expected a mapping.`);
   }
   return parsed;
 }
@@ -48426,8 +48511,8 @@ async function loadBaseBranchConfig(client, owner, repo, configPath, baseSha) {
   }
   return resolveConfig(raw, `${configPath} at ${baseSha.slice(0, 7)}`, async (target) => {
     const file = target.kind === "local" ? await fetchRepositoryFile(client, owner, repo, target.path, baseSha) : await fetchRepositoryFile(client, target.owner, target.repo, target.path, target.ref);
-    const source = target.kind === "local" ? `${target.path} at ${baseSha.slice(0, 7)}` : `${target.owner}/${target.repo}/${target.path}@${target.ref}`;
-    return file === void 0 ? void 0 : { raw: file, source };
+    const source2 = target.kind === "local" ? `${target.path} at ${baseSha.slice(0, 7)}` : `${target.owner}/${target.repo}/${target.path}@${target.ref}`;
+    return file === void 0 ? void 0 : { raw: file, source: source2 };
   }, configPath);
 }
 
@@ -48707,7 +48792,7 @@ function findSeparatorIndex(value) {
 // src/security/prepare-changed-files.ts
 function prepareChangedFiles(files, config2) {
   const { maxPatchBytes, redaction: redaction2 } = config2.security;
-  const allowlist2 = redaction2.allowlist.map((source) => new RegExp(source));
+  const allowlist2 = redaction2.allowlist.map((source2) => new RegExp(source2));
   const scanned = detectSecrets(files, allowlist2).map((file) => ({
     ...file,
     hiddenLines: file.patch === void 0 ? [] : findHiddenLines(file.patch),
