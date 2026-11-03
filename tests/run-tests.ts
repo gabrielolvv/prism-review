@@ -633,6 +633,12 @@ import {
   testWebsocketOriginSkipsTestsAndCanBeDisabled
 } from "./unit/websocket-origin.test.js";
 import {
+  testWeakPasswordPolicyReadsEachFramework,
+  testWeakPasswordPolicyReportsOneFindingPerFile,
+  testWeakPasswordPolicySkipsStrongPolicies,
+  testWeakPasswordPolicySkipsTestsAndCanBeDisabled
+} from "./unit/weak-password-policy.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1098,6 +1104,10 @@ const tests: Array<[string, Test]> = [
   ["websocket-origin reads each framework", testWebsocketOriginReadsEachFramework],
   ["websocket-origin skips origin checks", testWebsocketOriginSkipsOriginChecks],
   ["websocket-origin skips tests and can be disabled", testWebsocketOriginSkipsTestsAndCanBeDisabled],
+  ["weak-password-policy reports one finding per file", testWeakPasswordPolicyReportsOneFindingPerFile],
+  ["weak-password-policy reads each framework", testWeakPasswordPolicyReadsEachFramework],
+  ["weak-password-policy skips strong policies", testWeakPasswordPolicySkipsStrongPolicies],
+  ["weak-password-policy skips tests and can be disabled", testWeakPasswordPolicySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
