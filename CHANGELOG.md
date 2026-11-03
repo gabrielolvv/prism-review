@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.103.0 - 2026-11-03
+
+### Added
+
+- `error-details` rule: warns about stack traces and exception details sent to clients, which show whoever triggers an error file paths, library versions, queries, and sometimes secrets. It reads `err.stack` in Express, Koa, Fastify, and Fetch API responses, `traceback.format_exc()` in Flask, Django, FastAPI, aiohttp, and Tornado responses, `printStackTrace` to a servlet's or JSP's writer, Go's `debug.Stack()` written to the response, Ruby backtraces in `render`, PHP traces echoed or returned as JSON, and C# stack traces in action results, and PHP's `display_errors = On`, Spring Boot's `include-stacktrace: always` and `include-exception: true`, ASP.NET's `customErrors mode="Off"` and other detailed error settings, Apollo Server's `includeStacktraceInErrorResponses: true`, and GraphQL Yoga's `maskedErrors: false`. Details behind an environment check, traces kept in logs, and development and debug settings are not reported. On about 59,200 files, it reports one: Sails' router for virtual requests, which sends `err.stack` with its 400 responses.
+
 ## 0.102.0 - 2026-11-03
 
 ### Added

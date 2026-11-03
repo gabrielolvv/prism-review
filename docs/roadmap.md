@@ -125,6 +125,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - SSH connections that accept any host key (0.100.0).
 - gRPC without TLS (0.101.0).
 - Services started without authentication (0.102.0).
+- Stack traces and exception details sent to clients (0.103.0).
 
 ## Later
 
