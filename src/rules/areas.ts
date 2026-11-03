@@ -79,6 +79,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "open-access": "code",
   "brute-force-protection": "code",
   "ssh-host-key": "code",
+  "grpc-plaintext": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

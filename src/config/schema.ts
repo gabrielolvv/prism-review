@@ -410,6 +410,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      grpcPlaintext: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       staleLockfiles: z
         .object({
           enabled: z.boolean().default(true)

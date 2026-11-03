@@ -677,6 +677,12 @@ import {
   testSshHostKeySkipsTestsAndCanBeDisabled
 } from "./unit/ssh-host-key.test.js";
 import {
+  testGrpcPlaintextReadsEachLanguage,
+  testGrpcPlaintextReportsOneFindingPerFile,
+  testGrpcPlaintextSkipsLocalAndChosenPlaintext,
+  testGrpcPlaintextSkipsTestsAndCanBeDisabled
+} from "./unit/grpc-plaintext.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1172,6 +1178,10 @@ const tests: Array<[string, Test]> = [
   ["ssh-host-key reads each tool", testSshHostKeyReadsEachTool],
   ["ssh-host-key skips checked connections", testSshHostKeySkipsCheckedConnections],
   ["ssh-host-key skips tests and can be disabled", testSshHostKeySkipsTestsAndCanBeDisabled],
+  ["grpc-plaintext reports one finding per file", testGrpcPlaintextReportsOneFindingPerFile],
+  ["grpc-plaintext reads each language", testGrpcPlaintextReadsEachLanguage],
+  ["grpc-plaintext skips local and chosen plaintext", testGrpcPlaintextSkipsLocalAndChosenPlaintext],
+  ["grpc-plaintext skips tests and can be disabled", testGrpcPlaintextSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

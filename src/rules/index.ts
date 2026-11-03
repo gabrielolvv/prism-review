@@ -42,6 +42,7 @@ import { longSessionRule } from "./long-session.js";
 import { openAccessRule } from "./open-access.js";
 import { bruteForceProtectionRule } from "./brute-force-protection.js";
 import { sshHostKeyRule } from "./ssh-host-key.js";
+import { grpcPlaintextRule } from "./grpc-plaintext.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -127,6 +128,7 @@ export const defaultRules: Rule[] = [
   openAccessRule,
   bruteForceProtectionRule,
   sshHostKeyRule,
+  grpcPlaintextRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
