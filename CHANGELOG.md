@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.96.0 - 2026-11-03
+
+### Added
+
+- `token-storage` rule: warns about auth tokens kept where other code can read them, such as `localStorage.setItem("accessToken", ...)`, `sessionStorage.setItem("jwt", ...)`, `localStorage.token = ...`, React Native's `AsyncStorage.setItem("@auth_token", ...)`, Android's `putString("access_token", ...)` outside EncryptedSharedPreferences, and iOS's `UserDefaults` with `forKey: "authToken"`. One cross-site scripting bug can then send the token to an attacker, and the mobile stores are unencrypted files. CSRF, push, and device tokens, reading tokens back, and secure storage are not reported. The lines are found before redaction. On about 26,500 source files of authentication libraries and apps, it reports one: Nuxt Content's `previewToken` in `sessionStorage`.
+
 ## 0.95.0 - 2026-11-03
 
 ### Added
