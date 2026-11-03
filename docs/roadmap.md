@@ -119,6 +119,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Password policies shorter than 8 characters (0.94.0).
 - Request body limits turned off or raised (0.95.0).
 - Auth tokens kept in readable storage (0.96.0).
+- Sessions and access tokens that last longer than 30 days (0.97.0).
 
 ## Later
 

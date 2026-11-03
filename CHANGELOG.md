@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.97.0 - 2026-11-03
+
+### Added
+
+- `long-session` rule: warns about sessions and access tokens given a lifetime longer than 30 days, such as jsonwebtoken's `expiresIn: "365d"`, jose's `setExpirationTime("1y")`, an express-session cookie with a one-year `maxAge`, next-auth's session `maxAge`, Django's `SESSION_COOKIE_AGE`, Simple JWT's `ACCESS_TOKEN_LIFETIME`, Flask-JWT-Extended's `JWT_ACCESS_TOKEN_EXPIRES`, Rails' `expire_after: 1.year`, Devise's `timeout_in`, Go JWT claims, and jjwt expirations. A stolen token keeps working that long, and a JWT cannot be revoked. Durations are read in each framework's unit, and refresh and "remember me" tokens are not reported. The lines are found before redaction. On about 26,500 source files of authentication libraries and apps, it reports none.
+
 ## 0.96.0 - 2026-11-03
 
 ### Added
