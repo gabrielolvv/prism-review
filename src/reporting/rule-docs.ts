@@ -56,6 +56,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "grpc-plaintext": "gRPC Without TLS",
   "service-auth-disabled": "Service Authentication",
   "error-details": "Error Details",
+  "subresource-integrity": "Subresource Integrity",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

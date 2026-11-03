@@ -695,6 +695,12 @@ import {
   testErrorDetailsSkipsTestsAndCanBeDisabled
 } from "./unit/error-details.test.js";
 import {
+  testSubresourceIntegrityReadsEachKindOfPage,
+  testSubresourceIntegrityReportsOneFindingPerFile,
+  testSubresourceIntegritySkipsHashedAndOtherFiles,
+  testSubresourceIntegritySkipsTestsAndCanBeDisabled
+} from "./unit/subresource-integrity.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1202,6 +1208,10 @@ const tests: Array<[string, Test]> = [
   ["error-details reads each framework and setting", testErrorDetailsReadsEachFrameworkAndSetting],
   ["error-details skips guarded and safe code", testErrorDetailsSkipsGuardedAndSafeCode],
   ["error-details skips tests and can be disabled", testErrorDetailsSkipsTestsAndCanBeDisabled],
+  ["subresource-integrity reports one finding per file", testSubresourceIntegrityReportsOneFindingPerFile],
+  ["subresource-integrity reads each kind of page", testSubresourceIntegrityReadsEachKindOfPage],
+  ["subresource-integrity skips hashed and other files", testSubresourceIntegritySkipsHashedAndOtherFiles],
+  ["subresource-integrity skips tests and can be disabled", testSubresourceIntegritySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

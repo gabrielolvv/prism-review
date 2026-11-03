@@ -82,6 +82,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "grpc-plaintext": "code",
   "service-auth-disabled": "infrastructure",
   "error-details": "code",
+  "subresource-integrity": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
