@@ -639,6 +639,12 @@ import {
   testWeakPasswordPolicySkipsTestsAndCanBeDisabled
 } from "./unit/weak-password-policy.test.js";
 import {
+  testRequestSizeLimitReadsEachServer,
+  testRequestSizeLimitReportsOneFindingPerFile,
+  testRequestSizeLimitSkipsBoundedLimits,
+  testRequestSizeLimitSkipsTestsAndCanBeDisabled
+} from "./unit/request-size-limit.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1108,6 +1114,10 @@ const tests: Array<[string, Test]> = [
   ["weak-password-policy reads each framework", testWeakPasswordPolicyReadsEachFramework],
   ["weak-password-policy skips strong policies", testWeakPasswordPolicySkipsStrongPolicies],
   ["weak-password-policy skips tests and can be disabled", testWeakPasswordPolicySkipsTestsAndCanBeDisabled],
+  ["request-size-limit reports one finding per file", testRequestSizeLimitReportsOneFindingPerFile],
+  ["request-size-limit reads each server", testRequestSizeLimitReadsEachServer],
+  ["request-size-limit skips bounded limits", testRequestSizeLimitSkipsBoundedLimits],
+  ["request-size-limit skips tests and can be disabled", testRequestSizeLimitSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
