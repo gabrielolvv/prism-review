@@ -27449,7 +27449,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.100.0" : "development";
+var version2 = true ? "0.101.0" : "development";
 
 // src/cli/main.ts
 var usage = [
