@@ -60,6 +60,7 @@ export const ruleIds: readonly string[] = [
   "spoofable-client-ip",
   "hardcoded-crypto-key",
   "database-tls-disabled",
+  "plaintext-credentials",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

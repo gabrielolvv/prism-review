@@ -732,6 +732,12 @@ import {
   testDatabaseTlsDisabledSkipsTestsAndCanBeDisabled
 } from "./unit/database-tls-disabled.test.js";
 import {
+  testPlaintextCredentialsCanBeDisabled,
+  testPlaintextCredentialsReadsEachClient,
+  testPlaintextCredentialsReportsOneFindingPerFile,
+  testPlaintextCredentialsSkipsTlsAndLocalServers
+} from "./unit/plaintext-credentials.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1264,6 +1270,10 @@ const tests: Array<[string, Test]> = [
   ["database-tls-disabled reads each driver", testDatabaseTlsDisabledReadsEachDriver],
   ["database-tls-disabled skips local and secure connections", testDatabaseTlsDisabledSkipsLocalAndSecureConnections],
   ["database-tls-disabled skips tests and can be disabled", testDatabaseTlsDisabledSkipsTestsAndCanBeDisabled],
+  ["plaintext-credentials reports one finding per file", testPlaintextCredentialsReportsOneFindingPerFile],
+  ["plaintext-credentials reads each client", testPlaintextCredentialsReadsEachClient],
+  ["plaintext-credentials skips TLS and local servers", testPlaintextCredentialsSkipsTlsAndLocalServers],
+  ["plaintext-credentials can be disabled", testPlaintextCredentialsCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
