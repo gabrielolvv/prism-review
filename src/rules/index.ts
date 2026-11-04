@@ -51,6 +51,7 @@ import { weakKeySizeRule } from "./weak-key-size.js";
 import { spoofableClientIpRule } from "./spoofable-client-ip.js";
 import { hardcodedCryptoKeyRule } from "./hardcoded-crypto-key.js";
 import { databaseTlsDisabledRule } from "./database-tls-disabled.js";
+import { plaintextCredentialsRule } from "./plaintext-credentials.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -145,6 +146,7 @@ export const defaultRules: Rule[] = [
   spoofableClientIpRule,
   hardcodedCryptoKeyRule,
   databaseTlsDisabledRule,
+  plaintextCredentialsRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
