@@ -131,6 +131,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - RSA, DSA, and Diffie-Hellman keys shorter than 2048 bits, and weak elliptic curves (0.106.0).
 - Client addresses that can be spoofed through X-Forwarded-For (0.107.0).
 - Encryption and MAC keys written in the code (0.108.0).
+- Database connections to other hosts without TLS (0.109.0).
 
 ## Later
 
