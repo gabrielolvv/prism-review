@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -225,6 +225,8 @@ rules:
   errorDetails:
     enabled: true
   serviceAuthDisabled:
+    enabled: true
+  directoryListing:
     enabled: true
   secretLogging:
     enabled: true
@@ -1604,6 +1606,35 @@ These are not reported: CI service containers in GitHub Actions, GitLab CI, Circ
 
 On about 59,300 files of web frameworks, gRPC, SSH, rate limiting, and authentication libraries, Testcontainers, Jupyter, and apps such as Gitea, n8n, and Appsmith, the rule reports none. Gitea's CI database containers, which allow empty MySQL passwords, and Testcontainers' Elasticsearch module are not reported.
 
+## Directory Listing
+
+### `rules.directoryListing.enabled`
+
+The `directory-listing` rule warns, once per file, about web servers and static file handlers set to list the files in a folder. Anyone can then browse every file the folder holds, including ones no page links to, such as database dumps and backups, uploads from other users, source maps, `.git` folders, and configuration files with credentials. Scanners look for listings on purpose.
+
+| Server | Read |
+| --- | --- |
+| nginx | `autoindex on;` |
+| Apache | `Options Indexes`, `Options +Indexes`, and `Options All`, which includes it |
+| lighttpd | `dir-listing.activate = "enable"` and `server.dir-listing = "enable"` |
+| Caddy | `file_server browse` and `browse` in a Caddyfile |
+| IIS | `<directoryBrowse enabled="true" />` in `.config` files |
+| Tomcat and Jetty | The default servlet's `listings` and `dirAllowed` parameters set to `true` in `web.xml`, and Jetty's `setDirectoriesListed(true)` and `setDirAllowed(true)` |
+| Node.js | `serveIndex(...)` in files that import `serve-index`, and `list: true` in files that use `@fastify/static` |
+| Django | `show_indexes: True` for `django.views.static.serve` |
+| ASP.NET Core | `UseDirectoryBrowser()` and `EnableDirectoryBrowsing = true` |
+| Rack | `Rack::Directory` |
+
+Server settings are read in `.conf` files, `.htaccess`, nginx, Apache, and `sites-available` files, and in YAML, Helm, Ansible, and other templates that hold them, such as a Kubernetes ConfigMap.
+
+These are not reported:
+
+- Listing turned off, such as `autoindex off` and `Options -Indexes`, and other options, such as `IndexOptions`.
+- Listing behind an environment check, such as `if settings.DEBUG:` or `if (app.Environment.IsDevelopment())`, on the line, in the 2 lines before, or opening the block.
+- Files whose path names development, local, test, CI, example, sample, or demo code, such as `nginx.dev.conf`, comment lines, documentation, TypeScript declaration files, minified files, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 74,300 files of static file servers and the configurations that ship with them, such as serve-index, `@fastify/static`, http-server, serve, sirv, browser-sync, live-server, webpack-dev-server, WhiteNoise, Django, Rack, Puma, Passenger, Jetty, Tomcat, Apache httpd, certbot's nginx and Apache plugins, and Ansible's collections, and the apps in the other corpora, the rule reports seven files, each turning listing on. Four are Apache httpd's default configuration templates, whose `Options Indexes` lists the document root, the manual, user folders, and icons, and three are browser-sync's and live-server's development servers. rswag's `Rack::Directory.new('').root`, which only reads a path, and serve-index's own definition are not reported.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -1909,7 +1940,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
