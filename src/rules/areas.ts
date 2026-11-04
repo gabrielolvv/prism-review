@@ -83,6 +83,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "service-auth-disabled": "infrastructure",
   "error-details": "code",
   "subresource-integrity": "supply-chain",
+  "directory-listing": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

@@ -701,6 +701,12 @@ import {
   testSubresourceIntegritySkipsTestsAndCanBeDisabled
 } from "./unit/subresource-integrity.test.js";
 import {
+  testDirectoryListingReadsEachServer,
+  testDirectoryListingReportsOneFindingPerFile,
+  testDirectoryListingSkipsListingOffAndGuardedCode,
+  testDirectoryListingSkipsTestsAndCanBeDisabled
+} from "./unit/directory-listing.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1212,6 +1218,10 @@ const tests: Array<[string, Test]> = [
   ["subresource-integrity reads each kind of page", testSubresourceIntegrityReadsEachKindOfPage],
   ["subresource-integrity skips hashed and other files", testSubresourceIntegritySkipsHashedAndOtherFiles],
   ["subresource-integrity skips tests and can be disabled", testSubresourceIntegritySkipsTestsAndCanBeDisabled],
+  ["directory-listing reports one finding per file", testDirectoryListingReportsOneFindingPerFile],
+  ["directory-listing reads each server", testDirectoryListingReadsEachServer],
+  ["directory-listing skips listing off and guarded code", testDirectoryListingSkipsListingOffAndGuardedCode],
+  ["directory-listing skips tests and can be disabled", testDirectoryListingSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

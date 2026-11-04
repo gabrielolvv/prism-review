@@ -46,6 +46,7 @@ import { grpcPlaintextRule } from "./grpc-plaintext.js";
 import { serviceAuthDisabledRule } from "./service-auth-disabled.js";
 import { errorDetailsRule } from "./error-details.js";
 import { subresourceIntegrityRule } from "./subresource-integrity.js";
+import { directoryListingRule } from "./directory-listing.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -135,6 +136,7 @@ export const defaultRules: Rule[] = [
   serviceAuthDisabledRule,
   errorDetailsRule,
   subresourceIntegrityRule,
+  directoryListingRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
