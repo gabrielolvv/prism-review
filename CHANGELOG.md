@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.110.0 - 2026-11-04
+
+### Added
+
+- `plaintext-credentials` rule: warns about logins sent over FTP, SMTP, LDAP, and Telnet without TLS, which sends the username and password in plain text. It reads FTP clients without FTPS in Python, Node.js, Java, Go, PHP, Ruby, and .NET, SMTP logins without STARTTLS in smtplib, nodemailer, JavaMail, PHPMailer, and .NET's `SmtpClient`, LDAP binds on `ldap://` without StartTLS in python-ldap, ldap3, ldapjs, ldapts, JNDI, go-ldap, PHP, and net-ldap, and Telnet clients. Clients for local servers, clients chosen by a protocol or TLS option, and clients without a login are not reported. On about 93,600 files of FTP, mail, LDAP, and network automation libraries and apps, it reports one: Ansible's `ansible.netcommon.telnet` action.
+
 ## 0.109.0 - 2026-11-04
 
 ### Added
