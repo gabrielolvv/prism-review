@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.108.0 - 2026-11-04
+
+### Added
+
+- `hardcoded-crypto-key` rule: reports, as high risk, encryption and MAC keys written in the code, directly or through a name assigned one, so anyone who can read the code or the built app can decrypt the data and forge what the key protects. It reads Node.js `createCipheriv`, `createHmac`, and WebCrypto's raw `importKey`, CryptoJS passphrases, PyCryptodome, pyca/cryptography's Fernet and AEAD classes, Python's `hmac`, Java's and Kotlin's `SecretKeySpec`, Go's `aes.NewCipher` and `hmac.New`, .NET's cipher `Key` and HMAC classes, PHP's `openssl_encrypt`, `hash_hmac`, and libsodium, and Ruby's OpenSSL. Like the other secret rules, it runs before redaction. Keys from settings, key stores, or random bytes, keys built from other values, filler an algorithm replaces, template placeholders, examples, and tests are not reported. On about 79,200 files of encryption libraries and apps, it reports none.
+
 ## 0.107.0 - 2026-11-04
 
 ### Added
