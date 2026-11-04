@@ -726,6 +726,12 @@ import {
   testHardcodedCryptoKeySkipsKeysFromOutsideTheCode
 } from "./unit/hardcoded-crypto-key.test.js";
 import {
+  testDatabaseTlsDisabledReadsEachDriver,
+  testDatabaseTlsDisabledReportsOneFindingPerFile,
+  testDatabaseTlsDisabledSkipsLocalAndSecureConnections,
+  testDatabaseTlsDisabledSkipsTestsAndCanBeDisabled
+} from "./unit/database-tls-disabled.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1254,6 +1260,10 @@ const tests: Array<[string, Test]> = [
   ["hardcoded-crypto-key skips keys from outside the code", testHardcodedCryptoKeySkipsKeysFromOutsideTheCode],
   ["hardcoded-crypto-key finds keys before redaction", testHardcodedCryptoKeyFindsKeysBeforeRedaction],
   ["hardcoded-crypto-key can be disabled", testHardcodedCryptoKeyCanBeDisabled],
+  ["database-tls-disabled reports one finding per file", testDatabaseTlsDisabledReportsOneFindingPerFile],
+  ["database-tls-disabled reads each driver", testDatabaseTlsDisabledReadsEachDriver],
+  ["database-tls-disabled skips local and secure connections", testDatabaseTlsDisabledSkipsLocalAndSecureConnections],
+  ["database-tls-disabled skips tests and can be disabled", testDatabaseTlsDisabledSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

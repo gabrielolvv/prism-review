@@ -87,6 +87,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "weak-key-size": "code",
   "spoofable-client-ip": "code",
   "hardcoded-crypto-key": "secrets",
+  "database-tls-disabled": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

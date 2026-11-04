@@ -82,6 +82,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "weak-key-size": "Are new RSA, DSA, and Diffie-Hellman keys at least 2048 bits, and elliptic curves at least 224 bits?",
   "spoofable-client-ip": "Is the client's address taken only from proxies the app trusts, not from the first X-Forwarded-For entry?",
   "hardcoded-crypto-key": "Do encryption and MAC keys come from a key management service or secret store, not from the code?",
+  "database-tls-disabled": "Do connections to databases on other hosts require TLS and check the server's certificate?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

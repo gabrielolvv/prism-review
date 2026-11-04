@@ -61,6 +61,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "weak-key-size": "Weak Key Sizes",
   "spoofable-client-ip": "Client IP Spoofing",
   "hardcoded-crypto-key": "Hardcoded Encryption Keys",
+  "database-tls-disabled": "Database TLS",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
