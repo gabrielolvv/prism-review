@@ -15423,6 +15423,7 @@ var ruleIds = [
   "error-details",
   "subresource-integrity",
   "directory-listing",
+  "weak-key-size",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15725,6 +15726,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     directoryListing: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    weakKeySize: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     staleLockfiles: object({
@@ -19379,7 +19383,7 @@ function findSessionSecretLines(path2, patch) {
   if (fileAssignments.length === 0) {
     return [];
   }
-  const python6 = /\.py$/i.test(path2);
+  const python7 = /\.py$/i.test(path2);
   const found = [];
   let optionsLeft = 0;
   let depth = 0;
@@ -19390,7 +19394,7 @@ function findSessionSecretLines(path2, patch) {
       inDocstring = false;
     }
     const wasInDocstring = inDocstring;
-    if (python6 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
+    if (python7 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
       inDocstring = !inDocstring;
     }
     if (content.length > maxLineLength22 || commentLine25.test(content) || wasInDocstring) {
@@ -19662,7 +19666,7 @@ var weakTlsRule = {
       if (fileSettings.length === 0 && !readsCiphers || file.patch === void 0 || documentation18.test(file.path) || skippedFile19.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const found = [];
       let inDocstring = false;
       for (const { line, content, added, startsHunk } of patchLines(file.patch)) {
@@ -19670,7 +19674,7 @@ var weakTlsRule = {
           inDocstring = false;
         }
         const wasInDocstring = inDocstring;
-        if (python6 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
+        if (python7 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
         if (!added || wasInDocstring || content.length > maxLineLength24 || commentLine27.test(content)) {
@@ -19888,7 +19892,7 @@ var securityHeadersRule = {
         return [];
       }
       const fileSettings = settings2.filter(({ files: pattern }) => pattern.test(file.path));
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const found = [];
       let inDocstring = false;
       for (const { line, content, added, startsHunk } of patchLines(file.patch)) {
@@ -19896,7 +19900,7 @@ var securityHeadersRule = {
           inDocstring = false;
         }
         const wasInDocstring = inDocstring;
-        if (python6 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
+        if (python7 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
         if (!added || wasInDocstring || content.length > maxLineLength25 || commentLine29.test(content)) {
@@ -20270,8 +20274,8 @@ var insecureTempFileRule = {
         return [];
       }
       const lines = patchLines(file.patch);
-      const python6 = /\.py$/i.test(file.path);
-      const importsMktemp = python6 && lines.some(({ content }) => pythonImport.test(content));
+      const python7 = /\.py$/i.test(file.path);
+      const importsMktemp = python7 && lines.some(({ content }) => pythonImport.test(content));
       const found = [];
       let inDocstring = false;
       for (const { line, content, added, startsHunk } of lines) {
@@ -20279,7 +20283,7 @@ var insecureTempFileRule = {
           inDocstring = false;
         }
         const wasInDocstring = inDocstring;
-        if (python6 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
+        if (python7 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
         if (!added || wasInDocstring || content.length > maxLineLength28 || commentLine32.test(content)) {
@@ -20642,16 +20646,16 @@ var websocketOriginRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const go2 = /\.go$/i.test(file.path);
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const fileSettings = settings4.filter(({ files: pattern }) => pattern.test(file.path));
-      if (fileSettings.length === 0 && !go2 && !python6 || file.patch === void 0 || documentation27.test(file.path) || skippedFile27.test(file.path) || // Development, example, and test apps accept any origin on purpose.
+      if (fileSettings.length === 0 && !go2 && !python7 || file.patch === void 0 || documentation27.test(file.path) || skippedFile27.test(file.path) || // Development, example, and test apps accept any origin on purpose.
       developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const text = lines.map(({ content }) => content).join("\n");
       const active = fileSettings.filter(({ context }) => context === void 0 || context.test(text));
-      const validated = python6 && channelsValidator.test(text);
+      const validated = python7 && channelsValidator.test(text);
       const found = [];
       lines.forEach(({ line, content, added }, index) => {
         if (!added || content.length > maxLineLength32 || commentLine36.test(content)) {
@@ -20663,7 +20667,7 @@ var websocketOriginRule = {
         if (go2 && acceptsEveryOrigin(lines, index)) {
           found.push(line);
         }
-        if (python6 && !validated && channelsRoute.test(content)) {
+        if (python7 && !validated && channelsRoute.test(content)) {
           found.push(line);
         }
       });
@@ -20768,7 +20772,7 @@ var weakPasswordPolicyRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const fileSettings = settings5.filter(({ files: pattern }) => pattern.test(file.path));
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const annotated = annotatedFiles.test(file.path);
       if (fileSettings.length === 0 && !annotated || file.patch === void 0 || documentation28.test(file.path) || skippedFile28.test(file.path) || djangoDefaults2.test(file.path) || // Development, example, and test apps use short passwords on purpose.
       developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
@@ -20781,7 +20785,7 @@ var weakPasswordPolicyRule = {
         if (!added || content.length > maxLineLength33 || commentLine37.test(content)) {
           return;
         }
-        if (python6 && validatorsOff.test(content)) {
+        if (python7 && validatorsOff.test(content)) {
           found.push({ line, kind: "off" });
           return;
         }
@@ -21283,9 +21287,9 @@ var openAccessRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const fileSettings = settings6.filter(({ files: pattern }) => pattern.test(file.path));
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const csharp = /\.cs$/i.test(file.path);
-      if (fileSettings.length === 0 && !python6 && !csharp || file.patch === void 0 || documentation32.test(file.path) || skippedFile32.test(file.path) || // Development, example, and test apps open access on purpose.
+      if (fileSettings.length === 0 && !python7 && !csharp || file.patch === void 0 || documentation32.test(file.path) || skippedFile32.test(file.path) || // Development, example, and test apps open access on purpose.
       developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
@@ -21300,7 +21304,7 @@ var openAccessRule = {
           found.push({ line, kind: setting.kind });
           return;
         }
-        if (python6 && allowAny.test(content) && lines.slice(Math.max(0, index - drfWindow), index + 1).some(({ content: before2 }) => drfDefault.test(before2))) {
+        if (python7 && allowAny.test(content) && lines.slice(Math.max(0, index - drfWindow), index + 1).some(({ content: before2 }) => drfDefault.test(before2))) {
           found.push({ line, kind: "app" });
           return;
         }
@@ -21472,7 +21476,7 @@ var sshHostKeyRule = {
         return [];
       }
       const fileSettings = settings7.filter(({ files: pattern }) => pattern.test(file.path));
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const code = codeFile.test(file.path);
       const lines = patchLines(file.patch);
       const found = [];
@@ -21482,7 +21486,7 @@ var sshHostKeyRule = {
           inDocstring = false;
         }
         const wasInDocstring = inDocstring;
-        if (python6 && (content.match(/"""|\'\'\'/g) ?? []).length % 2 === 1) {
+        if (python7 && (content.match(/"""|\'\'\'/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
         if (!added || wasInDocstring || content.length > maxLineLength39 || commentLine43.test(content) || importOrDefinition.test(content)) {
@@ -21576,7 +21580,7 @@ var grpcPlaintextRule = {
       developmentPath.test(file.path) || /(?:^|\/)(?:bench(?:mark)?s?|interop|stubserver|testutils?)(?:\/|$)/i.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const python6 = /\.py$/i.test(file.path);
+      const python7 = /\.py$/i.test(file.path);
       const lines = patchLines(file.patch);
       const found = [];
       let inDocstring = false;
@@ -21585,7 +21589,7 @@ var grpcPlaintextRule = {
           inDocstring = false;
         }
         const wasInDocstring = inDocstring;
-        if (python6 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
+        if (python7 && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
         if (!added || wasInDocstring || content.length > maxLineLength40 || commentLine44.test(content) || definitionOrImport.test(content) || fallback.test(content)) {
@@ -22091,6 +22095,145 @@ function enclosingBlocks3(lines, index) {
   return blocks;
 }
 
+// src/rules/weak-key-size.ts
+var minimumBits = 2048;
+var brokenBits = 1024;
+var js = /\.(?:[cm]?[jt]sx?)$/i;
+var python6 = /\.py$/i;
+var jvm = /\.(?:java|kt|groovy|scala)$/i;
+var commands = /\.(?:sh|bash|zsh|ps1|ya?ml|mk)$|(?:^|\/)(?:Dockerfile[^/]*|[^/]*\.dockerfile|Makefile|Jenkinsfile[^/]*|Procfile)$/i;
+var weakCurve = String.raw`(?:secp1(?:12|28|60|92)[rk][12]|prime192v[123]|sect1(?:13|31|63)[rk][12]|c2tnb191v[123]|P-?192|nistp192)`;
+var keyPatterns = [
+  // Node.js crypto and WebCrypto, node-forge, node-rsa, selfsigned, and pem.
+  { files: js, algorithm: "RSA", pattern: /\bmodulusLength\s*:\s*(\d+)/, context: /generateKeyPair|generateKey\b|\bRSA/, contextWindow: 6 },
+  { files: js, algorithm: "RSA", pattern: /\bpki\.rsa\.generateKeyPair\s*\(\s*(?:\{[^}]*\bbits\s*:\s*)?(\d+)/ },
+  { files: js, algorithm: "RSA", pattern: /\bnew\s+NodeRSA\s*\(\s*\{\s*b\s*:\s*(\d+)/ },
+  { files: js, algorithm: "RSA", pattern: /\b(?:keySize|keyBitsize)\s*:\s*(\d+)/, context: /["'](?:selfsigned|pem|node-forge)["']/, contextWindow: Number.POSITIVE_INFINITY },
+  { files: js, algorithm: "Diffie-Hellman", pattern: /\bcreateDiffieHellman\s*\(\s*(\d+)\s*[,)]/ },
+  { files: js, algorithm: "Diffie-Hellman", pattern: /\bgetDiffieHellman\s*\(\s*["']modp1["']/, bits: 768 },
+  { files: js, algorithm: "Diffie-Hellman", pattern: /\bgetDiffieHellman\s*\(\s*["']modp2["']/, bits: 1024 },
+  // cryptography, PyCryptodome, and Paramiko.
+  { files: python6, algorithm: "RSA", pattern: /\bkey_size\s*=\s*(\d+)/, context: /\b(rsa|dsa|dh)\.generate_(?:private_key|parameters)\b/, contextWindow: 4 },
+  { files: python6, algorithm: "RSA", pattern: /\b(?:RSA|RSAKey|RSAPrivateKey)\.generate\s*\(\s*(?:(?:bits|key_size)\s*=\s*)?(\d+)/ },
+  { files: python6, algorithm: "DSA", pattern: /\b(?:DSA|DSSKey|DSAPrivateKey)\.generate\s*\(\s*(?:(?:bits|key_size)\s*=\s*)?(\d+)/ },
+  // A curve used to make a key, not one listed among those a library accepts.
+  {
+    files: python6,
+    algorithm: "an elliptic curve",
+    pattern: new RegExp(String.raw`\b(?:generate|derive)_private_key\s*\([^)]*?\bec\.(${weakCurve})\s*\(`, "i")
+  },
+  { files: python6, algorithm: "an elliptic curve", pattern: new RegExp(String.raw`\bcurve\s*=\s*["'](?:NIST\s*)?(${weakCurve})["']`, "i") },
+  // Go.
+  { files: /\.go$/i, algorithm: "RSA", pattern: /\brsa\.Generate(?:MultiPrime)?Key\s*\(\s*[\w.()]+\s*,\s*(?:\d+\s*,\s*)?(\d+)\s*\)/ },
+  { files: /\.go$/i, algorithm: "DSA", pattern: /\bdsa\.L1024N160\b/, bits: 1024 },
+  // Java's KeyPairGenerator, RSAKeyGenParameterSpec, and ECGenParameterSpec.
+  {
+    files: jvm,
+    algorithm: "RSA",
+    pattern: /\.initialize\s*\(\s*(\d+)\s*[,)]/,
+    context: /KeyPairGenerator\.getInstance\s*\(\s*["'](RSA|DSA|DH|DiffieHellman)["']/,
+    contextWindow: 8
+  },
+  { files: jvm, algorithm: "RSA", pattern: /\bnew\s+RSAKeyGenParameterSpec\s*\(\s*(\d+)/ },
+  { files: jvm, algorithm: "an elliptic curve", pattern: new RegExp(String.raw`\bnew\s+ECGenParameterSpec\s*\(\s*["'](${weakCurve})["']`, "i") },
+  // .NET.
+  { files: /\.cs$/i, algorithm: "RSA", pattern: /\bnew\s+(?:RSACryptoServiceProvider|RSACng|RSAOpenSsl)\s*\(\s*(\d+)\s*\)|\bRSA\.Create\s*\(\s*(\d+)\s*\)/ },
+  { files: /\.cs$/i, algorithm: "DSA", pattern: /\bnew\s+(?:DSACryptoServiceProvider|DSACng|DSAOpenSsl)\s*\(\s*(\d+)\s*\)|\bDSA\.Create\s*\(\s*(\d+)\s*\)/ },
+  // `KeySize` on an object named for RSA or DSA, not on an AES or HMAC one.
+  { files: /\.cs$/i, algorithm: "RSA", pattern: /\b\w*[Rr][Ss][Aa]\w*\.KeySize\s*=\s*(\d+)\b/ },
+  { files: /\.cs$/i, algorithm: "DSA", pattern: /\b\w*[Dd][Ss][Aa]\w*\.KeySize\s*=\s*(\d+)\b/ },
+  // Ruby's and PHP's OpenSSL bindings.
+  { files: /\.rb$/i, algorithm: "RSA", pattern: /\bOpenSSL::PKey::RSA\.(?:new|generate)\s*\(?\s*(\d+)/ },
+  { files: /\.rb$/i, algorithm: "DSA", pattern: /\bOpenSSL::PKey::DSA\.(?:new|generate)\s*\(?\s*(\d+)/ },
+  { files: /\.php$/i, algorithm: "RSA", pattern: /["']private_key_bits["']\s*=>\s*(\d+)/ },
+  // openssl, ssh-keygen, and keytool commands. Their sizes come last or after a flag.
+  { files: commands, algorithm: "RSA", pattern: /\bopenssl\s+genrsa\b[^|;&\n#]*?\s(\d{3,5})(?=\s*(?:$|[;&|)"'\\]))/ },
+  { files: commands, algorithm: "RSA", pattern: /-newkey\s+rsa:(\d+)\b|\brsa_keygen_bits:(\d+)\b/ },
+  { files: commands, algorithm: "DSA", pattern: /\bopenssl\s+(?:gendsa|dsaparam)\b[^|;&\n#]*?\s(\d{3,5})(?=\s*(?:$|[;&|)"'\\]))/ },
+  { files: commands, algorithm: "Diffie-Hellman", pattern: /\bopenssl\s+dhparam\b[^|;&\n#]*?\s(\d{3,5})(?=\s*(?:$|[;&|)"'\\]))/ },
+  { files: commands, algorithm: "RSA", pattern: /\bssh-keygen\b[^|;&\n#]*?\s-b\s*(\d+)/, unless: /\s-t\s*["']?(?:ecdsa|ed25519|ecdsa-sk|ed25519-sk)\b/ },
+  { files: commands, algorithm: "DSA", pattern: /\bssh-keygen\b[^|;&\n#]*?\s-t\s*["']?dsa\b/, bits: 1024 },
+  { files: commands, algorithm: "RSA", pattern: /\bkeytool\b[^|;&\n#]*?\s-keysize\s+(\d+)/, unless: /\s-keyalg\s+["']?EC\b/i },
+  // Terraform's tls_private_key, and cert-manager's Certificate.
+  { files: /\.tf$/i, algorithm: "RSA", pattern: /\brsa_bits\s*=\s*(\d+)/ },
+  { files: /\.ya?ml$/i, algorithm: "RSA", pattern: /^\s*size\s*:\s*(\d+)\s*$/, context: /^\s*algorithm\s*:\s*["']?(RSA)\b/, contextWindow: 3 }
+];
+var algorithmNames = { rsa: "RSA", dsa: "DSA", dh: "Diffie-Hellman", diffiehellman: "Diffie-Hellman" };
+var testHelperPath = /(?:^|\/)(?!latest\/|contest\/)(?:[a-z]+test|testutils?|testing|testhelpers?)\//i;
+var commentLine49 = /^\s*(?:#|\/\/|\/\*|\*|REM\b|::)/i;
+var skippedFile39 = /\.d\.[cm]?ts$|\.min\.[cm]?js$|\.map$/i;
+var documentation40 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength45 = 1e3;
+var weakKeySizeRule = {
+  id: "weak-key-size",
+  description: "Flags RSA, DSA, and Diffie-Hellman keys shorter than 2048 bits, and elliptic curves shorter than 224 bits.",
+  run({ files, config: config2 }) {
+    if (!config2.rules.weakKeySize.enabled) {
+      return [];
+    }
+    const testGlobs = config2.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const patterns3 = keyPatterns.filter(({ files: pattern }) => pattern.test(file.path));
+      if (patterns3.length === 0 || file.patch === void 0 || documentation40.test(file.path) || skippedFile39.test(file.path) || // Development, example, and test setups make throwaway keys.
+      developmentPath.test(file.path) || testHelperPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (!added || content.length > maxLineLength45 || commentLine49.test(content)) {
+          return;
+        }
+        for (const key of patterns3) {
+          const match2 = key.pattern.exec(content);
+          if (match2 === null || key.unless?.test(content) === true) {
+            continue;
+          }
+          let algorithm = key.algorithm;
+          if (key.context !== void 0) {
+            const window = key.contextWindow ?? 0;
+            const nearby = lines.slice(Math.max(0, index - window), Math.min(lines.length, index + window + 1));
+            const context = nearby.map(({ content: other }) => key.context?.exec(other)).find((result) => result != null);
+            if (context == null) {
+              continue;
+            }
+            algorithm = algorithmNames[context[1]?.toLowerCase() ?? ""] ?? algorithm;
+          }
+          const value = match2.slice(1).find((group) => group !== void 0);
+          if (algorithm === "an elliptic curve") {
+            found.push({ line, label: `the ${value ?? "weak"} curve`, broken: false });
+            break;
+          }
+          const bits = key.bits ?? Number(value);
+          if (!Number.isFinite(bits) || bits <= 0 || bits >= minimumBits) {
+            continue;
+          }
+          found.push({ line, label: `${bits}-bit ${algorithm}`, broken: bits < brokenBits });
+          break;
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const labels23 = [...new Set(found.map(({ label }) => label))];
+      return [
+        {
+          ruleId: "weak-key-size",
+          title: "Key too short",
+          severity: found.some(({ broken }) => broken) ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "make keys" : "makes a key"} too short to resist current attacks (${listOf(labels23)}). Anyone who breaks the key can forge what it signs and read what it encrypts, and 512- and 768-bit keys have been broken in public for little money.`,
+          recommendation: "Use 3072-bit RSA keys, or at least 2048 bits, and prefer elliptic curves such as P-256 or Ed25519, which are shorter and faster. Replace DSA, which OpenSSH and most libraries have dropped, and use Diffie-Hellman groups of at least 2048 bits or X25519."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -22158,7 +22301,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine49 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine50 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -22216,7 +22359,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine49.test(code) || operationDefinition.test(code)) {
+    if (!added || rollbackIndent !== void 0 || commentLine50.test(code) || operationDefinition.test(code)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -22313,10 +22456,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine50 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine51 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation40 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -22326,11 +22469,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation40.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation41.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine50.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine51.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -24188,8 +24331,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine51 = /^\s*#/;
-var documentation41 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine52 = /^\s*#/;
+var documentation42 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -24199,7 +24342,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation41.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation42.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -24232,7 +24375,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine51.test(content)) {
+    if (commentLine52.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -24266,7 +24409,7 @@ var labels17 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine52 = /^\s*#/;
+var commentLine53 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -24342,7 +24485,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine52.test(content)) {
+    if (commentLine53.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -24432,7 +24575,7 @@ var settings11 = [
   }
 ];
 var allowsEverything = settings11[0];
-var commentLine53 = /^\s*(?:#|\/\/)/;
+var commentLine54 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -24473,7 +24616,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine53.test(content)) {
+    if (!added || commentLine54.test(content)) {
       continue;
     }
     for (const setting of settings11) {
@@ -24524,7 +24667,7 @@ var labels18 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile = /\.ya?ml$/i;
-var documentation42 = /(?:^|\/)docs?\//i;
+var documentation43 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -24532,7 +24675,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine54 = /^\s*#/;
+var commentLine55 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -24542,7 +24685,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation42.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile.test(file.path) || documentation43.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -24581,7 +24724,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine54.test(content) || content.trim() === "") {
+    if (commentLine55.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -24636,8 +24779,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine55 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation43 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine56 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation44 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -24647,11 +24790,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation43.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation44.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine55.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine56.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -24747,10 +24890,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine56 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine57 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength45 = 500;
-var documentation44 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength46 = 500;
+var documentation45 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -24760,11 +24903,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation44.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation45.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine56.test(content) && content.length <= maxLineLength45 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine57.test(content) && content.length <= maxLineLength46 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -24823,8 +24966,8 @@ var settings12 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine57 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation45 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine58 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation46 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -24834,11 +24977,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation45.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation46.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine57.test(content) && settings12.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine58.test(content) && settings12.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -24887,8 +25030,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine58 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation46 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine59 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation47 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -24898,13 +25041,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation46.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation47.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine58.test(content)) {
+        if (!added || commentLine59.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -25160,10 +25303,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine59 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation47 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine60 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation48 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength46 = 1e3;
+var maxLineLength47 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -25174,11 +25317,11 @@ var redosRule = {
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation47.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation48.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine59.test(content) || content.length > maxLineLength46) {
+        if (!added || commentLine60.test(content) || content.length > maxLineLength47) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -25380,8 +25523,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine60 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation48 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine61 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation49 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -25392,10 +25535,10 @@ var remoteScriptRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation48.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation49.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
-      const found = commands(file.patch).flatMap(({ line, content }) => {
+      const found = commands2(file.patch).flatMap(({ line, content }) => {
         if (!patterns2.some((pattern) => pattern.test(unquoted(content)))) {
           return [];
         }
@@ -25429,7 +25572,7 @@ var remoteScriptRule = {
     });
   }
 };
-function commands(patch) {
+function commands2(patch) {
   const result = [];
   let parts = [];
   let firstAdded;
@@ -25444,7 +25587,7 @@ function commands(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine60.test(content)) {
+    if (commentLine61.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -25470,7 +25613,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength47 = 1e3;
+var maxLineLength48 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -25627,7 +25770,7 @@ function findCalls2(lines, language) {
   const code = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength47 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength48 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -25737,9 +25880,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation49 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation50 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation49.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation50.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -25768,7 +25911,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation50 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation51 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -25778,7 +25921,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation50.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation51.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -26198,8 +26341,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine61 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation51 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine62 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation52 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -26209,7 +26352,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config2.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation51.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation52.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -26240,7 +26383,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine61.test(content)) {
+    if (commentLine62.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -26396,6 +26539,7 @@ var defaultRules = [
   errorDetailsRule,
   subresourceIntegrityRule,
   directoryListingRule,
+  weakKeySizeRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -26949,6 +27093,7 @@ var ruleAreas = {
   "error-details": "code",
   "subresource-integrity": "supply-chain",
   "directory-listing": "infrastructure",
+  "weak-key-size": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -27072,6 +27217,7 @@ var ruleQuestions = {
   "error-details": "Do errors reach clients as generic messages, with stack traces and exception details kept in server logs?",
   "subresource-integrity": "Do scripts and stylesheets from public CDNs pin a version and carry an integrity hash, or come from your own build?",
   "directory-listing": "Do web servers serve only the files pages link to, with directory listing off?",
+  "weak-key-size": "Are new RSA, DSA, and Diffie-Hellman keys at least 2048 bits, and elliptic curves at least 224 bits?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -27164,6 +27310,7 @@ var ruleSections = {
   "error-details": "Error Details",
   "subresource-integrity": "Subresource Integrity",
   "directory-listing": "Directory Listing",
+  "weak-key-size": "Weak Key Sizes",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
