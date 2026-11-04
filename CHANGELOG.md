@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.106.0 - 2026-11-04
+
+### Added
+
+- `weak-key-size` rule: reports RSA, DSA, and Diffie-Hellman keys shorter than 2048 bits, as high below 1024 bits, and elliptic curves of 192 bits or fewer, such as `secp192r1`. Anyone who breaks such a key can forge what it signs and read what it encrypts. It reads Node.js crypto, WebCrypto, node-forge, node-rsa, selfsigned, and pem, cryptography, PyCryptodome, and Paramiko, Go's `rsa.GenerateKey` and `dsa.L1024N160`, Java's `KeyPairGenerator`, `RSAKeyGenParameterSpec`, and `ECGenParameterSpec`, .NET's RSA and DSA classes, Ruby's and PHP's OpenSSL bindings, `openssl`, `ssh-keygen`, and `keytool` commands, Terraform's `tls_private_key`, and cert-manager certificates. Sizes in variables, AES and HMAC key sizes, elliptic curve sizes, curves a library only lists, and test helper packages are not reported. On about 83,000 files, it reports two, both 1024-bit DSA keys their protocols require: asyncssh's DSA keys and Go's Off-the-Record package.
+
 ## 0.105.0 - 2026-11-04
 
 ### Added
