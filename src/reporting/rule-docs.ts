@@ -57,6 +57,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "service-auth-disabled": "Service Authentication",
   "error-details": "Error Details",
   "subresource-integrity": "Subresource Integrity",
+  "directory-listing": "Directory Listing",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

@@ -78,6 +78,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "service-auth-disabled": "Do databases, brokers, notebooks, and the Docker daemon require authentication outside a developer's machine?",
   "error-details": "Do errors reach clients as generic messages, with stack traces and exception details kept in server logs?",
   "subresource-integrity": "Do scripts and stylesheets from public CDNs pin a version and carry an integrity hash, or come from your own build?",
+  "directory-listing": "Do web servers serve only the files pages link to, with directory listing off?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
