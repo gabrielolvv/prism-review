@@ -132,6 +132,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Client addresses that can be spoofed through X-Forwarded-For (0.107.0).
 - Encryption and MAC keys written in the code (0.108.0).
 - Database connections to other hosts without TLS (0.109.0).
+- FTP, SMTP, LDAP, and Telnet logins without TLS (0.110.0).
 
 ## Later
 
