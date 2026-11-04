@@ -127,6 +127,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Services started without authentication (0.102.0).
 - Stack traces and exception details sent to clients (0.103.0).
 - Scripts and stylesheets from public CDNs without integrity hashes (0.104.0).
+- Directory listing turned on in web servers and static file handlers (0.105.0).
 
 ## Later
 
