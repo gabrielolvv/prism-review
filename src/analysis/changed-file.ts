@@ -49,6 +49,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that compare a
   // signature, token, or key in variable time.
   timingCompareLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that encrypt or
+  // sign with a key written in the code.
+  cryptoKeyLines?: number[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
