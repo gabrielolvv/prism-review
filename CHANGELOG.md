@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.107.0 - 2026-11-04
+
+### Added
+
+- `spoofable-client-ip` rule: warns about client addresses taken from `X-Forwarded-For` without checking which proxy added them, which lets a client pick its own address and get around IP allowlists, rate limits, and lockouts. It reads Express's `trust proxy` set to `true`, Fastify's `trustProxy: true`, the first entry of the header or the whole header with the socket address as a fallback in JavaScript, Python, Go, Java, Ruby, PHP, and C#, ASP.NET Core's `KnownProxies.Clear()`, Gin's `SetTrustedProxies` with `0.0.0.0/0`, Tomcat's `internal-proxies=.*`, nginx's `set_real_ip_from 0.0.0.0/0`, Apache's `RemoteIPTrustedProxy 0.0.0.0/0`, and Traefik's `forwardedHeaders.insecure`. Hop counts and proxy addresses, the last entry, lists walked from the right, headers the app sets or only logs, and settings behind a proxy option are not reported. On about 86,600 files, it reports nine, such as Sentry's integrations, Puma's logs, Mezzanine's `ip_for_request`, and Flask-Login's session identifier.
+
 ## 0.106.0 - 2026-11-04
 
 ### Added

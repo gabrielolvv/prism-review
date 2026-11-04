@@ -129,6 +129,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Scripts and stylesheets from public CDNs without integrity hashes (0.104.0).
 - Directory listing turned on in web servers and static file handlers (0.105.0).
 - RSA, DSA, and Diffie-Hellman keys shorter than 2048 bits, and weak elliptic curves (0.106.0).
+- Client addresses that can be spoofed through X-Forwarded-For (0.107.0).
 
 ## Later
 
