@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.105.0 - 2026-11-04
+
+### Added
+
+- `directory-listing` rule: warns about web servers and static file handlers set to list the files in a folder, which lets anyone browse backups, uploads, source maps, and configuration files that no page links to. It reads nginx's `autoindex on`, Apache's `Options Indexes`, `+Indexes`, and `All`, lighttpd's `dir-listing`, Caddy's `file_server browse`, IIS's `directoryBrowse`, Tomcat's and Jetty's `listings` and `dirAllowed`, serve-index, `@fastify/static`'s `list: true`, Django's `show_indexes`, ASP.NET Core's `UseDirectoryBrowser()`, and `Rack::Directory`, in server configuration, Kubernetes, Helm, and Ansible templates, and code. Listing behind an environment check, development setups, and other options with similar names are not reported. On about 74,300 files, it reports seven, each turning listing on: Apache httpd's default configuration templates and browser-sync's and live-server's development servers.
+
 ## 0.104.0 - 2026-11-03
 
 ### Added
