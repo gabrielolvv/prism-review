@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.109.0 - 2026-11-04
+
+### Added
+
+- `database-tls-disabled` rule: warns about connections to databases on other hosts with TLS turned off or the server's certificate unchecked, which sends the database password and every query and result across the network where anyone on the path can read them. It reads Postgres's `sslmode=disable` in URLs and libpq DSNs, JDBC URLs for MySQL, MariaDB, Postgres, and SQL Server, MySQL URLs and Go DSNs with `tls=false`, MongoDB URIs with `tls=false` or `tlsAllowInvalidCertificates=true`, SQL Server connection strings with `Encrypt=False` or `TrustServerCertificate=True`, and tedious and node-mssql options. Localhost, container service names, Kubernetes and `.internal` hosts, placeholders, and documentation hosts are not reported. On about 95,900 files of database drivers, ORMs, migration tools, and apps, it reports none.
+
 ## 0.108.0 - 2026-11-04
 
 ### Added
