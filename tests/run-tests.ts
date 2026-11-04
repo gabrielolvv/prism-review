@@ -719,6 +719,13 @@ import {
   testSpoofableClientIpSkipsTrustedProxiesAndOtherReads
 } from "./unit/spoofable-client-ip.test.js";
 import {
+  testHardcodedCryptoKeyCanBeDisabled,
+  testHardcodedCryptoKeyFindsKeysBeforeRedaction,
+  testHardcodedCryptoKeyReadsEachLibrary,
+  testHardcodedCryptoKeyReportsOneFindingPerFile,
+  testHardcodedCryptoKeySkipsKeysFromOutsideTheCode
+} from "./unit/hardcoded-crypto-key.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1242,6 +1249,11 @@ const tests: Array<[string, Test]> = [
   ["spoofable-client-ip reads each platform", testSpoofableClientIpReadsEachPlatform],
   ["spoofable-client-ip skips trusted proxies and other reads", testSpoofableClientIpSkipsTrustedProxiesAndOtherReads],
   ["spoofable-client-ip skips tests and can be disabled", testSpoofableClientIpSkipsTestsAndCanBeDisabled],
+  ["hardcoded-crypto-key reports one finding per file", testHardcodedCryptoKeyReportsOneFindingPerFile],
+  ["hardcoded-crypto-key reads each library", testHardcodedCryptoKeyReadsEachLibrary],
+  ["hardcoded-crypto-key skips keys from outside the code", testHardcodedCryptoKeySkipsKeysFromOutsideTheCode],
+  ["hardcoded-crypto-key finds keys before redaction", testHardcodedCryptoKeyFindsKeysBeforeRedaction],
+  ["hardcoded-crypto-key can be disabled", testHardcodedCryptoKeyCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
