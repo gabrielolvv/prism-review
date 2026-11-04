@@ -50,6 +50,7 @@ import { directoryListingRule } from "./directory-listing.js";
 import { weakKeySizeRule } from "./weak-key-size.js";
 import { spoofableClientIpRule } from "./spoofable-client-ip.js";
 import { hardcodedCryptoKeyRule } from "./hardcoded-crypto-key.js";
+import { databaseTlsDisabledRule } from "./database-tls-disabled.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -143,6 +144,7 @@ export const defaultRules: Rule[] = [
   weakKeySizeRule,
   spoofableClientIpRule,
   hardcodedCryptoKeyRule,
+  databaseTlsDisabledRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
