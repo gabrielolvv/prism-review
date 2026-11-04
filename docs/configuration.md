@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -185,6 +185,8 @@ rules:
   hardcodedJwtSecret:
     enabled: true
   hardcodedSessionSecret:
+    enabled: true
+  hardcodedCryptoKey:
     enabled: true
   jwtWithoutExpiry:
     enabled: true
@@ -1759,6 +1761,30 @@ These are not reported: keys read from the environment or a secret store, includ
 
 On about 99,000 files of library and application code, the rule reports one: the configuration Flask-AppBuilder ships for new apps, which sets `SECRET_KEY` to a fixed string.
 
+## Hardcoded Encryption Keys
+
+### `rules.hardcodedCryptoKey.enabled`
+
+The `hardcoded-crypto-key` rule reports, as high risk, one finding per file that encrypts or signs with a key written in the code. Anyone who can read the code, its history, or the built app, such as a mobile app or a JavaScript bundle, can then decrypt the data and forge what the key protects, such as signed tokens, webhooks, or download links. The key cannot be changed without a release, and every copy of the code shares it.
+
+| Where | Read |
+| --- | --- |
+| Node.js | The key of `createCipheriv`, `createDecipheriv`, and `createHmac`, WebCrypto's `subtle.importKey('raw', ...)`, and CryptoJS's `AES`, `DES`, `TripleDES`, `Rabbit`, and `RC4` `encrypt` and `decrypt` and `HmacSHA256`, whose text keys are passphrases |
+| Python | PyCryptodome's `AES.new`, `DES3.new`, `ChaCha20.new`, and the other ciphers, pyca/cryptography's `Fernet`, `AESGCM`, `ChaCha20Poly1305`, and `algorithms.AES`, and `hmac.new` and `hmac.digest` |
+| Java and Kotlin | `new SecretKeySpec(...)` |
+| Go | `aes.NewCipher`, `des.NewCipher`, `des.NewTripleDESCipher`, `chacha20poly1305.New`, and the key of `hmac.New` |
+| C# | `Key = ...` on a cipher or MAC object, `new HMACSHA256(...)` and the other HMAC classes, and the key of `CreateEncryptor` and `CreateDecryptor` |
+| PHP | The key of `openssl_encrypt`, `openssl_decrypt`, `hash_hmac`, and `sodium_crypto_secretbox` |
+| Ruby | `cipher.key = ...` and the key of `OpenSSL::HMAC.hexdigest` and `digest` |
+
+A key counts as written in the code when it is text, a byte literal, or bytes made from either, such as `b"..."`, `"...".getBytes()`, `Buffer.from("...")`, `new TextEncoder().encode("...")`, `[]byte("...")`, `Encoding.UTF8.GetBytes("...")`, `bytes.fromhex("...")`, or an array of numbers, or a name assigned one within the 60 lines before. Like the other secret rules, it runs before redaction, which rewrites assignments such as `secretKey = "..."`.
+
+These are not reported: keys from the environment, a configuration object, a key store, or random bytes; template placeholders, such as `{{ key }}`; calls named inside strings, such as an error message; `.Key` on objects that are not ciphers, such as a dictionary entry; comment lines, Python docstrings, documentation, TypeScript declaration files, minified files, files whose path names development, local, test, CI, example, sample, or demo code, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+A key built from other values, such as Tornado's OAuth `b"&".join(parts)`, and filler that an algorithm replaces before use, such as RFC 6979's starting `K = b"\x00" * hlen` in python-ecdsa and oscrypto, are not reported either.
+
+On about 79,200 files of encryption, field encryption, key storage, cryptography, and web libraries and apps, such as crypto-js, aes-js, cryptr, simple-encryptor, mongoose-encryption, prisma-field-encryption, electron-store, @hapi/iron, PyCryptodome, pyca/cryptography, PyNaCl, itsdangerous, django-cryptography, SQLAlchemy-Utils, Lockbox, attr_encrypted, gorilla/securecookie, Ghost, and the apps in the other corpora, the rule reports none: every key there comes from a setting, an argument, or random bytes.
+
 ## Public Environment Variables
 
 ### `rules.publicEnvSecret.enabled`
@@ -1995,7 +2021,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
