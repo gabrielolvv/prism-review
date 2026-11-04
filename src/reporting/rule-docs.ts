@@ -59,6 +59,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "subresource-integrity": "Subresource Integrity",
   "directory-listing": "Directory Listing",
   "weak-key-size": "Weak Key Sizes",
+  "spoofable-client-ip": "Client IP Spoofing",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

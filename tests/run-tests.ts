@@ -713,6 +713,12 @@ import {
   testWeakKeySizeSkipsTestsAndCanBeDisabled
 } from "./unit/weak-key-size.test.js";
 import {
+  testSpoofableClientIpReadsEachPlatform,
+  testSpoofableClientIpReportsOneFindingPerFile,
+  testSpoofableClientIpSkipsTestsAndCanBeDisabled,
+  testSpoofableClientIpSkipsTrustedProxiesAndOtherReads
+} from "./unit/spoofable-client-ip.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1232,6 +1238,10 @@ const tests: Array<[string, Test]> = [
   ["weak-key-size reads each language and tool", testWeakKeySizeReadsEachLanguageAndTool],
   ["weak-key-size skips strong keys and other sizes", testWeakKeySizeSkipsStrongKeysAndOtherSizes],
   ["weak-key-size skips tests and can be disabled", testWeakKeySizeSkipsTestsAndCanBeDisabled],
+  ["spoofable-client-ip reports one finding per file", testSpoofableClientIpReportsOneFindingPerFile],
+  ["spoofable-client-ip reads each platform", testSpoofableClientIpReadsEachPlatform],
+  ["spoofable-client-ip skips trusted proxies and other reads", testSpoofableClientIpSkipsTrustedProxiesAndOtherReads],
+  ["spoofable-client-ip skips tests and can be disabled", testSpoofableClientIpSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

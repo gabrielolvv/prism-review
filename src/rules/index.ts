@@ -48,6 +48,7 @@ import { errorDetailsRule } from "./error-details.js";
 import { subresourceIntegrityRule } from "./subresource-integrity.js";
 import { directoryListingRule } from "./directory-listing.js";
 import { weakKeySizeRule } from "./weak-key-size.js";
+import { spoofableClientIpRule } from "./spoofable-client-ip.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -139,6 +140,7 @@ export const defaultRules: Rule[] = [
   subresourceIntegrityRule,
   directoryListingRule,
   weakKeySizeRule,
+  spoofableClientIpRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
