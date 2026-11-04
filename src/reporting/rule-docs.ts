@@ -63,6 +63,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "hardcoded-crypto-key": "Hardcoded Encryption Keys",
   "database-tls-disabled": "Database TLS",
   "plaintext-credentials": "Plaintext Credentials",
+  "weak-oauth-flow": "OAuth and OpenID Connect",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

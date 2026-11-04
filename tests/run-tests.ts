@@ -738,6 +738,12 @@ import {
   testPlaintextCredentialsSkipsTlsAndLocalServers
 } from "./unit/plaintext-credentials.test.js";
 import {
+  testWeakOauthFlowCanBeDisabled,
+  testWeakOauthFlowReadsEachSetting,
+  testWeakOauthFlowReportsOneFindingPerFile,
+  testWeakOauthFlowSkipsTheCodeFlowAndOtherSettings
+} from "./unit/weak-oauth-flow.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1274,6 +1280,10 @@ const tests: Array<[string, Test]> = [
   ["plaintext-credentials reads each client", testPlaintextCredentialsReadsEachClient],
   ["plaintext-credentials skips TLS and local servers", testPlaintextCredentialsSkipsTlsAndLocalServers],
   ["plaintext-credentials can be disabled", testPlaintextCredentialsCanBeDisabled],
+  ["weak-oauth-flow reports one finding per file", testWeakOauthFlowReportsOneFindingPerFile],
+  ["weak-oauth-flow reads each setting", testWeakOauthFlowReadsEachSetting],
+  ["weak-oauth-flow skips the code flow and other settings", testWeakOauthFlowSkipsTheCodeFlowAndOtherSettings],
+  ["weak-oauth-flow can be disabled", testWeakOauthFlowCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
