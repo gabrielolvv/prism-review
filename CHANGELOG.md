@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.111.0 - 2026-11-04
+
+### Added
+
+- `weak-oauth-flow` rule: warns about OAuth and OpenID Connect sign-in set up in ways RFC 9700 and OAuth 2.1 rule out, which let an attacker steal tokens or authorization codes, or sign a victim in to the attacker's account. It reads the implicit flow (`response_type=token`, Keycloak's `implicitFlowEnabled`, IdentityServer's `AllowAccessTokensViaBrowser`, Spring's `authorization-grant-type: implicit`, and Azure AD's `oauth2AllowImplicitFlow`), the state check turned off (`state: false`, OmniAuth's `provider_ignores_state`, and next-auth's `checks: ['none']`), PKCE turned off, and redirect URIs that accept any address in Keycloak exports and Terraform. Libraries that choose a flow behind a condition, flows defined as class attributes or constants, and docstrings are not reported. On about 103,400 files, it reports three: next-auth's Salesforce provider and pm2's command-line login.
+
 ## 0.110.0 - 2026-11-04
 
 ### Added

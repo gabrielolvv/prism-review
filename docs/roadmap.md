@@ -133,6 +133,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Encryption and MAC keys written in the code (0.108.0).
 - Database connections to other hosts without TLS (0.109.0).
 - FTP, SMTP, LDAP, and Telnet logins without TLS (0.110.0).
+- OAuth implicit flow, state and PKCE turned off, and wildcard redirect URIs (0.111.0).
 
 ## Later
 
