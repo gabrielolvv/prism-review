@@ -56,6 +56,7 @@ export const ruleIds: readonly string[] = [
   "error-details",
   "subresource-integrity",
   "directory-listing",
+  "weak-key-size",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

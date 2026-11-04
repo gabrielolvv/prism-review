@@ -707,6 +707,12 @@ import {
   testDirectoryListingSkipsTestsAndCanBeDisabled
 } from "./unit/directory-listing.test.js";
 import {
+  testWeakKeySizeReadsEachLanguageAndTool,
+  testWeakKeySizeReportsOneFindingPerFile,
+  testWeakKeySizeSkipsStrongKeysAndOtherSizes,
+  testWeakKeySizeSkipsTestsAndCanBeDisabled
+} from "./unit/weak-key-size.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1222,6 +1228,10 @@ const tests: Array<[string, Test]> = [
   ["directory-listing reads each server", testDirectoryListingReadsEachServer],
   ["directory-listing skips listing off and guarded code", testDirectoryListingSkipsListingOffAndGuardedCode],
   ["directory-listing skips tests and can be disabled", testDirectoryListingSkipsTestsAndCanBeDisabled],
+  ["weak-key-size reports one finding per file", testWeakKeySizeReportsOneFindingPerFile],
+  ["weak-key-size reads each language and tool", testWeakKeySizeReadsEachLanguageAndTool],
+  ["weak-key-size skips strong keys and other sizes", testWeakKeySizeSkipsStrongKeysAndOtherSizes],
+  ["weak-key-size skips tests and can be disabled", testWeakKeySizeSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
