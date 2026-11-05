@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.113.0 - 2026-11-05
+
+### Added
+
+- `host-path-mount` rule: reports containers that mount the host's root, system folders such as `/etc`, `/proc`, `/sys`, and `/dev`, kubelet, Docker, containerd, CRI-O, and etcd state, or credential folders such as `~/.ssh`, `~/.aws`, and `~/.kube`, which lets anyone who takes over the container read the host's secrets and, where the mount is writable, take over the host. It reads Kubernetes and Helm `hostPath`, Compose volumes, `docker run -v` and `--mount`, and Terraform's `host_path`. Writable mounts are high and read-only ones a warning, including Kubernetes volumes whose every `volumeMounts` entry is `readOnly: true`. Log folders, the Docker socket, which `privileged-container` reports, CI, Molecule, and development setups are not reported. On about 9,100 manifests, Helm templates, and scripts from Kubernetes agents and Ansible's collections, it reports 20, such as Cilium's agent, the CSI hostpath driver, Velero's node agent, and kube-bench's jobs.
+
 ## 0.112.0 - 2026-11-05
 
 ### Added
