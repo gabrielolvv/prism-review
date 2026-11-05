@@ -775,6 +775,13 @@ import {
   testDevConsoleExposedWarnsForTheH2ConsoleAlone
 } from "./unit/dev-console-exposed.test.js";
 import {
+  testSshServerConfigReadsEachWriter,
+  testSshServerConfigReportsEmptyPasswordsAsHigh,
+  testSshServerConfigReportsOneFindingPerFile,
+  testSshServerConfigSkipsSafeSettings,
+  testSshServerConfigSkipsTestsAndCanBeDisabled
+} from "./unit/ssh-server-config.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1336,6 +1343,11 @@ const tests: Array<[string, Test]> = [
   ["dev-console-exposed reads each framework", testDevConsoleExposedReadsEachFramework],
   ["dev-console-exposed skips safe settings", testDevConsoleExposedSkipsSafeSettings],
   ["dev-console-exposed skips tests and can be disabled", testDevConsoleExposedSkipsTestsAndCanBeDisabled],
+  ["ssh-server-config reports one finding per file", testSshServerConfigReportsOneFindingPerFile],
+  ["ssh-server-config reports empty passwords as high", testSshServerConfigReportsEmptyPasswordsAsHigh],
+  ["ssh-server-config reads each writer", testSshServerConfigReadsEachWriter],
+  ["ssh-server-config skips safe settings", testSshServerConfigSkipsSafeSettings],
+  ["ssh-server-config skips tests and can be disabled", testSshServerConfigSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

@@ -58,6 +58,7 @@ import { hostPathMountRule } from "./host-path-mount.js";
 import { insecurePackageSourceRule } from "./insecure-package-source.js";
 import { unauthenticatedFunctionRule } from "./unauthenticated-function.js";
 import { devConsoleExposedRule } from "./dev-console-exposed.js";
+import { sshServerConfigRule } from "./ssh-server-config.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -159,6 +160,7 @@ export const defaultRules: Rule[] = [
   insecurePackageSourceRule,
   unauthenticatedFunctionRule,
   devConsoleExposedRule,
+  sshServerConfigRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
