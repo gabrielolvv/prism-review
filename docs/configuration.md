@@ -7,7 +7,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
-- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
+- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
@@ -165,6 +165,8 @@ rules:
       - "actions"
       - "github"
   subresourceIntegrity:
+    enabled: true
+  insecurePackageSource:
     enabled: true
   destructiveMigration:
     enabled: true
@@ -2024,6 +2026,30 @@ These are not reported:
 
 On about 62,000 files of libraries that serve their own pages, such as Swagger UI and ReDoc wrappers, GraphiQL and GraphQL playgrounds, admin themes, documentation themes, and report generators, and the apps in the other corpora, the rule reports 25 files, each a CDN tag without a hash. Among them are GraphQL Yoga's, Ariadne's, and Strawberry's GraphQL pages, Django Ninja's Swagger and ReDoc pages, better-auth's API reference, Rails' route visualizer, MkDocs' built-in themes, Docsify's starter page, express-status-monitor, and the Start Bootstrap Agency theme.
 
+## Insecure Package Sources
+
+### `rules.insecurePackageSource.enabled`
+
+The `insecure-package-source` rule reports, once per file, package managers set to skip signature or checksum checks, or to download packages over HTTP or without TLS checks. Anyone on the network path, a hijacked mirror, or a poisoned cache can then swap in a package, and its install scripts run in the build and its code in the app.
+
+| Severity | Package manager | Read |
+| --- | --- | --- |
+| High | apt | `--allow-unauthenticated`, `--allow-insecure-repositories`, `[trusted=yes]` on a source, `APT::Get::AllowUnauthenticated` and `Acquire::AllowInsecureRepositories` set to true, and Ansible's `allow_unauthenticated: true` |
+| High | yum, dnf, rpm, apk | `gpgcheck=0` in `.repo` files and `gpgcheck: no`, `--nogpgcheck`, Ansible's `disable_gpg_check: true`, `rpm --nosignature` and `--nodigest`, and `apk --allow-untrusted` |
+| High | Go | `GOSUMDB=off`, `GONOSUMDB=*`, `GONOSUMCHECK=1`, and `-insecure` in `GOFLAGS` |
+| Warning | Go | `GOINSECURE` |
+| Warning | pip, Pipenv, Poetry, uv | `--trusted-host` and `trusted-host =`, `--index-url`, `--extra-index-url`, and `--find-links` over HTTP, `-i` and `-f` over HTTP in requirements files and pip commands, `index-url =` over HTTP in `pip.conf`, and `url =` over HTTP under `[[source]]`, `[[tool.poetry.source]]`, or `[[tool.uv.index]]` |
+| Warning | npm, Yarn | `registry` over HTTP, Yarn's `npmRegistryServer` over HTTP, `enableStrictSsl: false`, and `unsafeHttpWhitelist` |
+| Warning | Maven, Gradle | `<url>` over HTTP in a `<repository>`, `<pluginRepository>`, `<snapshotRepository>`, or `<mirror>`, and Gradle's `allowInsecureProtocol` |
+| Warning | Docker, containerd | `insecure-registries` in `daemon.json`, `--insecure-registry`, and `skip_verify`, `insecure_skip_verify`, and `plain-http` in containerd's `hosts.toml` |
+| Warning | NuGet, Composer, RubyGems, conda | Package sources over HTTP and `allowInsecureConnections="true"` in `nuget.config`, `"secure-http": false` and `"disable-tls": true`, `source "http://..."` in a Gemfile and `gem --source http://...`, and `ssl_verify: false` |
+
+The rule reads Dockerfiles, shell scripts, Makefiles, CI and Ansible YAML, `.repo` and `sources.list` files, and each package manager's own configuration files. npm's `strict-ssl=false` is reported by `disabled-security-check`.
+
+These are not reported: HTTPS sources with checks on; local mirrors on `localhost`, `127.0.0.1`, `::1`, or `host.docker.internal`, such as Verdaccio or devpi; the short flags of other commands, such as `curl -f http://...`; HTTP URLs that are not package sources, such as a project homepage; comment lines; documentation; dev containers, Molecule scenarios, `docker-compose.override.yml`, and files whose path names development, local, test, CI, example, sample, or demo code; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 11,300 Dockerfiles, scripts, YAML files, and package manager configurations from Ansible's collections, Kubernetes agents, and the libraries in the other corpora, the rule reports nine, each a real unchecked source. Seven Ansible roles, from Grafana's collection and community.sops, install RPMs with `disable_gpg_check: true`, oVirt's role installs a certificate RPM with `rpm --nodigest`, and devise_ldap_authenticatable's Gemfile uses `source "http://rubygems.org"`.
+
 ## Hidden Unicode
 
 ### `rules.hiddenUnicode.enabled`
@@ -2143,7 +2169,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Area | Rules |
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
-| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
+| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
