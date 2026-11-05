@@ -142,6 +142,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - SSH servers that accept password logins, root logins with a password, or empty passwords (0.117.0).
 - Containers that run without their seccomp, AppArmor, or SELinux sandbox (0.118.0).
 - Service meshes that turn mutual TLS off or accept plaintext next to it (0.119.0).
+- Operations tools started without login, such as Jenkins, Vault's development server, and Argo CD (0.120.0).
 
 ## Later
 
