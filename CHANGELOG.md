@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.112.0 - 2026-11-05
+
+### Added
+
+- `static-root-exposure` rule: warns about static file handlers that serve the project's own folder, which lets anyone download the source code, `.env` files, and the `.git` folder. It reads `express.static`, serve-static, koa-static, sirv, and `@fastify/static` given `__dirname`, `process.cwd()`, `.`, or `..`, Flask's `static_folder`, Starlette's `StaticFiles`, Django's `document_root: BASE_DIR`, aiohttp's `add_static`, Go's `http.FileServer(http.Dir("."))` and Gin's, Echo's, and Fiber's `Static`, Sinatra's `public_folder`, and Spring Boot's `static-locations` at the classpath root. Public folders, folders served only in development, development servers, and tests are not reported. On about 94,800 files of web frameworks, static servers, and apps, it reports none.
+
 ## 0.111.0 - 2026-11-04
 
 ### Added
