@@ -72,6 +72,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "ssh-server-config": "SSH Server Settings",
   "unconfined-container": "Container Sandboxes",
   "mesh-mtls-disabled": "Service Mesh Mutual TLS",
+  "ops-tool-auth": "Operations Tools Without Login",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
