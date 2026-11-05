@@ -135,6 +135,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - FTP, SMTP, LDAP, and Telnet logins without TLS (0.110.0).
 - OAuth implicit flow, state and PKCE turned off, and wildcard redirect URIs (0.111.0).
 - Static file handlers that serve the project folder (0.112.0).
+- Containers that mount sensitive host paths (0.113.0).
 
 ## Later
 
