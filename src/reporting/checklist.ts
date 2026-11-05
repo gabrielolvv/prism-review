@@ -90,6 +90,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "insecure-package-source": "Do package managers keep signature and checksum checks on and download over HTTPS with certificate checks?",
   "unauthenticated-function": "Do serverless functions require authentication, or check every caller themselves when they must stay public?",
   "dev-console-exposed": "Are developer consoles and debug toolbars turned on only in development settings?",
+  "ssh-server-config": "Do SSH servers accept only key-based logins?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
