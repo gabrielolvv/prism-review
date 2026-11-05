@@ -143,6 +143,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Containers that run without their seccomp, AppArmor, or SELinux sandbox (0.118.0).
 - Service meshes that turn mutual TLS off or accept plaintext next to it (0.119.0).
 - Operations tools started without login, such as Jenkins, Vault's development server, and Argo CD (0.120.0).
+- Managed Kubernetes APIs open to the whole internet on EKS, GKE, and AKS (0.121.0).
 
 ## Later
 
