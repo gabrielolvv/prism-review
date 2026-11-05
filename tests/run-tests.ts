@@ -782,6 +782,12 @@ import {
   testSshServerConfigSkipsTestsAndCanBeDisabled
 } from "./unit/ssh-server-config.test.js";
 import {
+  testUnconfinedContainerReadsEachSetting,
+  testUnconfinedContainerReportsOneFindingPerFile,
+  testUnconfinedContainerSkipsConfinedContainers,
+  testUnconfinedContainerSkipsTestsAndCanBeDisabled
+} from "./unit/unconfined-container.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1348,6 +1354,10 @@ const tests: Array<[string, Test]> = [
   ["ssh-server-config reads each writer", testSshServerConfigReadsEachWriter],
   ["ssh-server-config skips safe settings", testSshServerConfigSkipsSafeSettings],
   ["ssh-server-config skips tests and can be disabled", testSshServerConfigSkipsTestsAndCanBeDisabled],
+  ["unconfined-container reports one finding per file", testUnconfinedContainerReportsOneFindingPerFile],
+  ["unconfined-container reads each setting", testUnconfinedContainerReadsEachSetting],
+  ["unconfined-container skips confined containers", testUnconfinedContainerSkipsConfinedContainers],
+  ["unconfined-container skips tests and can be disabled", testUnconfinedContainerSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
