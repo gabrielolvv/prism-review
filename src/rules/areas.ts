@@ -99,6 +99,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "unconfined-container": "infrastructure",
   "mesh-mtls-disabled": "infrastructure",
   "ops-tool-auth": "infrastructure",
+  "public-cluster-api": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

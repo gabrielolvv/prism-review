@@ -801,6 +801,12 @@ import {
   testOpsToolAuthSkipsTestsAndCanBeDisabled
 } from "./unit/ops-tool-auth.test.js";
 import {
+  testPublicClusterApiReadsEachPlatform,
+  testPublicClusterApiReportsOneFindingPerFile,
+  testPublicClusterApiSkipsLimitedApis,
+  testPublicClusterApiSkipsTestsAndCanBeDisabled
+} from "./unit/public-cluster-api.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1380,6 +1386,10 @@ const tests: Array<[string, Test]> = [
   ["ops-tool-auth reads each tool", testOpsToolAuthReadsEachTool],
   ["ops-tool-auth skips safe settings", testOpsToolAuthSkipsSafeSettings],
   ["ops-tool-auth skips tests and can be disabled", testOpsToolAuthSkipsTestsAndCanBeDisabled],
+  ["public-cluster-api reports one finding per file", testPublicClusterApiReportsOneFindingPerFile],
+  ["public-cluster-api reads each platform", testPublicClusterApiReadsEachPlatform],
+  ["public-cluster-api skips limited APIs", testPublicClusterApiSkipsLimitedApis],
+  ["public-cluster-api skips tests and can be disabled", testPublicClusterApiSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

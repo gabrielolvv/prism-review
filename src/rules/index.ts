@@ -62,6 +62,7 @@ import { sshServerConfigRule } from "./ssh-server-config.js";
 import { unconfinedContainerRule } from "./unconfined-container.js";
 import { meshMtlsDisabledRule } from "./mesh-mtls-disabled.js";
 import { opsToolAuthRule } from "./ops-tool-auth.js";
+import { publicClusterApiRule } from "./public-cluster-api.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -167,6 +168,7 @@ export const defaultRules: Rule[] = [
   unconfinedContainerRule,
   meshMtlsDisabledRule,
   opsToolAuthRule,
+  publicClusterApiRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

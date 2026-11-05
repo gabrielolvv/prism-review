@@ -73,6 +73,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "unconfined-container": "Container Sandboxes",
   "mesh-mtls-disabled": "Service Mesh Mutual TLS",
   "ops-tool-auth": "Operations Tools Without Login",
+  "public-cluster-api": "Public Kubernetes APIs",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

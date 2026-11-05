@@ -94,6 +94,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "unconfined-container": "Do containers keep their seccomp, AppArmor, and SELinux profiles?",
   "mesh-mtls-disabled": "Does the service mesh keep mutual TLS strict between services?",
   "ops-tool-auth": "Do operations tools such as Jenkins, Argo CD, and Vault keep their login on?",
+  "public-cluster-api": "Is the cluster's Kubernetes API limited to the addresses that manage it?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
