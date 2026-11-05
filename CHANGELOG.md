@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.120.0 - 2026-11-05
+
+### Added
+
+- `ops-tool-auth` rule: reports operations tools started without login, which deploy code, run scripts, read secrets, or delete data for anyone who reaches them. It reads Jenkins with security off, Airflow's and Superset's public `Admin` role, and Vault's development server, as high, and the Kubernetes Dashboard's skipped login, Argo CD's anonymous access and `--disable-auth`, Prometheus's admin API, Consul's allow-by-default ACLs, Traefik's insecure API, etcd's `ALLOW_NONE_AUTHENTICATION`, and Kong's Admin API on every interface, as warnings, including Kubernetes' `name` and `value` environment pairs. Development branches of Helm templates, the same keys in other tools, flag descriptions, end-to-end tests, `hack` scripts, docs, and tests are not reported. On about 95,500 files, including about 32,000 from operations tools, it reports four, all in Vault's own repository, whose Dockerfiles default to the development server.
+
 ## 0.119.0 - 2026-11-05
 
 ### Added
