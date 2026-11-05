@@ -65,6 +65,7 @@ import { opsToolAuthRule } from "./ops-tool-auth.js";
 import { publicClusterApiRule } from "./public-cluster-api.js";
 import { brokerPlaintextAuthRule } from "./broker-plaintext-auth.js";
 import { publicResourcePolicyRule } from "./public-resource-policy.js";
+import { plainHttpEndpointRule } from "./plain-http-endpoint.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -173,6 +174,7 @@ export const defaultRules: Rule[] = [
   publicClusterApiRule,
   brokerPlaintextAuthRule,
   publicResourcePolicyRule,
+  plainHttpEndpointRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -820,6 +820,12 @@ import {
   testPublicResourcePolicyWarnsForReadOnlyAccess
 } from "./unit/public-resource-policy.test.js";
 import {
+  testPlainHttpEndpointReadsEachPlatform,
+  testPlainHttpEndpointReportsOneFindingPerFile,
+  testPlainHttpEndpointSkipsRedirectsAndHttps,
+  testPlainHttpEndpointSkipsTestsAndCanBeDisabled
+} from "./unit/plain-http-endpoint.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1412,6 +1418,10 @@ const tests: Array<[string, Test]> = [
   ["public-resource-policy reads each format", testPublicResourcePolicyReadsEachFormat],
   ["public-resource-policy skips limited policies", testPublicResourcePolicySkipsLimitedPolicies],
   ["public-resource-policy skips tests and can be disabled", testPublicResourcePolicySkipsTestsAndCanBeDisabled],
+  ["plain-http-endpoint reports one finding per file", testPlainHttpEndpointReportsOneFindingPerFile],
+  ["plain-http-endpoint reads each platform", testPlainHttpEndpointReadsEachPlatform],
+  ["plain-http-endpoint skips redirects and HTTPS", testPlainHttpEndpointSkipsRedirectsAndHttps],
+  ["plain-http-endpoint skips tests and can be disabled", testPlainHttpEndpointSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
