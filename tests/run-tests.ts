@@ -768,6 +768,13 @@ import {
   testUnauthenticatedFunctionSkipsAuthenticatedFunctions
 } from "./unit/unauthenticated-function.test.js";
 import {
+  testDevConsoleExposedReadsEachFramework,
+  testDevConsoleExposedReportsOneFindingPerFile,
+  testDevConsoleExposedSkipsSafeSettings,
+  testDevConsoleExposedSkipsTestsAndCanBeDisabled,
+  testDevConsoleExposedWarnsForTheH2ConsoleAlone
+} from "./unit/dev-console-exposed.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1324,6 +1331,11 @@ const tests: Array<[string, Test]> = [
   ["unauthenticated-function reads each platform", testUnauthenticatedFunctionReadsEachPlatform],
   ["unauthenticated-function skips authenticated functions", testUnauthenticatedFunctionSkipsAuthenticatedFunctions],
   ["unauthenticated-function can be disabled", testUnauthenticatedFunctionCanBeDisabled],
+  ["dev-console-exposed reports one finding per file", testDevConsoleExposedReportsOneFindingPerFile],
+  ["dev-console-exposed warns for the H2 console alone", testDevConsoleExposedWarnsForTheH2ConsoleAlone],
+  ["dev-console-exposed reads each framework", testDevConsoleExposedReadsEachFramework],
+  ["dev-console-exposed skips safe settings", testDevConsoleExposedSkipsSafeSettings],
+  ["dev-console-exposed skips tests and can be disabled", testDevConsoleExposedSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

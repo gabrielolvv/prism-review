@@ -94,6 +94,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "host-path-mount": "infrastructure",
   "insecure-package-source": "supply-chain",
   "unauthenticated-function": "infrastructure",
+  "dev-console-exposed": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
