@@ -54,6 +54,7 @@ import { databaseTlsDisabledRule } from "./database-tls-disabled.js";
 import { plaintextCredentialsRule } from "./plaintext-credentials.js";
 import { weakOauthFlowRule } from "./weak-oauth-flow.js";
 import { staticRootExposureRule } from "./static-root-exposure.js";
+import { hostPathMountRule } from "./host-path-mount.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -151,6 +152,7 @@ export const defaultRules: Rule[] = [
   plaintextCredentialsRule,
   weakOauthFlowRule,
   staticRootExposureRule,
+  hostPathMountRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
