@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.124.0 - 2026-11-05
+
+### Added
+
+- `plain-http-endpoint` rule: warns about load balancers, CDNs, and app platforms set to serve plain HTTP without redirecting it to HTTPS, so anyone on the network path can read and change pages, cookies, and credentials. It reads CloudFront's `allow-all` viewer protocol policy in Terraform, CloudFormation, and the CDK, new ALB listeners on `HTTP` whose actions do not redirect, Azure's `https_only = false` and storage accounts without HTTPS-only traffic, App Engine's `secure: optional` and `never`, and ingress-nginx's `ssl-redirect: "false"`. HTTPS settings, redirecting listeners, edits to existing listeners, module listeners their callers turn on, the CDK's own enum, examples, and tests are not reported. On about 311,300 settings and source files, including about 34,600 from load balancer, CDN, and platform tools, it reports one, the HTTP listener in Filebeat's ELB module test setup.
+
 ## 0.123.0 - 2026-11-05
 
 ### Added
