@@ -140,6 +140,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Serverless functions anyone can call without authentication (0.115.0).
 - Developer consoles and debug toolbars turned on outside development (0.116.0).
 - SSH servers that accept password logins, root logins with a password, or empty passwords (0.117.0).
+- Containers that run without their seccomp, AppArmor, or SELinux sandbox (0.118.0).
 
 ## Later
 

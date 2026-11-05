@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.118.0 - 2026-11-05
+
+### Added
+
+- `unconfined-container` rule: warns about containers that run without their seccomp, AppArmor, or SELinux sandbox, which blocks the kernel interfaces most container escapes use. It reads Kubernetes' `seccompProfile` and `appArmorProfile` with `type: Unconfined`, the older `unconfined` seccomp and AppArmor annotations, `seLinuxOptions` with `type: spc_t`, Docker's and Podman's `seccomp=unconfined`, `apparmor=unconfined`, `systempaths=unconfined`, and `label=disable` in `--security-opt`, Compose's `security_opt`, Ansible's `security_opts`, and `runArgs`, and the Terraform Kubernetes and Docker providers. Default and custom profiles, other `type: Unconfined` keys, schemas that list allowed values, CI, dev containers, examples, and tests are not reported. On about 19,800 files of Kubernetes agents and container tools, it reports nine, mostly eBPF agents such as Cilium, Tetragon, and Inspektor Gadget, plus the Zabbix agent's Ansible role and Podman's lint container.
+
 ## 0.117.0 - 2026-11-05
 
 ### Added
