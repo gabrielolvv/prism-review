@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.116.0 - 2026-11-05
+
+### Added
+
+- `dev-console-exposed` rule: reports developer consoles and debug toolbars turned on outside development, which show SQL queries, settings, and secrets to whoever opens them and, for some, run SQL or code on the server. It reads Spring Boot's H2 console, as high with `web-allow-others=true`, and DevTools' remote secret, Rails' `web_console.development_only = false` and web console permissions for every address, the Django Debug Toolbar's `SHOW_TOOLBAR_CALLBACK` returning `True`, Flask-DebugToolbar's `DEBUG_TB_ENABLED`, and Laravel's `APP_DEBUG` and `DEBUGBAR_ENABLED` in production `.env` files and `'debug' => true` in `config/app.php`. Development settings and profiles, blocks behind a debug or development check, Ruby heredocs, and tests are not reported. On about 53,500 Spring Boot settings files and Python and Ruby files of web frameworks and apps, it reports none.
+
 ## 0.115.0 - 2026-11-05
 
 ### Added

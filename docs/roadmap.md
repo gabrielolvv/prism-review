@@ -138,6 +138,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Containers that mount sensitive host paths (0.113.0).
 - Package managers that skip signature checks or download over HTTP (0.114.0).
 - Serverless functions anyone can call without authentication (0.115.0).
+- Developer consoles and debug toolbars turned on outside development (0.116.0).
 
 ## Later
 
