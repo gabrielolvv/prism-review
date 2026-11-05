@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.121.0 - 2026-11-05
+
+### Added
+
+- `public-cluster-api` rule: warns about managed Kubernetes clusters whose API is open to every address on the internet, so anyone can reach the control plane, try leaked credentials against it, and use API server flaws before a patch. It reads `0.0.0.0/0` in EKS's `public_access_cidrs`, the EKS module's and CloudFormation's equivalents, and eksctl's `publicAccessCIDRs`, GKE's `master_authorized_networks_config`, and AKS's `authorized_ip_ranges`, and new EKS clusters with a public endpoint and new GKE and AKS clusters that have no address list and no private endpoint. Variables, module defaults, edits to existing clusters, other address lists such as security groups', examples, and tests are not reported. On about 44,300 Terraform, YAML, and JSON files, including about 1,100 that define clusters in eksctl, kops, Cluster API, the EKS and GKE modules, and the cloud providers, it reports none.
+
 ## 0.120.0 - 2026-11-05
 
 ### Added
