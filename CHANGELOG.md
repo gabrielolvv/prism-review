@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.125.0 - 2026-11-05
+
+### Added
+
+- `unpinned-deploy-image` rule: warns about deployments that run a container image with no tag or with `latest`, so each restart or new node can pull a different image, including one pushed from a compromised registry account, and a rollback cannot return to the image that ran before. It reads `image:` in Kubernetes manifests and Helm templates, Compose files under production paths, ECS task definitions and Cloud Run services, and Terraform's Kubernetes, Docker, ECS, and Cloud Run resources. Version tags, digests, templates and variables, `ko://` references, Helm values with a separate tag or registry, Kustomize bases and kubebuilder's `config` folders, development Compose files, block text, CI, benchmarks, examples, and tests are not reported. On about 55,900 YAML, JSON, and Terraform files, including about 4,700 with images, it reports 44 manifests their users apply as they are, such as kube-bench's Jobs, Flux's credential sync integrations, and Tempo's compiled manifests.
+
 ## 0.124.0 - 2026-11-05
 
 ### Added
