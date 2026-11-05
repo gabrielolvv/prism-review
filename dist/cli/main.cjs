@@ -15438,6 +15438,7 @@ var ruleIds = [
   "unconfined-container",
   "mesh-mtls-disabled",
   "ops-tool-auth",
+  "public-cluster-api",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15776,6 +15777,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     opsToolAuth: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    publicClusterApi: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -23981,6 +23985,94 @@ ${lines.map(({ content }) => content).join("\n")}`;
   }
 };
 
+// src/rules/public-cluster-api.ts
+var allowlistKey = /\b(?:public_access_cidrs|cluster_endpoint_public_access_cidrs|endpoint_public_access_cidrs|PublicAccessCidrs|publicAccessCIDRs|authorized_ip_ranges|api_server_authorized_ip_ranges|authorizedIPRanges|master_authorized_networks(?:_config)?|masterAuthorizedNetworksConfig)\b/;
+var allowlistPlatform = [
+  [/public_access_cidrs|PublicAccessCidrs|publicAccessCIDRs/i, "EKS"],
+  [/master_authorized_networks|masterAuthorizedNetworks/i, "GKE"],
+  [/authorized_ip_ranges|authorizedIPRanges/i, "AKS"]
+];
+var worldCidr = /(?:^|[^\d.])0\.0\.0\.0\/0\b|(?:^|[^:\w])::\/0\b/;
+var allowlistWindow = 4;
+var eksPublic = /^\s*["']?(?:endpoint_public_access|cluster_endpoint_public_access|EndpointPublicAccess)["']?\s*[:=]\s*["']?true\b/;
+var eksctlPublic = /^\s*publicAccess\s*:\s*true\b/;
+var clusterHeader = [
+  [/^\s*resource\s+"aws_eks_cluster"|^\s*Type\s*:\s*["']?AWS::EKS::Cluster\b|^\s*"Type"\s*:\s*"AWS::EKS::Cluster"|^\s*kind\s*:\s*ClusterConfig\b|^\s*source\s*=\s*"[^"]*terraform-aws-modules\/eks\/aws/, "EKS"],
+  [/^\s*resource\s+"google_container_cluster"/, "GKE"],
+  [/^\s*resource\s+"azurerm_kubernetes_cluster"\s/, "AKS"]
+];
+var privateOnly = /\benable_private_endpoint\s*=\s*true\b|\bprivate_cluster_enabled\s*=\s*true\b|\benablePrivateCluster["']?\s*:\s*true\b/;
+var settingsFile4 = /\.(?:tf|tf\.json|hcl|ya?ml|json|template)$/i;
+var commentLine64 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var describesValues3 = /\b(?:description|default_description|help)\s*[:=]/i;
+var documentation55 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength60 = 1e3;
+var publicClusterApiRule = {
+  id: "public-cluster-api",
+  description: "Flags managed Kubernetes clusters, on EKS, GKE, and AKS, whose API is open to the whole internet.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.publicClusterApi.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!settingsFile4.test(file.path) || file.patch === void 0 || documentation55.test(file.path) || // Development, example, and test clusters are torn down after use.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      const hasAllowlist = allowlistKey.test(text);
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (!added || content.length > maxLineLength60 || commentLine64.test(content) || describesValues3.test(content)) {
+          return;
+        }
+        if (worldCidr.test(content) && /^\s*default\s*=/.test(content) && lines.slice(Math.max(0, index - allowlistWindow), index).some(({ content: other }) => /^\s*variable\s+"/.test(other))) {
+          return;
+        }
+        if (worldCidr.test(content)) {
+          const key = lines.slice(Math.max(0, index - allowlistWindow), index + 1).map(({ content: other }) => allowlistKey.exec(other)?.[0]).filter((name) => name !== void 0).at(-1);
+          const platform = key === void 0 ? void 0 : allowlistPlatform.find(([pattern]) => pattern.test(key))?.[1];
+          if (platform !== void 0) {
+            found.push({ line, platform });
+          }
+          return;
+        }
+        if (hasAllowlist || privateOnly.test(text)) {
+          return;
+        }
+        const header2 = clusterHeader.find(([pattern]) => pattern.test(content));
+        if (header2 !== void 0 && header2[1] !== "EKS") {
+          found.push({ line, platform: header2[1] });
+          return;
+        }
+        if ((eksPublic.test(content) || eksctlPublic.test(content) && /^\s*kind\s*:\s*ClusterConfig\b/m.test(text)) && lines.some(({ content: other, added: isAdded }) => isAdded && (clusterHeader[0]?.[0].test(other) ?? false))) {
+          found.push({ line, platform: "EKS" });
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const platforms = [...new Set(found.map(({ platform }) => platform))];
+      return [
+        {
+          ruleId: "public-cluster-api",
+          title: "Kubernetes API open to the internet",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "leave" : "leaves"} the Kubernetes API of ${listOf(platforms.map((platform) => `an ${platform} cluster`))} open to every address on the internet, so anyone can reach the control plane, try leaked credentials and tokens against it, and use API server flaws before the cluster is patched.`,
+          recommendation: "Allow only the addresses that manage the cluster, such as a VPN's or CI runners' ranges, in `public_access_cidrs`, `master_authorized_networks_config`, or `authorized_ip_ranges`, or turn the public endpoint off and reach the API through a private endpoint, a bastion, or a VPN."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -24048,7 +24140,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine64 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine65 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -24106,7 +24198,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine64.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine65.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -24203,10 +24295,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine65 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine66 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation55 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation56 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -24216,11 +24308,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation55.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation56.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine65.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine66.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -26078,8 +26170,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine66 = /^\s*#/;
-var documentation56 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine67 = /^\s*#/;
+var documentation57 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -26089,7 +26181,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation56.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation57.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -26122,7 +26214,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine66.test(content)) {
+    if (commentLine67.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -26156,7 +26248,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine67 = /^\s*#/;
+var commentLine68 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -26232,7 +26324,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine67.test(content)) {
+    if (commentLine68.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -26322,7 +26414,7 @@ var settings18 = [
   }
 ];
 var allowsEverything = settings18[0];
-var commentLine68 = /^\s*(?:#|\/\/)/;
+var commentLine69 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -26363,7 +26455,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine68.test(content)) {
+    if (!added || commentLine69.test(content)) {
       continue;
     }
     for (const setting of settings18) {
@@ -26414,7 +26506,7 @@ var labels21 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile2 = /\.ya?ml$/i;
-var documentation57 = /(?:^|\/)docs?\//i;
+var documentation58 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -26422,7 +26514,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine69 = /^\s*#/;
+var commentLine70 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -26432,7 +26524,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile2.test(file.path) || documentation57.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile2.test(file.path) || documentation58.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -26471,7 +26563,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine69.test(content) || content.trim() === "") {
+    if (commentLine70.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -26526,8 +26618,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine70 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation58 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine71 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation59 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -26537,11 +26629,11 @@ var filePermissionsRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation58.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation59.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine70.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine71.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -26637,10 +26729,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine71 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine72 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength60 = 500;
-var documentation59 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength61 = 500;
+var documentation60 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -26650,11 +26742,11 @@ var weakCryptoRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation59.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation60.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine71.test(content) && content.length <= maxLineLength60 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine72.test(content) && content.length <= maxLineLength61 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -26713,8 +26805,8 @@ var settings19 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine72 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation60 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine73 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation61 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -26724,11 +26816,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation60.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation61.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine72.test(content) && settings19.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine73.test(content) && settings19.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -26777,8 +26869,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine73 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation61 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine74 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation62 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -26788,13 +26880,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation61.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation62.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine73.test(content)) {
+        if (!added || commentLine74.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -27050,10 +27142,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine74 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation62 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine75 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation63 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength61 = 1e3;
+var maxLineLength62 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -27064,11 +27156,11 @@ var redosRule = {
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation62.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation63.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine74.test(content) || content.length > maxLineLength61) {
+        if (!added || commentLine75.test(content) || content.length > maxLineLength62) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -27270,8 +27362,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine75 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation63 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine76 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation64 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -27282,7 +27374,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation63.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation64.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands2(file.patch).flatMap(({ line, content }) => {
@@ -27334,7 +27426,7 @@ function commands2(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine75.test(content)) {
+    if (commentLine76.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -27360,7 +27452,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength62 = 1e3;
+var maxLineLength63 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -27517,7 +27609,7 @@ function findCalls2(lines, language) {
   const code4 = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code4[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength62 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength63 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -27627,9 +27719,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation64 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation65 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation64.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation65.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -27658,7 +27750,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation65 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation66 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -27668,7 +27760,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation65.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation66.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -28088,8 +28180,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine76 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation66 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine77 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -28099,7 +28191,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation66.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation67.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -28130,7 +28222,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine76.test(content)) {
+    if (commentLine77.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -28301,6 +28393,7 @@ var defaultRules = [
   unconfinedContainerRule,
   meshMtlsDisabledRule,
   opsToolAuthRule,
+  publicClusterApiRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -28869,6 +28962,7 @@ var ruleAreas = {
   "unconfined-container": "infrastructure",
   "mesh-mtls-disabled": "infrastructure",
   "ops-tool-auth": "infrastructure",
+  "public-cluster-api": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -29007,6 +29101,7 @@ var ruleQuestions = {
   "unconfined-container": "Do containers keep their seccomp, AppArmor, and SELinux profiles?",
   "mesh-mtls-disabled": "Does the service mesh keep mutual TLS strict between services?",
   "ops-tool-auth": "Do operations tools such as Jenkins, Argo CD, and Vault keep their login on?",
+  "public-cluster-api": "Is the cluster's Kubernetes API limited to the addresses that manage it?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -29114,6 +29209,7 @@ var ruleSections = {
   "unconfined-container": "Container Sandboxes",
   "mesh-mtls-disabled": "Service Mesh Mutual TLS",
   "ops-tool-auth": "Operations Tools Without Login",
+  "public-cluster-api": "Public Kubernetes APIs",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
