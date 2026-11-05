@@ -62,6 +62,7 @@ export const ruleIds: readonly string[] = [
   "database-tls-disabled",
   "plaintext-credentials",
   "weak-oauth-flow",
+  "static-root-exposure",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
