@@ -807,6 +807,12 @@ import {
   testPublicClusterApiSkipsTestsAndCanBeDisabled
 } from "./unit/public-cluster-api.test.js";
 import {
+  testBrokerPlaintextAuthReadsEachBroker,
+  testBrokerPlaintextAuthReportsOneFindingPerFile,
+  testBrokerPlaintextAuthSkipsSafeConnections,
+  testBrokerPlaintextAuthSkipsTestsAndCanBeDisabled
+} from "./unit/broker-plaintext-auth.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1390,6 +1396,10 @@ const tests: Array<[string, Test]> = [
   ["public-cluster-api reads each platform", testPublicClusterApiReadsEachPlatform],
   ["public-cluster-api skips limited APIs", testPublicClusterApiSkipsLimitedApis],
   ["public-cluster-api skips tests and can be disabled", testPublicClusterApiSkipsTestsAndCanBeDisabled],
+  ["broker-plaintext-auth reports one finding per file", testBrokerPlaintextAuthReportsOneFindingPerFile],
+  ["broker-plaintext-auth reads each broker", testBrokerPlaintextAuthReadsEachBroker],
+  ["broker-plaintext-auth skips safe connections", testBrokerPlaintextAuthSkipsSafeConnections],
+  ["broker-plaintext-auth skips tests and can be disabled", testBrokerPlaintextAuthSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
