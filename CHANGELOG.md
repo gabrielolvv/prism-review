@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.123.0 - 2026-11-05
+
+### Added
+
+- `public-resource-policy` rule: reports AWS resource policies with a statement that allows every principal and has no condition, which grants its actions to anonymous callers and every other AWS account. It reads `"Principal": "*"` and `{"AWS": "*"}` in JSON, YAML, and CloudFormation policies, Terraform's `principals { identifiers = ["*"] }` and `aws_lambda_permission`'s `principal = "*"`, and the CDK's `AnyPrincipal` and `StarPrincipal`, as high when the statement writes, decrypts, or runs code and as a warning when it only reads. `Deny` statements, conditions such as `aws:PrincipalOrgID` or `aws:SourceArn`, Lambda function URL permissions, named principals, docstrings, snapshots, examples, and tests are not reported. On about 277,700 settings and source files, including about 3,800 with policies from Terraform and Cloud Posse modules, AWS Solutions Constructs, the CDK, and serverless frameworks, it reports none.
+
 ## 0.122.0 - 2026-11-05
 
 ### Added
