@@ -56,6 +56,7 @@ import { weakOauthFlowRule } from "./weak-oauth-flow.js";
 import { staticRootExposureRule } from "./static-root-exposure.js";
 import { hostPathMountRule } from "./host-path-mount.js";
 import { insecurePackageSourceRule } from "./insecure-package-source.js";
+import { unauthenticatedFunctionRule } from "./unauthenticated-function.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -155,6 +156,7 @@ export const defaultRules: Rule[] = [
   staticRootExposureRule,
   hostPathMountRule,
   insecurePackageSourceRule,
+  unauthenticatedFunctionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

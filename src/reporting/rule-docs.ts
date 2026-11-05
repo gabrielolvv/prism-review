@@ -67,6 +67,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "static-root-exposure": "Static Root Exposure",
   "host-path-mount": "Host Path Mounts",
   "insecure-package-source": "Insecure Package Sources",
+  "unauthenticated-function": "Unauthenticated Functions",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

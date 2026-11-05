@@ -762,6 +762,12 @@ import {
   testInsecurePackageSourceSkipsTestsAndCanBeDisabled
 } from "./unit/insecure-package-source.test.js";
 import {
+  testUnauthenticatedFunctionCanBeDisabled,
+  testUnauthenticatedFunctionReadsEachPlatform,
+  testUnauthenticatedFunctionReportsOneFindingPerFile,
+  testUnauthenticatedFunctionSkipsAuthenticatedFunctions
+} from "./unit/unauthenticated-function.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1314,6 +1320,10 @@ const tests: Array<[string, Test]> = [
   ["insecure-package-source reads each manager", testInsecurePackageSourceReadsEachManager],
   ["insecure-package-source skips checked sources and other commands", testInsecurePackageSourceSkipsCheckedSourcesAndOtherCommands],
   ["insecure-package-source skips tests and can be disabled", testInsecurePackageSourceSkipsTestsAndCanBeDisabled],
+  ["unauthenticated-function reports one finding per file", testUnauthenticatedFunctionReportsOneFindingPerFile],
+  ["unauthenticated-function reads each platform", testUnauthenticatedFunctionReadsEachPlatform],
+  ["unauthenticated-function skips authenticated functions", testUnauthenticatedFunctionSkipsAuthenticatedFunctions],
+  ["unauthenticated-function can be disabled", testUnauthenticatedFunctionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

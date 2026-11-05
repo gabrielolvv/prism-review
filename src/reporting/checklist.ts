@@ -88,6 +88,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "static-root-exposure": "Do static file handlers serve only a public folder, never the project root with its source, .env, and .git?",
   "host-path-mount": "Do containers mount only the host folders they need, read-only, and never the host root, system folders, or credentials?",
   "insecure-package-source": "Do package managers keep signature and checksum checks on and download over HTTPS with certificate checks?",
+  "unauthenticated-function": "Do serverless functions require authentication, or check every caller themselves when they must stay public?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

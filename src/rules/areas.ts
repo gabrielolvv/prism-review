@@ -93,6 +93,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "static-root-exposure": "code",
   "host-path-mount": "infrastructure",
   "insecure-package-source": "supply-chain",
+  "unauthenticated-function": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

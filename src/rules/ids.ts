@@ -65,6 +65,7 @@ export const ruleIds: readonly string[] = [
   "static-root-exposure",
   "host-path-mount",
   "insecure-package-source",
+  "unauthenticated-function",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
