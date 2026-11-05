@@ -68,6 +68,7 @@ export const ruleIds: readonly string[] = [
   "unauthenticated-function",
   "dev-console-exposed",
   "ssh-server-config",
+  "unconfined-container",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

@@ -70,6 +70,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "unauthenticated-function": "Unauthenticated Functions",
   "dev-console-exposed": "Developer Consoles",
   "ssh-server-config": "SSH Server Settings",
+  "unconfined-container": "Container Sandboxes",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

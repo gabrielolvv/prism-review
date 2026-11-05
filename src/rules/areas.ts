@@ -96,6 +96,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "unauthenticated-function": "infrastructure",
   "dev-console-exposed": "code",
   "ssh-server-config": "infrastructure",
+  "unconfined-container": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
