@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.114.0 - 2026-11-05
+
+### Added
+
+- `insecure-package-source` rule: reports package managers set to skip signature or checksum checks, as high, such as apt's `--allow-unauthenticated` and `[trusted=yes]`, yum's and dnf's `gpgcheck=0` and `--nogpgcheck`, Ansible's `disable_gpg_check`, `rpm --nodigest`, apk's `--allow-untrusted`, and Go's `GOSUMDB=off`, and to download packages over HTTP or without TLS checks, as a warning, such as pip's `--trusted-host` and HTTP indexes, npm and Yarn HTTP registries, Maven and Gradle HTTP repositories, Docker's `insecure-registries`, NuGet, Composer, RubyGems, conda, and `GOINSECURE`. Anyone on the path can then swap in a package that runs code in the build and the app. Local mirrors, other commands' flags, and HTTP URLs that are not package sources are not reported. On about 11,300 build files, it reports nine, such as Grafana's Ansible roles installing RPMs with `disable_gpg_check: true`.
+
 ## 0.113.0 - 2026-11-05
 
 ### Added
