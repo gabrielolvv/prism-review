@@ -74,6 +74,7 @@ export const ruleIds: readonly string[] = [
   "public-cluster-api",
   "broker-plaintext-auth",
   "public-resource-policy",
+  "plain-http-endpoint",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

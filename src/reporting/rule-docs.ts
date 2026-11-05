@@ -76,6 +76,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-cluster-api": "Public Kubernetes APIs",
   "broker-plaintext-auth": "Broker Logins Without TLS",
   "public-resource-policy": "Public Resource Policies",
+  "plain-http-endpoint": "Plain HTTP Endpoints",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
