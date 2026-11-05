@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.122.0 - 2026-11-05
+
+### Added
+
+- `broker-plaintext-auth` rule: warns about logins to message brokers and caches over connections without TLS, which send the password or token in the clear to anyone on the network path. It reads Kafka's `SASL_PLAINTEXT` in client settings, environment variables, Java, and Python, in advertised listeners on other hosts, and in listener maps, KafkaJS's `sasl` next to `ssl: false`, and `amqp://`, `redis://`, `mqtt://`, and `nats://` URLs with a password, and mqtt.js logins, to hosts that are not local. Kerberos-only setups, local and container hosts, placeholders, Kafka's default listener map and bind addresses, docstrings, examples, and tests are not reported. On about 292,000 source and settings files, including about 38,500 from Kafka and broker clients and tools, it reports two, Metricbeat's Kafka module settings that log in with `SASL_PLAINTEXT` and `PLAIN`.
+
 ## 0.121.0 - 2026-11-05
 
 ### Added
