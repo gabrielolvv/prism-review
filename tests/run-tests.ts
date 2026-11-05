@@ -788,6 +788,12 @@ import {
   testUnconfinedContainerSkipsTestsAndCanBeDisabled
 } from "./unit/unconfined-container.test.js";
 import {
+  testMeshMtlsDisabledReadsEachMesh,
+  testMeshMtlsDisabledReportsOneFindingPerFile,
+  testMeshMtlsDisabledSkipsStrictMeshes,
+  testMeshMtlsDisabledSkipsTestsAndCanBeDisabled
+} from "./unit/mesh-mtls-disabled.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1358,6 +1364,10 @@ const tests: Array<[string, Test]> = [
   ["unconfined-container reads each setting", testUnconfinedContainerReadsEachSetting],
   ["unconfined-container skips confined containers", testUnconfinedContainerSkipsConfinedContainers],
   ["unconfined-container skips tests and can be disabled", testUnconfinedContainerSkipsTestsAndCanBeDisabled],
+  ["mesh-mtls-disabled reports one finding per file", testMeshMtlsDisabledReportsOneFindingPerFile],
+  ["mesh-mtls-disabled reads each mesh", testMeshMtlsDisabledReadsEachMesh],
+  ["mesh-mtls-disabled skips strict meshes", testMeshMtlsDisabledSkipsStrictMeshes],
+  ["mesh-mtls-disabled skips tests and can be disabled", testMeshMtlsDisabledSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
