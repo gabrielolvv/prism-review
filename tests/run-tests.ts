@@ -826,6 +826,12 @@ import {
   testPlainHttpEndpointSkipsTestsAndCanBeDisabled
 } from "./unit/plain-http-endpoint.test.js";
 import {
+  testUnpinnedDeployImageReadsEachPlatform,
+  testUnpinnedDeployImageReportsOneFindingPerFile,
+  testUnpinnedDeployImageSkipsPinnedImages,
+  testUnpinnedDeployImageSkipsTestsAndCanBeDisabled
+} from "./unit/unpinned-deploy-image.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1422,6 +1428,10 @@ const tests: Array<[string, Test]> = [
   ["plain-http-endpoint reads each platform", testPlainHttpEndpointReadsEachPlatform],
   ["plain-http-endpoint skips redirects and HTTPS", testPlainHttpEndpointSkipsRedirectsAndHttps],
   ["plain-http-endpoint skips tests and can be disabled", testPlainHttpEndpointSkipsTestsAndCanBeDisabled],
+  ["unpinned-deploy-image reports one finding per file", testUnpinnedDeployImageReportsOneFindingPerFile],
+  ["unpinned-deploy-image reads each platform", testUnpinnedDeployImageReadsEachPlatform],
+  ["unpinned-deploy-image skips pinned images", testUnpinnedDeployImageSkipsPinnedImages],
+  ["unpinned-deploy-image skips tests and can be disabled", testUnpinnedDeployImageSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

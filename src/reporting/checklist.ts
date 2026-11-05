@@ -98,6 +98,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "broker-plaintext-auth": "Do logins to Kafka, RabbitMQ, Redis, MQTT, and NATS go over TLS?",
   "public-resource-policy": "Do resource policies name who gets access instead of allowing every principal?",
   "plain-http-endpoint": "Do load balancers, CDNs, and app platforms redirect HTTP to HTTPS?",
+  "unpinned-deploy-image": "Do deployments pin their container images to a version or digest?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

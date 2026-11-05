@@ -103,6 +103,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "broker-plaintext-auth": "infrastructure",
   "public-resource-policy": "infrastructure",
   "plain-http-endpoint": "infrastructure",
+  "unpinned-deploy-image": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
