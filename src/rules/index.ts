@@ -64,6 +64,7 @@ import { meshMtlsDisabledRule } from "./mesh-mtls-disabled.js";
 import { opsToolAuthRule } from "./ops-tool-auth.js";
 import { publicClusterApiRule } from "./public-cluster-api.js";
 import { brokerPlaintextAuthRule } from "./broker-plaintext-auth.js";
+import { publicResourcePolicyRule } from "./public-resource-policy.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -171,6 +172,7 @@ export const defaultRules: Rule[] = [
   opsToolAuthRule,
   publicClusterApiRule,
   brokerPlaintextAuthRule,
+  publicResourcePolicyRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -101,6 +101,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "ops-tool-auth": "infrastructure",
   "public-cluster-api": "infrastructure",
   "broker-plaintext-auth": "infrastructure",
+  "public-resource-policy": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

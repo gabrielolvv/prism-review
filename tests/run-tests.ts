@@ -813,6 +813,13 @@ import {
   testBrokerPlaintextAuthSkipsTestsAndCanBeDisabled
 } from "./unit/broker-plaintext-auth.test.js";
 import {
+  testPublicResourcePolicyReadsEachFormat,
+  testPublicResourcePolicyReportsOneFindingPerFile,
+  testPublicResourcePolicySkipsLimitedPolicies,
+  testPublicResourcePolicySkipsTestsAndCanBeDisabled,
+  testPublicResourcePolicyWarnsForReadOnlyAccess
+} from "./unit/public-resource-policy.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1400,6 +1407,11 @@ const tests: Array<[string, Test]> = [
   ["broker-plaintext-auth reads each broker", testBrokerPlaintextAuthReadsEachBroker],
   ["broker-plaintext-auth skips safe connections", testBrokerPlaintextAuthSkipsSafeConnections],
   ["broker-plaintext-auth skips tests and can be disabled", testBrokerPlaintextAuthSkipsTestsAndCanBeDisabled],
+  ["public-resource-policy reports one finding per file", testPublicResourcePolicyReportsOneFindingPerFile],
+  ["public-resource-policy warns for read-only access", testPublicResourcePolicyWarnsForReadOnlyAccess],
+  ["public-resource-policy reads each format", testPublicResourcePolicyReadsEachFormat],
+  ["public-resource-policy skips limited policies", testPublicResourcePolicySkipsLimitedPolicies],
+  ["public-resource-policy skips tests and can be disabled", testPublicResourcePolicySkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
