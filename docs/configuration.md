@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -251,6 +251,8 @@ rules:
   devConsoleExposed:
     enabled: true
   sshServerConfig:
+    enabled: true
+  unconfinedContainer:
     enabled: true
   secretLogging:
     enabled: true
@@ -1893,6 +1895,28 @@ These are not reported:
 
 On about 13,200 Dockerfiles, scripts, and YAML, Terraform, and config files of infrastructure tools, such as Ansible's collections, the Azure Terraform provider, Cluster API's Azure, vSphere, and OpenStack providers, KubeVirt, Packer's Azure and Amazon plugins, Salt, InSpec, Test Kitchen's Docker drivers, and Molecule, the rule reports two files, both in oVirt's Hosted Engine role, which turns on root logins with a password for the engine VM through cloud-init's `ssh_pwauth: True` and `disable_root: false` and a `PermitRootLogin yes` line. The Azure provider's VMs with password logins are all in its examples.
 
+## Container Sandboxes
+
+### `rules.unconfinedContainer.enabled`
+
+The `unconfined-container` rule warns, once per file, about containers that run without their seccomp, AppArmor, or SELinux sandbox. These profiles block the system calls and kernel interfaces that a process rarely needs and that most container escapes use, such as `unshare`, `mount`, `keyctl`, and `bpf`, so turning one off leaves only namespaces and capabilities between a compromised container and the host's kernel.
+
+| Where | Read |
+| --- | --- |
+| Kubernetes | `seccompProfile:` and `appArmorProfile:` with `type: Unconfined`, the older `seccomp.security.alpha.kubernetes.io` and `container.apparmor.security.beta.kubernetes.io` annotations set to `unconfined`, and `seLinuxOptions:` with `type: spc_t` |
+| Docker and Podman | `seccomp=unconfined`, `apparmor=unconfined`, `systempaths=unconfined`, and `label=disable`, with `=` or `:`, given to `--security-opt`, Compose's `security_opt`, Ansible's `security_opts`, or `runArgs` |
+| Terraform | The Kubernetes provider's `seccomp_profile { type = "Unconfined" }` and the Docker provider's `security_opts` |
+
+These are not reported:
+
+- `RuntimeDefault` and `Localhost` profiles, and custom seccomp profiles such as `seccomp:./seccomp.json`.
+- `type: Unconfined` under other keys, and `unconfined` outside a security option, such as SELinux's `unconfined_u` user.
+- Lines that list allowed values, such as `examples:`, `enum:`, `description:`, and `default:` in schemas and CRDs.
+- CI workflows, dev containers, which turn seccomp off on purpose so debuggers can attach, and Compose override files.
+- Comment lines, documentation, files whose path names development, local, test, CI, example, sample, or demo setups, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 19,800 YAML, JSON, Terraform, and script files of Kubernetes agents and container tools, such as Cilium, Tetragon, Calico, Inspektor Gadget, Falco's tooling, Rook, Longhorn, kind, k3s, Podman, BuildKit, Lima, Colima, testcontainers, Kubescape, Coroot, Parca, and KubeVirt, the rule reports nine files. Most are eBPF agents that ask for it, such as Cilium's and Tetragon's charts with an unconfined AppArmor profile and Inspektor Gadget's DaemonSet with SELinux's `spc_t`, which are worth the review the rule asks for. The others are the Zabbix agent's Ansible role, which runs the agent's container with `apparmor:unconfined`, and Podman's Makefile, which runs its lint container with `label=disable`.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -2246,7 +2270,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
