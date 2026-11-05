@@ -70,6 +70,7 @@ export const ruleIds: readonly string[] = [
   "ssh-server-config",
   "unconfined-container",
   "mesh-mtls-disabled",
+  "ops-tool-auth",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

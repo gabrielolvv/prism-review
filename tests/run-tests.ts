@@ -794,6 +794,13 @@ import {
   testMeshMtlsDisabledSkipsTestsAndCanBeDisabled
 } from "./unit/mesh-mtls-disabled.test.js";
 import {
+  testOpsToolAuthReadsEachTool,
+  testOpsToolAuthReportsCodeExecutionAsHigh,
+  testOpsToolAuthReportsOneFindingPerFile,
+  testOpsToolAuthSkipsSafeSettings,
+  testOpsToolAuthSkipsTestsAndCanBeDisabled
+} from "./unit/ops-tool-auth.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1368,6 +1375,11 @@ const tests: Array<[string, Test]> = [
   ["mesh-mtls-disabled reads each mesh", testMeshMtlsDisabledReadsEachMesh],
   ["mesh-mtls-disabled skips strict meshes", testMeshMtlsDisabledSkipsStrictMeshes],
   ["mesh-mtls-disabled skips tests and can be disabled", testMeshMtlsDisabledSkipsTestsAndCanBeDisabled],
+  ["ops-tool-auth reports one finding per file", testOpsToolAuthReportsOneFindingPerFile],
+  ["ops-tool-auth reports code execution as high", testOpsToolAuthReportsCodeExecutionAsHigh],
+  ["ops-tool-auth reads each tool", testOpsToolAuthReadsEachTool],
+  ["ops-tool-auth skips safe settings", testOpsToolAuthSkipsSafeSettings],
+  ["ops-tool-auth skips tests and can be disabled", testOpsToolAuthSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

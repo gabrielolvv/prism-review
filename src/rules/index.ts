@@ -61,6 +61,7 @@ import { devConsoleExposedRule } from "./dev-console-exposed.js";
 import { sshServerConfigRule } from "./ssh-server-config.js";
 import { unconfinedContainerRule } from "./unconfined-container.js";
 import { meshMtlsDisabledRule } from "./mesh-mtls-disabled.js";
+import { opsToolAuthRule } from "./ops-tool-auth.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -165,6 +166,7 @@ export const defaultRules: Rule[] = [
   sshServerConfigRule,
   unconfinedContainerRule,
   meshMtlsDisabledRule,
+  opsToolAuthRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
