@@ -144,6 +144,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Service meshes that turn mutual TLS off or accept plaintext next to it (0.119.0).
 - Operations tools started without login, such as Jenkins, Vault's development server, and Argo CD (0.120.0).
 - Managed Kubernetes APIs open to the whole internet on EKS, GKE, and AKS (0.121.0).
+- Logins to Kafka, RabbitMQ, Redis, MQTT, and NATS without TLS (0.122.0).
 
 ## Later
 
