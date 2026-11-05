@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies), [`plain-http-endpoint`](#plain-http-endpoints)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -263,6 +263,8 @@ rules:
   brokerPlaintextAuth:
     enabled: true
   publicResourcePolicy:
+    enabled: true
+  plainHttpEndpoint:
     enabled: true
   secretLogging:
     enabled: true
@@ -2048,6 +2050,32 @@ These are not reported:
 
 On about 277,700 settings and source files, including about 3,800 with policies, from Terraform's S3, SQS, SNS, KMS, Lambda, IAM, CloudFront, and ECR modules, Cloud Posse's S3 and CloudFront modules, AWS Solutions Constructs, the AWS CDK, Serverless, SAM, Chalice, Zappa, Ansible's AWS collections, and Crossplane's AWS provider, the rule reports none. The open statements there are in tests, snapshots, and documentation, or are limited by a condition.
 
+## Plain HTTP Endpoints
+
+### `rules.plainHttpEndpoint.enabled`
+
+The `plain-http-endpoint` rule warns, once per file, about load balancers, CDNs, and app platforms set to serve plain HTTP without redirecting it to HTTPS. Anyone on the network path, such as a public Wi-Fi network, a compromised router, or an ISP, can then read and change pages, session cookies, and credentials, and inject scripts into what the site serves.
+
+| Platform | Read |
+| --- | --- |
+| CloudFront | `viewer_protocol_policy = "allow-all"`, CloudFormation's `ViewerProtocolPolicy: allow-all`, and the CDK's `ViewerProtocolPolicy.ALLOW_ALL` |
+| Application Load Balancer | A new `aws_lb_listener`, `aws_alb_listener`, or `AWS::ElasticLoadBalancingV2::Listener` with protocol `HTTP` whose actions do not redirect |
+| Azure | `https_only = false` on App Service and Function Apps, `https_traffic_only_enabled = false` and `enable_https_traffic_only = false` on storage accounts, and ARM's `httpsOnly` and `supportsHttpsTrafficOnly` set to `false` |
+| App Engine | Handlers with `secure: optional` or `secure: never` in `app.yaml` |
+| ingress-nginx | `nginx.ingress.kubernetes.io/ssl-redirect: "false"` or `force-ssl-redirect: "false"`, and `ssl-redirect: "false"` in its ConfigMap |
+
+A listener is new when the line that starts its resource is added in the same change, so its whole definition is there to check.
+
+These are not reported:
+
+- HTTPS settings, such as `redirect-to-https`, `https-only`, `https_only = true`, and `secure: always`, HTTPS listeners, and HTTP target groups behind a load balancer.
+- Listeners whose default action redirects, edits to an existing listener, and listeners a module creates only when its caller turns the redirect off, such as `count = var.http_redirect != true ? 1 : 0`.
+- The CDK's own `ViewerProtocolPolicy` enum, and descriptions.
+- End-to-end test setups, `hack` scripts, `docs` folders, and snapshots.
+- Comment lines, documentation, files whose path names development, local, test, CI, example, sample, or demo stacks, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 311,300 settings and source files, including about 34,600 from load balancer, CDN, and platform tools, such as the terraform-aws-modules ALB, ELB, ECS, and CloudFront modules, Cloud Posse's ALB, CloudFront, and S3 modules, Google's HTTP load balancer module, Azure's compute module, the AWS CDK for Go, Terratest, ingress-nginx, and AWS Solutions Constructs, the rule reports one file: the HTTP listener that forwards traffic in the Terraform setup Filebeat's ELB module uses for its tests.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -2401,7 +2429,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy`, `plain-http-endpoint` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
