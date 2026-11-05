@@ -66,6 +66,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "weak-oauth-flow": "OAuth and OpenID Connect",
   "static-root-exposure": "Static Root Exposure",
   "host-path-mount": "Host Path Mounts",
+  "insecure-package-source": "Insecure Package Sources",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
