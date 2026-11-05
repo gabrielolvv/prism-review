@@ -756,6 +756,12 @@ import {
   testHostPathMountSkipsTestsAndCanBeDisabled
 } from "./unit/host-path-mount.test.js";
 import {
+  testInsecurePackageSourceReadsEachManager,
+  testInsecurePackageSourceReportsOneFindingPerFile,
+  testInsecurePackageSourceSkipsCheckedSourcesAndOtherCommands,
+  testInsecurePackageSourceSkipsTestsAndCanBeDisabled
+} from "./unit/insecure-package-source.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1304,6 +1310,10 @@ const tests: Array<[string, Test]> = [
   ["host-path-mount reads each format", testHostPathMountReadsEachFormat],
   ["host-path-mount skips narrow paths and other setups", testHostPathMountSkipsNarrowPathsAndOtherSetups],
   ["host-path-mount skips tests and can be disabled", testHostPathMountSkipsTestsAndCanBeDisabled],
+  ["insecure-package-source reports one finding per file", testInsecurePackageSourceReportsOneFindingPerFile],
+  ["insecure-package-source reads each manager", testInsecurePackageSourceReadsEachManager],
+  ["insecure-package-source skips checked sources and other commands", testInsecurePackageSourceSkipsCheckedSourcesAndOtherCommands],
+  ["insecure-package-source skips tests and can be disabled", testInsecurePackageSourceSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

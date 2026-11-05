@@ -92,6 +92,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "weak-oauth-flow": "code",
   "static-root-exposure": "code",
   "host-path-mount": "infrastructure",
+  "insecure-package-source": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
