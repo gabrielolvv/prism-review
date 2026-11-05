@@ -750,6 +750,12 @@ import {
   testStaticRootExposureSkipsTestsAndCanBeDisabled
 } from "./unit/static-root-exposure.test.js";
 import {
+  testHostPathMountReadsEachFormat,
+  testHostPathMountReportsOneFindingPerFile,
+  testHostPathMountSkipsNarrowPathsAndOtherSetups,
+  testHostPathMountSkipsTestsAndCanBeDisabled
+} from "./unit/host-path-mount.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1294,6 +1300,10 @@ const tests: Array<[string, Test]> = [
   ["static-root-exposure reads each framework", testStaticRootExposureReadsEachFramework],
   ["static-root-exposure skips public folders", testStaticRootExposureSkipsPublicFolders],
   ["static-root-exposure skips tests and can be disabled", testStaticRootExposureSkipsTestsAndCanBeDisabled],
+  ["host-path-mount reports one finding per file", testHostPathMountReportsOneFindingPerFile],
+  ["host-path-mount reads each format", testHostPathMountReadsEachFormat],
+  ["host-path-mount skips narrow paths and other setups", testHostPathMountSkipsNarrowPathsAndOtherSetups],
+  ["host-path-mount skips tests and can be disabled", testHostPathMountSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
