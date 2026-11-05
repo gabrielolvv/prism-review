@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -241,6 +241,8 @@ rules:
   directoryListing:
     enabled: true
   databaseTlsDisabled:
+    enabled: true
+  hostPathMount:
     enabled: true
   secretLogging:
     enabled: true
@@ -1788,6 +1790,31 @@ Settings that keep TLS on, such as `sslmode=require` or `verify-full`, comment l
 
 On about 95,900 files of database drivers, ORMs, migration tools, and the apps in the other corpora, such as pg, mysql2, tedious, node-mssql, the MongoDB drivers, Prisma, TypeORM, Sequelize, Knex, psycopg, SQLAlchemy, asyncpg, PyMySQL, ActiveRecord, Sequel, lib/pq, pgx, go-sql-driver/mysql, GORM, golang-migrate, goose, Gitea, and n8n, the rule reports none. The settings that turn TLS off there all point at `localhost` or `127.0.0.1`, as goose's Makefile and pgx's CI do, or sit in comments and docstrings.
 
+## Host Path Mounts
+
+### `rules.hostPathMount.enabled`
+
+The `host-path-mount` rule reports, once per file, containers that mount sensitive folders from the host. Anyone who takes over such a container, through a bug in the app or a compromised image, can read the host's secrets, such as `/etc/shadow`, kubelet credentials, and other pods' service account tokens. Where the mount is writable, they can change the host's configuration, load kernel modules, or start containers of their own through the runtime's socket, which gives them the host and every container on it.
+
+These host paths, and the folders inside them, are reported:
+
+- The root, `/`, and system folders: `/etc`, `/root`, `/home`, `/proc`, `/sys`, `/dev`, `/boot`, `/lib/modules`, and `/usr/lib/modules`.
+- Container runtime and Kubernetes state: `/var/lib/kubelet`, `/var/lib/docker`, `/var/lib/containerd`, `/var/lib/etcd`, `/etc/kubernetes`, and the containerd, CRI-O, and Podman folders and sockets under `/run` and `/var/run`.
+- Credential folders in a home folder: `~/.ssh`, `~/.aws`, `~/.kube`, `~/.docker`, `~/.gnupg`, `~/.config/gcloud`, and `~/.azure`, also written as `$HOME/...`, `/root/...`, or `/home/<user>/...`.
+
+| Where | Read |
+| --- | --- |
+| Kubernetes and Helm | `hostPath:` with a `path:` in the 3 lines after it, and `hostPath: { path: ... }` |
+| Compose | Short volume syntax, such as `- /etc:/host/etc:ro`, and long syntax with `type: bind` and `source:` |
+| Docker commands | `-v` and `--volume`, and `--mount` with `source=` or `src=`, in shell scripts, Makefiles, and YAML |
+| Terraform | The Kubernetes provider's `host_path { path = ... }` |
+
+A writable mount is high. A read-only mount is a warning: Compose's and Docker's `:ro`, `read_only: true`, and `readonly`, and in Kubernetes a hostPath volume whose every `volumeMounts` entry in the patch is `readOnly: true`.
+
+These are not reported: narrower folders, such as `/var/log` and `/var/lib/<app>`; the container log folder `/var/lib/docker/containers`, which log agents read; the Docker socket, which `privileged-container` reports; named volumes and relative paths, such as `./config`; other `path:` keys, such as an HTTP probe's; CI workflows and service containers, dev containers, `docker-compose.override.yml`, Ansible Molecule scenarios, and files whose path names development, local, test, CI, example, sample, or demo code; comment lines; documentation; test files matched by `rules.missingTests.testGlobs`; and fixture directories.
+
+On about 9,100 YAML, Helm, Terraform, and shell files from Kubernetes agents and operators, such as Cilium, the CSI hostpath driver, kube-bench, Velero, Grafana Alloy, node_exporter, kube-state-metrics, Longhorn, Flux, KEDA, and falcoctl, and from Ansible's collections and the other corpora, the rule reports 20 files, each a real mount of a host path above. Cilium's agent, the CSI hostpath driver, and Velero's node agent mount kubelet, BPF, `/proc`, and kernel module folders writable; kube-bench's jobs, Cilium's Envoy proxy, and Zabbix's agent role mount them read-only, so they are warnings, and kube-bench's kind cluster configs under `hack/` mount them writable.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -2117,7 +2144,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
