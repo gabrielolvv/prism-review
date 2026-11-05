@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.119.0 - 2026-11-05
+
+### Added
+
+- `mesh-mtls-disabled` rule: warns about service meshes set to turn mutual TLS off or to accept plaintext next to it, so traffic between services can be read or changed and any pod can call a service without a mesh identity. It reads Istio's `PeerAuthentication` with `DISABLE` or `PERMISSIVE`, also per port, `DestinationRule`s that turn TLS off for hosts in the cluster, and `enableAutoMtls: false` in the mesh config, Consul's permissive mutual TLS mode and the mesh switch that allows it, and Kuma's permissive mTLS backends. Strict modes, other resources' modes, external hosts, other projects' `enableAutoMtls` options, CRD descriptions, examples, and tests are not reported. On about 35,300 YAML, JSON, HCL, and Terraform files, including about 16,900 from Istio, Consul, Kuma, Linkerd, Kiali, and other service mesh tools, it reports one, Knative's `PERMISSIVE` webhook port.
+
 ## 0.118.0 - 2026-11-05
 
 ### Added
