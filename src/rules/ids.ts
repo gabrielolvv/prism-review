@@ -72,6 +72,7 @@ export const ruleIds: readonly string[] = [
   "mesh-mtls-disabled",
   "ops-tool-auth",
   "public-cluster-api",
+  "broker-plaintext-auth",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
