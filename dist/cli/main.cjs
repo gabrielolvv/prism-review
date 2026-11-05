@@ -15436,6 +15436,7 @@ var ruleIds = [
   "dev-console-exposed",
   "ssh-server-config",
   "unconfined-container",
+  "mesh-mtls-disabled",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15768,6 +15769,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     unconfinedContainer: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    meshMtlsDisabled: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -18990,7 +18994,7 @@ var electronSecurityRule = {
         return [];
       }
       const numbers = [...new Set(found.map((match2) => match2.line))];
-      const labels25 = [...new Set(found.map((match2) => match2.setting.label))];
+      const labels26 = [...new Set(found.map((match2) => match2.setting.label))];
       const critical = found.some((match2) => match2.setting.critical);
       const { text, plural } = describeLines(numbers);
       return [
@@ -19001,7 +19005,7 @@ var electronSecurityRule = {
           file: file.path,
           line: numbers[0],
           lines: numbers,
-          message: `${text} ${plural ? "weaken" : "weakens"} Electron's isolation between web content and the computer (${labels25.join(", ")}). ${critical ? "A script injected into the page, through XSS or a URL it loads, can then use Node.js or other sites' data and run commands on the user's computer." : "A compromised page then has more of the system within its reach."}`,
+          message: `${text} ${plural ? "weaken" : "weakens"} Electron's isolation between web content and the computer (${labels26.join(", ")}). ${critical ? "A script injected into the page, through XSS or a URL it loads, can then use Node.js or other sites' data and run commands on the user's computer." : "A compromised page then has more of the system within its reach."}`,
           recommendation: "Keep Electron's defaults: `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`, and `webSecurity: true`, and expose only the functions the page needs through a preload script with `contextBridge.exposeInMainWorld`. Trust a private certificate authority by adding its certificate instead of accepting every certificate."
         }
       ];
@@ -21771,7 +21775,7 @@ var serviceAuthDisabledRule = {
         return [];
       }
       const lines = found.map(({ line }) => line);
-      const labels25 = [...new Set(found.map(({ setting }) => setting.label))];
+      const labels26 = [...new Set(found.map(({ setting }) => setting.label))];
       const { text, plural } = describeLines(lines);
       return [
         {
@@ -21781,7 +21785,7 @@ var serviceAuthDisabledRule = {
           file: file.path,
           line: lines[0],
           lines,
-          message: `${text} ${plural ? "turn off" : "turns off"} ${listOf(labels25)}, so anyone who can reach the service on the network can read and change its data, or, for Docker and Jupyter, run code on the host.`,
+          message: `${text} ${plural ? "turn off" : "turns off"} ${listOf(labels26)}, so anyone who can reach the service on the network can read and change its data, or, for Docker and Jupyter, run code on the host.`,
           recommendation: "Keep authentication on in every environment that is not a developer's machine: set passwords or keys from a secret store, keep Redis's protected mode and Elasticsearch security on, give Jupyter a token, and serve the Docker daemon over TLS or a local socket only. Put these settings in development-only files, such as `docker-compose.override.yml`, when local setups need them."
         }
       ];
@@ -22109,7 +22113,7 @@ var directoryListingRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "directory-listing",
@@ -22118,7 +22122,7 @@ var directoryListingRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${where} ${plural ? "turn on" : "turns on"} directory listing in ${listOf(labels25)}, so anyone can browse every file in the served folders, including backups, uploads, source maps, and configuration files that no page links to.`,
+          message: `${where} ${plural ? "turn on" : "turns on"} directory listing in ${listOf(labels26)}, so anyone can browse every file in the served folders, including backups, uploads, source maps, and configuration files that no page links to.`,
           recommendation: 'Turn listing off, such as `autoindex off`, `Options -Indexes`, or `<directoryBrowse enabled="false" />`, and serve only the files pages link to. For a public download folder, list it on purpose in one location only, and keep everything else out of it.'
         }
       ];
@@ -22265,7 +22269,7 @@ var weakKeySizeRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "weak-key-size",
@@ -22274,7 +22278,7 @@ var weakKeySizeRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "make keys" : "makes a key"} too short to resist current attacks (${listOf(labels25)}). Anyone who breaks the key can forge what it signs and read what it encrypts, and 512- and 768-bit keys have been broken in public for little money.`,
+          message: `${text} ${plural ? "make keys" : "makes a key"} too short to resist current attacks (${listOf(labels26)}). Anyone who breaks the key can forge what it signs and read what it encrypts, and 512- and 768-bit keys have been broken in public for little money.`,
           recommendation: "Use 3072-bit RSA keys, or at least 2048 bits, and prefer elliptic curves such as P-256 or Ed25519, which are shorter and faster. Replace DSA, which OpenSSH and most libraries have dropped, and use Diffie-Hellman groups of at least 2048 bits or X25519."
         }
       ];
@@ -22835,7 +22839,7 @@ var plaintextCredentialsRule = {
       }
       const lineNumbers = found.map(({ line }) => line).sort((left, right) => left - right);
       const { text: where, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "plaintext-credentials",
@@ -22844,7 +22848,7 @@ var plaintextCredentialsRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${where} ${plural ? "log" : "logs"} in over ${listOf(labels25)} without TLS, so the username and password, and everything sent after them, cross the network in plain text that anyone on the path can read.`,
+          message: `${where} ${plural ? "log" : "logs"} in over ${listOf(labels26)} without TLS, so the username and password, and everything sent after them, cross the network in plain text that anyone on the path can read.`,
           recommendation: "Use the protocol's TLS form: FTPS (`FTP_TLS`, `secure: true`, `FTPSClient`, `ftp_ssl_connect`) or SFTP, SMTP with `starttls()` or implicit TLS on port 465, LDAPS or LDAP with StartTLS, and SSH instead of Telnet."
         }
       ];
@@ -23317,7 +23321,7 @@ var insecurePackageSourceRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "insecure-package-source",
@@ -23326,7 +23330,7 @@ var insecurePackageSourceRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "install" : "installs"} packages without checking where they come from (${listOf(labels25)}), so anyone on the network path, a hijacked mirror, or a poisoned cache can swap in a package that runs its code in the build and in the app.`,
+          message: `${text} ${plural ? "install" : "installs"} packages without checking where they come from (${listOf(labels26)}), so anyone on the network path, a hijacked mirror, or a poisoned cache can swap in a package that runs its code in the build and in the app.`,
           recommendation: "Keep signature and checksum checks on, such as `gpgcheck=1`, apt's signed-by keys, and the Go checksum database, and download over HTTPS with certificate checks, adding a private registry's CA instead of trusting its host. Pin dependencies with hashes or a lockfile where the package manager supports it."
         }
       ];
@@ -23397,7 +23401,7 @@ var unauthenticatedFunctionRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "unauthenticated-function",
@@ -23406,7 +23410,7 @@ var unauthenticatedFunctionRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${where} ${plural ? "let" : "lets"} anyone on the internet call ${listOf(labels25)} without authentication, so unless the function checks each caller itself, such as a webhook's signature or a token, anyone can run it, read what it returns, and run up its bill.`,
+          message: `${where} ${plural ? "let" : "lets"} anyone on the internet call ${listOf(labels26)} without authentication, so unless the function checks each caller itself, such as a webhook's signature or a token, anyone can run it, read what it returns, and run up its bill.`,
           recommendation: "Require the platform's authentication, such as `AWS_IAM` function URLs, Cloud Run's IAM invoker role without `--allow-unauthenticated`, or Azure's `function` or `admin` level, and put public endpoints behind an API gateway with authentication and rate limits. When a function must stay public, such as a webhook, check every request's signature in the function."
         }
       ];
@@ -23499,7 +23503,7 @@ var devConsoleExposedRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const labels25 = [...new Set(found.map(({ label }) => label))];
+      const labels26 = [...new Set(found.map(({ label }) => label))];
       return [
         {
           ruleId: "dev-console-exposed",
@@ -23508,7 +23512,7 @@ var devConsoleExposedRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "turn on" : "turns on"} ${listOf(labels25)}, which ${plural || labels25.length > 1 ? "show" : "shows"} SQL queries, settings, and secrets to whoever opens ${plural || labels25.length > 1 ? "them" : "it"}, and some of them run SQL or code on the server.`,
+          message: `${text} ${plural ? "turn on" : "turns on"} ${listOf(labels26)}, which ${plural || labels26.length > 1 ? "show" : "shows"} SQL queries, settings, and secrets to whoever opens ${plural || labels26.length > 1 ? "them" : "it"}, and some of them run SQL or code on the server.`,
           recommendation: "Turn developer consoles and toolbars on only in development settings, such as `application-dev.properties`, `config/environments/development.rb`, or a `DEBUG` check, keep them bound to localhost, and set `APP_DEBUG=false` in production."
         }
       ];
@@ -23746,6 +23750,120 @@ var unconfinedContainerRule = {
   }
 };
 
+// src/rules/mesh-mtls-disabled.ts
+var labels19 = {
+  disabled: "turns mutual TLS off",
+  permissive: "accepts plaintext next to mutual TLS"
+};
+var modeLine = /^\s*-?\s*["']?mode["']?\s*:\s*["']?(DISABLE|PERMISSIVE)\b/;
+var peerAuthentication = /^\s*kind\s*:\s*["']?PeerAuthentication\b/m;
+var destinationRule = /^\s*kind\s*:\s*["']?DestinationRule\b/m;
+var mtlsKey = /^\s*(?:mtls|portLevelMtls)\s*:|^\s*["']?\d{1,5}["']?\s*:\s*$/;
+var tlsKey = /^\s*tls\s*:\s*$/;
+var hostLine = /^\s*host\s*:\s*["']?([\w.*-]+)["']?/;
+var clusterHost = /^[\w*-]+(?:\.(?!(?:com|org|net|io|dev|co|ai|app|cloud|us|uk|de|eu|info|biz|me|tech|xyz)$)[\w-]+)?$|\.svc(?:\.cluster\.local)?$|\.cluster\.local$/;
+var keyWindow = 3;
+var autoMtlsOff = /^\s*["']?enableAutoMtls["']?\s*:\s*["']?false\b/;
+var consulPermissive = /^\s*["']?(?:MutualTLSMode|mutual_tls_mode|mutualTLSMode)["']?\s*[:=]\s*["']?permissive["']?\s*,?\s*(?:#.*)?$|^\s*["']?(?:AllowEnablingPermissiveMutualTLS|allow_enabling_permissive_mutual_tls|allowEnablingPermissiveMutualTLS)["']?\s*[:=]\s*true\s*,?\s*(?:#.*)?$/;
+var kumaMesh = /^\s*kind\s*:\s*["']?Mesh\b/m;
+var settingsFile2 = /\.(?:ya?ml|tpl|j2|json|hcl|tf)$/i;
+var commentLine62 = /^\s*(?:#|\/\/|\{\{-?\s*\/\*)/;
+var documentation53 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength58 = 1e3;
+var meshMtlsDisabledRule = {
+  id: "mesh-mtls-disabled",
+  description: "Flags service meshes set to turn mutual TLS off or to accept plaintext next to it.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.meshMtlsDisabled.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!settingsFile2.test(file.path) || file.patch === void 0 || documentation53.test(file.path) || // Development, example, and test clusters.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      const peer = peerAuthentication.test(text);
+      const destination = destinationRule.test(text);
+      const kuma = kumaMesh.test(text);
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (!added || content.length > maxLineLength58 || commentLine62.test(content)) {
+          return;
+        }
+        if (autoMtlsOff.test(content) && parentKeys(lines, index).some((key) => key === "meshConfig" || key === "mesh")) {
+          found.push({ line, kind: "disabled" });
+          return;
+        }
+        if (consulPermissive.test(content)) {
+          found.push({ line, kind: "permissive" });
+          return;
+        }
+        const mode = modeLine.exec(content)?.[1];
+        if (mode === void 0) {
+          return;
+        }
+        const before2 = lines.slice(Math.max(0, index - keyWindow), index).map(({ content: other }) => other);
+        const kind = mode === "DISABLE" ? "disabled" : "permissive";
+        if ((peer || kuma) && before2.some((other) => mtlsKey.test(other) || kuma && /^\s*-?\s*(?:type|name)\s*:/.test(other))) {
+          found.push({ line, kind });
+        } else if (destination && kind === "disabled" && before2.some((other) => tlsKey.test(other)) && inClusterHost(lines, index)) {
+          found.push({ line, kind });
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const kinds3 = Object.keys(labels19).filter((kind) => found.some((entry) => entry.kind === kind));
+      return [
+        {
+          ruleId: "mesh-mtls-disabled",
+          title: "Service mesh mutual TLS weakened",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "set" : "sets"} the service mesh so that it ${listOf(kinds3.map((kind) => labels19[kind]))}, so traffic between services can be read or changed on the network, and any pod, including one an attacker controls, can call these services without a mesh identity that authorization policies check.`,
+          recommendation: "Keep mutual TLS in `STRICT` mode, mesh-wide and for each workload, and leave automatic mutual TLS on. Use `PERMISSIVE` only while moving a workload into the mesh, and for a port that clients outside the mesh call, such as a webhook, serve TLS on that port and limit `PERMISSIVE` to it with `portLevelMtls`."
+        }
+      ];
+    });
+  }
+};
+function inClusterHost(lines, index) {
+  for (let before2 = index - 1; before2 >= Math.max(0, index - 40); before2 -= 1) {
+    const content = lines[before2]?.content ?? "";
+    const host = hostLine.exec(content)?.[1];
+    if (host !== void 0) {
+      return clusterHost.test(host);
+    }
+    if (/^---\s*$/.test(content)) {
+      break;
+    }
+  }
+  return false;
+}
+function parentKeys(lines, index) {
+  const keys = [];
+  let indent = /^\s*/.exec(lines[index]?.content ?? "")?.[0].length ?? 0;
+  for (let before2 = index - 1; before2 >= Math.max(0, index - 200) && indent > 0; before2 -= 1) {
+    const content = lines[before2]?.content ?? "";
+    const own2 = /^\s*/.exec(content)?.[0].length ?? 0;
+    if (content.trim() !== "" && own2 < indent) {
+      const key = /^\s*-?\s*["']?([\w.-]+)["']?\s*:/.exec(content)?.[1];
+      if (key !== void 0) {
+        keys.push(key);
+      }
+      indent = own2;
+    }
+  }
+  return keys;
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -23813,7 +23931,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine62 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine63 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -23871,7 +23989,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine62.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine63.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -23968,10 +24086,10 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine63 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine64 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation53 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation54 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -23981,11 +24099,11 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation53.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation54.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine63.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine64.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -23993,7 +24111,7 @@ var disabledSecurityCheckRule = {
       const listed = checks.filter((check) => found.some((match2) => match2.check === check));
       const high3 = listed.some((check) => check.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels25 = listed.map((check) => check.label);
+      const labels26 = listed.map((check) => check.label);
       return [
         {
           ruleId: "disabled-security-check",
@@ -24002,7 +24120,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels3(labels25)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels3(labels26)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -24018,8 +24136,8 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels3(labels25) {
-  return labels25.length > 1 ? `${labels25.slice(0, -1).join(", ")}, and ${labels25.at(-1)}` : labels25[0] ?? "";
+function joinLabels3(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/analysis/hidden-characters.ts
@@ -24052,7 +24170,7 @@ function isHiddenCodePoint(codePoint) {
   return bidiControls.has(codePoint) || invisibleCharacters.has(codePoint) || isTagCharacter(codePoint);
 }
 function findHiddenCharacters(text, allowLeadingBom = false) {
-  const labels25 = /* @__PURE__ */ new Set();
+  const labels26 = /* @__PURE__ */ new Set();
   let reordersText = false;
   let index = 0;
   for (const char of text) {
@@ -24064,15 +24182,15 @@ function findHiddenCharacters(text, allowLeadingBom = false) {
     }
     const bidiName = bidiControls.get(codePoint);
     if (bidiName) {
-      labels25.add(`${formatCodePoint(codePoint)} ${bidiName}`);
+      labels26.add(`${formatCodePoint(codePoint)} ${bidiName}`);
       reordersText = true;
     } else if (invisibleCharacters.has(codePoint)) {
-      labels25.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
+      labels26.add(`${formatCodePoint(codePoint)} ${invisibleCharacters.get(codePoint)}`);
     } else if (isTagCharacter(codePoint)) {
-      labels25.add("Unicode tag characters");
+      labels26.add("Unicode tag characters");
     }
   }
-  return { labels: [...labels25], reordersText };
+  return { labels: [...labels26], reordersText };
 }
 function formatCodePoint(codePoint) {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -24111,9 +24229,9 @@ var hiddenUnicodeRule = {
       }
       if (inLines.length > 0) {
         const { text, plural } = describeLines(inLines.map(({ line }) => line));
-        const labels25 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
+        const labels26 = [...new Set(inLines.flatMap(({ found }) => found.labels))];
         sentences.push(
-          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels25.join(", ")}), so the code can read differently from how it runs.`
+          `${text} ${plural ? "contain" : "contains"} ${effect} (${labels26.join(", ")}), so the code can read differently from how it runs.`
         );
       }
       const reordersText = inPath.reordersText || inLines.some(({ found }) => found.reordersText);
@@ -25843,8 +25961,8 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine64 = /^\s*#/;
-var documentation54 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine65 = /^\s*#/;
+var documentation55 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -25854,7 +25972,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation54.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation55.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -25864,7 +25982,7 @@ var privilegedContainerRule = {
       const listed = kinds2.filter((kind) => found.some((match2) => match2.kind === kind));
       const high3 = listed.some((kind) => kind.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
-      const labels25 = listed.map((kind) => kind.label);
+      const labels26 = listed.map((kind) => kind.label);
       return [
         {
           ruleId: "privileged-container",
@@ -25873,7 +25991,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels4(labels25)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels4(labels26)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -25887,7 +26005,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine64.test(content)) {
+    if (commentLine65.test(content)) {
       continue;
     }
     const key = mappingKey.exec(content)?.[1];
@@ -25908,12 +26026,12 @@ function findSettings2(patch) {
   }
   return found;
 }
-function joinLabels4(labels25) {
-  return labels25.length > 1 ? `${labels25.slice(0, -1).join(", ")}, and ${labels25.at(-1)}` : labels25[0] ?? "";
+function joinLabels4(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/dockerfile-risk.ts
-var labels19 = {
+var labels20 = {
   "unpinned-base": "a base image without a version tag or with `latest`",
   "remote-add": "a file downloaded by `ADD` without a checksum",
   "secret-variable": "a secret in `ENV` or `ARG`, which the image and its history keep",
@@ -25921,7 +26039,7 @@ var labels19 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine65 = /^\s*#/;
+var commentLine66 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -25946,7 +26064,7 @@ var dockerfileRiskRule = {
       if (found.length === 0) {
         return [];
       }
-      const listed = Object.keys(labels19).filter((kind) => found.some((match2) => match2.kind === kind));
+      const listed = Object.keys(labels20).filter((kind) => found.some((match2) => match2.kind === kind));
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       return [
         {
@@ -25956,7 +26074,7 @@ var dockerfileRiskRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: [...new Set(found.map((match2) => match2.line))],
-          message: `${text} ${plural ? "add" : "adds"} ${joinLabels5(listed.map((kind) => labels19[kind]))}.`,
+          message: `${text} ${plural ? "add" : "adds"} ${joinLabels5(listed.map((kind) => labels20[kind]))}.`,
           recommendation: "Pin base images to a version or digest, switch to a non-root USER before the image runs, give remote ADD sources a --checksum, and pass secrets with RUN --mount=type=secret, since ENV values and build arguments stay in the image and its history."
         }
       ];
@@ -25997,7 +26115,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine65.test(content)) {
+    if (commentLine66.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -26047,8 +26165,8 @@ function isSecretName3(name) {
   }
   return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
-function joinLabels5(labels25) {
-  return labels25.length > 1 ? `${labels25.slice(0, -1).join(", ")}, and ${labels25.at(-1)}` : labels25[0] ?? "";
+function joinLabels5(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
@@ -26087,7 +26205,7 @@ var settings17 = [
   }
 ];
 var allowsEverything = settings17[0];
-var commentLine66 = /^\s*(?:#|\/\/)/;
+var commentLine67 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -26128,7 +26246,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine66.test(content)) {
+    if (!added || commentLine67.test(content)) {
       continue;
     }
     for (const setting of settings17) {
@@ -26166,12 +26284,12 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels6(labels25) {
-  return labels25.length > 1 ? `${labels25.slice(0, -1).join(", ")}, and ${labels25.at(-1)}` : labels25[0] ?? "";
+function joinLabels6(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/kubernetes-rbac.ts
-var labels20 = {
+var labels21 = {
   "cluster-admin": "binds the cluster-admin role",
   anonymous: "grants a role to every user or to unauthenticated requests",
   "wildcard-verbs": "allows every verb",
@@ -26179,7 +26297,7 @@ var labels20 = {
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
 var yamlFile2 = /\.ya?ml$/i;
-var documentation55 = /(?:^|\/)docs?\//i;
+var documentation56 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -26187,7 +26305,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine67 = /^\s*#/;
+var commentLine68 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -26197,7 +26315,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile2.test(file.path) || documentation55.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile2.test(file.path) || documentation56.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -26205,7 +26323,7 @@ var kubernetesRbacRule = {
         return [];
       }
       const kinds3 = new Set(found.map((match2) => match2.kind));
-      const listed = Object.keys(labels20).filter((kind) => kinds3.has(kind));
+      const listed = Object.keys(labels21).filter((kind) => kinds3.has(kind));
       const high3 = kinds3.has("cluster-admin") || kinds3.has("anonymous") || kinds3.has("wildcard-verbs") && kinds3.has("wildcard-resources");
       const lines = [...new Set(found.map((match2) => match2.line))].sort((left, right) => left - right);
       const { text, plural } = describeLines(lines);
@@ -26217,7 +26335,7 @@ var kubernetesRbacRule = {
           file: file.path,
           line: lines[0],
           lines,
-          message: `${text} ${plural ? "change" : "changes"} Kubernetes RBAC so that it ${joinLabels7(listed.map((kind) => labels20[kind]))}.`,
+          message: `${text} ${plural ? "change" : "changes"} Kubernetes RBAC so that it ${joinLabels7(listed.map((kind) => labels21[kind]))}.`,
           recommendation: "List the verbs, resources, and API groups each role needs, bind service accounts to those roles instead of cluster-admin, and never bind roles to system:anonymous, system:unauthenticated, or system:authenticated."
         }
       ];
@@ -26236,7 +26354,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key = void 0;
     }
-    if (commentLine67.test(content) || content.trim() === "") {
+    if (commentLine68.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -26281,7 +26399,7 @@ function joinLabels7(items) {
 }
 
 // src/rules/file-permissions.ts
-var labels21 = {
+var labels22 = {
   "world-writable": "makes files writable by every user",
   setuid: "sets the setuid bit, so a program runs with its owner's rights",
   "open-umask": "sets a umask that leaves new files writable by every user"
@@ -26291,8 +26409,8 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine68 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation56 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine69 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var documentation57 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -26302,16 +26420,16 @@ var filePermissionsRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation56.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation57.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine68.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine69.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
       }
-      const listed = Object.keys(labels21).filter((kind) => found.some((match2) => match2.kind === kind));
+      const listed = Object.keys(labels22).filter((kind) => found.some((match2) => match2.kind === kind));
       const lines = [...new Set(found.map((match2) => match2.line))];
       const { text, plural } = describeLines(lines);
       return [
@@ -26322,7 +26440,7 @@ var filePermissionsRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "change" : "changes"} file permissions in a way that ${joinLabels8(listed.map((kind) => labels21[kind]))}.`,
+          message: `${text} ${plural ? "change" : "changes"} file permissions in a way that ${joinLabels8(listed.map((kind) => labels22[kind]))}.`,
           recommendation: "Grant the owner and group what they need, such as 755 for programs and 644 or 640 for data, keep the setuid bit off, and keep a umask of 022 or stricter. Shared temporary directories can use 1777, whose sticky bit stops users from deleting each other's files."
         }
       ];
@@ -26385,7 +26503,7 @@ function joinLabels8(items) {
 }
 
 // src/rules/weak-crypto.ts
-var labels22 = {
+var labels23 = {
   "weak-hash": "hashes a secret with MD5 or SHA-1",
   "broken-cipher": "encrypts with DES, 3DES, RC4, RC2, or Blowfish",
   ecb: "encrypts in ECB mode, which shows where the plaintext repeats",
@@ -26402,10 +26520,10 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine69 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine70 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength58 = 500;
-var documentation57 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxLineLength59 = 500;
+var documentation58 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -26415,16 +26533,16 @@ var weakCryptoRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation57.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation58.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine69.test(content) && content.length <= maxLineLength58 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine70.test(content) && content.length <= maxLineLength59 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
       }
-      const listed = Object.keys(labels22).filter((kind) => found.some((match2) => match2.kind === kind));
+      const listed = Object.keys(labels23).filter((kind) => found.some((match2) => match2.kind === kind));
       const lines = [...new Set(found.map((match2) => match2.line))];
       const { text, plural } = describeLines(lines);
       return [
@@ -26435,7 +26553,7 @@ var weakCryptoRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "use" : "uses"} cryptography that ${joinLabels9(listed.map((kind) => labels22[kind]))}.`,
+          message: `${text} ${plural ? "use" : "uses"} cryptography that ${joinLabels9(listed.map((kind) => labels23[kind]))}.`,
           recommendation: "Hash passwords with bcrypt, scrypt, or Argon2, encrypt with AES-GCM or ChaCha20-Poly1305, and make tokens with a cryptographic generator such as crypto.randomBytes, secrets.token_urlsafe, or SecureRandom."
         }
       ];
@@ -26478,8 +26596,8 @@ var settings18 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine70 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation58 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine71 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation59 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -26489,11 +26607,11 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation58.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation59.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine70.test(content) && settings18.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine71.test(content) && settings18.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -26516,7 +26634,7 @@ var xmlExternalEntitiesRule = {
 };
 
 // src/rules/mass-assignment.ts
-var labels23 = {
+var labels24 = {
   "permit-all": "permits every request parameter",
   "all-fields": "lets a form or serializer write every model field",
   unguarded: "makes every model attribute mass assignable",
@@ -26542,8 +26660,8 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine71 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation59 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine72 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation60 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -26553,13 +26671,13 @@ var massAssignmentRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation59.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation60.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine71.test(content)) {
+        if (!added || commentLine72.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -26571,7 +26689,7 @@ var massAssignmentRule = {
       if (found.length === 0) {
         return [];
       }
-      const listed = Object.keys(labels23).filter((kind) => found.some((match2) => match2.kind === kind));
+      const listed = Object.keys(labels24).filter((kind) => found.some((match2) => match2.kind === kind));
       const numbers = [...new Set(found.map((match2) => match2.line))];
       const { text, plural } = describeLines(numbers);
       return [
@@ -26582,7 +26700,7 @@ var massAssignmentRule = {
           file: file.path,
           line: Math.min(...numbers),
           lines: numbers,
-          message: `${text} ${plural ? "let" : "lets"} a request set fields it should not, such as a role or an owner: the code ${joinLabels10(listed.map((kind) => labels23[kind]))}.`,
+          message: `${text} ${plural ? "let" : "lets"} a request set fields it should not, such as a role or an owner: the code ${joinLabels10(listed.map((kind) => labels24[kind]))}.`,
           recommendation: "List the fields a request may set: permit(:name, :email) in Rails, an explicit fields list in Django forms and serializers, $fillable in Laravel, and picking the expected properties from the body before a create or update."
         }
       ];
@@ -26815,10 +26933,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine72 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation60 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var commentLine73 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation61 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength59 = 1e3;
+var maxLineLength60 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -26829,11 +26947,11 @@ var redosRule = {
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation60.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation61.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine72.test(content) || content.length > maxLineLength59) {
+        if (!added || commentLine73.test(content) || content.length > maxLineLength60) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -26904,7 +27022,7 @@ var publicExposureRule = {
         return [];
       }
       const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels25 = [
+      const labels26 = [
         ...settings19.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
         ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
         ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
@@ -26919,7 +27037,7 @@ var publicExposureRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels11(labels25)}.`,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels11(labels26)}.`,
           recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
         }
       ];
@@ -27018,8 +27136,8 @@ function portsIn(lines) {
   }
   return ranges.length > 0 ? ranges : void 0;
 }
-function joinLabels11(labels25) {
-  return labels25.length > 1 ? `${labels25.slice(0, -1).join(", ")}, and ${labels25.at(-1)}` : labels25[0] ?? "";
+function joinLabels11(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -27035,8 +27153,8 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine73 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation61 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine74 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var documentation62 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -27047,7 +27165,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation61.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation62.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands2(file.patch).flatMap(({ line, content }) => {
@@ -27099,7 +27217,7 @@ function commands2(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine73.test(content)) {
+    if (commentLine74.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -27125,7 +27243,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength60 = 1e3;
+var maxLineLength61 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -27282,7 +27400,7 @@ function findCalls2(lines, language) {
   const code4 = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code4[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength60 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength61 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -27392,9 +27510,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation62 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation63 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation62.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation63.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -27423,7 +27541,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation63 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation64 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -27433,7 +27551,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation63.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation64.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -27605,7 +27723,7 @@ var workflowRiskRule = {
         return [];
       }
       const contexts = [...new Set(injections.flatMap(({ contexts: contexts2 }) => contexts2))];
-      const labels25 = [
+      const labels26 = [
         ...contexts.length > 0 ? [`untrusted input in a script (${contexts.join(", ")})`] : [],
         ...new Set(flagged.map(({ label }) => label)),
         ...scopes.length > 0 ? [`write permissions for every job (${scopes.join(", ")})`] : [],
@@ -27620,7 +27738,7 @@ var workflowRiskRule = {
           file: file.path,
           line: Math.min(...lines),
           lines: [...new Set(lines)].sort((left, right) => left - right),
-          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels25.join(", ")}.`,
+          message: `${text} ${plural ? "add" : "adds"} risky workflow configuration: ${labels26.join(", ")}.`,
           recommendation: "Pass untrusted values through env variables instead of ${{ }} in scripts, avoid running pull request code under pull_request_target, and set read-only permissions at the top of the workflow, granting write permissions such as contents or id-token only to the jobs that need them."
         }
       ];
@@ -27853,8 +27971,8 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine74 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation64 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var commentLine75 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var documentation65 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -27864,7 +27982,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation64.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation65.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -27895,7 +28013,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine74.test(content)) {
+    if (commentLine75.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -28064,6 +28182,7 @@ var defaultRules = [
   devConsoleExposedRule,
   sshServerConfigRule,
   unconfinedContainerRule,
+  meshMtlsDisabledRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -28630,6 +28749,7 @@ var ruleAreas = {
   "dev-console-exposed": "code",
   "ssh-server-config": "infrastructure",
   "unconfined-container": "infrastructure",
+  "mesh-mtls-disabled": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -28766,6 +28886,7 @@ var ruleQuestions = {
   "dev-console-exposed": "Are developer consoles and debug toolbars turned on only in development settings?",
   "ssh-server-config": "Do SSH servers accept only key-based logins?",
   "unconfined-container": "Do containers keep their seccomp, AppArmor, and SELinux profiles?",
+  "mesh-mtls-disabled": "Does the service mesh keep mutual TLS strict between services?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -28871,6 +28992,7 @@ var ruleSections = {
   "dev-console-exposed": "Developer Consoles",
   "ssh-server-config": "SSH Server Settings",
   "unconfined-container": "Container Sandboxes",
+  "mesh-mtls-disabled": "Service Mesh Mutual TLS",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -29282,19 +29404,19 @@ var styles = {
   bold: "1",
   dim: "2"
 };
-var labels24 = { high: "high", warning: "warning", info: "info" };
+var labels25 = { high: "high", warning: "warning", info: "info" };
 function renderText(result, options) {
   const paint = (style, text) => options.color ? `\x1B[${styles[style]}m${text}\x1B[0m` : text;
   const findings = (options.includeLowSeverity ? result.findings : result.findings.filter((finding2) => finding2.severity !== "info")).slice().sort(
     (left, right) => compareSeverity(left.severity, right.severity) || (left.file ?? "").localeCompare(right.file ?? "") || (left.line ?? 0) - (right.line ?? 0)
   );
-  const width = Math.max(0, ...findings.map((finding2) => labels24[finding2.severity].length));
+  const width = Math.max(0, ...findings.map((finding2) => labels25[finding2.severity].length));
   const lines = [`${paint("bold", "Prism Review:")} ${paint(riskStyle(result.riskLevel), `${result.riskLevel} risk`)}. ${plain(result.summary)}`];
   if (findings.length > 0) {
     lines.push("");
   }
   for (const finding2 of findings) {
-    const severity = labels24[finding2.severity].padEnd(width);
+    const severity = labels25[finding2.severity].padEnd(width);
     lines.push(`${paint(finding2.severity, severity)}  ${location(finding2)}${plain(finding2.title)} ${paint("dim", `[${finding2.ruleId}]`)}`);
     lines.push(`${" ".repeat(width)}  ${plain(finding2.message)}`);
   }
