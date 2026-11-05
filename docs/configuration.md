@@ -8,7 +8,7 @@ Every rule is on by default. Each name links to what the rule reports, what it l
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
-- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls)
+- **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
 - **Review Scope:** [`incomplete-review`](#rules-without-options), [`large-diff`](#large-diff), [`sensitive-files`](#sensitive-files), [`config-change`](#rules-without-options), [`review-control-change`](#review-control-changes), [`oversized-patch`](#rules-without-options)
@@ -261,6 +261,8 @@ rules:
   publicClusterApi:
     enabled: true
   brokerPlaintextAuth:
+    enabled: true
+  publicResourcePolicy:
     enabled: true
   secretLogging:
     enabled: true
@@ -2022,6 +2024,30 @@ These are not reported:
 
 On about 292,000 source and settings files, including about 38,500 from Kafka and the clients and tools around brokers, such as kafka-python, confluent-kafka, aiokafka, Faust, KafkaJS, node-rdkafka, Sarama, franz-go, kafka-go, Redpanda Connect and Console, Watermill, Strimzi, Vector, Beats, Dapr, Celery, Kombu, Pika, aio-pika, Dramatiq, Nameko, amqplib, redis-py, ioredis, BullMQ, go-redis, paho-mqtt, mqtt.js, gmqtt, and the NATS clients, the rule reports two files: Metricbeat's Kafka module consumer and producer settings, which log in with `SASL_PLAINTEXT` and `PLAIN`.
 
+## Public Resource Policies
+
+### `rules.publicResourcePolicy.enabled`
+
+The `public-resource-policy` rule reports, once per file, AWS resource policies with a statement that allows every principal and has no condition. Such a statement grants its actions to anonymous callers and to every other AWS account, so anyone who learns a bucket's, queue's, topic's, key's, or function's name can use it. Bucket, queue, and topic names are often easy to guess.
+
+| Format | Read |
+| --- | --- |
+| JSON and YAML policies, CloudFormation, and SAM | `"Principal": "*"`, `"Principal": {"AWS": "*"}`, `Principal: "*"`, and `Principal:` with `AWS: "*"` on the next line |
+| Terraform | `principals { identifiers = ["*"] }` in `aws_iam_policy_document` statements, and `aws_lambda_permission`'s `principal = "*"` |
+| AWS CDK | `new iam.AnyPrincipal()` and `new iam.StarPrincipal()` |
+
+The finding is high when a statement grants every action, a service's every action such as `s3:*`, or actions that change data, decrypt, or run code, such as `s3:PutObject`, `sqs:SendMessage`, `kms:Decrypt`, `secretsmanager:GetSecretValue`, or `lambda:InvokeFunction`, and a warning for read-only statements, such as a public website bucket's `s3:GetObject`.
+
+These are not reported:
+
+- `Deny` statements, such as one that requires TLS with `aws:SecureTransport`.
+- Statements with a condition, such as `aws:PrincipalOrgID`, `aws:SourceVpce`, `aws:SourceArn`, or `aws:SourceAccount`, Terraform's `condition` blocks and `aws_lambda_permission`'s `source_arn` and `source_account`, and the CDK's `conditions`.
+- Permissions for a Lambda function URL, which `unauthenticated-function` reports, and named principals, such as accounts, roles, and services.
+- Python docstrings, such as the CDK's and Ansible modules' examples, descriptions that quote a policy, and snapshot files.
+- Comment lines, documentation, files whose path names development, local, test, CI, example, sample, or demo stacks, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 277,700 settings and source files, including about 3,800 with policies, from Terraform's S3, SQS, SNS, KMS, Lambda, IAM, CloudFront, and ECR modules, Cloud Posse's S3 and CloudFront modules, AWS Solutions Constructs, the AWS CDK, Serverless, SAM, Chalice, Zappa, Ansible's AWS collections, and Crossplane's AWS provider, the rule reports none. The open statements there are in tests, snapshots, and documentation, or are limited by a condition.
+
 ## Credential Files
 
 ### `rules.credentialFiles.enabled`
@@ -2375,7 +2401,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
-| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth` |
+| Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
 | Review Scope | `incomplete-review`, `large-diff`, `sensitive-files`, `config-change`, `review-control-change`, `oversized-patch` |
