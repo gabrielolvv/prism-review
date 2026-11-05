@@ -7,7 +7,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
-- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
+- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`unpinned-deploy-image`](#unpinned-deployment-images), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies), [`plain-http-endpoint`](#plain-http-endpoints)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
@@ -265,6 +265,8 @@ rules:
   publicResourcePolicy:
     enabled: true
   plainHttpEndpoint:
+    enabled: true
+  unpinnedDeployImage:
     enabled: true
   secretLogging:
     enabled: true
@@ -2309,6 +2311,32 @@ These are not reported: HTTPS sources with checks on; local mirrors on `localhos
 
 On about 11,300 Dockerfiles, scripts, YAML files, and package manager configurations from Ansible's collections, Kubernetes agents, and the libraries in the other corpora, the rule reports nine, each a real unchecked source. Seven Ansible roles, from Grafana's collection and community.sops, install RPMs with `disable_gpg_check: true`, oVirt's role installs a certificate RPM with `rpm --nodigest`, and devise_ldap_authenticatable's Gemfile uses `source "http://rubygems.org"`.
 
+## Unpinned Deployment Images
+
+### `rules.unpinnedDeployImage.enabled`
+
+The `unpinned-deploy-image` rule warns, once per file, about deployments that run a container image with no tag or with `latest`. Each restart, rescheduled pod, or new node can then pull a different image, including one pushed from a compromised registry account or a hijacked upstream, nobody can tell which version runs, and a rollback cannot return to the image that ran before. `dockerfile-risk` already reads a Dockerfile's `FROM`; this rule reads what a deployment runs.
+
+| Where | Read |
+| --- | --- |
+| Kubernetes | `image:` in manifests with Kubernetes' `apiVersion` or `kind`, such as Deployments, StatefulSets, DaemonSets, Jobs, CronJobs, Pods, Knative Services, and Argo Rollouts, and in Helm templates |
+| Compose | `image:` in Compose files whose path names production, such as `docker-compose.prod.yml`, `deploy/compose.yaml`, or a Swarm `stack` |
+| ECS and Cloud Run | `"image":` in task definitions' `containerDefinitions` and in service definitions |
+| Terraform | `image = "..."` in `kubernetes_*`, `docker_container`, `aws_ecs_task_definition`, and `google_cloud_run_*` resources |
+
+An image counts as unpinned with no tag, such as `ghcr.io/acme/api`, `busybox`, or `redis`, or with `latest`, and pinned with any other tag or a digest.
+
+These are not reported:
+
+- Version tags and digests, template and variable references such as `{{ .Values.image.tag }}` or `${API_IMAGE}`, and ko's `ko://` references.
+- Images whose tag, digest, registry, or repository is set by a key next to them, as in Helm values.
+- Kustomize bases and kubebuilder's `config` folders, whose overlays set the image with `images:`.
+- Compose files outside production paths, which set up a developer's machine, and YAML block text, such as a check's remediation text.
+- CI workflows, Drone, Tekton, dev containers, Skaffold and Tilt files, kind configs, end-to-end, benchmark, profiling, and proof-of-concept setups, `hack`, `docs`, and `design` folders, and Molecule.
+- Comment lines, documentation, files whose path names development, local, test, CI, example, sample, or demo setups, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 55,900 YAML, JSON, and Terraform files, including about 4,700 with images, from Kubernetes agents, operators, service meshes, and operations tools, the rule reports 44 files, all manifests their users apply as they are: kube-bench's Jobs with `aquasec/kube-bench:latest`, Flux's credential sync integrations with `busybox` and the Azure and AWS CLIs, Tempo's compiled manifests with `grafana/tempo:latest`, kops' addon channels, Argo Rollouts' install manifests, Kuma's Grafana install, ingress-nginx's Prometheus and Grafana deployments, and the Strimzi, CSI host path, Inspektor Gadget, and Coroot manifests.
+
 ## Hidden Unicode
 
 ### `rules.hiddenUnicode.enabled`
@@ -2428,7 +2456,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Area | Rules |
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
-| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
+| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `unpinned-deploy-image`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy`, `plain-http-endpoint` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
