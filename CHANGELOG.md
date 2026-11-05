@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.115.0 - 2026-11-05
+
+### Added
+
+- `unauthenticated-function` rule: warns about serverless functions that anyone on the internet can call without authentication, so unless the function checks each caller itself, anyone can run it and run up its bill. It reads AWS Lambda function URLs with `authorization_type = "NONE"`, `AuthType: NONE`, or the CDK's `FunctionUrlAuthType.NONE`, the Serverless Framework's `url: true`, Cloud Run and Cloud Functions deployed with `--allow-unauthenticated`, and Azure Functions with an anonymous auth level in `function.json`, Python, JavaScript, C#, and Java. Authenticated functions, API Gateway methods, docstrings, examples, and tests are not reported. On about 118,400 files of serverless frameworks, SDKs, and apps, it reports none.
+
 ## 0.114.0 - 2026-11-05
 
 ### Added
