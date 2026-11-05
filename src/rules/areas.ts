@@ -90,6 +90,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "database-tls-disabled": "infrastructure",
   "plaintext-credentials": "code",
   "weak-oauth-flow": "code",
+  "static-root-exposure": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

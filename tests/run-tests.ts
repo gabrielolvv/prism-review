@@ -744,6 +744,12 @@ import {
   testWeakOauthFlowSkipsTheCodeFlowAndOtherSettings
 } from "./unit/weak-oauth-flow.test.js";
 import {
+  testStaticRootExposureReadsEachFramework,
+  testStaticRootExposureReportsOneFindingPerFile,
+  testStaticRootExposureSkipsPublicFolders,
+  testStaticRootExposureSkipsTestsAndCanBeDisabled
+} from "./unit/static-root-exposure.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1284,6 +1290,10 @@ const tests: Array<[string, Test]> = [
   ["weak-oauth-flow reads each setting", testWeakOauthFlowReadsEachSetting],
   ["weak-oauth-flow skips the code flow and other settings", testWeakOauthFlowSkipsTheCodeFlowAndOtherSettings],
   ["weak-oauth-flow can be disabled", testWeakOauthFlowCanBeDisabled],
+  ["static-root-exposure reports one finding per file", testStaticRootExposureReportsOneFindingPerFile],
+  ["static-root-exposure reads each framework", testStaticRootExposureReadsEachFramework],
+  ["static-root-exposure skips public folders", testStaticRootExposureSkipsPublicFolders],
+  ["static-root-exposure skips tests and can be disabled", testStaticRootExposureSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

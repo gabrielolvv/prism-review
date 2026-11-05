@@ -85,6 +85,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "database-tls-disabled": "Do connections to databases on other hosts require TLS and check the server's certificate?",
   "plaintext-credentials": "Do FTP, SMTP, and LDAP logins use TLS, and is Telnet replaced with SSH?",
   "weak-oauth-flow": "Does OAuth sign-in use the code flow with PKCE, the state check, and exact redirect URIs?",
+  "static-root-exposure": "Do static file handlers serve only a public folder, never the project root with its source, .env, and .git?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
