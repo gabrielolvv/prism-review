@@ -60,6 +60,7 @@ import { unauthenticatedFunctionRule } from "./unauthenticated-function.js";
 import { devConsoleExposedRule } from "./dev-console-exposed.js";
 import { sshServerConfigRule } from "./ssh-server-config.js";
 import { unconfinedContainerRule } from "./unconfined-container.js";
+import { meshMtlsDisabledRule } from "./mesh-mtls-disabled.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -163,6 +164,7 @@ export const defaultRules: Rule[] = [
   devConsoleExposedRule,
   sshServerConfigRule,
   unconfinedContainerRule,
+  meshMtlsDisabledRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
