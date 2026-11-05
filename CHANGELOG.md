@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.117.0 - 2026-11-05
+
+### Added
+
+- `ssh-server-config` rule: reports SSH servers set to accept password logins, root logins with a password, or empty passwords, the last as high, since bots try common passwords on every SSH server they reach. It reads `PasswordAuthentication yes`, `PermitRootLogin yes`, and `PermitEmptyPasswords yes` in `sshd_config`, its drop-ins and templates, and as written to it by Dockerfiles, scripts, Ansible, and ConfigMaps through `sed`, `echo >>`, `tee`, `line:`, heredocs, and `sshd -o`, cloud-init's `ssh_pwauth: true` and `disable_root: false`, and Azure VMs with `disable_password_authentication = false` in Terraform, ARM templates, and Bicep. `Match` blocks, `PermitRootLogin prohibit-password`, searches such as `grep` and Ansible's `regexp:`, the ssh client's own options, throwaway machines such as Vagrant, Test Kitchen, and Molecule, examples, and tests are not reported. On about 13,200 Dockerfiles, scripts, and YAML, Terraform, and config files of infrastructure tools, it reports two, both in oVirt's Hosted Engine role, which turns on root logins with a password for the engine VM.
+
 ## 0.116.0 - 2026-11-05
 
 ### Added

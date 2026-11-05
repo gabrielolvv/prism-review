@@ -139,6 +139,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Package managers that skip signature checks or download over HTTP (0.114.0).
 - Serverless functions anyone can call without authentication (0.115.0).
 - Developer consoles and debug toolbars turned on outside development (0.116.0).
+- SSH servers that accept password logins, root logins with a password, or empty passwords (0.117.0).
 
 ## Later
 
