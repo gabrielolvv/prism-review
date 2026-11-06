@@ -76,6 +76,7 @@ export const ruleIds: readonly string[] = [
   "public-resource-policy",
   "plain-http-endpoint",
   "unpinned-deploy-image",
+  "saml-validation-disabled",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
