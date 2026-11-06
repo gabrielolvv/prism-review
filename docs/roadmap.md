@@ -153,6 +153,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - CI scripts outside GitHub Actions that paste pull request text into their commands (0.128.0).
 - IAM policies that allow privilege escalation on every resource (0.129.0).
 - Session IDs carried in URLs (0.130.0).
+- LLM agents that run the code the model writes on the host (0.131.0).
 
 ## Later
 
