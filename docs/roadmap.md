@@ -157,6 +157,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Model loading that runs code from the model's files, such as `trust_remote_code` and pickled checkpoints (0.132.0).
 - Kubernetes Secrets committed with their values (0.133.0).
 - Secrets written into a deployment's environment in plain text (0.134.0).
+- Passwords written into Terraform, CloudFormation, and Ansible inventories (0.135.0).
 
 ## Later
 

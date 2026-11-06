@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.135.0 - 2026-11-06
+
+### Added
+
+- `iac-hardcoded-password` rule: reports, as high, passwords, tokens, and keys written into infrastructure code, which are committed to the repository and shared by every environment built from it. It reads Terraform and Terragrunt attributes such as `password` and `master_password`, `.tfvars` values, and secret variables' defaults, CloudFormation properties such as `MasterUserPassword` and secret parameters' `Default`, and Ansible `group_vars`, `host_vars`, and inventory variables such as `ansible_password`. It names only the settings, never the values, and reads them before redaction. Variables, references, generated passwords, `!Ref` and dynamic references, Ansible Vault, variables that name where a secret is kept, placeholders, inline CloudFormation code, examples, and tests are not reported. On about 144,800 files, including about 17,100 Terraform files, 1,070 CloudFormation templates, and 366 Ansible inventory and variable files, it reports one sample inventory setting.
+
+### Changed
+
+- `deployment-env-secret` also skips test and example values, defaults such as `password1`, storage paths, and time units, which it shares with the new rule. Its corpus results are unchanged.
+
 ## 0.134.0 - 2026-11-06
 
 ### Added
