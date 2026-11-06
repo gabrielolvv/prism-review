@@ -151,6 +151,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - SAML logins with their signature, schema, audience, or destination checks turned off (0.126.0).
 - Deserializers that let the data choose the classes to create, such as Jackson's default typing and fastjson's autoType (0.127.0).
 - CI scripts outside GitHub Actions that paste pull request text into their commands (0.128.0).
+- IAM policies that allow privilege escalation on every resource (0.129.0).
 
 ## Later
 
