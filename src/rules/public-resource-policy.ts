@@ -4,6 +4,7 @@ import { isTestDataPath } from "../analysis/repository-path.js";
 import type { Rule } from "../analysis/rule.js";
 import { developmentPath } from "./insecure-web-config.js";
 import { describeLines } from "./line-list.js";
+import { statementAround } from "./policy-statement.js";
 
 // A principal of everyone: JSON and YAML policies' `"Principal": "*"` and `{"AWS": "*"}`,
 // Terraform's `principals { identifiers = ["*"] }`, `aws_lambda_permission`'s `principal = "*"`, and
@@ -26,7 +27,6 @@ const condition = /["']?Condition["']?\s*:|^\s*condition\s*\{|\bconditions\s*:|\
 // Every action, a service's every action such as `s3:*`, and actions that change data or run code.
 const writeAction =
   /\bactions?["']?\s*[:=]\s*\[?\s*["']\*["']|\b[a-z0-9-]+:\*|\b(?:s3|sqs|sns|kms|lambda|secretsmanager|ecr|dynamodb|es|logs|events|glacier|elasticfilesystem):(?:Put|Delete|Send|Publish|Decrypt|Encrypt|GenerateDataKey|Invoke|Create|Update|Write|Restore|Batch|ReEncrypt|Subscribe|Purge|Change|Set|Abort|Replicate)\w*|\bGetSecretValue\b|\blambda:InvokeFunction\b/;
-const statementWindow = 25;
 
 const policyFile = /\.(?:json|ya?ml|template|tf|tf\.json|hcl|[cm]?[jt]s|py|java|go|cs)$/i;
 const ciOrTestSetup = /(?:^|[\/_.-])(?:e2e|integ|snapshots?|__snapshots__)(?:[\/_.-]|$)|\.snap$|(?:^|\/)(?:hack|docs?)\//i;
@@ -116,24 +116,3 @@ export const publicResourcePolicyRule: Rule = {
     });
   }
 };
-
-// The text of the policy statement the line is in: up to the nearest statement start before it and
-// the next one after it, within a window.
-function statementAround(contents: string[], index: number): string {
-  const start = /^\s*-\s*["']?(?:Sid|Effect|Action|Principal|Resource)["']?\s*:|^\s*statement\s*\{|["']Sid["']\s*:|\bnew\s+(?:iam\.)?PolicyStatement\s*\(|^\s*\{\s*$|^\s*(?:resource|data|module)\s+"/;
-  let first = index;
-  for (let before = index - 1; before >= Math.max(0, index - statementWindow); before -= 1) {
-    first = before;
-    if (start.test(contents[before] ?? "")) {
-      break;
-    }
-  }
-  let last = index;
-  for (let after = index + 1; after < Math.min(contents.length, index + statementWindow); after += 1) {
-    if (start.test(contents[after] ?? "")) {
-      break;
-    }
-    last = after;
-  }
-  return contents.slice(first, last + 1).join("\n");
-}

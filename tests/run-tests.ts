@@ -851,6 +851,12 @@ import {
   testCiScriptInjectionSkipsSafeUses
 } from "./unit/ci-script-injection.test.js";
 import {
+  testIamPrivilegeEscalationReadsEachFormat,
+  testIamPrivilegeEscalationReportsOneFindingPerFile,
+  testIamPrivilegeEscalationSkipsLimitedStatements,
+  testIamPrivilegeEscalationSkipsTestsAndCanBeDisabled
+} from "./unit/iam-privilege-escalation.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1464,6 +1470,10 @@ const tests: Array<[string, Test]> = [
   ["ci-script-injection reads each system", testCiScriptInjectionReadsEachSystem],
   ["ci-script-injection skips safe uses", testCiScriptInjectionSkipsSafeUses],
   ["ci-script-injection can be disabled", testCiScriptInjectionCanBeDisabled],
+  ["iam-privilege-escalation reports one finding per file", testIamPrivilegeEscalationReportsOneFindingPerFile],
+  ["iam-privilege-escalation reads each format", testIamPrivilegeEscalationReadsEachFormat],
+  ["iam-privilege-escalation skips limited statements", testIamPrivilegeEscalationSkipsLimitedStatements],
+  ["iam-privilege-escalation skips tests and can be disabled", testIamPrivilegeEscalationSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

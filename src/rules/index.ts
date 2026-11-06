@@ -70,6 +70,7 @@ import { unpinnedDeployImageRule } from "./unpinned-deploy-image.js";
 import { samlValidationDisabledRule } from "./saml-validation-disabled.js";
 import { polymorphicDeserializationRule } from "./polymorphic-deserialization.js";
 import { ciScriptInjectionRule } from "./ci-script-injection.js";
+import { iamPrivilegeEscalationRule } from "./iam-privilege-escalation.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -183,6 +184,7 @@ export const defaultRules: Rule[] = [
   samlValidationDisabledRule,
   polymorphicDeserializationRule,
   ciScriptInjectionRule,
+  iamPrivilegeEscalationRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
