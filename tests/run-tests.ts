@@ -875,6 +875,13 @@ import {
   testUntrustedModelCodeSkipsTestsAndCanBeDisabled
 } from "./unit/untrusted-model-code.test.js";
 import {
+  testKubernetesSecretValuesFindsValuesBeforeRedaction,
+  testKubernetesSecretValuesReadsEachForm,
+  testKubernetesSecretValuesReportsOneFindingPerFile,
+  testKubernetesSecretValuesSkipsPlaceholdersAndEncryptedSecrets,
+  testKubernetesSecretValuesSkipsTestsAndCanBeDisabled
+} from "./unit/kubernetes-secret-values.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1504,6 +1511,11 @@ const tests: Array<[string, Test]> = [
   ["untrusted-model-code reads each loader", testUntrustedModelCodeReadsEachLoader],
   ["untrusted-model-code skips safe loading", testUntrustedModelCodeSkipsSafeLoading],
   ["untrusted-model-code skips tests and can be disabled", testUntrustedModelCodeSkipsTestsAndCanBeDisabled],
+  ["kubernetes-secret-values reports one finding per file", testKubernetesSecretValuesReportsOneFindingPerFile],
+  ["kubernetes-secret-values reads each form", testKubernetesSecretValuesReadsEachForm],
+  ["kubernetes-secret-values skips placeholders and encrypted secrets", testKubernetesSecretValuesSkipsPlaceholdersAndEncryptedSecrets],
+  ["kubernetes-secret-values finds values before redaction", testKubernetesSecretValuesFindsValuesBeforeRedaction],
+  ["kubernetes-secret-values skips tests and can be disabled", testKubernetesSecretValuesSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

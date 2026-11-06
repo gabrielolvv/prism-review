@@ -1,3 +1,4 @@
+import type { KubernetesSecretLine } from "../security/kubernetes-secrets.js";
 import type { LockfileSource } from "../security/lockfile-sources.js";
 import type { HiddenLine } from "./hidden-characters.js";
 
@@ -52,6 +53,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that encrypt or
   // sign with a key written in the code.
   cryptoKeyLines?: number[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that put a
+  // credential in a Kubernetes Secret manifest or a Kustomize secret generator, with their keys.
+  kubernetesSecretLines?: KubernetesSecretLine[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.

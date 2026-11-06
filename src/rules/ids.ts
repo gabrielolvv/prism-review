@@ -83,6 +83,7 @@ export const ruleIds: readonly string[] = [
   "session-id-in-url",
   "llm-code-execution",
   "untrusted-model-code",
+  "kubernetes-secret-values",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

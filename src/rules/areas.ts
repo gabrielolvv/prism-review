@@ -111,6 +111,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "session-id-in-url": "code",
   "llm-code-execution": "code",
   "untrusted-model-code": "supply-chain",
+  "kubernetes-secret-values": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

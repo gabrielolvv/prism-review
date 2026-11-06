@@ -106,6 +106,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "session-id-in-url": "Are sessions tracked with cookies only, never in URLs?",
   "llm-code-execution": "Does code the model writes run in a sandbox, or only after a person approves it?",
   "untrusted-model-code": "Do models load from safetensors, or from code pinned to a reviewed revision?",
+  "kubernetes-secret-values": "Are the committed Secret values rotated, and the Secrets now filled in from a secret store?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

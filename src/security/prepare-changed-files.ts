@@ -13,6 +13,7 @@ import { findPublicSecretLines } from "./public-env-secrets.js";
 import { findTokenStorageLines } from "./token-storage.js";
 import { findLongSessionLines } from "./session-lifetime.js";
 import { findCryptoKeyLines } from "./crypto-keys.js";
+import { findKubernetesSecretLines } from "./kubernetes-secrets.js";
 import { findLockfileSources, isSourceFile } from "./lockfile-sources.js";
 import { limitPatchSizes } from "./limit-patches.js";
 import { redactChangedFiles } from "./redact-secrets.js";
@@ -39,6 +40,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     urlCredentialLines: file.patch === undefined ? [] : findUrlCredentialLines(file.path, file.patch, allowlist),
     timingCompareLines: file.patch === undefined ? [] : findTimingCompareLines(file.path, file.patch),
     cryptoKeyLines: file.patch === undefined ? [] : findCryptoKeyLines(file.path, file.patch),
+    kubernetesSecretLines: file.patch === undefined ? [] : findKubernetesSecretLines(file.path, file.patch),
     ...(file.patch !== undefined && credentialFileKind(file.path)?.checksLines
       ? { credentialLines: findCredentialLines(file.path, file.patch) }
       : {}),
