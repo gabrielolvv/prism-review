@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.134.0 - 2026-11-06
+
+### Added
+
+- `deployment-env-secret` rule: reports, as high, passwords, tokens, and keys written in plain text into a deployment's environment, where they are committed to the repository and show to anyone who can read the deployment. It reads Kubernetes and Cloud Run `env` entries with a literal `value`, ECS and Terraform `environment` name and value pairs, `environment` in production Compose files, and App Engine, Cloud Foundry, and Helm values `env` maps, names only the variables, never the values, and reads them before redaction. `secretKeyRef` and secret store references, templated values, placeholders and local defaults, settings such as `*_PASSWORD_FILE`, development Compose files, CI pipelines, examples, and tests are not reported. On about 106,600 YAML, Terraform, and HCL files, it reports 9: Kong's Postgres variants, Emissary's Datadog API key, Jenkins X's WhiteSource tokens, and Loki's production MinIO password.
+
 ## 0.133.0 - 2026-11-06
 
 ### Added
