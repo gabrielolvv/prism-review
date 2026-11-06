@@ -72,6 +72,7 @@ import { polymorphicDeserializationRule } from "./polymorphic-deserialization.js
 import { ciScriptInjectionRule } from "./ci-script-injection.js";
 import { iamPrivilegeEscalationRule } from "./iam-privilege-escalation.js";
 import { sessionIdInUrlRule } from "./session-id-in-url.js";
+import { llmCodeExecutionRule } from "./llm-code-execution.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -187,6 +188,7 @@ export const defaultRules: Rule[] = [
   ciScriptInjectionRule,
   iamPrivilegeEscalationRule,
   sessionIdInUrlRule,
+  llmCodeExecutionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
