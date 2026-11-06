@@ -37,10 +37,10 @@ const definition = /^\s*(?:class|def|async\s+def|from|import)\b/;
 const documentation = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?|ipynb)$/i;
 const maxLineLength = 1_000;
 
-// Whether `index` falls inside a quoted string that opens earlier on the line. A line that starts
-// inside a string, such as the second line of a long message, has an odd quote before the switch.
-function insideString(content: string, index: number): boolean {
-  let quote: string | undefined;
+// The quote of the string open at `index`, if any. `open` is the quote of a string that the previous
+// line continued with a trailing backslash.
+function quoteAt(content: string, index: number, open?: string): string | undefined {
+  let quote = open;
   for (let position = 0; position < index; position += 1) {
     const character = content[position];
     if (quote !== undefined && character === "\\") {
@@ -51,7 +51,20 @@ function insideString(content: string, index: number): boolean {
       quote = undefined;
     }
   }
-  return quote !== undefined;
+  return quote;
+}
+
+// Whether `index` falls inside a quoted string that opens earlier on the line, or on the previous
+// line when `open` is set. A line that starts inside a string, such as the second line of a long
+// message, has an odd quote before the switch.
+export function insideString(content: string, index: number, open?: string): boolean {
+  return quoteAt(content, index, open) !== undefined;
+}
+
+// The quote of a string that a line continues onto the next one with a trailing backslash.
+export function continuedQuote(content: string, open?: string): string | undefined {
+  const trimmed = content.trimEnd();
+  return trimmed.endsWith("\\") ? quoteAt(trimmed, trimmed.length - 1, open) : undefined;
 }
 
 export const llmCodeExecutionRule: Rule = {
@@ -82,21 +95,26 @@ export const llmCodeExecutionRule: Rule = {
       const found: Array<{ line: number; label: string }> = [];
       // Python docstrings hold usage examples, as LangChain's and AutoGen's do.
       let inDocstring = false;
+      // The quote of a string the previous line continued with a trailing backslash.
+      let openQuote: string | undefined;
       patchLines(file.patch).forEach(({ line, content, added, startsHunk }) => {
         if (startsHunk) {
           inDocstring = false;
+          openQuote = undefined;
         }
         const wasInDocstring = inDocstring;
+        const startQuote = openQuote;
         if (isPython && (content.match(/"""|'''/g) ?? []).length % 2 === 1) {
           inDocstring = !inDocstring;
         }
+        openQuote = isPython && !inDocstring ? continuedQuote(content, startQuote) : undefined;
         if (wasInDocstring || !added || content.length > maxLineLength || commentLine.test(content) || definition.test(content) || sandboxed.test(content)) {
           return;
         }
         // Error messages and help text that name a switch, such as "set allow_dangerous_code=True", do not set it.
         const setting = fileSettings.find(({ pattern }) => {
           const match = pattern.exec(content);
-          return match !== null && !insideString(content, match.index);
+          return match !== null && !insideString(content, match.index, startQuote);
         });
         if (setting !== undefined) {
           found.push({ line, label: setting.label });

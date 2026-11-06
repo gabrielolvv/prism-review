@@ -869,6 +869,12 @@ import {
   testLlmCodeExecutionSkipsTestsAndCanBeDisabled
 } from "./unit/llm-code-execution.test.js";
 import {
+  testUntrustedModelCodeReadsEachLoader,
+  testUntrustedModelCodeReportsOneFindingPerFile,
+  testUntrustedModelCodeSkipsSafeLoading,
+  testUntrustedModelCodeSkipsTestsAndCanBeDisabled
+} from "./unit/untrusted-model-code.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1494,6 +1500,10 @@ const tests: Array<[string, Test]> = [
   ["llm-code-execution reads each framework", testLlmCodeExecutionReadsEachFramework],
   ["llm-code-execution skips sandboxed agents", testLlmCodeExecutionSkipsSandboxedAgents],
   ["llm-code-execution skips tests and can be disabled", testLlmCodeExecutionSkipsTestsAndCanBeDisabled],
+  ["untrusted-model-code reports one finding per file", testUntrustedModelCodeReportsOneFindingPerFile],
+  ["untrusted-model-code reads each loader", testUntrustedModelCodeReadsEachLoader],
+  ["untrusted-model-code skips safe loading", testUntrustedModelCodeSkipsSafeLoading],
+  ["untrusted-model-code skips tests and can be disabled", testUntrustedModelCodeSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

@@ -73,6 +73,7 @@ import { ciScriptInjectionRule } from "./ci-script-injection.js";
 import { iamPrivilegeEscalationRule } from "./iam-privilege-escalation.js";
 import { sessionIdInUrlRule } from "./session-id-in-url.js";
 import { llmCodeExecutionRule } from "./llm-code-execution.js";
+import { untrustedModelCodeRule } from "./untrusted-model-code.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -189,6 +190,7 @@ export const defaultRules: Rule[] = [
   iamPrivilegeEscalationRule,
   sessionIdInUrlRule,
   llmCodeExecutionRule,
+  untrustedModelCodeRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
