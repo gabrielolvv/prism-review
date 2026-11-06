@@ -2751,7 +2751,7 @@ var init_uploads = __esm({
         const name = isFile ? value.name : getName(value, stripFilenames);
         form.append(key3, makeFile([value], name, { type: value.type }));
       } else if (Array.isArray(value)) {
-        await Promise.all(value.map((entry) => addFormValue(form, key3 + "[]", entry, stripFilenames)));
+        await Promise.all(value.map((entry2) => addFormValue(form, key3 + "[]", entry2, stripFilenames)));
       } else if (typeof value.then === "function") {
         throw new TypeError(`Received a Promise for "${key3}"; await it first, e.g. \`await toFile(...)\``);
       } else if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
@@ -5879,7 +5879,7 @@ var require_dist = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Webhook = exports2.WebhookVerificationError = void 0;
-    var base642 = require_base64();
+    var base643 = require_base64();
     var sha256 = require_sha256();
     var timing_safe_equal_1 = require_timing_safe_equal();
     var WEBHOOK_TOLERANCE_IN_SECONDS = 5 * 60;
@@ -5914,7 +5914,7 @@ var require_dist = __commonJS({
           if (secret.startsWith(_Webhook.prefix)) {
             secret = secret.substring(_Webhook.prefix.length);
           }
-          this.key = base642.decode(secret);
+          this.key = base643.decode(secret);
         }
         if (this.key.length === 0) {
           throw new Error("Secret can't be empty.");
@@ -5967,7 +5967,7 @@ var require_dist = __commonJS({
         const encoder = new TextEncoder();
         const timestampNumber = Math.floor(timestamp.getTime() / 1e3);
         const toSign = encoder.encode(`${msgId}.${timestampNumber}.${payload}`);
-        const expectedSignature = base642.encode(sha256.hmac(this.key, toSign));
+        const expectedSignature = base643.encode(sha256.hmac(this.key, toSign));
         return `v1,${expectedSignature}`;
       }
       verifyTimestamp(timestampHeader) {
@@ -7402,11 +7402,11 @@ async function setupSkills(ctx) {
 }
 function assertSafeMemberNames(names2) {
   for (const raw of names2) {
-    const entry = raw.trim();
-    if (!entry)
+    const entry2 = raw.trim();
+    if (!entry2)
       continue;
-    if (path.isAbsolute(entry) || entry.split(/[\\/]/).includes("..")) {
-      throw new AnthropicError(`refusing to extract unsafe archive member: ${entry}`);
+    if (path.isAbsolute(entry2) || entry2.split(/[\\/]/).includes("..")) {
+      throw new AnthropicError(`refusing to extract unsafe archive member: ${entry2}`);
     }
   }
 }
@@ -7439,10 +7439,10 @@ function classifyArchiveListing(cmd, names2, typed) {
   return { plain, special };
 }
 async function assertOnlyPlainEntries(dir) {
-  for (const entry of await fs3.readdir(dir, { withFileTypes: true })) {
-    if (entry.isDirectory())
-      await assertOnlyPlainEntries(path.join(dir, entry.name));
-    else if (!entry.isFile())
+  for (const entry2 of await fs3.readdir(dir, { withFileTypes: true })) {
+    if (entry2.isDirectory())
+      await assertOnlyPlainEntries(path.join(dir, entry2.name));
+    else if (!entry2.isFile())
       throw new AnthropicError(INCONSISTENT_LISTING);
   }
 }
@@ -7500,8 +7500,8 @@ async function extractSkillArchive(resp, dest) {
     const entries = await fs3.readdir(srcRoot).catch((e) => {
       throw errnoCode(e) === "ENOENT" ? new AnthropicError(INCONSISTENT_LISTING) : e;
     });
-    for (const entry of entries) {
-      await fs3.rename(path.join(srcRoot, entry), path.join(dest, entry));
+    for (const entry2 of entries) {
+      await fs3.rename(path.join(srcRoot, entry2), path.join(dest, entry2));
     }
   } finally {
     await fs3.rm(tmp, { force: true });
@@ -7653,8 +7653,8 @@ async function filenamesInDir(root, under, base) {
   if (!await requireDir(under, base))
     return [];
   const out = [];
-  await walk(base, (full, entry) => {
-    if (entry.isFile())
+  await walk(base, (full, entry2) => {
+    if (entry2.isFile())
       out.push([path.relative(root, full).split(path.sep).join("/"), full]);
   });
   out.sort();
@@ -7676,8 +7676,8 @@ async function symlinksInDir(root, under, base) {
   if (!st.isDirectory())
     throw new FileStoreError(FileStoreError.NOT_A_DIRECTORY, under);
   const out = /* @__PURE__ */ new Set();
-  await walk(base, (full, entry) => {
-    if (entry.isSymbolicLink())
+  await walk(base, (full, entry2) => {
+    if (entry2.isSymbolicLink())
       out.add(relOf(full));
   });
   return out;
@@ -7708,10 +7708,10 @@ async function walk(base, visit) {
         continue;
       throw e;
     }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      visit(full, entry);
-      if (entry.isDirectory() && !entry.isSymbolicLink())
+    for (const entry2 of entries) {
+      const full = path.join(dir, entry2.name);
+      visit(full, entry2);
+      if (entry2.isDirectory() && !entry2.isSymbolicLink())
         stack.push(full);
     }
   }
@@ -9029,16 +9029,16 @@ function betaGlobTool(ctx) {
       const matches = [];
       let remaining = WALK_MAX_ENTRIES;
       try {
-        for await (const entry of fsGlob(pattern, {
+        for await (const entry2 of fsGlob(pattern, {
           cwd: root,
           withFileTypes: true,
           exclude: (d) => d.name === ".git" || d.name === "node_modules"
         })) {
           if (remaining-- <= 0)
             break;
-          if (!entry.isFile())
+          if (!entry2.isFile())
             continue;
-          const full = path3.join(entry.parentPath, entry.name);
+          const full = path3.join(entry2.parentPath, entry2.name);
           let real;
           try {
             real = await fs4.realpath(full);
@@ -17274,8 +17274,8 @@ function malformedActions(input) {
   if (actions.length === 0)
     return ": the 'actions' list is empty";
   const names2 = [];
-  for (const [i, entry] of actions.entries()) {
-    const action = typeof entry === "object" && entry !== null && "action" in entry ? entry.action : void 0;
+  for (const [i, entry2] of actions.entries()) {
+    const action = typeof entry2 === "object" && entry2 !== null && "action" in entry2 ? entry2.action : void 0;
     if (typeof action !== "string")
       return `: action ${i} must be an object with a string 'action' field`;
     names2.push(`'${quotedName(action)}'`);
@@ -22178,9 +22178,9 @@ ${indent}`) + "'";
         return quotedString(value, ctx);
       }
       const indent = ctx.indent || (ctx.forceBlockIndent || containsDocumentMarker(value) ? "  " : "");
-      const literal3 = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
+      const literal4 = blockQuote === "literal" ? true : blockQuote === "folded" || type === Scalar.Scalar.BLOCK_FOLDED ? false : type === Scalar.Scalar.BLOCK_LITERAL ? true : !lineLengthOverLimit(value, lineWidth, indent.length);
       if (!value)
-        return literal3 ? "|\n" : ">\n";
+        return literal4 ? "|\n" : ">\n";
       let chomp;
       let endStart;
       for (endStart = value.length; endStart > 0; --endStart) {
@@ -22229,7 +22229,7 @@ ${indent}`) + "'";
         if (onComment)
           onComment();
       }
-      if (!literal3) {
+      if (!literal4) {
         const foldedValue = value.replace(/\n+/g, "\n$&").replace(/(?:^|\n)([\t ].*)(?:([\n\t ]*)\n(?![\n\t ]))?/g, "$1$2").replace(/\n+/g, `$&${indent}`);
         let literalFallback = false;
         const foldOptions = getFoldOptions(ctx, true);
@@ -26546,7 +26546,7 @@ var require_cst = __commonJS({
           return JSON.stringify(token2);
       }
     }
-    function tokenType(source2) {
+    function tokenType2(source2) {
       switch (source2) {
         case BOM:
           return "byte-order-mark";
@@ -26617,7 +26617,7 @@ var require_cst = __commonJS({
     exports2.isCollection = isCollection;
     exports2.isScalar = isScalar;
     exports2.prettyToken = prettyToken;
-    exports2.tokenType = tokenType;
+    exports2.tokenType = tokenType2;
   }
 });
 
@@ -29004,8 +29004,8 @@ function cleanEnum(obj) {
     return Number.isNaN(Number.parseInt(k, 10));
   }).map((el) => el[1]);
 }
-function base64ToUint8Array(base642) {
-  const binaryString = atob(base642);
+function base64ToUint8Array(base643) {
+  const binaryString = atob(base643);
   const bytes2 = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes2[i] = binaryString.charCodeAt(i);
@@ -29020,9 +29020,9 @@ function uint8ArrayToBase64(bytes2) {
   return btoa(binaryString);
 }
 function base64urlToUint8Array(base64url2) {
-  const base642 = base64url2.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - base642.length % 4) % 4);
-  return base64ToUint8Array(base642 + padding);
+  const base643 = base64url2.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - base643.length % 4) % 4);
+  return base64ToUint8Array(base643 + padding);
 }
 function uint8ArrayToBase64url(bytes2) {
   return uint8ArrayToBase64(bytes2).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
@@ -30398,8 +30398,8 @@ var base64urlCharset = /^[A-Za-z0-9_-]*$/;
 function isValidBase64URL(data) {
   if (!base64urlCharset.test(data))
     return false;
-  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
-  const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
+  const base643 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
+  const padded = base643.padEnd(Math.ceil(base643.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
 var $ZodBase64URL = /* @__PURE__ */ $constructor("$ZodBase64URL", (inst, def) => {
@@ -31680,9 +31680,9 @@ var memo = {
     if (!bucket)
       return empty;
     handoff = void 0;
-    const entry = { value: empty, issues: null };
-    bucket.set(payload.value, entry);
-    open.push(entry);
+    const entry2 = { value: empty, issues: null };
+    bucket.set(payload.value, entry2);
+    open.push(entry2);
     return empty;
   },
   guard(inst) {
@@ -31756,16 +31756,16 @@ var memo = {
         const depth = open.length;
         const result = base(payload, ctx);
         handoff = void 0;
-        const entry = open.length > depth ? open.pop() : void 0;
+        const entry2 = open.length > depth ? open.pop() : void 0;
         if (result instanceof Promise) {
           return result.then((r) => {
-            if (entry)
-              entry.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
+            if (entry2)
+              entry2.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
             return r;
           });
         }
-        if (entry)
-          entry.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
+        if (entry2)
+          entry2.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
         return result;
       };
       inst._zod.parse = wrapped;
@@ -32574,42 +32574,42 @@ function extractDefs(ctx, schema) {
   if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
     return;
   const idToSchema = /* @__PURE__ */ new Map();
-  for (const entry of ctx.seen.entries()) {
-    const id = ctx.metadataRegistry.get(entry[0])?.id;
+  for (const entry2 of ctx.seen.entries()) {
+    const id = ctx.metadataRegistry.get(entry2[0])?.id;
     if (id) {
       const existing = idToSchema.get(id);
-      if (existing && existing !== entry[0]) {
+      if (existing && existing !== entry2[0]) {
         throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
       }
-      idToSchema.set(id, entry[0]);
+      idToSchema.set(id, entry2[0]);
     }
   }
-  const makeURI = (entry) => {
+  const makeURI = (entry2) => {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
-      const externalId = ctx.external.registry.get(entry[0])?.id;
+      const externalId = ctx.external.registry.get(entry2[0])?.id;
       const uriGenerator = ctx.external.uri ?? ((id2) => id2);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
-      const id = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
-      entry[1].defId = id;
+      const id = entry2[1].defId ?? entry2[1].schema.id ?? `schema${ctx.counter++}`;
+      entry2[1].defId = id;
       return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${encodeJSONPointerSegment(id)}` };
     }
     const uriPrefix = `#`;
     const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
-    if (entry[1] === root && !entry[1].schema.id) {
+    if (entry2[1] === root && !entry2[1].schema.id) {
       return { ref: uriPrefix };
     }
-    const defId = entry[1].schema.id ?? `__schema${ctx.counter++}`;
+    const defId = entry2[1].schema.id ?? `__schema${ctx.counter++}`;
     return { defId, ref: defUriPrefix + encodeJSONPointerSegment(defId) };
   };
-  const extractToDef = (entry) => {
-    if (entry[1].schema.$ref) {
+  const extractToDef = (entry2) => {
+    if (entry2[1].schema.$ref) {
       return;
     }
-    const seen = entry[1];
-    const { ref, defId } = makeURI(entry);
+    const seen = entry2[1];
+    const { ref, defId } = makeURI(entry2);
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
@@ -32620,8 +32620,8 @@ function extractDefs(ctx, schema) {
     schema2.$ref = ref;
   };
   if (ctx.cycles === "throw") {
-    for (const entry of ctx.seen.entries()) {
-      const seen = entry[1];
+    for (const entry2 of ctx.seen.entries()) {
+      const seen = entry2[1];
       if (seen.cycle) {
         throw new Error(`Cycle detected: #/${seen.cycle?.join("/")}/<root>
 
@@ -32629,31 +32629,31 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       }
     }
   }
-  for (const entry of ctx.seen.entries()) {
-    const seen = entry[1];
-    if (schema === entry[0]) {
-      extractToDef(entry);
+  for (const entry2 of ctx.seen.entries()) {
+    const seen = entry2[1];
+    if (schema === entry2[0]) {
+      extractToDef(entry2);
       continue;
     }
     if (ctx.external) {
-      const ext2 = ctx.external.registry.get(entry[0])?.id;
-      if (schema !== entry[0] && ext2) {
-        extractToDef(entry);
+      const ext2 = ctx.external.registry.get(entry2[0])?.id;
+      if (schema !== entry2[0] && ext2) {
+        extractToDef(entry2);
         continue;
       }
     }
-    const id = ctx.metadataRegistry.get(entry[0])?.id;
+    const id = ctx.metadataRegistry.get(entry2[0])?.id;
     if (id) {
-      extractToDef(entry);
+      extractToDef(entry2);
       continue;
     }
     if (seen.cycle) {
-      extractToDef(entry);
+      extractToDef(entry2);
       continue;
     }
     if (seen.count > 1) {
       if (ctx.reused === "ref") {
-        extractToDef(entry);
+        extractToDef(entry2);
       }
     }
   }
@@ -32835,12 +32835,12 @@ function finalize(ctx, schema) {
     });
   };
   if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-    for (const entry of [...ctx.seen.entries()].reverse()) {
-      flattenRef(entry[0]);
+    for (const entry2 of [...ctx.seen.entries()].reverse()) {
+      flattenRef(entry2[0]);
     }
     if (ctx.target !== "openapi-3.0") {
-      for (const entry of ctx.seen.entries()) {
-        compactTypeUnion(entry[1].def ?? entry[1].schema);
+      for (const entry2 of ctx.seen.entries()) {
+        compactTypeUnion(entry2[1].def ?? entry2[1].schema);
       }
     }
     for (const rewrite of ctx.deferred)
@@ -32887,8 +32887,8 @@ function finalize(ctx, schema) {
     delete result.id;
   const defs = ctx.external?.defs ?? {};
   if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-    for (const entry of ctx.seen.entries()) {
-      const seen = entry[1];
+    for (const entry2 of ctx.seen.entries()) {
+      const seen = entry2[1];
       if (seen.def && seen.defId) {
         if (seen.def.id === seen.defId)
           delete seen.def.id;
@@ -33328,9 +33328,9 @@ function stringifyKeyNames(bySchema, json, visited) {
 var pendingRecords = /* @__PURE__ */ new WeakMap();
 function rewriteKeyNames(ctx) {
   const bySchema = /* @__PURE__ */ new Map();
-  for (const entry of ctx.seen.values()) {
-    if (entry.def && !bySchema.has(entry.schema))
-      bySchema.set(entry.schema, entry);
+  for (const entry2 of ctx.seen.values()) {
+    if (entry2.def && !bySchema.has(entry2.schema))
+      bySchema.set(entry2.schema, entry2);
   }
   const rewrites = /* @__PURE__ */ new Map();
   for (const record2 of pendingRecords.get(ctx) ?? []) {
@@ -33344,8 +33344,8 @@ function rewriteKeyNames(ctx) {
   }
   if (!rewrites.size)
     return;
-  for (const entry of ctx.seen.values()) {
-    for (const carrier of [entry.schema, entry.def]) {
+  for (const entry2 of ctx.seen.values()) {
+    for (const carrier of [entry2.schema, entry2.def]) {
       const rewritten = carrier && rewrites.get(carrier.propertyNames);
       if (rewritten)
         carrier.propertyNames = rewritten;
@@ -34615,7 +34615,7 @@ function parseSummaryReply(text, sentPaths) {
   if (overview === "") {
     throw new Error("The model's reply had no overview.");
   }
-  const concerns = parsed.data.concerns.filter((entry) => entry.file === "" || sentPaths.has(entry.file)).map((entry) => ({ ...entry.file === "" ? {} : { file: entry.file }, concern: clean(entry.concern, maxConcernLength) })).filter((entry) => entry.concern !== "").slice(0, maxConcerns);
+  const concerns = parsed.data.concerns.filter((entry2) => entry2.file === "" || sentPaths.has(entry2.file)).map((entry2) => ({ ...entry2.file === "" ? {} : { file: entry2.file }, concern: clean(entry2.concern, maxConcernLength) })).filter((entry2) => entry2.concern !== "").slice(0, maxConcerns);
   return { overview, concerns };
 }
 async function summarizePullRequest(input, provider) {
@@ -36623,6 +36623,7 @@ var ruleIds = [
   "session-id-in-url",
   "llm-code-execution",
   "untrusted-model-code",
+  "kubernetes-secret-values",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -36997,6 +36998,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     untrustedModelCode: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    kubernetesSecretValues: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -37578,11 +37582,11 @@ function isLiteralKey(argument) {
   for (const wrapper of byteWrappers) {
     value = wrapper.exec(value)?.[1] ?? value;
   }
-  const literal3 = stringLiteral.exec(value);
-  if (literal3 === null) {
+  const literal4 = stringLiteral.exec(value);
+  if (literal4 === null) {
     return false;
   }
-  const [, quote, text = ""] = literal3;
+  const [, quote, text = ""] = literal4;
   return !(quote === "`" && text.includes("${")) && !publicKey.test(text);
 }
 function callArguments(content, start) {
@@ -40087,8 +40091,8 @@ function findPatterns(patch, path5, fileSinks) {
           (match2) => isTainted(splitArguments(content.slice(match2.index + match2[0].length))[sink.argument] ?? "")
         )
       );
-      const literal3 = isRuby && [...content.matchAll(/(?:%r\{|(?<![\w)\]}])\/)[^/\n]*#\{([^}]*)\}/g)].some((match2) => isTainted(match2[1] ?? ""));
-      if (reported || literal3) {
+      const literal4 = isRuby && [...content.matchAll(/(?:%r\{|(?<![\w)\]}])\/)[^/\n]*#\{([^}]*)\}/g)].some((match2) => isTainted(match2[1] ?? ""));
+      if (reported || literal4) {
         found.push(line);
       }
     }
@@ -40578,9 +40582,9 @@ function optionValue(rest, option2) {
 }
 function numberOf(text, constants2) {
   const value = text.trim();
-  const literal3 = /^([\d_]+(?:\.\d+)?(?:e\d+)?)$/i.exec(value);
-  if (literal3 !== null) {
-    return Number((literal3[1] ?? "").replace(/_/g, ""));
+  const literal4 = /^([\d_]+(?:\.\d+)?(?:e\d+)?)$/i.exec(value);
+  if (literal4 !== null) {
+    return Number((literal4[1] ?? "").replace(/_/g, ""));
   }
   const power = /^(\d+)\s*\*\*\s*(\d+)$/.exec(value);
   if (power !== null) {
@@ -41051,10 +41055,10 @@ function findSettings(path5, patch) {
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
   const paired = (left, right) => left.line === right.line || !wholeCorsCall.test(left.content) && !wholeCorsCall.test(right.content) && (Math.abs(left.line - right.line) <= corsReach || djangoSetting.test(left.content) && djangoSetting.test(right.content));
   for (const origin of origins) {
-    for (const credential of withCredentials.filter((entry) => paired(origin, entry))) {
-      for (const entry of [origin, credential]) {
-        if (entry.added) {
-          found.push({ line: entry.line, kind: "cors" });
+    for (const credential of withCredentials.filter((entry2) => paired(origin, entry2))) {
+      for (const entry2 of [origin, credential]) {
+        if (entry2.added) {
+          found.push({ line: entry2.line, kind: "cors" });
         }
       }
     }
@@ -42186,7 +42190,7 @@ function findTokenStorageLines(path5, patch) {
     return [];
   }
   const lines = patchLines(patch);
-  const encrypted = readsAndroid && lines.some(({ content }) => /\bEncryptedSharedPreferences\b/.test(content));
+  const encrypted2 = readsAndroid && lines.some(({ content }) => /\bEncryptedSharedPreferences\b/.test(content));
   const found = [];
   for (const { line, content, added } of lines) {
     if (!added || content.length > maxLineLength35 || commentLine39.test(content)) {
@@ -42199,7 +42203,7 @@ function findTokenStorageLines(path5, patch) {
         keys.push(...[...content.matchAll(storageProperty)].map((match2) => match2[1] ?? match2[2]));
       }
     }
-    if (readsAndroid && !encrypted) {
+    if (readsAndroid && !encrypted2) {
       keys.push(...[...content.matchAll(androidPut)].map((match2) => match2[1]));
     }
     if (readsIos) {
@@ -44019,7 +44023,7 @@ var plaintextCredentialsRule = {
           continue;
         }
         for (const { line, added } of reportLogins === false ? clients : [...clients, ...logins]) {
-          if (added && !found.some((entry) => entry.line === line)) {
+          if (added && !found.some((entry2) => entry2.line === line)) {
             found.push({ line, label });
           }
         }
@@ -44046,7 +44050,7 @@ var plaintextCredentialsRule = {
   }
 };
 function chosenByOption(lines, line) {
-  const index = lines.findIndex((entry) => entry.line === line);
+  const index = lines.findIndex((entry2) => entry2.line === line);
   if (index < 0) {
     return false;
   }
@@ -44162,7 +44166,7 @@ var weakOauthFlowRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels17).filter((kind) => found.some((entry) => entry.kind === kind));
+      const kinds3 = Object.keys(labels17).filter((kind) => found.some((entry2) => entry2.kind === kind));
       return [
         {
           ruleId: "weak-oauth-flow",
@@ -44401,8 +44405,8 @@ function mountedReadOnly(lines, name) {
   if (name === void 0) {
     return false;
   }
-  const entry = new RegExp(String.raw`^\s*-?\s*name\s*:\s*["']?${name.replace(/[.]/g, "\\.")}["']?\s*$`);
-  const mounts = lines.map((_, index) => index).filter((index) => entry.test(lines[index]?.content ?? "")).map((index) => lines.slice(Math.max(0, index - 2), index + 4).map(({ content }) => content)).filter((block) => block.some((content) => /\bmountPath\s*:/.test(content)));
+  const entry2 = new RegExp(String.raw`^\s*-?\s*name\s*:\s*["']?${name.replace(/[.]/g, "\\.")}["']?\s*$`);
+  const mounts = lines.map((_, index) => index).filter((index) => entry2.test(lines[index]?.content ?? "")).map((index) => lines.slice(Math.max(0, index - 2), index + 4).map(({ content }) => content)).filter((block) => block.some((content) => /\bmountPath\s*:/.test(content)));
   return mounts.length > 0 && mounts.every((block) => block.some((content) => /\breadOnly\s*:\s*true\b/.test(content)));
 }
 function normalize(path5) {
@@ -44811,7 +44815,7 @@ var sshServerConfigRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels18).filter((kind) => found.some((entry) => entry.kind === kind));
+      const kinds3 = Object.keys(labels18).filter((kind) => found.some((entry2) => entry2.kind === kind));
       return [
         {
           ruleId: "ssh-server-config",
@@ -45008,7 +45012,7 @@ var meshMtlsDisabledRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels19).filter((kind) => found.some((entry) => entry.kind === kind));
+      const kinds3 = Object.keys(labels19).filter((kind) => found.some((entry2) => entry2.kind === kind));
       return [
         {
           ruleId: "mesh-mtls-disabled",
@@ -45554,11 +45558,11 @@ var plainHttpEndpointRule = {
 function listenerBlock(lines, index) {
   const block = [];
   for (let after2 = index + 1; after2 < Math.min(lines.length, index + listenerWindow); after2 += 1) {
-    const entry = lines[after2];
-    if (entry === void 0 || blockEnd.test(entry.content)) {
+    const entry2 = lines[after2];
+    if (entry2 === void 0 || blockEnd.test(entry2.content)) {
       break;
     }
-    block.push(entry);
+    block.push(entry2);
   }
   return block;
 }
@@ -46326,6 +46330,219 @@ var untrustedModelCodeRule = {
   }
 };
 
+// src/security/kubernetes-secrets.ts
+var yamlFile2 = /\.ya?ml$/i;
+var kustomization = /(?:^|\/)kustomization\.ya?ml$/i;
+var secretKind = /^kind:\s*["']?Secret["']?\s*(?:#.*)?$/;
+var encrypted = /^sops:\s*$|\bENC\[[A-Z0-9_]+,/;
+var tokenType = /^type:\s*["']?kubernetes\.io\/service-account-token["']?\s*$/;
+var dataSection = /^(data|stringData):\s*(?:#.*)?$/;
+var entry = /^(\s+)("[^"]+"|'[^']+'|[^\s#'"][^:]*?)\s*:(?:\s+(.*))?$/;
+var blockScalar = /^[|>][-+0-9]*\s*(?:#.*)?$/;
+var secretGenerator = /^secretGenerator:\s*$/;
+var literal3 = /^\s*-\s*["']?([\w.-]+)=(.*?)["']?\s*$/;
+var templated = /\{\{|\$\{|\$\(|<%|\(\(|%\{|#\{/;
+var placeholder4 = /^(?:|<[^>]*>|\[[^\]]*\]|\*+|\.{3}|-|null|~|none|changeme|change[-_ ]?(?:me|it|this)|replace[-_ ]?(?:me|this)?|placeholder|example|todo|tbd|redacted|dummy|fake|sample|secret|password|(?:your|insert|enter|replace[-_ ]?with)[-_ ].*|base64[-_ ]?encoded.*|.*x{3,}.*)$/i;
+var secretKey = /pass(?:word|wd|phrase)?|pwd|secret|token|api[-_.]?key|access[-_.]?key|private[-_.]?key|(?:^|[-_.])key(?:[-_.]?pem)?$|credential|htpasswd|dockerconfigjson|dockercfg|(?:^|[-_.])auth$|salt|signing/i;
+var privateKey = /-----BEGIN [A-Z ]*PRIVATE KEY-----/;
+var urlPassword2 = /:\/\/[^\/\s:@]+:[^\/\s@]+@/;
+var credentialLine = /^\s*["']?[\w.-]*(?:pass(?:word|wd)?|secret|token|api[-_]?key|private[-_]?key)["']?\s*[:=]\s*["']?([^"'\s#][^"'#]*)["']?\s*(?:#.*)?$/gim;
+var base642 = /^[A-Za-z0-9+/]+={0,2}$/;
+function unquote(value) {
+  const trimmed = value.trim();
+  if (/^"[^"]*"$|^'[^']*'$/.test(trimmed)) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed.replace(/\s+#.*$/, "");
+}
+function realValue(value, encoded) {
+  const compact = value.replace(/\s+/g, "");
+  if (templated.test(value) || placeholder4.test(value.trim()) || placeholder4.test(compact)) {
+    return void 0;
+  }
+  if (!encoded) {
+    return value;
+  }
+  if (!base642.test(compact)) {
+    return void 0;
+  }
+  const decoded = Buffer.from(compact, "base64").toString("utf8").trim();
+  return templated.test(decoded) || placeholder4.test(decoded) ? void 0 : decoded;
+}
+function holdsCredential(key3, value) {
+  if (value === void 0) {
+    return false;
+  }
+  if (secretKey.test(key3) || privateKey.test(value) || urlPassword2.test(value)) {
+    return true;
+  }
+  return [...value.matchAll(credentialLine)].some((match2) => realValue(match2[1] ?? "", false) !== void 0);
+}
+function secretEntries(document) {
+  const contents = document.map(({ content }) => content);
+  if (!contents.some((content) => secretKind.test(content)) || contents.some((content) => encrypted.test(content) || tokenType.test(content))) {
+    return [];
+  }
+  const found = [];
+  let section;
+  let entryIndent;
+  for (let index = 0; index < document.length; index += 1) {
+    const content = contents[index] ?? "";
+    if (content.trim() === "" || /^\s*#/.test(content)) {
+      continue;
+    }
+    const sectionMatch = dataSection.exec(content);
+    if (sectionMatch !== null) {
+      section = sectionMatch[1];
+      entryIndent = void 0;
+      continue;
+    }
+    if (!/^\s/.test(content)) {
+      section = void 0;
+      continue;
+    }
+    const match2 = entry.exec(content);
+    if (section === void 0 || match2 === null) {
+      continue;
+    }
+    const indent = match2[1]?.length ?? 0;
+    entryIndent ??= indent;
+    if (indent !== entryIndent) {
+      continue;
+    }
+    const key3 = (match2[2] ?? "").replace(/^["']|["']$/g, "");
+    const rawValue = match2[3] ?? "";
+    const line = document[index];
+    if (line === void 0) {
+      continue;
+    }
+    if (blockScalar.test(rawValue.trim())) {
+      const block = [];
+      while (index + 1 < document.length && ((contents[index + 1] ?? "").trim() === "" || /^\s/.test(contents[index + 1] ?? "")) && leadingSpaces(contents[index + 1] ?? "") > indent) {
+        index += 1;
+        const next = document[index];
+        if (next !== void 0) {
+          block.push(next);
+        }
+      }
+      const value = block.map(({ content: text }) => text.trim()).join("\n");
+      if (holdsCredential(key3, realValue(value, section === "data")) && (line.added || block.some(({ added }) => added))) {
+        found.push({ key: key3, line });
+      }
+      continue;
+    }
+    if (line.added && holdsCredential(key3, realValue(unquote(rawValue), section === "data"))) {
+      found.push({ key: key3, line });
+    }
+  }
+  return found;
+}
+function leadingSpaces(content) {
+  return content.trim() === "" ? Number.POSITIVE_INFINITY : /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function generatorLiterals(lines) {
+  const found = [];
+  let inGenerator = false;
+  let inLiterals = false;
+  for (const line of lines) {
+    const { content } = line;
+    if (line.startsHunk) {
+      inGenerator = false;
+      inLiterals = false;
+    }
+    if (content.trim() === "" || /^\s*#/.test(content)) {
+      continue;
+    }
+    if (!/^\s/.test(content) && !/^-/.test(content)) {
+      inGenerator = secretGenerator.test(content);
+      inLiterals = false;
+      continue;
+    }
+    if (!inGenerator) {
+      continue;
+    }
+    if (/^\s*-?\s*literals:\s*$/.test(content)) {
+      inLiterals = true;
+      continue;
+    }
+    if (/^\s*-?\s*[\w-]+:/.test(content)) {
+      inLiterals = false;
+      continue;
+    }
+    const match2 = literal3.exec(content);
+    if (inLiterals && match2 !== null && line.added && holdsCredential(match2[1] ?? "", realValue(match2[2] ?? "", false))) {
+      found.push({ key: match2[1] ?? "", line });
+    }
+  }
+  return found;
+}
+function findKubernetesSecretLines(path5, patch) {
+  if (!yamlFile2.test(path5)) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  const documents = [[]];
+  for (const line of lines) {
+    if (/^---\s*(?:#.*)?$/.test(line.content) || line.startsHunk && (documents.at(-1)?.length ?? 0) > 0) {
+      documents.push([]);
+    }
+    if (!/^---/.test(line.content)) {
+      documents.at(-1)?.push(line);
+    }
+  }
+  return [...documents.flatMap((document) => secretEntries(document)), ...kustomization.test(path5) ? generatorLiterals(lines) : []].map(
+    ({ key: key3, line }) => ({ line: line.line, key: key3 })
+  );
+}
+
+// src/rules/kubernetes-secret-values.ts
+var ciOrTestSetup11 = /(?:^|[\/_.-])(?:e2e\w*|integ\w*|fixtures?|testdata|mocks?|quick-?start|getting-?started|playground)(?:[\/_.-]|$)|(?:^|\/)(?:hack|docs?|\.github)\//i;
+var documentation66 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxKeys = 5;
+var kubernetesSecretValuesRule = {
+  id: "kubernetes-secret-values",
+  description: "Flags Kubernetes Secret manifests and Kustomize secret generators committed with passwords, tokens, or keys in `data`, `stringData`, or `literals`.",
+  seesIgnoredFiles: true,
+  run({ files, config: config3 }) {
+    if (!config3.rules.kubernetesSecretValues.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (documentation66.test(file.path) || ciOrTestSetup11.test(file.path) || // Development, example, and test manifests.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = secretLines(file);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const keys = [...new Set(found.map(({ key: key3 }) => `\`${key3}\``))];
+      const named = keys.length > maxKeys ? [...keys.slice(0, maxKeys), `${keys.length - maxKeys} other keys`] : keys;
+      return [
+        {
+          ruleId: "kubernetes-secret-values",
+          title: "Kubernetes Secret committed with its values",
+          severity: "high",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "put" : "puts"} values for ${listOf(named)} in a Kubernetes Secret committed to the repository. Secret data is only base64-encoded, not encrypted, so anyone who can read the repository, a fork, or its history can read these values and use them.`,
+          recommendation: "Treat the values as exposed and rotate them. Keep Secret values out of the repository: create Secrets from a secret store with External Secrets or the Secrets Store CSI driver, encrypt them with Sealed Secrets or SOPS, or fill them in from values passed at deploy time, and commit only placeholders."
+        }
+      ];
+    });
+  }
+};
+function secretLines(file) {
+  if (file.kubernetesSecretLines !== void 0) {
+    return file.kubernetesSecretLines;
+  }
+  return file.patch === void 0 ? [] : findKubernetesSecretLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -46413,7 +46630,7 @@ var destructiveMigrationRule = {
         return [];
       }
       const listed = kinds.filter(({ kind }) => found.some((match2) => match2.kind === kind));
-      const destructive = listed.some((entry) => entry.destructive);
+      const destructive = listed.some((entry2) => entry2.destructive);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       const many = plural || listed.length > 1;
       return [
@@ -46424,7 +46641,7 @@ var destructiveMigrationRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry) => entry.kind).join(", ")}.`,
+          message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry2) => entry2.kind).join(", ")}.`,
           recommendation: "Back up the affected data and deploy in steps: stop using the table or column in one release, then drop or rename it in a later one, so running code does not break. Check that the migration can be rolled back."
         }
       ];
@@ -46551,7 +46768,7 @@ var checks = [tls, token, csrf];
 var commentLine77 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation66 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -46561,7 +46778,7 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation66.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation67.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
@@ -46801,8 +47018,8 @@ function findLockfileSources(path5, patch, allowedSources) {
     if (!added) {
       continue;
     }
-    for (const entry of reader.urls(content, section)) {
-      const source2 = "kind" in entry ? entry : entry.extraIndex ? { kind: "extra-index" } : classify(entry.url, allowed, section === "GIT" || entry.git === true);
+    for (const entry2 of reader.urls(content, section)) {
+      const source2 = "kind" in entry2 ? entry2 : entry2.extraIndex ? { kind: "extra-index" } : classify(entry2.url, allowed, section === "GIT" || entry2.git === true);
       if (source2 !== void 0) {
         found.push({ line, ...source2 });
       }
@@ -46988,7 +47205,7 @@ ${opened[1] ?? ""}`;
         version: (match2[2] ?? "").trim()
       }));
       if (/^tool\.poetry\.(?:dependencies|dev-dependencies|group\.[^.]+\.dependencies)$/.test(section)) {
-        return [...requirements, ...tomlEntries(content).filter((entry) => entry.name !== "python")];
+        return [...requirements, ...tomlEntries(content).filter((entry2) => entry2.name !== "python")];
       }
       return requirements;
     }
@@ -47128,11 +47345,11 @@ function declaredDependencies(path5, patch) {
     const content = line.slice(1);
     if (line.startsWith("+")) {
       newSection = sectionOf(content, newSection) ?? newSection;
-      added.push(...manifest2.entries(content, newSection).map((entry) => ({ ...entry, line: newLine })));
+      added.push(...manifest2.entries(content, newSection).map((entry2) => ({ ...entry2, line: newLine })));
       newLine += 1;
     } else if (line.startsWith("-")) {
       oldSection = sectionOf(content, oldSection) ?? oldSection;
-      removed.push(...manifest2.entries(content, oldSection).map((entry) => ({ ...entry, line: oldLine ?? 0 })));
+      removed.push(...manifest2.entries(content, oldSection).map((entry2) => ({ ...entry2, line: oldLine ?? 0 })));
       oldLine += 1;
     } else {
       newSection = sectionOf(content, newSection) ?? newSection;
@@ -47249,10 +47466,10 @@ function dependencyBlocks(lines, side) {
     if (!shown2 || !/<\/dependency\s*>/.test(line.content)) {
       continue;
     }
-    const text = block.filter((entry) => entry.kind === " " || entry.kind === side).map((entry) => entry.content).join(" ");
+    const text = block.filter((entry2) => entry2.kind === " " || entry2.kind === side).map((entry2) => entry2.content).join(" ");
     const group = /<groupId>\s*([^<\s]{1,200})\s*<\/groupId>/.exec(text)?.[1];
     const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
-    const changed = block.find((entry) => entry.kind !== " ");
+    const changed = block.find((entry2) => entry2.kind !== " ");
     if (group !== void 0 && artifact !== void 0 && changed !== void 0) {
       const version2 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
       found.push({ name: `${group}:${artifact}`, version: version2, line: side === "+" ? changed.newLine : changed.oldLine });
@@ -48362,7 +48579,7 @@ var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
 var commentLine78 = /^\s*#/;
-var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation68 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -48372,7 +48589,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation67.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation68.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -48696,8 +48913,8 @@ var labels21 = {
   "wildcard-resources": "covers every resource",
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
-var yamlFile2 = /\.ya?ml$/i;
-var documentation68 = /(?:^|\/)docs?\//i;
+var yamlFile3 = /\.ya?ml$/i;
+var documentation69 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -48715,7 +48932,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile2.test(file.path) || documentation68.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || !yamlFile3.test(file.path) || documentation69.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -48744,7 +48961,7 @@ var kubernetesRbacRule = {
 };
 function findGrants(patch) {
   const lines = patchLines(patch);
-  if (!lines.some((entry) => rbacMarker.test(entry.content) || rbacMarker.test(entry.hunkContext ?? ""))) {
+  if (!lines.some((entry2) => rbacMarker.test(entry2.content) || rbacMarker.test(entry2.hunkContext ?? ""))) {
     return [];
   }
   const found = [];
@@ -48758,12 +48975,12 @@ function findGrants(patch) {
       continue;
     }
     const indent = content.length - content.trimStart().length;
-    const entry = listKey.exec(content);
+    const entry2 = listKey.exec(content);
     let values = [];
-    if (entry !== null) {
-      key3 = entry[1];
+    if (entry2 !== null) {
+      key3 = entry2[1];
       keyIndent = indent;
-      values = inlineValues(entry[2] ?? "");
+      values = inlineValues(entry2[2] ?? "");
     } else if (key3 !== void 0 && listItem.test(content) && indent >= keyIndent) {
       values = [listItem.exec(content)?.[1] ?? ""];
     } else {
@@ -48810,7 +49027,7 @@ var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
 var commentLine82 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation69 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation70 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -48820,7 +49037,7 @@ var filePermissionsRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation69.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation70.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
@@ -48923,7 +49140,7 @@ var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choic
 var commentLine83 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
-var documentation70 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -48933,7 +49150,7 @@ var weakCryptoRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation70.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation71.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
@@ -48997,7 +49214,7 @@ var settings25 = [
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
 var commentLine84 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -49007,7 +49224,7 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation71.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation72.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
@@ -49061,7 +49278,7 @@ var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
 var commentLine85 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -49071,7 +49288,7 @@ var massAssignmentRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation72.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation73.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const lines = patchLines(file.patch);
@@ -49180,7 +49397,7 @@ function firstAtoms(item) {
   }
   const atoms = [];
   for (const alternative of item.alternatives ?? []) {
-    const start = alternative.find((entry) => entry.kind !== "lookaround");
+    const start = alternative.find((entry2) => entry2.kind !== "lookaround");
     const nested = start === void 0 || (start.quantifier?.min ?? 1) === 0 ? void 0 : firstAtoms(start);
     if (nested === void 0) {
       return void 0;
@@ -49334,7 +49551,7 @@ var languages7 = [
   }
 ];
 var commentLine86 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
 var redosRule = {
@@ -49347,7 +49564,7 @@ var redosRule = {
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation73.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (language === void 0 || file.patch === void 0 || documentation74.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
@@ -49554,7 +49771,7 @@ var patterns2 = [
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
 var commentLine87 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -49565,7 +49782,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation74.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation75.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const found = commands2(file.patch).flatMap(({ line, content }) => {
@@ -49910,9 +50127,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation75 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation76 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path5, testGlobs) {
-  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation75.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+  return isTestDataPath(path5) || sampleDirectory2.test(path5) || documentation76.test(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -49941,7 +50158,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -49951,7 +50168,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
-    const describesOnly = (path5) => documentation76.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
+    const describesOnly = (path5) => documentation77.test(path5) || isTestDataPath(path5) || testGlobs.some((glob2) => minimatch(path5, glob2));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -50088,7 +50305,7 @@ var untrustedPaths = [
 ].map((path5) => path5.split("."));
 var scriptKeys = /* @__PURE__ */ new Set(["run", "script"]);
 var mapping = /^(\s*)(?:-\s+)?([\w.-]+)\s*:(?:\s+(.*))?$/;
-var blockScalar = /^[|>][+-]?\d*\s*(?:#.*)?$/;
+var blockScalar2 = /^[|>][+-]?\d*\s*(?:#.*)?$/;
 var warnings = [
   ["pull_request_target trigger", /^\s*(?:-\s*)?pull_request_target\s*:?\s*(?:#.*)?$|^\s*on\s*:.*\bpull_request_target\b/],
   ["write-all permissions", /^\s*permissions:\s*write-all\b/],
@@ -50172,7 +50389,7 @@ function findTopLevelWrites(patch) {
   return found;
 }
 function setsNoPermissions(patch) {
-  const content = patchLines(patch).map((entry) => entry.content);
+  const content = patchLines(patch).map((entry2) => entry2.content);
   return !content.some((text) => /^\s*permissions\s*:/.test(text)) && !content.some((text) => /\bworkflow_call\b/.test(text) && !/^\s*#/.test(text));
 }
 function findInjections(patch) {
@@ -50190,12 +50407,12 @@ function findInjections(patch) {
     if (block) {
       executed = block.script;
     } else {
-      const entry = mapping.exec(content);
-      const key3 = entry?.[2];
-      const value = entry?.[3] ?? "";
+      const entry2 = mapping.exec(content);
+      const key3 = entry2?.[2];
+      const value = entry2?.[3] ?? "";
       executed = key3 === void 0 || scriptKeys.has(key3);
-      if (entry && key3 && blockScalar.test(value)) {
-        block = { indent: (entry[1] ?? "").length + (/^\s*-\s+/.test(content) ? content.trimStart().indexOf(key3) : 0), script: scriptKeys.has(key3) };
+      if (entry2 && key3 && blockScalar2.test(value)) {
+        block = { indent: (entry2[1] ?? "").length + (/^\s*-\s+/.test(content) ? content.trimStart().indexOf(key3) : 0), script: scriptKeys.has(key3) };
       }
     }
     if (!added || /^\s*#/.test(content)) {
@@ -50372,7 +50589,7 @@ var languageStrings = [
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
 var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -50382,7 +50599,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation77.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+      if (file.patch === void 0 || documentation78.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -50432,7 +50649,7 @@ function builds(argument, patterns3) {
   if (matched.length === 0) {
     return false;
   }
-  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry) => entry?.pattern);
+  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry2) => entry2?.pattern);
   if (!matched.every(({ pattern }) => readable.includes(pattern))) {
     return true;
   }
@@ -50596,6 +50813,7 @@ var defaultRules = [
   sessionIdInUrlRule,
   llmCodeExecutionRule,
   untrustedModelCodeRule,
+  kubernetesSecretValuesRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -50746,9 +50964,9 @@ function applySeverityOverride(finding2, config3, pathOverrides) {
   let override = config3.severity[finding2.ruleId];
   const file = finding2.file;
   if (file !== void 0) {
-    for (const entry of pathOverrides) {
-      if (entry.severity[finding2.ruleId] !== void 0 && entry.matchers.some((matcher) => matcher.match(file))) {
-        override = entry.severity[finding2.ruleId];
+    for (const entry2 of pathOverrides) {
+      if (entry2.severity[finding2.ruleId] !== void 0 && entry2.matchers.some((matcher) => matcher.match(file))) {
+        override = entry2.severity[finding2.ruleId];
       }
     }
   }
@@ -51051,6 +51269,7 @@ var ruleAreas = {
   "session-id-in-url": "code",
   "llm-code-execution": "code",
   "untrusted-model-code": "supply-chain",
+  "kubernetes-secret-values": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -51166,6 +51385,7 @@ var ruleQuestions = {
   "session-id-in-url": "Are sessions tracked with cookies only, never in URLs?",
   "llm-code-execution": "Does code the model writes run in a sandbox, or only after a person approves it?",
   "untrusted-model-code": "Do models load from safetensors, or from code pinned to a reviewed revision?",
+  "kubernetes-secret-values": "Are the committed Secret values rotated, and the Secrets now filled in from a secret store?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -51285,6 +51505,7 @@ var ruleSections = {
   "session-id-in-url": "Session IDs in URLs",
   "llm-code-execution": "LLM Code Execution",
   "untrusted-model-code": "Model Files That Run Code",
+  "kubernetes-secret-values": "Kubernetes Secrets",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -51342,7 +51563,7 @@ function renderState(findings) {
     }
   }
   const entries = [...byRule].map(([ruleId, hashes]) => `${ruleId}:${hashes.join(",")}`);
-  return `<!-- ${STATE_MARKER} v1${entries.map((entry) => ` ${entry}`).join("")} -->`;
+  return `<!-- ${STATE_MARKER} v1${entries.map((entry2) => ` ${entry2}`).join("")} -->`;
 }
 function readState(body) {
   const text = body.trimEnd();
@@ -51352,8 +51573,8 @@ function readState(body) {
     return void 0;
   }
   const counts = /* @__PURE__ */ new Map();
-  for (const entry of (match2[1] ?? "").split(" ").filter(Boolean)) {
-    const [ruleId = "", hashes = "", ...rest] = entry.split(":");
+  for (const entry2 of (match2[1] ?? "").split(" ").filter(Boolean)) {
+    const [ruleId = "", hashes = "", ...rest] = entry2.split(":");
     const list2 = hashes.split(",");
     if (rest.length > 0 || !rulePattern.test(ruleId) || !list2.every((hash) => hashPattern.test(hash))) {
       return void 0;
@@ -51447,7 +51668,7 @@ function renderAiSummary(summary) {
     advisoryText(summary.overview),
     "",
     ...summary.concerns.map(
-      (entry) => `- ${entry.file === void 0 ? "" : `${codeSpan(entry.file)}: `}${advisoryText(entry.concern)}`
+      (entry2) => `- ${entry2.file === void 0 ? "" : `${codeSpan(entry2.file)}: `}${advisoryText(entry2.concern)}`
     ),
     ...summary.concerns.length > 0 ? [""] : [],
     ...partial2
@@ -51870,7 +52091,7 @@ async function listDirectoryFiles(client, owner, repo, directory, ref) {
     }
     throw error2;
   }
-  return Array.isArray(content) ? content.filter((entry) => entry.type === "file" && typeof entry.name === "string").map((entry) => entry.name ?? "") : [];
+  return Array.isArray(content) ? content.filter((entry2) => entry2.type === "file" && typeof entry2.name === "string").map((entry2) => entry2.name ?? "") : [];
 }
 
 // src/github/load-lockfiles.ts
@@ -52130,6 +52351,7 @@ function prepareChangedFiles(files, config3) {
     urlCredentialLines: file.patch === void 0 ? [] : findUrlCredentialLines(file.path, file.patch, allowlist2),
     timingCompareLines: file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch),
     cryptoKeyLines: file.patch === void 0 ? [] : findCryptoKeyLines(file.path, file.patch),
+    kubernetesSecretLines: file.patch === void 0 ? [] : findKubernetesSecretLines(file.path, file.patch),
     ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {},
     ...file.patch !== void 0 && isSourceFile(file.path) ? { lockfileSources: findLockfileSources(file.path, file.patch, config3.rules.lockfileSources.allowedSources) } : {}
   }));
