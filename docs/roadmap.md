@@ -152,6 +152,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Deserializers that let the data choose the classes to create, such as Jackson's default typing and fastjson's autoType (0.127.0).
 - CI scripts outside GitHub Actions that paste pull request text into their commands (0.128.0).
 - IAM policies that allow privilege escalation on every resource (0.129.0).
+- Session IDs carried in URLs (0.130.0).
 
 ## Later
 

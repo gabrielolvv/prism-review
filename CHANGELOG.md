@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.130.0 - 2026-11-06
+
+### Added
+
+- `session-id-in-url` rule: warns about web apps set to carry the session ID in URLs, where it ends up in logs, browser history, and Referer headers, and where a link can fix a victim's session to an ID an attacker knows. It reads Spring Boot's `tracking-modes` with `url`, the Servlet API's `URL` tracking mode in `web.xml` and code, Apache Shiro's `sessionIdUrlRewritingEnabled`, PHP's `session.use_trans_sid` and `session.use_only_cookies`, ASP.NET's cookieless sessions and forms authentication, and Rack's and Rails' `cookie_only: false`. Cookie-only settings, other keys' `url` list items, development settings, and tests are not reported. On about 110,100 Java, PHP, Ruby, and settings files, including about 28,300 from Java web frameworks and apps, it reports none.
+
 ## 0.129.0 - 2026-11-06
 
 ### Added
