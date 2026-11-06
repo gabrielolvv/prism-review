@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.129.0 - 2026-11-06
+
+### Added
+
+- `iam-privilege-escalation` rule: reports, as high, IAM statements that allow, on every resource and with no condition, actions that let the holder make themselves an administrator, such as `iam:PassRole`, `iam:AttachUserPolicy`, `iam:CreatePolicyVersion`, `iam:CreateAccessKey`, `iam:UpdateAssumeRolePolicy`, `iam:*`, and `sts:AssumeRole`, in JSON, YAML, CloudFormation, Terraform, and the CDK. Named resources, conditions such as `iam:PassedToService`, `Deny` statements, read-only actions, trust policies, examples, and tests are not reported. On about 383,800 settings and source files, including about 1,140 that name these actions, it reports one, Chalice's deployment pipeline policy with `iam:PassRole` on every role.
+
+### Changed
+
+- `public-resource-policy` and `iam-privilege-escalation` share the code that finds a policy statement's lines, which now also stops at Terraform's `dynamic "statement"` and `content` blocks.
+
 ## 0.128.0 - 2026-11-06
 
 ### Added
