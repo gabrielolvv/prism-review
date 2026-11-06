@@ -857,6 +857,12 @@ import {
   testIamPrivilegeEscalationSkipsTestsAndCanBeDisabled
 } from "./unit/iam-privilege-escalation.test.js";
 import {
+  testSessionIdInUrlReadsEachPlatform,
+  testSessionIdInUrlReportsOneFindingPerFile,
+  testSessionIdInUrlSkipsCookieSessions,
+  testSessionIdInUrlSkipsTestsAndCanBeDisabled
+} from "./unit/session-id-in-url.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1474,6 +1480,10 @@ const tests: Array<[string, Test]> = [
   ["iam-privilege-escalation reads each format", testIamPrivilegeEscalationReadsEachFormat],
   ["iam-privilege-escalation skips limited statements", testIamPrivilegeEscalationSkipsLimitedStatements],
   ["iam-privilege-escalation skips tests and can be disabled", testIamPrivilegeEscalationSkipsTestsAndCanBeDisabled],
+  ["session-id-in-url reports one finding per file", testSessionIdInUrlReportsOneFindingPerFile],
+  ["session-id-in-url reads each platform", testSessionIdInUrlReadsEachPlatform],
+  ["session-id-in-url skips cookie sessions", testSessionIdInUrlSkipsCookieSessions],
+  ["session-id-in-url skips tests and can be disabled", testSessionIdInUrlSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

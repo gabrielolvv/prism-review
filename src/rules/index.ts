@@ -71,6 +71,7 @@ import { samlValidationDisabledRule } from "./saml-validation-disabled.js";
 import { polymorphicDeserializationRule } from "./polymorphic-deserialization.js";
 import { ciScriptInjectionRule } from "./ci-script-injection.js";
 import { iamPrivilegeEscalationRule } from "./iam-privilege-escalation.js";
+import { sessionIdInUrlRule } from "./session-id-in-url.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -185,6 +186,7 @@ export const defaultRules: Rule[] = [
   polymorphicDeserializationRule,
   ciScriptInjectionRule,
   iamPrivilegeEscalationRule,
+  sessionIdInUrlRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -82,6 +82,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "polymorphic-deserialization": "Polymorphic Deserialization",
   "ci-script-injection": "CI Script Injection",
   "iam-privilege-escalation": "IAM Privilege Escalation",
+  "session-id-in-url": "Session IDs in URLs",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

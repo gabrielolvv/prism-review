@@ -80,6 +80,7 @@ export const ruleIds: readonly string[] = [
   "polymorphic-deserialization",
   "ci-script-injection",
   "iam-privilege-escalation",
+  "session-id-in-url",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
