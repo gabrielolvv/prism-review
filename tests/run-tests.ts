@@ -889,6 +889,13 @@ import {
   testDeploymentEnvSecretSkipsTestsAndCanBeDisabled
 } from "./unit/deployment-env-secret.test.js";
 import {
+  testIacHardcodedPasswordFindsValuesBeforeRedaction,
+  testIacHardcodedPasswordReadsEachFormat,
+  testIacHardcodedPasswordReportsOneFindingPerFile,
+  testIacHardcodedPasswordSkipsReferencesAndPlaceholders,
+  testIacHardcodedPasswordSkipsTestsAndCanBeDisabled
+} from "./unit/iac-hardcoded-password.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1528,6 +1535,11 @@ const tests: Array<[string, Test]> = [
   ["deployment-env-secret skips references and placeholders", testDeploymentEnvSecretSkipsReferencesAndPlaceholders],
   ["deployment-env-secret finds values before redaction", testDeploymentEnvSecretFindsValuesBeforeRedaction],
   ["deployment-env-secret skips tests and can be disabled", testDeploymentEnvSecretSkipsTestsAndCanBeDisabled],
+  ["iac-hardcoded-password reports one finding per file", testIacHardcodedPasswordReportsOneFindingPerFile],
+  ["iac-hardcoded-password reads each format", testIacHardcodedPasswordReadsEachFormat],
+  ["iac-hardcoded-password skips references and placeholders", testIacHardcodedPasswordSkipsReferencesAndPlaceholders],
+  ["iac-hardcoded-password finds values before redaction", testIacHardcodedPasswordFindsValuesBeforeRedaction],
+  ["iac-hardcoded-password skips tests and can be disabled", testIacHardcodedPasswordSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

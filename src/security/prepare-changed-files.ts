@@ -14,6 +14,7 @@ import { findTokenStorageLines } from "./token-storage.js";
 import { findLongSessionLines } from "./session-lifetime.js";
 import { findCryptoKeyLines } from "./crypto-keys.js";
 import { findDeploymentEnvSecretLines } from "./deployment-env-secrets.js";
+import { findIacPasswordLines } from "./iac-passwords.js";
 import { findKubernetesSecretLines } from "./kubernetes-secrets.js";
 import { findLockfileSources, isSourceFile } from "./lockfile-sources.js";
 import { limitPatchSizes } from "./limit-patches.js";
@@ -43,6 +44,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     cryptoKeyLines: file.patch === undefined ? [] : findCryptoKeyLines(file.path, file.patch),
     kubernetesSecretLines: file.patch === undefined ? [] : findKubernetesSecretLines(file.path, file.patch),
     deploymentEnvSecretLines: file.patch === undefined ? [] : findDeploymentEnvSecretLines(file.path, file.patch),
+    iacPasswordLines: file.patch === undefined ? [] : findIacPasswordLines(file.path, file.patch),
     ...(file.patch !== undefined && credentialFileKind(file.path)?.checksLines
       ? { credentialLines: findCredentialLines(file.path, file.patch) }
       : {}),

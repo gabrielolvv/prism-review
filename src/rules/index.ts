@@ -76,6 +76,7 @@ import { llmCodeExecutionRule } from "./llm-code-execution.js";
 import { untrustedModelCodeRule } from "./untrusted-model-code.js";
 import { kubernetesSecretValuesRule } from "./kubernetes-secret-values.js";
 import { deploymentEnvSecretRule } from "./deployment-env-secret.js";
+import { iacHardcodedPasswordRule } from "./iac-hardcoded-password.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -195,6 +196,7 @@ export const defaultRules: Rule[] = [
   untrustedModelCodeRule,
   kubernetesSecretValuesRule,
   deploymentEnvSecretRule,
+  iacHardcodedPasswordRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

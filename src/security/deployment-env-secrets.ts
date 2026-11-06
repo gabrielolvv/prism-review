@@ -31,8 +31,14 @@ const mapEntry = /^\s*["']?([A-Z][A-Z0-9_]*)["']?\s*:\s*(.+?)\s*$/;
 const listEntry = /^\s*-\s*["']?([A-Z][A-Z0-9_]*)=(.*?)["']?\s*$/;
 
 // Values read from a secret store, and switches and numbers rather than secrets.
-const secretReference = /^(?:vault:|arn:aws:(?:secretsmanager|ssm)|ssm:|sm:\/\/|gcp:|projects\/[^/\s]+\/secrets\/|op:\/\/|akv:\/\/|keyvault:)/i;
-const notSecret = /^(?:true|false|yes|no|on|off|enabled?|disabled?|required|optional|none|\d{1,6})$/i;
+const secretReference = /^(?:vault:|arn:|ssm:|sm:\/\/|gcp:|projects\/[^/\s]+\/secrets\/|op:\/\/|akv:\/\/|keyvault:)/i;
+const notSecret = /^(?:true|false|yes|no|on|off|enabled?|disabled?|required|optional|none|\d{1,6}|seconds|minutes|hours|days|weeks)$/i;
+// Values that mark a test or an example, say there is no secret, such as `NO_TOKEN`, or are a
+// default such as `password1`.
+const sampleValue = /test|example|dummy|sample|fake|xyzzy|foobar|hunter2|^(?:no|not)[-_ ]?(?:set|token|password|secret|key|value)$|^(?:password|passwd|secret|admin|root)\d*!?$/i;
+// Paths and names that say where a secret is kept, such as `/grafana/%s/api_key`.
+const storagePath = /^\/?[\w.%-]+(?:\/[\w.%-]+)+\/?$/;
+const sampleName = /^(?:example|sample|dummy|fake|test|mock)[-_]/i;
 // Names that hold a setting about a secret rather than the secret itself.
 const settingName = /_(?:FILE|PATH|DIR|NAME|ID|TTL|EXPIRY|EXPIRES?|LENGTH|HEADER|URL|URI|ENDPOINT|HOST|PORT|ENABLED|REQUIRED|TYPE|ALGORITHM|MODE|SECONDS|DAYS|HOURS|MINUTES)$|^(?:MIN|MAX)_/i;
 
@@ -46,19 +52,22 @@ function cleanValue(raw: string): string {
 }
 
 // Whether a variable is named like a secret and given a real value, not a reference, a template,
-// a placeholder, or a local default. URLs with a password are left to `url-credentials`.
-function isSecretValue(name: string, raw: string): boolean {
-  if (!secretName.test(name) || publicName.test(name) || settingName.test(name)) {
+// a placeholder, or a local default. URLs with a password are left to `url-credentials`. Values that
+// start with `!` are YAML tags, such as CloudFormation's `!Ref` or Ansible's `!vault`.
+export function isSecretValue(name: string, raw: string): boolean {
+  if (!secretName.test(name) || publicName.test(name) || settingName.test(name) || sampleName.test(name)) {
     return false;
   }
   const value = cleanValue(raw);
   return (
     value.length >= 4 &&
-    !/^[|>[{]/.test(value) &&
+    !/^[|>[{!]/.test(value) &&
     !value.includes("://") &&
     !templated.test(value) &&
     !secretReference.test(value) &&
     !notSecret.test(value) &&
+    !sampleValue.test(value) &&
+    !storagePath.test(value) &&
     !placeholder.test(value) &&
     !isPlaceholder(value)
   );
