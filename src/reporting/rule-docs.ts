@@ -80,6 +80,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "unpinned-deploy-image": "Unpinned Deployment Images",
   "saml-validation-disabled": "SAML Validation",
   "polymorphic-deserialization": "Polymorphic Deserialization",
+  "ci-script-injection": "CI Script Injection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

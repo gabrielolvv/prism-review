@@ -101,6 +101,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "unpinned-deploy-image": "Do deployments pin their container images to a version or digest?",
   "saml-validation-disabled": "Do SAML logins keep their signature, audience, and destination checks?",
   "polymorphic-deserialization": "Do deserializers read untrusted data into fixed or allowlisted types?",
+  "ci-script-injection": "Do CI scripts read pull request text through quoted environment variables?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

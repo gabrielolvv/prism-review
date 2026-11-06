@@ -845,6 +845,12 @@ import {
   testPolymorphicDeserializationSkipsTestsAndCanBeDisabled
 } from "./unit/polymorphic-deserialization.test.js";
 import {
+  testCiScriptInjectionCanBeDisabled,
+  testCiScriptInjectionReadsEachSystem,
+  testCiScriptInjectionReportsOneFindingPerFile,
+  testCiScriptInjectionSkipsSafeUses
+} from "./unit/ci-script-injection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1454,6 +1460,10 @@ const tests: Array<[string, Test]> = [
   ["polymorphic-deserialization reads each library", testPolymorphicDeserializationReadsEachLibrary],
   ["polymorphic-deserialization skips safe settings", testPolymorphicDeserializationSkipsSafeSettings],
   ["polymorphic-deserialization skips tests and can be disabled", testPolymorphicDeserializationSkipsTestsAndCanBeDisabled],
+  ["ci-script-injection reports one finding per file", testCiScriptInjectionReportsOneFindingPerFile],
+  ["ci-script-injection reads each system", testCiScriptInjectionReadsEachSystem],
+  ["ci-script-injection skips safe uses", testCiScriptInjectionSkipsSafeUses],
+  ["ci-script-injection can be disabled", testCiScriptInjectionCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
