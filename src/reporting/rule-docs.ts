@@ -86,6 +86,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "llm-code-execution": "LLM Code Execution",
   "untrusted-model-code": "Model Files That Run Code",
   "kubernetes-secret-values": "Kubernetes Secrets",
+  "deployment-env-secret": "Deployment Environment Secrets",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

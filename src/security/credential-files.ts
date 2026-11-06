@@ -25,10 +25,10 @@ const commentLine = /^\s*[#;]/;
 const assignment = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*[=:]\s*(.*)$/;
 // The name must end with the secret word, so `TOKEN_TTL_SECONDS` and `MAX_TOKENS` do not count, and
 // `PWD` is the working directory.
-const secretName =
+export const secretName =
   /(?:secret|passw(?:or)?d|[_.-]pass|[_.-]pwd|token|credentials?|(?:api|private|access|secret|signing|encryption|master)[_.-]?key|secret[_.-]?key[_.-]?base)$/i;
 // Build tools inline these into code sent to browsers, so they are public by design.
-const publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
+export const publicName = /^(?:NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_|NUXT_PUBLIC_|GATSBY_|PUBLIC_)/i;
 const urlPassword = /\b[a-z][\w+.-]*:\/\/[^\s:@/]+:([^\s@/]+)@(\[[^\]\s]*\]|[^\s:/?#]+)/i;
 export const localHost = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)$/i;
 const registryToken = /(?:_authToken|_auth|_password|npmAuthToken|npmAuthIdent)\s*[=:]\s*(.*)$|^\s*password\s*[=:]\s*(.*)$/i;

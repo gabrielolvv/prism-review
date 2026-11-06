@@ -112,6 +112,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "llm-code-execution": "code",
   "untrusted-model-code": "supply-chain",
   "kubernetes-secret-values": "secrets",
+  "deployment-env-secret": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
