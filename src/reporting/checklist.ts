@@ -108,6 +108,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "untrusted-model-code": "Do models load from safetensors, or from code pinned to a reviewed revision?",
   "kubernetes-secret-values": "Are the committed Secret values rotated, and the Secrets now filled in from a secret store?",
   "deployment-env-secret": "Are the secrets in the deployment's environment rotated, and read from a secret store instead?",
+  "iac-hardcoded-password": "Are the passwords in infrastructure code rotated, and supplied at deploy time instead?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

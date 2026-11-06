@@ -113,6 +113,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "untrusted-model-code": "supply-chain",
   "kubernetes-secret-values": "secrets",
   "deployment-env-secret": "secrets",
+  "iac-hardcoded-password": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

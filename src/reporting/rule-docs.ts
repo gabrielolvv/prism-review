@@ -87,6 +87,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "untrusted-model-code": "Model Files That Run Code",
   "kubernetes-secret-values": "Kubernetes Secrets",
   "deployment-env-secret": "Deployment Environment Secrets",
+  "iac-hardcoded-password": "Infrastructure Code Passwords",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
