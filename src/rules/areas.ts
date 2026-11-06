@@ -108,6 +108,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "polymorphic-deserialization": "code",
   "ci-script-injection": "supply-chain",
   "iam-privilege-escalation": "infrastructure",
+  "session-id-in-url": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
