@@ -18,9 +18,9 @@ const secretGenerator = /^secretGenerator:\s*$/;
 const literal = /^\s*-\s*["']?([\w.-]+)=(.*?)["']?\s*$/;
 
 // Values filled in at deploy time, by Helm, Kustomize, envsubst, Terraform, or Ansible.
-const templated = /\{\{|\$\{|\$\(|<%|\(\(|%\{|#\{/;
+export const templated = /\{\{|\$\{|\$\(|<%|\(\(|%\{|#\{/;
 // Placeholders that stand for a value to supply, and empty values.
-const placeholder =
+export const placeholder =
   /^(?:|<[^>]*>|\[[^\]]*\]|\*+|\.{3}|-|null|~|none|changeme|change[-_ ]?(?:me|it|this)|replace[-_ ]?(?:me|this)?|placeholder|example|todo|tbd|redacted|dummy|fake|sample|secret|password|(?:your|insert|enter|replace[-_ ]?with)[-_ ].*|base64[-_ ]?encoded.*|.*x{3,}.*)$/i;
 // Keys that name a password, token, key, or other credential. Other keys, such as `username`,
 // `clientID`, or `tls.crt`, hold values that are not secret on their own.

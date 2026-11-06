@@ -882,6 +882,13 @@ import {
   testKubernetesSecretValuesSkipsTestsAndCanBeDisabled
 } from "./unit/kubernetes-secret-values.test.js";
 import {
+  testDeploymentEnvSecretFindsValuesBeforeRedaction,
+  testDeploymentEnvSecretReadsEachFormat,
+  testDeploymentEnvSecretReportsOneFindingPerFile,
+  testDeploymentEnvSecretSkipsReferencesAndPlaceholders,
+  testDeploymentEnvSecretSkipsTestsAndCanBeDisabled
+} from "./unit/deployment-env-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1516,6 +1523,11 @@ const tests: Array<[string, Test]> = [
   ["kubernetes-secret-values skips placeholders and encrypted secrets", testKubernetesSecretValuesSkipsPlaceholdersAndEncryptedSecrets],
   ["kubernetes-secret-values finds values before redaction", testKubernetesSecretValuesFindsValuesBeforeRedaction],
   ["kubernetes-secret-values skips tests and can be disabled", testKubernetesSecretValuesSkipsTestsAndCanBeDisabled],
+  ["deployment-env-secret reports one finding per file", testDeploymentEnvSecretReportsOneFindingPerFile],
+  ["deployment-env-secret reads each format", testDeploymentEnvSecretReadsEachFormat],
+  ["deployment-env-secret skips references and placeholders", testDeploymentEnvSecretSkipsReferencesAndPlaceholders],
+  ["deployment-env-secret finds values before redaction", testDeploymentEnvSecretFindsValuesBeforeRedaction],
+  ["deployment-env-secret skips tests and can be disabled", testDeploymentEnvSecretSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
