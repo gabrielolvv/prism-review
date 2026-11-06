@@ -155,6 +155,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Session IDs carried in URLs (0.130.0).
 - LLM agents that run the code the model writes on the host (0.131.0).
 - Model loading that runs code from the model's files, such as `trust_remote_code` and pickled checkpoints (0.132.0).
+- Kubernetes Secrets committed with their values (0.133.0).
 
 ## Later
 

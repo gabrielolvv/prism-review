@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.133.0 - 2026-11-06
+
+### Added
+
+- `kubernetes-secret-values` rule: reports, as high, Kubernetes Secret manifests committed with credentials in `data` or `stringData`, and Kustomize `secretGenerator` literals, whose values anyone who can read the repository can decode. It reads keys that name a password, token, or key, private keys, URLs with a password, and config files with a credential line, decodes `data`'s base64 first, and names only the keys, never the values. The values are read before redaction, and files matched by `ignorePaths` are checked too. Non-secret keys such as `username` and `tls.crt`, templated values, placeholders, SOPS and Sealed Secrets, service account tokens, examples, quick starts, and tests are not reported. On about 37,500 YAML files from 103 Kubernetes projects, including 1,261 Secret manifests, it reports 15: sample Secrets with default passwords, committed TLS private keys, config files with credentials, and one doubly encoded placeholder.
+
 ## 0.132.0 - 2026-11-06
 
 ### Added
