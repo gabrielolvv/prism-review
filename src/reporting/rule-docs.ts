@@ -83,6 +83,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "ci-script-injection": "CI Script Injection",
   "iam-privilege-escalation": "IAM Privilege Escalation",
   "session-id-in-url": "Session IDs in URLs",
+  "llm-code-execution": "LLM Code Execution",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

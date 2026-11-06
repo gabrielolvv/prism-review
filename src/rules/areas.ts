@@ -109,6 +109,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "ci-script-injection": "supply-chain",
   "iam-privilege-escalation": "infrastructure",
   "session-id-in-url": "code",
+  "llm-code-execution": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

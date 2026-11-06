@@ -104,6 +104,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "ci-script-injection": "Do CI scripts read pull request text through quoted environment variables?",
   "iam-privilege-escalation": "Are IAM actions that can grant more access limited to named resources?",
   "session-id-in-url": "Are sessions tracked with cookies only, never in URLs?",
+  "llm-code-execution": "Does code the model writes run in a sandbox, or only after a person approves it?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

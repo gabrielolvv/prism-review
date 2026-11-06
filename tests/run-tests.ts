@@ -863,6 +863,12 @@ import {
   testSessionIdInUrlSkipsTestsAndCanBeDisabled
 } from "./unit/session-id-in-url.test.js";
 import {
+  testLlmCodeExecutionReadsEachFramework,
+  testLlmCodeExecutionReportsOneFindingPerFile,
+  testLlmCodeExecutionSkipsSandboxedAgents,
+  testLlmCodeExecutionSkipsTestsAndCanBeDisabled
+} from "./unit/llm-code-execution.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1484,6 +1490,10 @@ const tests: Array<[string, Test]> = [
   ["session-id-in-url reads each platform", testSessionIdInUrlReadsEachPlatform],
   ["session-id-in-url skips cookie sessions", testSessionIdInUrlSkipsCookieSessions],
   ["session-id-in-url skips tests and can be disabled", testSessionIdInUrlSkipsTestsAndCanBeDisabled],
+  ["llm-code-execution reports one finding per file", testLlmCodeExecutionReportsOneFindingPerFile],
+  ["llm-code-execution reads each framework", testLlmCodeExecutionReadsEachFramework],
+  ["llm-code-execution skips sandboxed agents", testLlmCodeExecutionSkipsSandboxedAgents],
+  ["llm-code-execution skips tests and can be disabled", testLlmCodeExecutionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
