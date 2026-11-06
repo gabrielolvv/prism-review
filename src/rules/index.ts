@@ -67,6 +67,7 @@ import { brokerPlaintextAuthRule } from "./broker-plaintext-auth.js";
 import { publicResourcePolicyRule } from "./public-resource-policy.js";
 import { plainHttpEndpointRule } from "./plain-http-endpoint.js";
 import { unpinnedDeployImageRule } from "./unpinned-deploy-image.js";
+import { samlValidationDisabledRule } from "./saml-validation-disabled.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -177,6 +178,7 @@ export const defaultRules: Rule[] = [
   publicResourcePolicyRule,
   plainHttpEndpointRule,
   unpinnedDeployImageRule,
+  samlValidationDisabledRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

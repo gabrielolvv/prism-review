@@ -78,6 +78,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-resource-policy": "Public Resource Policies",
   "plain-http-endpoint": "Plain HTTP Endpoints",
   "unpinned-deploy-image": "Unpinned Deployment Images",
+  "saml-validation-disabled": "SAML Validation",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

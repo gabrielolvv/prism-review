@@ -832,6 +832,13 @@ import {
   testUnpinnedDeployImageSkipsTestsAndCanBeDisabled
 } from "./unit/unpinned-deploy-image.test.js";
 import {
+  testSamlValidationDisabledReadsEachLibrary,
+  testSamlValidationDisabledReportsOneFindingPerFile,
+  testSamlValidationDisabledSkipsSafeSettings,
+  testSamlValidationDisabledSkipsTestsAndCanBeDisabled,
+  testSamlValidationDisabledWarnsForOtherChecks
+} from "./unit/saml-validation-disabled.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1432,6 +1439,11 @@ const tests: Array<[string, Test]> = [
   ["unpinned-deploy-image reads each platform", testUnpinnedDeployImageReadsEachPlatform],
   ["unpinned-deploy-image skips pinned images", testUnpinnedDeployImageSkipsPinnedImages],
   ["unpinned-deploy-image skips tests and can be disabled", testUnpinnedDeployImageSkipsTestsAndCanBeDisabled],
+  ["saml-validation-disabled reports one finding per file", testSamlValidationDisabledReportsOneFindingPerFile],
+  ["saml-validation-disabled warns for other checks", testSamlValidationDisabledWarnsForOtherChecks],
+  ["saml-validation-disabled reads each library", testSamlValidationDisabledReadsEachLibrary],
+  ["saml-validation-disabled skips safe settings", testSamlValidationDisabledSkipsSafeSettings],
+  ["saml-validation-disabled skips tests and can be disabled", testSamlValidationDisabledSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
