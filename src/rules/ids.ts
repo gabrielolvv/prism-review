@@ -82,6 +82,7 @@ export const ruleIds: readonly string[] = [
   "iam-privilege-escalation",
   "session-id-in-url",
   "llm-code-execution",
+  "untrusted-model-code",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

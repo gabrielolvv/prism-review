@@ -72,6 +72,7 @@ export function testLlmCodeExecutionSkipsSandboxedAgents(): void {
     ["app/agents/analyst.py", ["raise ValueError(\"This agent runs Python. Opt in with allow_dangerous_code=True.\")"]],
     ["app/agents/analyst.py", ["    \"This agent can run shell commands. Opt in \"", "    \"by setting allow_dangerous_tools=True.\""]],
     ["app/team.py", ["log.warning(f\"'{name}' runs code with use_docker=False\")"]],
+    ["app/agents/analyst.py", ["log.warning(\"This agent runs Python. \\", "    Opt in with allow_dangerous_code=True.\")"]],
     // Examples, notebooks, and documentation.
     ["examples/pandas_agent.py", ["agent = create_pandas_dataframe_agent(llm, df, allow_dangerous_code=True)"]],
     ["notebooks/pandas.ipynb", ["    \"agent = create_pandas_dataframe_agent(llm, df, allow_dangerous_code=True)\""]],

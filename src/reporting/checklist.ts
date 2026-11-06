@@ -105,6 +105,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "iam-privilege-escalation": "Are IAM actions that can grant more access limited to named resources?",
   "session-id-in-url": "Are sessions tracked with cookies only, never in URLs?",
   "llm-code-execution": "Does code the model writes run in a sandbox, or only after a person approves it?",
+  "untrusted-model-code": "Do models load from safetensors, or from code pinned to a reviewed revision?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
