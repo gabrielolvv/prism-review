@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.132.0 - 2026-11-06
+
+### Added
+
+- `untrusted-model-code` rule: warns about model loading that runs code from the model's files, which the model's publisher, someone who takes over their account, or anyone who can replace a file in storage can use to run code in the process. It reads Hugging Face's `trust_remote_code=True` in Python, `--trust-remote-code` for vLLM, SGLang, Text Generation Inference, and lm-evaluation-harness in scripts, Dockerfiles, Compose and Kubernetes files, `trust_remote_code: true` in settings files and `TRUST_REMOTE_CODE=true`, PyTorch's `weights_only=False`, NumPy's `allow_pickle=True` on loads, and Keras' `safe_mode=False` and `enable_unsafe_deserialization()`. Revisions pinned to a commit hash, safe defaults, variables, definitions, docstrings, messages, notebooks, examples, and tests are not reported. On about 69,500 files from 149 machine learning and LLM packages, it reports 899, each a real use, 744 of them XTuner's and OpenCompass' model configs.
+
+### Changed
+
+- `llm-code-execution` also skips switches named in a message that a previous line continues with a trailing backslash.
+
 ## 0.131.0 - 2026-11-06
 
 ### Added
