@@ -7,7 +7,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
 - **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
-- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`unpinned-deploy-image`](#unpinned-deployment-images), [`ci-script-injection`](#ci-script-injection), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
+- **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`unpinned-deploy-image`](#unpinned-deployment-images), [`ci-script-injection`](#ci-script-injection), [`untrusted-model-code`](#model-files-that-run-code), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies), [`plain-http-endpoint`](#plain-http-endpoints), [`iam-privilege-escalation`](#iam-privilege-escalation)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`saml-validation-disabled`](#saml-validation), [`polymorphic-deserialization`](#polymorphic-deserialization), [`session-id-in-url`](#session-ids-in-urls), [`llm-code-execution`](#llm-code-execution), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
 - **Tests:** [`missing-tests`](#missing-tests), [`skipped-tests`](#skipped-tests)
@@ -279,6 +279,8 @@ rules:
   sessionIdInUrl:
     enabled: true
   llmCodeExecution:
+    enabled: true
+  untrustedModelCode:
     enabled: true
   secretLogging:
     enabled: true
@@ -2492,6 +2494,37 @@ These are not reported:
 
 On 137 CI files from the corpora behind the other rules and from projects that ship Azure Pipelines, Jenkins, Drone, Woodpecker, and CircleCI configurations, such as Woodpecker, Drone and its plugins, Harness, Jenkins X, the Jenkins Kubernetes operator, Azure's AzCopy and container networking, hcsshim, Terragrunt, Terraform, and Pulumi, the rule reports none. None of them paste these values into scripts, so its recall rests on its tests.
 
+## Model Files That Run Code
+
+### `rules.untrustedModelCode.enabled`
+
+The `untrusted-model-code` rule warns, once per file, about model loading that runs code from the model's files. There are two ways this happens. With `trust_remote_code` on, Hugging Face libraries download and run the Python files in a model's or dataset's repository. Pickled checkpoints and arrays can run any code when they are loaded. Whoever can change those files can then run their own code in the process with its data and credentials: the model's publisher, someone who takes over their account, or anyone who can replace a file in storage or a download cache.
+
+| Loader | Read |
+| --- | --- |
+| Hugging Face Transformers, Datasets, sentence-transformers, vLLM, and other Python loaders | `trust_remote_code=True`, and `"trust_remote_code": True` in keyword dictionaries |
+| vLLM, SGLang, Text Generation Inference, and lm-evaluation-harness commands | `--trust-remote-code` and `--trust_remote_code`, and `trust_remote_code=True` in `--model_args`, in shell scripts, Dockerfiles, Compose and Kubernetes files, and Makefiles |
+| Settings files and environment variables | `trust_remote_code: true` in YAML, JSON, and TOML, and `TRUST_REMOTE_CODE=true` |
+| PyTorch | `weights_only=False`, which `torch.load` used by default before PyTorch 2.6 |
+| NumPy | `allow_pickle=True` on a load call |
+| Keras | `safe_mode=False` on a load call, and `keras.config.enable_unsafe_deserialization()` |
+
+These are not reported:
+
+- Safe settings and defaults, such as `trust_remote_code=False`, `weights_only=True`, `np.save(..., allow_pickle=True)`, and `--trust-remote-code=false`.
+- `trust_remote_code` within five lines of a `revision` or `code_revision` pinned to a 40-character commit hash, whose code can be reviewed and does not change.
+- Plain `weights_only = False` or `trust_remote_code = True` assignments, which set a variable.
+- Imports, class and function definitions, comment lines, Python docstrings, and help text or messages that name a setting.
+- Notebooks, documentation, files whose path names development, local, test, CI, example, sample, or demo code, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 69,500 Python, shell, and settings files from 149 machine learning and LLM packages, the rule reports 899 files. Every one sets one of these options:
+- 744 are training and evaluation configs and model adapters in XTuner (608) and OpenCompass (136), which turn on `trust_remote_code` for each model they load.
+- Most of the rest load models or datasets with `trust_remote_code` on, in FastChat, ms-swift, FunASR, AutoRound, lm-evaluation-harness, verl, SGLang, and others.
+- 30 load checkpoints with `weights_only=False`, in Lightning, Composer, LitGPT, Flair, pyannote.audio, Stable Baselines3, and ESPnet's `safe_torch_load` helper.
+- 10 load NumPy arrays with `allow_pickle=True`, in PaddleNLP and NeMo.
+
+Projects built on these libraries can turn the rule off with `rules.untrustedModelCode.enabled: false`.
+
 ## Hidden Unicode
 
 ### `rules.hiddenUnicode.enabled`
@@ -2611,7 +2644,7 @@ When the findings in a comment come from more than one area, the comment opens t
 | Area | Rules |
 | --- | --- |
 | Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
-| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `unpinned-deploy-image`, `ci-script-injection`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
+| Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `unpinned-deploy-image`, `ci-script-injection`, `untrusted-model-code`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy`, `plain-http-endpoint`, `iam-privilege-escalation` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `saml-validation-disabled`, `polymorphic-deserialization`, `session-id-in-url`, `llm-code-execution`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
 | Tests | `missing-tests`, `skipped-tests` |
