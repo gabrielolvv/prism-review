@@ -156,6 +156,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - LLM agents that run the code the model writes on the host (0.131.0).
 - Model loading that runs code from the model's files, such as `trust_remote_code` and pickled checkpoints (0.132.0).
 - Kubernetes Secrets committed with their values (0.133.0).
+- Secrets written into a deployment's environment in plain text (0.134.0).
 
 ## Later
 
