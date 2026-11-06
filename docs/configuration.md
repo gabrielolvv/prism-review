@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials), [`kubernetes-secret-values`](#kubernetes-secrets), [`deployment-env-secret`](#deployment-environment-secrets)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials), [`kubernetes-secret-values`](#kubernetes-secrets), [`deployment-env-secret`](#deployment-environment-secrets), [`iac-hardcoded-password`](#infrastructure-code-passwords)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`unpinned-deploy-image`](#unpinned-deployment-images), [`ci-script-injection`](#ci-script-injection), [`untrusted-model-code`](#model-files-that-run-code), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies), [`plain-http-endpoint`](#plain-http-endpoints), [`iam-privilege-escalation`](#iam-privilege-escalation)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`saml-validation-disabled`](#saml-validation), [`polymorphic-deserialization`](#polymorphic-deserialization), [`session-id-in-url`](#session-ids-in-urls), [`llm-code-execution`](#llm-code-execution), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -285,6 +285,8 @@ rules:
   kubernetesSecretValues:
     enabled: true
   deploymentEnvSecret:
+    enabled: true
+  iacHardcodedPassword:
     enabled: true
   secretLogging:
     enabled: true
@@ -2432,7 +2434,7 @@ These are not reported:
 
 - Values read from a secret, such as `valueFrom.secretKeyRef`, and references to Secrets Manager, Parameter Store, Secret Manager, Vault, 1Password, or Key Vault.
 - Values filled in at deploy time, such as `{{ .Values.db.password }}`, `${SESSION_SECRET}`, or `$(POSTGRES_PASSWORD)`.
-- Placeholders and local defaults, such as `changeme`, `<password>`, `postgres`, or `root`, file paths, switches, numbers, and values shorter than four characters.
+- Placeholders and local defaults, such as `changeme`, `<password>`, `postgres`, `root`, or `password1`, values with `test`, `example`, or `dummy` in them, file and storage paths, switches, numbers, and values shorter than four characters.
 - Settings about a secret, such as `DB_PASSWORD_FILE`, `TOKEN_TTL_SECONDS`, or `JWT_SECRET_URL`, public build variables such as `NEXT_PUBLIC_*`, and URLs, which `url-credentials` reads.
 - `name` and `value` pairs outside an environment list, and Compose files for a developer's machine, such as `docker-compose.yml`.
 - Documentation, CI pipelines, Molecule scenarios, files whose path names development, local, test, CI, example, sample, demo, proof-of-concept, or design files, quick starts and playgrounds, end-to-end and integration test setups, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
@@ -2442,6 +2444,30 @@ On about 106,600 YAML, Terraform, and HCL files from the Kubernetes, Ansible, Go
 - 2 are Emissary's Datadog manifests, which commit a Datadog API key.
 - 1 is Jenkins X's WhiteSource settings, which commit two tokens.
 - 1 is Loki's production Compose file, which sets `MINIO_ROOT_PASSWORD`.
+
+## Infrastructure Code Passwords
+
+### `rules.iacHardcodedPassword.enabled`
+
+The `iac-hardcoded-password` rule reports one high-risk finding per file for passwords, tokens, and keys written into infrastructure code. The value is committed to the repository, and every environment built from the code shares it. The finding names the settings and lines, never the values.
+
+| Format | Read |
+| --- | --- |
+| Terraform and Terragrunt | Attributes such as `password`, `master_password`, `administrator_login_password`, `admin_password`, or `auth_token` set to a string, in resources, providers, modules, `locals`, `inputs`, and `.tfvars` files, and the `default` of a variable named like a secret |
+| CloudFormation | Properties such as `MasterUserPassword` set to a string, and the `Default` of a parameter named like a secret, in YAML and JSON templates |
+| Ansible | Variables named like a secret in `group_vars`, `host_vars`, and inventories, including `ansible_password` and `ansible_become_pass` on INI host lines |
+
+A setting is a secret when its name ends with a word such as `password`, `secret`, `token`, `api_key`, `access_key`, or `private_key`, as in `credential-file`. The values are read before redaction, which would hide them, and files matched by `ignorePaths` are checked too.
+
+These are not reported:
+
+- Variables, references, and generated values, such as `var.db_password`, `${random_password.db.result}`, `!Ref DBPassword`, `{{resolve:secretsmanager:...}}`, Ansible's `!vault` and `{{ vault_* }}`, and ARNs.
+- Variables that say where a secret is kept, such as `ssm_key_password` or a description that names a path, parameter, or secret name.
+- The same placeholders, local defaults, test values, paths, switches, and numbers that `deployment-env-secret` skips, and time units such as `minutes`.
+- Inline code in CloudFormation block scalars, YAML that is not a CloudFormation template, and Ansible role defaults.
+- Documentation, CI pipelines, Molecule scenarios, files whose path names development, local, test, CI, example, sample, demo, proof-of-concept, or design files, quick starts and playgrounds, end-to-end and integration test setups, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 144,800 files from the earlier corpora and 39 Terraform and CloudFormation projects, the rule reports 1. The corpus includes about 17,100 Terraform files from terraform-aws-modules, Cloud Posse, Azure, Google, and HashiCorp's providers, about 1,070 CloudFormation templates, and 366 Ansible inventory and variable files. The one report is a VMware inventory script's sample settings, which set `password=vmware`. These projects take their passwords from variables, so the cases the rule reports are covered by its unit tests.
 
 ## Unpinned Actions
 
@@ -2704,7 +2730,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials`, `kubernetes-secret-values`, `deployment-env-secret` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials`, `kubernetes-secret-values`, `deployment-env-secret`, `iac-hardcoded-password` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `unpinned-deploy-image`, `ci-script-injection`, `untrusted-model-code`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy`, `plain-http-endpoint`, `iam-privilege-escalation` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `saml-validation-disabled`, `polymorphic-deserialization`, `session-id-in-url`, `llm-code-execution`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
