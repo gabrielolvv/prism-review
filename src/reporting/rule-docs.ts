@@ -79,6 +79,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "plain-http-endpoint": "Plain HTTP Endpoints",
   "unpinned-deploy-image": "Unpinned Deployment Images",
   "saml-validation-disabled": "SAML Validation",
+  "polymorphic-deserialization": "Polymorphic Deserialization",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

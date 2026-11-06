@@ -68,6 +68,7 @@ import { publicResourcePolicyRule } from "./public-resource-policy.js";
 import { plainHttpEndpointRule } from "./plain-http-endpoint.js";
 import { unpinnedDeployImageRule } from "./unpinned-deploy-image.js";
 import { samlValidationDisabledRule } from "./saml-validation-disabled.js";
+import { polymorphicDeserializationRule } from "./polymorphic-deserialization.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -179,6 +180,7 @@ export const defaultRules: Rule[] = [
   plainHttpEndpointRule,
   unpinnedDeployImageRule,
   samlValidationDisabledRule,
+  polymorphicDeserializationRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

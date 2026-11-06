@@ -839,6 +839,12 @@ import {
   testSamlValidationDisabledWarnsForOtherChecks
 } from "./unit/saml-validation-disabled.test.js";
 import {
+  testPolymorphicDeserializationReadsEachLibrary,
+  testPolymorphicDeserializationReportsOneFindingPerFile,
+  testPolymorphicDeserializationSkipsSafeSettings,
+  testPolymorphicDeserializationSkipsTestsAndCanBeDisabled
+} from "./unit/polymorphic-deserialization.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1444,6 +1450,10 @@ const tests: Array<[string, Test]> = [
   ["saml-validation-disabled reads each library", testSamlValidationDisabledReadsEachLibrary],
   ["saml-validation-disabled skips safe settings", testSamlValidationDisabledSkipsSafeSettings],
   ["saml-validation-disabled skips tests and can be disabled", testSamlValidationDisabledSkipsTestsAndCanBeDisabled],
+  ["polymorphic-deserialization reports one finding per file", testPolymorphicDeserializationReportsOneFindingPerFile],
+  ["polymorphic-deserialization reads each library", testPolymorphicDeserializationReadsEachLibrary],
+  ["polymorphic-deserialization skips safe settings", testPolymorphicDeserializationSkipsSafeSettings],
+  ["polymorphic-deserialization skips tests and can be disabled", testPolymorphicDeserializationSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
