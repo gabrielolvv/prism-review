@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.127.0 - 2026-11-06
+
+### Added
+
+- `polymorphic-deserialization` rule: reports deserializer settings that let the data being read name the classes to create, which public gadget chains turn into running code on the server. It reads Jackson's `enableDefaultTyping` and `activateDefaultTyping` with `LaissezFaireSubTypeValidator`, fastjson's and fastjson2's autoType, XStream's `AnyTypePermission.ANY`, Newtonsoft.Json's `TypeNameHandling` without a serialization binder, .NET's `SimpleTypeResolver`, Kryo without class registration, Spring's HTTP invoker, Oj's object mode, and `jsonpickle.decode`. Type allowlists, safe modes, fastjson's own checks of the feature, docstrings, examples, and tests are not reported. On about 145,800 Java, .NET, Ruby, Python, and settings files, including about 12,100 from serialization libraries and the Java services that use them, it reports 12, among them Seata's undo log and saga parsers and fastjson's Redis serializer.
+
 ## 0.126.0 - 2026-11-06
 
 ### Added
