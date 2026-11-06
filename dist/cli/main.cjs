@@ -15451,6 +15451,7 @@ var ruleIds = [
   "llm-code-execution",
   "untrusted-model-code",
   "kubernetes-secret-values",
+  "deployment-env-secret",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15828,6 +15829,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     kubernetesSecretValues: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    deploymentEnvSecret: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -25405,6 +25409,159 @@ function secretLines(file) {
   return file.patch === void 0 ? [] : findKubernetesSecretLines(file.path, file.patch);
 }
 
+// src/security/deployment-env-secrets.ts
+var yamlFile3 = /\.ya?ml$/i;
+var pairFile = /\.(?:ya?ml|json|tf|hcl)$/i;
+var composeFile2 = /(?:^|\/)(?:docker-)?compose[^/]*\.ya?ml$/i;
+var productionPath2 = /(?:^|[\/_.-])(?:prod|production|stack|deploy|deployment|release|live|swarm)(?:[\/_.-]|$)/i;
+var pairName = /^\s*-?\s*\{?\s*["']?name["']?\s*[:=]\s*["']?([A-Za-z_][\w.-]*)["']?\s*,?\s*(?:#.*)?$/;
+var inlinePair = /\{\s*["']?name["']?\s*[:=]\s*["']?([A-Za-z_][\w.-]*)["']?\s*,\s*["']?value["']?\s*[:=]\s*(.+?)\s*\}/;
+var pairValue = /^\s*["']?value["']?\s*[:=]\s*(.+?)\s*,?\s*$/;
+var pairWindow = 3;
+var environmentKey = /["']?\b(?:env|environment|environmentVariables)["']?\s*[:=]/;
+var environmentWindow2 = 15;
+var mapStart = /^(\s*)(?:environment|env_variables|env|envVars|extraEnv)\s*:\s*(?:#.*)?$/;
+var mapEntry = /^\s*["']?([A-Z][A-Z0-9_]*)["']?\s*:\s*(.+?)\s*$/;
+var listEntry = /^\s*-\s*["']?([A-Z][A-Z0-9_]*)=(.*?)["']?\s*$/;
+var secretReference = /^(?:vault:|arn:aws:(?:secretsmanager|ssm)|ssm:|sm:\/\/|gcp:|projects\/[^/\s]+\/secrets\/|op:\/\/|akv:\/\/|keyvault:)/i;
+var notSecret2 = /^(?:true|false|yes|no|on|off|enabled?|disabled?|required|optional|none|\d{1,6})$/i;
+var settingName = /_(?:FILE|PATH|DIR|NAME|ID|TTL|EXPIRY|EXPIRES?|LENGTH|HEADER|URL|URI|ENDPOINT|HOST|PORT|ENABLED|REQUIRED|TYPE|ALGORITHM|MODE|SECONDS|DAYS|HOURS|MINUTES)$|^(?:MIN|MAX)_/i;
+function cleanValue2(raw) {
+  const value = raw.trim();
+  const quoted3 = /^(["'])(.*?)\1/.exec(value);
+  if (quoted3 !== null) {
+    return quoted3[2] ?? "";
+  }
+  return value.replace(/\s+#.*$/, "").replace(/,$/, "").trim();
+}
+function isSecretValue(name, raw) {
+  if (!secretName.test(name) || publicName.test(name) || settingName.test(name)) {
+    return false;
+  }
+  const value = cleanValue2(raw);
+  return value.length >= 4 && !/^[|>[{]/.test(value) && !value.includes("://") && !templated.test(value) && !secretReference.test(value) && !notSecret2.test(value) && !placeholder4.test(value) && !isPlaceholder(value);
+}
+function pairSecrets(lines) {
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (/^\s*(?:#|\/\/)/.test(content)) {
+      return;
+    }
+    const near = lines.slice(Math.max(0, index - environmentWindow2), index + 1);
+    if (!near.some(({ content: before2 }) => environmentKey.test(before2))) {
+      return;
+    }
+    const inline = inlinePair.exec(content);
+    if (inline !== null) {
+      if (added && isSecretValue(inline[1] ?? "", inline[2] ?? "")) {
+        found.push({ line, name: inline[1] ?? "" });
+      }
+      return;
+    }
+    const name = pairName.exec(content);
+    if (name === null) {
+      return;
+    }
+    for (const next of lines.slice(index + 1, index + 1 + pairWindow)) {
+      if (pairName.test(next.content) || /^\s*-\s/.test(next.content) || /\bvalueFrom\b/.test(next.content)) {
+        return;
+      }
+      const value = pairValue.exec(next.content);
+      if (value !== null) {
+        if ((added || next.added) && isSecretValue(name[1] ?? "", value[1] ?? "")) {
+          found.push({ line: next.line, name: name[1] ?? "" });
+        }
+        return;
+      }
+    }
+  });
+  return found;
+}
+function mapSecrets(lines) {
+  const found = [];
+  let mapIndent;
+  for (const { line, content, added, startsHunk } of lines) {
+    if (startsHunk) {
+      mapIndent = void 0;
+    }
+    if (content.trim() === "" || /^\s*#/.test(content)) {
+      continue;
+    }
+    const start = mapStart.exec(content);
+    if (start !== null) {
+      mapIndent = start[1]?.length ?? 0;
+      continue;
+    }
+    const indent = /^\s*/.exec(content)?.[0].length ?? 0;
+    if (mapIndent === void 0 || indent <= mapIndent) {
+      mapIndent = void 0;
+      continue;
+    }
+    const entry2 = mapEntry.exec(content) ?? listEntry.exec(content);
+    if (entry2 !== null && added && isSecretValue(entry2[1] ?? "", entry2[2] ?? "")) {
+      found.push({ line, name: entry2[1] ?? "" });
+    }
+  }
+  return found;
+}
+function findDeploymentEnvSecretLines(path2, patch) {
+  if (!pairFile.test(path2) || composeFile2.test(path2) && !productionPath2.test(path2)) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  const found = [...pairSecrets(lines), ...yamlFile3.test(path2) ? mapSecrets(lines) : []];
+  const byLine = new Map(found.map((secret) => [secret.line, secret]));
+  return [...byLine.values()].sort((left, right) => left.line - right.line);
+}
+
+// src/rules/deployment-env-secret.ts
+var ciOrTestSetup12 = /(?:^|[\/_.-])(?:e2e\w*|integ\w*|fixtures?|testdata|mocks?|quick-?start|getting-?started|playground|poc|design)(?:[\/_.-]|$)|(?:^|\/)(?:hack|docs?|molecule|\.github|\.gitlab|\.circleci|\.buildkite|\.devcontainer|\.tekton|\.woodpecker)\/|(?:^|\/)(?:appveyor|\.travis|\.gitlab-ci|azure-pipelines|bitbucket-pipelines|\.drone|\.woodpecker|codefresh)[^/]*\.ya?ml$/i;
+var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var maxNames = 5;
+var deploymentEnvSecretRule = {
+  id: "deployment-env-secret",
+  description: "Flags passwords, tokens, and keys written in plain text into a deployment's environment, in Kubernetes, ECS, Terraform, production Compose, App Engine, and Helm values.",
+  seesIgnoredFiles: true,
+  run({ files, config: config3 }) {
+    if (!config3.rules.deploymentEnvSecret.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (documentation67.test(file.path) || ciOrTestSetup12.test(file.path) || // Development, example, and test deployments.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = secretLines2(file);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
+      const named = names2.length > maxNames ? [...names2.slice(0, maxNames), `${names2.length - maxNames} other variables`] : names2;
+      return [
+        {
+          ruleId: "deployment-env-secret",
+          title: "Secret written into a deployment's environment",
+          severity: "high",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "write" : "writes"} ${listOf(named)} into a deployment's environment in plain text, so the ${names2.length > 1 ? "secrets are" : "secret is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and ${names2.length > 1 ? "show" : "shows"} to anyone who can read the deployment, such as with \`kubectl describe\` or in the ECS console.`,
+          recommendation: "Rotate the values, then read them from a secret instead: Kubernetes' `valueFrom.secretKeyRef`, ECS's `secrets` with Secrets Manager or Parameter Store, Compose's `secrets`, App Engine's and Cloud Run's Secret Manager, or a Helm value passed at install time, filled from a secret store."
+        }
+      ];
+    });
+  }
+};
+function secretLines2(file) {
+  if (file.deploymentEnvSecretLines !== void 0) {
+    return file.deploymentEnvSecretLines;
+  }
+  return file.patch === void 0 ? [] : findDeploymentEnvSecretLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -25630,7 +25787,7 @@ var checks = [tls, token, csrf];
 var commentLine77 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
-var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation68 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
   description: "Flags code that turns off TLS certificate verification, token signature checks, or CSRF protection.",
@@ -25640,7 +25797,7 @@ var disabledSecurityCheckRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation67.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation68.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
@@ -27503,7 +27660,7 @@ var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
 var commentLine78 = /^\s*#/;
-var documentation68 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation69 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
   description: "Flags containers that run privileged, mount the Docker socket, or share the host's namespaces.",
@@ -27513,7 +27670,7 @@ var privilegedContainerRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation68.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation69.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findSettings2(file.patch);
@@ -27837,8 +27994,8 @@ var labels21 = {
   "wildcard-resources": "covers every resource",
   escalation: "allows the escalate, bind, or impersonate verbs, which grant more than the role holds"
 };
-var yamlFile3 = /\.ya?ml$/i;
-var documentation69 = /(?:^|\/)docs?\//i;
+var yamlFile4 = /\.ya?ml$/i;
+var documentation70 = /(?:^|\/)docs?\//i;
 var rbacMarker = /^\s*kind\s*:\s*["']?(?:Cluster)?Role(?:Binding)?["']?\s*$|^\s*(?:roleRef|apiGroups)\s*:/;
 var listKey = /^\s*(?:-\s+)?(verbs|resources|apiGroups)\s*:\s*(.*)$/;
 var listItem = /^\s*-\s*(.*?)\s*(?:#.*)?$/;
@@ -27856,7 +28013,7 @@ var kubernetesRbacRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !yamlFile3.test(file.path) || documentation69.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || !yamlFile4.test(file.path) || documentation70.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = findGrants(file.patch);
@@ -27951,7 +28108,7 @@ var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
 var commentLine82 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
-var documentation70 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
   description: "Flags commands and code that make files writable by every user, set the setuid bit, or open the umask.",
@@ -27961,7 +28118,7 @@ var filePermissionsRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation70.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation71.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
@@ -28064,7 +28221,7 @@ var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choic
 var commentLine83 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
-var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
   description: "Flags secrets hashed with MD5 or SHA-1, broken ciphers, ECB mode, and secrets made with non-cryptographic random numbers.",
@@ -28074,7 +28231,7 @@ var weakCryptoRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation71.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation72.test(file.path) || minified.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
@@ -28138,7 +28295,7 @@ var settings25 = [
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
 var commentLine84 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
   description: "Flags XML parser settings that turn on DTDs or external entities, which let a document read local files or reach internal hosts.",
@@ -28148,7 +28305,7 @@ var xmlExternalEntitiesRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation72.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation73.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
@@ -28202,7 +28359,7 @@ var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
 var commentLine85 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
   description: `Flags code that lets a request set every field of a model, such as Rails' permit!, Django's fields = "__all__", or a model created from the whole request body.`,
@@ -28212,7 +28369,7 @@ var massAssignmentRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation73.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation74.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const lines = patchLines(file.patch);
@@ -28475,7 +28632,7 @@ var languages7 = [
   }
 ];
 var commentLine86 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
+var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
 var redosRule = {
@@ -28488,7 +28645,7 @@ var redosRule = {
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
       const language = languages7.find(({ files: files2 }) => files2.test(file.path));
-      if (language === void 0 || file.patch === void 0 || documentation74.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (language === void 0 || file.patch === void 0 || documentation75.test(file.path) || minified2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
@@ -28695,7 +28852,7 @@ var patterns2 = [
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
 var commentLine87 = /^\s*(?:#|\/\/|REM\b|::)/i;
-var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
   id: "remote-script",
@@ -28706,7 +28863,7 @@ var remoteScriptRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation75.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation76.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const found = commands2(file.patch).flatMap(({ line, content }) => {
@@ -29051,9 +29208,9 @@ function secretsIn(file, allowlist2) {
   return file.patch === void 0 ? [] : findAddedSecrets(file.patch, allowlist2);
 }
 var sampleDirectory2 = /(?:^|\/)(?:examples?|samples?|demos?|docs?|test[-_]fixtures|_fixtures?|testcerts)\//i;
-var documentation76 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
+var documentation77 = /\.(?:md|mdx|markdown|rst|adoc|asciidoc)$/i;
 function isSamplePath(path2, testGlobs) {
-  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation76.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+  return isTestDataPath(path2) || sampleDirectory2.test(path2) || documentation77.test(path2) || testGlobs.some((glob) => minimatch(path2, glob));
 }
 function describe3(lines, kinds3) {
   const { text, plural } = describeLines(lines);
@@ -29082,7 +29239,7 @@ var sensitiveWords = [
   "dockerfile"
 ];
 var unrelatedWord = /^(?:co)?author(?!i[sz])|tokeni[sz]|parole|secretar/;
-var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sensitiveFilesRule = {
   id: "sensitive-files",
   description: "Flags changes to files that often require careful human review.",
@@ -29092,7 +29249,7 @@ var sensitiveFilesRule = {
       return [];
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
-    const describesOnly = (path2) => documentation77.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
+    const describesOnly = (path2) => documentation78.test(path2) || isTestDataPath(path2) || testGlobs.some((glob) => minimatch(path2, glob));
     return files.flatMap((file) => {
       if (ruleConfig.patterns.some((pattern) => minimatch(file.path, pattern, { matchBase: true }))) {
         return [finding(file.path, "high", "This file touches an area that commonly affects security, deployment, data integrity, or access control.")];
@@ -29513,7 +29670,7 @@ var languageStrings = [
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
 var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
-var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
+var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
   description: "Flags SQL built by inserting values into the query text instead of passing them as parameters.",
@@ -29523,7 +29680,7 @@ var sqlInjectionRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      if (file.patch === void 0 || documentation78.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+      if (file.patch === void 0 || documentation79.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
       const patterns3 = [...builtString, ...languageStrings.filter(([files2]) => files2.test(file.path)).map(([, pattern]) => ({ pattern }))];
@@ -29738,6 +29895,7 @@ var defaultRules = [
   llmCodeExecutionRule,
   untrustedModelCodeRule,
   kubernetesSecretValuesRule,
+  deploymentEnvSecretRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -30319,6 +30477,7 @@ var ruleAreas = {
   "llm-code-execution": "code",
   "untrusted-model-code": "supply-chain",
   "kubernetes-secret-values": "secrets",
+  "deployment-env-secret": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -30470,6 +30629,7 @@ var ruleQuestions = {
   "llm-code-execution": "Does code the model writes run in a sandbox, or only after a person approves it?",
   "untrusted-model-code": "Do models load from safetensors, or from code pinned to a reviewed revision?",
   "kubernetes-secret-values": "Are the committed Secret values rotated, and the Secrets now filled in from a secret store?",
+  "deployment-env-secret": "Are the secrets in the deployment's environment rotated, and read from a secret store instead?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -30590,6 +30750,7 @@ var ruleSections = {
   "llm-code-execution": "LLM Code Execution",
   "untrusted-model-code": "Model Files That Run Code",
   "kubernetes-secret-values": "Kubernetes Secrets",
+  "deployment-env-secret": "Deployment Environment Secrets",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -31125,6 +31286,7 @@ function prepareChangedFiles(files, config3) {
     timingCompareLines: file.patch === void 0 ? [] : findTimingCompareLines(file.path, file.patch),
     cryptoKeyLines: file.patch === void 0 ? [] : findCryptoKeyLines(file.path, file.patch),
     kubernetesSecretLines: file.patch === void 0 ? [] : findKubernetesSecretLines(file.path, file.patch),
+    deploymentEnvSecretLines: file.patch === void 0 ? [] : findDeploymentEnvSecretLines(file.path, file.patch),
     ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {},
     ...file.patch !== void 0 && isSourceFile(file.path) ? { lockfileSources: findLockfileSources(file.path, file.patch, config3.rules.lockfileSources.allowedSources) } : {}
   }));
