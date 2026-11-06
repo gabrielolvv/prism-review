@@ -107,6 +107,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "saml-validation-disabled": "code",
   "polymorphic-deserialization": "code",
   "ci-script-injection": "supply-chain",
+  "iam-privilege-escalation": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

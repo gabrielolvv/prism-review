@@ -81,6 +81,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "saml-validation-disabled": "SAML Validation",
   "polymorphic-deserialization": "Polymorphic Deserialization",
   "ci-script-injection": "CI Script Injection",
+  "iam-privilege-escalation": "IAM Privilege Escalation",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

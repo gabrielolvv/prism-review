@@ -102,6 +102,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "saml-validation-disabled": "Do SAML logins keep their signature, audience, and destination checks?",
   "polymorphic-deserialization": "Do deserializers read untrusted data into fixed or allowlisted types?",
   "ci-script-injection": "Do CI scripts read pull request text through quoted environment variables?",
+  "iam-privilege-escalation": "Are IAM actions that can grant more access limited to named resources?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
