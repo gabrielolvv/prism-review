@@ -6,7 +6,7 @@ Prism Review reads `.prism-review.yml` from the repository root by default. Ever
 
 Every rule is on by default. Each name links to what the rule reports, what it leaves out, and its options.
 
-- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials)
+- **Secrets:** [`secret-in-diff`](#secrets), [`credential-file`](#credential-files), [`hardcoded-jwt-secret`](#hardcoded-jwt-secrets), [`hardcoded-session-secret`](#hardcoded-session-secrets), [`hardcoded-crypto-key`](#hardcoded-encryption-keys), [`public-env-secret`](#public-environment-variables), [`token-storage`](#token-storage), [`secret-logging`](#secret-logging), [`url-credentials`](#url-credentials), [`kubernetes-secret-values`](#kubernetes-secrets)
 - **Supply Chain:** [`remote-script`](#remote-scripts), [`workflow-risk`](#workflow-risk), [`unpinned-action`](#unpinned-actions), [`subresource-integrity`](#subresource-integrity), [`insecure-package-source`](#insecure-package-sources), [`unpinned-deploy-image`](#unpinned-deployment-images), [`ci-script-injection`](#ci-script-injection), [`untrusted-model-code`](#model-files-that-run-code), [`lockfile-source`](#lockfile-sources), [`lookalike-dependency`](#lookalike-dependencies), [`risky-dependency-version`](#risky-dependency-versions), [`stale-lockfile`](#stale-lockfiles), [`dependency-risk`](#dependency-risk)
 - **Infrastructure:** [`destructive-migration`](#destructive-migrations), [`privileged-container`](#privileged-containers), [`dockerfile-risk`](#dockerfile-risk), [`public-exposure`](#public-exposure), [`insecure-infrastructure`](#insecure-infrastructure), [`kubernetes-rbac`](#kubernetes-rbac), [`file-permissions`](#file-permissions), [`service-auth-disabled`](#service-authentication), [`directory-listing`](#directory-listing), [`database-tls-disabled`](#database-tls), [`host-path-mount`](#host-path-mounts), [`unauthenticated-function`](#unauthenticated-functions), [`ssh-server-config`](#ssh-server-settings), [`unconfined-container`](#container-sandboxes), [`mesh-mtls-disabled`](#service-mesh-mutual-tls), [`ops-tool-auth`](#operations-tools-without-login), [`public-cluster-api`](#public-kubernetes-apis), [`broker-plaintext-auth`](#broker-logins-without-tls), [`public-resource-policy`](#public-resource-policies), [`plain-http-endpoint`](#plain-http-endpoints), [`iam-privilege-escalation`](#iam-privilege-escalation)
 - **Code:** [`disabled-security-check`](#disabled-security-checks), [`hidden-unicode`](#hidden-unicode), [`blanket-suppression`](#blanket-suppressions), [`risky-api`](#risky-apis), [`unescaped-html`](#unescaped-html), [`timing-unsafe-comparison`](#timing-unsafe-comparison), [`postmessage-origin`](#postmessage-origin), [`nosql-injection`](#nosql-injection), [`template-injection`](#template-injection), [`prototype-pollution`](#prototype-pollution), [`ldap-xpath-injection`](#ldap-and-xpath-injection), [`upload-filename`](#upload-file-names), [`reflected-xss`](#reflected-xss), [`log-injection`](#log-injection), [`static-iv`](#static-ivs), [`plaintext-password`](#plaintext-passwords), [`admin-route-auth`](#admin-route-access), [`zip-slip`](#archive-extraction), [`regex-injection`](#regular-expression-injection), [`electron-security`](#electron-security), [`unsafe-reflection`](#unsafe-reflection), [`command-injection`](#command-injection), [`weak-password-hashing`](#weak-password-hashing), [`jwt-without-expiry`](#jwt-expiry), [`weak-tls`](#weak-tls), [`security-headers`](#security-headers), [`debug-endpoint`](#debug-endpoints), [`mobile-security`](#mobile-app-settings), [`insecure-temp-file`](#temporary-files), [`host-header`](#host-header), [`unsafe-html-config`](#html-sanitizer-settings), [`websocket-origin`](#websocket-origins), [`weak-password-policy`](#password-policies), [`request-size-limit`](#request-size-limits), [`long-session`](#session-lifetimes), [`open-access`](#open-access), [`brute-force-protection`](#brute-force-protection), [`ssh-host-key`](#ssh-host-keys), [`grpc-plaintext`](#grpc-without-tls), [`error-details`](#error-details), [`weak-key-size`](#weak-key-sizes), [`spoofable-client-ip`](#client-ip-spoofing), [`plaintext-credentials`](#plaintext-credentials), [`weak-oauth-flow`](#oauth-and-openid-connect), [`static-root-exposure`](#static-root-exposure), [`dev-console-exposed`](#developer-consoles), [`saml-validation-disabled`](#saml-validation), [`polymorphic-deserialization`](#polymorphic-deserialization), [`session-id-in-url`](#session-ids-in-urls), [`llm-code-execution`](#llm-code-execution), [`sql-injection`](#sql-injection), [`insecure-web-config`](#insecure-web-configuration), [`weak-crypto`](#weak-cryptography), [`untrusted-input`](#untrusted-input), [`xml-external-entities`](#xml-external-entities), [`mass-assignment`](#mass-assignment), [`redos`](#regular-expression-denial-of-service)
@@ -281,6 +281,8 @@ rules:
   llmCodeExecution:
     enabled: true
   untrustedModelCode:
+    enabled: true
+  kubernetesSecretValues:
     enabled: true
   secretLogging:
     enabled: true
@@ -2382,6 +2384,33 @@ These are not reported, since they do not hold a real password:
 
 The URLs are found before redaction, and redaction then replaces each reported password, so the review shows `postgres://app:[REDACTED]@db.acme.io/app`. Passwords matched by `security.redaction.allowlist` are neither reported nor redacted. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
 
+## Kubernetes Secrets
+
+### `rules.kubernetesSecretValues.enabled`
+
+The `kubernetes-secret-values` rule reports one high-risk finding per file for Kubernetes Secret manifests committed with credentials in `data` or `stringData`, and for Kustomize `secretGenerator` entries with credentials in `literals`. Secret data is only base64-encoded, not encrypted, so anyone who can read the repository, a fork, or its history can read the values. The finding names the keys and lines, never the values.
+
+A value is reported when it is a credential:
+- Its key names a password, token, key, or other credential, such as `password`, `DB_PASSWORD`, `api-token`, `secretkey`, `tls.key`, `htpasswd`, or `.dockerconfigjson`.
+- It holds a private key or a URL with a password, whatever its key.
+- It is a config file, such as `config.yaml: |`, with a password, secret, token, or key line in it.
+
+`data` values are decoded from base64 before they are checked. The values are read before redaction, which would hide them. Like `secret-in-diff`, the rule also checks files matched by `ignorePaths`.
+
+These are not reported:
+
+- Keys whose values are not secret on their own, such as `username`, `host`, `clientID`, and `tls.crt`.
+- Empty values, and values filled in at deploy time, such as `{{ .Values.password }}`, `${DB_PASSWORD}`, or `$(DB_PASSWORD)`.
+- Placeholders, plain or base64-encoded, such as `changeme`, `<your-password>`, `REPLACE-WITH-...`, or values with `XXX` in them.
+- Secrets encrypted with SOPS, Sealed Secrets, service account token Secrets, other kinds such as ConfigMaps, and generators that read `envs` or `files`.
+- Documentation, files whose path names development, local, test, CI, example, sample, or demo manifests, quick starts and playgrounds, end-to-end and integration test setups, `.github`, `hack`, and `docs` folders, test files matched by `rules.missingTests.testGlobs`, and fixture directories.
+
+On about 37,500 YAML files from 103 Kubernetes operators, controllers, and platforms, including 1,261 Secret manifests, the rule reports 15 files:
+- 7 are sample Secrets that ship default passwords in deployment folders, from the Percona MongoDB operator, Zalando's Postgres operator, Kubeflow Pipelines, and the Mattermost operator.
+- 5 commit TLS private keys, from NGINX Ingress, both Percona operators, Koperator, and Telepresence.
+- 2 are config files with credentials, from KubeSphere and the Percona XtraDB operator.
+- 1 is Dex's contrib manifest, whose placeholder is base64-encoded twice.
+
 ## Unpinned Actions
 
 ### `rules.unpinnedActions.allowedOwners`
@@ -2643,7 +2672,7 @@ When the findings in a comment come from more than one area, the comment opens t
 
 | Area | Rules |
 | --- | --- |
-| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials` |
+| Secrets | `secret-in-diff`, `credential-file`, `hardcoded-jwt-secret`, `hardcoded-session-secret`, `hardcoded-crypto-key`, `public-env-secret`, `token-storage`, `secret-logging`, `url-credentials`, `kubernetes-secret-values` |
 | Supply Chain | `remote-script`, `workflow-risk`, `unpinned-action`, `subresource-integrity`, `insecure-package-source`, `unpinned-deploy-image`, `ci-script-injection`, `untrusted-model-code`, `lockfile-source`, `lookalike-dependency`, `risky-dependency-version`, `stale-lockfile`, `dependency-risk` |
 | Infrastructure | `destructive-migration`, `privileged-container`, `dockerfile-risk`, `public-exposure`, `insecure-infrastructure`, `kubernetes-rbac`, `file-permissions`, `service-auth-disabled`, `directory-listing`, `database-tls-disabled`, `host-path-mount`, `unauthenticated-function`, `ssh-server-config`, `unconfined-container`, `mesh-mtls-disabled`, `ops-tool-auth`, `public-cluster-api`, `broker-plaintext-auth`, `public-resource-policy`, `plain-http-endpoint`, `iam-privilege-escalation` |
 | Code | `disabled-security-check`, `hidden-unicode`, `blanket-suppression`, `risky-api`, `unescaped-html`, `timing-unsafe-comparison`, `postmessage-origin`, `nosql-injection`, `template-injection`, `prototype-pollution`, `ldap-xpath-injection`, `upload-filename`, `reflected-xss`, `log-injection`, `static-iv`, `plaintext-password`, `admin-route-auth`, `zip-slip`, `regex-injection`, `electron-security`, `unsafe-reflection`, `command-injection`, `weak-password-hashing`, `jwt-without-expiry`, `weak-tls`, `security-headers`, `debug-endpoint`, `mobile-security`, `insecure-temp-file`, `host-header`, `unsafe-html-config`, `websocket-origin`, `weak-password-policy`, `request-size-limit`, `long-session`, `open-access`, `brute-force-protection`, `ssh-host-key`, `grpc-plaintext`, `error-details`, `weak-key-size`, `spoofable-client-ip`, `plaintext-credentials`, `weak-oauth-flow`, `static-root-exposure`, `dev-console-exposed`, `saml-validation-disabled`, `polymorphic-deserialization`, `session-id-in-url`, `llm-code-execution`, `sql-injection`, `insecure-web-config`, `weak-crypto`, `untrusted-input`, `xml-external-entities`, `mass-assignment`, `redos` |
