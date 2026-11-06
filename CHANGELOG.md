@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.128.0 - 2026-11-06
+
+### Added
+
+- `ci-script-injection` rule: reports CI pipelines outside GitHub Actions that paste a value a pull request's author chooses, such as a commit message, branch name, or title, into a script before the shell runs it, so a crafted title runs its own commands with the pipeline's secrets. It reads Azure Pipelines' `$(Build.SourceVersionMessage)`, `$(System.PullRequest.SourceBranch)`, and `$(Build.RequestedFor)` in script steps, Jenkins' `${env.CHANGE_TITLE}`, `${CHANGE_BRANCH}`, and the pull request plugins' variables in double-quoted `sh`, `bat`, and `powershell` strings, Drone's and Woodpecker's `${DRONE_COMMIT_MESSAGE}` and `${CI_COMMIT_MESSAGE}` in `commands`, and CircleCI's commit message parameters in `run` steps. Environment variables, single-quoted and escaped references, values outside scripts, and GitHub Actions, which `workflow-risk` reads, are not reported. On 137 Jenkins, Azure Pipelines, Drone, Woodpecker, and CircleCI files, it reports none.
+
 ## 0.127.0 - 2026-11-06
 
 ### Added

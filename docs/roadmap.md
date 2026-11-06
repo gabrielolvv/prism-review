@@ -150,6 +150,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Deployments that run container images with no tag or `latest` (0.125.0).
 - SAML logins with their signature, schema, audience, or destination checks turned off (0.126.0).
 - Deserializers that let the data choose the classes to create, such as Jackson's default typing and fastjson's autoType (0.127.0).
+- CI scripts outside GitHub Actions that paste pull request text into their commands (0.128.0).
 
 ## Later
 
