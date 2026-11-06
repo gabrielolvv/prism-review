@@ -15445,6 +15445,7 @@ var ruleIds = [
   "unpinned-deploy-image",
   "saml-validation-disabled",
   "polymorphic-deserialization",
+  "ci-script-injection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15804,6 +15805,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     polymorphicDeserialization: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    ciScriptInjection: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -24729,6 +24733,93 @@ var polymorphicDeserializationRule = {
   }
 };
 
+// src/rules/ci-script-injection.ts
+var azureMacro = /\$\((?:Build\.SourceVersionMessage|System\.PullRequest\.SourceBranch|Build\.RequestedFor(?:Email)?)\)|\$\{\{\s*variables(?:\[\s*'(?:Build\.SourceVersionMessage|System\.PullRequest\.SourceBranch|Build\.RequestedFor(?:Email)?)'\s*\]|\.(?:Build\.SourceVersionMessage|System\.PullRequest\.SourceBranch))\s*\}\}/;
+var jenkinsVariable = /(?<!\\)\$\{?\s*(?:env\.)?(?:CHANGE_TITLE|CHANGE_BRANCH|CHANGE_AUTHOR(?:_DISPLAY_NAME|_EMAIL)?|ghprbPullTitle|ghprbPullDescription|ghprbPullLongDescription|ghprbSourceBranch|ghprbCommentBody|gitlabMergeRequestTitle|gitlabMergeRequestDescription|gitlabSourceBranch|gitlabUserName)\b/;
+var droneVariable = /(?<!\$)\$\{(?:DRONE_COMMIT_MESSAGE|DRONE_PULL_REQUEST_TITLE|DRONE_SOURCE_BRANCH|DRONE_COMMIT_BRANCH|DRONE_BRANCH|DRONE_COMMIT_AUTHOR(?:_NAME|_EMAIL)?|CI_COMMIT_MESSAGE|CI_COMMIT_PULL_REQUEST_TITLE|CI_COMMIT_SOURCE_BRANCH|CI_COMMIT_BRANCH|CI_COMMIT_AUTHOR(?:_EMAIL)?)\b[^}]*\}/;
+var circleParameter = /<<\s*pipeline\.(?:trigger_parameters\.[\w.]*(?:commit_message|branch|title|head_ref|ref)\w*|git\.commit\.(?:subject|body))\s*>>/;
+var azureFile = /(?:^|\/)azure-pipelines[^/]*\.ya?ml$|(?:^|\/)\.(?:azure-pipelines|azuredevops)\/.*\.ya?ml$|(?:^|\/)(?:eng\/)?pipelines\/.*\.ya?ml$/i;
+var jenkinsFile = /(?:^|\/)Jenkinsfile[^/]*$|\.jenkinsfile$|(?:^|\/)vars\/[^/]+\.groovy$/i;
+var droneFile = /(?:^|\/)\.(?:drone|woodpecker)\.ya?ml$|(?:^|\/)\.(?:drone|woodpecker)\/.*\.ya?ml$/i;
+var circleFile = /(?:^|\/)\.circleci\/.*\.ya?ml$/i;
+var scriptKey = /^(\s*)-?\s*(?:script|bash|pwsh|powershell|inlineScript|commands?|run|cmd|entrypoint)\s*:\s*(.*)$/;
+var jenkinsShellString = /\b(?:sh|bat|powershell|pwsh)\s*\(?\s*(?:script\s*:\s*)?(?:"""|")/;
+var jenkinsShellBlockStart = /\b(?:sh|bat|powershell|pwsh)\s*\(?\s*(?:script\s*:\s*)?"""/;
+var commentLine71 = /^\s*(?:#|\/\/|\*)/;
+var maxLineLength67 = 2e3;
+var ciScriptInjectionRule = {
+  id: "ci-script-injection",
+  description: "Flags CI pipelines outside GitHub Actions that paste commit messages, branch names, or titles into shell scripts, in Azure Pipelines, Jenkins, Drone, Woodpecker, and CircleCI.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.ciScriptInjection.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const system = jenkinsFile.test(file.path) ? "Jenkins" : droneFile.test(file.path) ? "Drone or Woodpecker" : circleFile.test(file.path) ? "CircleCI" : azureFile.test(file.path) ? "Azure Pipelines" : void 0;
+      if (system === void 0 || file.patch === void 0 || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = [];
+      if (system === "Jenkins") {
+        let inShellBlock = false;
+        for (const { line, content, added, startsHunk } of lines) {
+          if (startsHunk) {
+            inShellBlock = false;
+          }
+          const opensBlock = !inShellBlock && jenkinsShellBlockStart.test(content) && (content.match(/"""/g) ?? []).length === 1;
+          const inShell = inShellBlock || jenkinsShellString.test(content);
+          if (inShellBlock && content.includes('"""')) {
+            inShellBlock = false;
+          } else if (opensBlock) {
+            inShellBlock = true;
+          }
+          if (added && content.length <= maxLineLength67 && !commentLine71.test(content) && inShell && jenkinsVariable.test(content)) {
+            found.push(line);
+          }
+        }
+      } else {
+        const pattern = system === "Azure Pipelines" ? azureMacro : system === "CircleCI" ? circleParameter : droneVariable;
+        let blockIndent;
+        for (const { line, content, added, startsHunk } of lines) {
+          if (startsHunk) {
+            blockIndent = void 0;
+          }
+          const indent = /^\s*/.exec(content)?.[0].length ?? 0;
+          if (blockIndent !== void 0 && content.trim() !== "" && !(indent > blockIndent || indent === blockIndent && /^\s*-\s/.test(content))) {
+            blockIndent = void 0;
+          }
+          const key2 = scriptKey.exec(content);
+          const inScript = blockIndent !== void 0 || key2 !== null;
+          if (key2 !== null && /^(?:[|>][+-]?\d*)?\s*(?:#.*)?$/.test(key2[2] ?? "")) {
+            blockIndent = indent;
+          }
+          if (added && content.length <= maxLineLength67 && !commentLine71.test(content) && inScript && pattern.test(content)) {
+            found.push(line);
+          }
+        }
+      }
+      if (found.length === 0) {
+        return [];
+      }
+      const { text, plural } = describeLines(found);
+      return [
+        {
+          ruleId: "ci-script-injection",
+          title: "CI script runs text from a pull request",
+          severity: "high",
+          file: file.path,
+          line: found[0],
+          lines: found,
+          message: `${text} ${plural ? "paste" : "pastes"} the ${system === "Jenkins" ? "pull request's title, branch, or author" : "commit message, branch, or title"} into ${system === "Azure Pipelines" ? "an" : "a"} ${system} script before the shell runs it, so a pull request named \`"; printenv; #\` runs its own commands in the pipeline, with its secrets and its access to deploy.`,
+          recommendation: 'Pass the value to the script through an environment variable and quote it, as in `env: { TITLE: $(Build.SourceVersionMessage) }` with `echo "$TITLE"`, or in Jenkins with single-quoted `sh \'echo "$CHANGE_TITLE"\'`, which the shell reads as data. In Drone and Woodpecker, write `$${DRONE_COMMIT_MESSAGE}` so the shell reads the variable instead of the pipeline pasting it.'
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -24796,7 +24887,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine71 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine72 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -24854,7 +24945,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine71.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine72.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -24951,7 +25042,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine72 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine73 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation62 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -24968,7 +25059,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine72.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine73.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -26826,7 +26917,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine73 = /^\s*#/;
+var commentLine74 = /^\s*#/;
 var documentation63 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -26870,7 +26961,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine73.test(content)) {
+    if (commentLine74.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -26904,7 +26995,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine74 = /^\s*#/;
+var commentLine75 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -26980,7 +27071,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine74.test(content)) {
+    if (commentLine75.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -27070,7 +27161,7 @@ var settings21 = [
   }
 ];
 var allowsEverything = settings21[0];
-var commentLine75 = /^\s*(?:#|\/\/)/;
+var commentLine76 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -27111,7 +27202,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine75.test(content)) {
+    if (!added || commentLine76.test(content)) {
       continue;
     }
     for (const setting of settings21) {
@@ -27170,7 +27261,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine76 = /^\s*#/;
+var commentLine77 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -27219,7 +27310,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine76.test(content) || content.trim() === "") {
+    if (commentLine77.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -27274,7 +27365,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine77 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine78 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation65 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -27289,7 +27380,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine77.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine78.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -27385,9 +27476,9 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine78 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine79 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength67 = 500;
+var maxLineLength68 = 500;
 var documentation66 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var weakCryptoRule = {
   id: "weak-crypto",
@@ -27402,7 +27493,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine78.test(content) && content.length <= maxLineLength67 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine79.test(content) && content.length <= maxLineLength68 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -27461,7 +27552,7 @@ var settings22 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine79 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine80 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation67 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -27476,7 +27567,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine79.test(content) && settings22.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine80.test(content) && settings22.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -27525,7 +27616,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine80 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine81 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation68 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -27542,7 +27633,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine80.test(content)) {
+        if (!added || commentLine81.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -27798,10 +27889,10 @@ var languages7 = [
     )
   }
 ];
-var commentLine81 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine82 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation69 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
-var maxLineLength68 = 1e3;
+var maxLineLength69 = 1e3;
 var redosRule = {
   id: "redos",
   description: "Flags regular expressions with a repeated group that can match the same text in many ways, which can take exponential time on a crafted input.",
@@ -27816,7 +27907,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine81.test(content) || content.length > maxLineLength68) {
+        if (!added || commentLine82.test(content) || content.length > maxLineLength69) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -28018,7 +28109,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine82 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine83 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation70 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -28082,7 +28173,7 @@ function commands2(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine82.test(content)) {
+    if (commentLine83.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -28108,7 +28199,7 @@ function unquoted(content) {
 // src/rules/risky-api.ts
 var slashComment = /^\s*(?:\/\/|\/\*|\*)/;
 var hashComment = /^\s*#/;
-var maxLineLength69 = 1e3;
+var maxLineLength70 = 1e3;
 var rawHtmlProp = ["dangerously", "SetInnerHTML"].join("");
 var languages8 = [
   {
@@ -28265,7 +28356,7 @@ function findCalls2(lines, language) {
   const code4 = language.docstrings ? outsideTripleQuotes(lines) : lines.map((line) => line.content);
   return lines.flatMap((line, index) => {
     const content = code4[index] ?? "";
-    if (!line.added || line.content.length > maxLineLength69 || language.comment.test(content) || language.definitions?.test(content)) {
+    if (!line.added || line.content.length > maxLineLength70 || language.comment.test(content) || language.definitions?.test(content)) {
       return [];
     }
     return language.calls.filter(([, pattern]) => pattern.test(content)).map(([label]) => ({ line: line.line, label }));
@@ -28836,7 +28927,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine83 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine84 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -28878,7 +28969,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine83.test(content)) {
+    if (commentLine84.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -29056,6 +29147,7 @@ var defaultRules = [
   unpinnedDeployImageRule,
   samlValidationDisabledRule,
   polymorphicDeserializationRule,
+  ciScriptInjectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -29631,6 +29723,7 @@ var ruleAreas = {
   "unpinned-deploy-image": "supply-chain",
   "saml-validation-disabled": "code",
   "polymorphic-deserialization": "code",
+  "ci-script-injection": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -29776,6 +29869,7 @@ var ruleQuestions = {
   "unpinned-deploy-image": "Do deployments pin their container images to a version or digest?",
   "saml-validation-disabled": "Do SAML logins keep their signature, audience, and destination checks?",
   "polymorphic-deserialization": "Do deserializers read untrusted data into fixed or allowlisted types?",
+  "ci-script-injection": "Do CI scripts read pull request text through quoted environment variables?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -29890,6 +29984,7 @@ var ruleSections = {
   "unpinned-deploy-image": "Unpinned Deployment Images",
   "saml-validation-disabled": "SAML Validation",
   "polymorphic-deserialization": "Polymorphic Deserialization",
+  "ci-script-injection": "CI Script Injection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
