@@ -105,6 +105,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "plain-http-endpoint": "infrastructure",
   "unpinned-deploy-image": "supply-chain",
   "saml-validation-disabled": "code",
+  "polymorphic-deserialization": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
