@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.131.0 - 2026-11-06
+
+### Added
+
+- `llm-code-execution` rule: reports, as high, LLM agents set up to run the code or commands the model writes directly on the host, where instructions hidden in a chat message, document, web page, or tool result can make the agent run an attacker's commands. It reads LangChain's `allow_dangerous_code=True` and `allow_dangerous_tools=True`, Python and shell tools such as `PythonREPLTool`, `PythonAstREPLTool`, `ShellTool`, and `BashProcess` created in the code, AutoGen's `"use_docker": False` and `LocalCommandLineCodeExecutor`, CrewAI's `code_execution_mode="unsafe"`, smolagents' `additional_authorized_imports=["*"]`, and Open Interpreter's `auto_run`. Docker and remote sandboxes, imports, definitions, docstrings, error messages, notebooks, examples, and tests are not reported. On about 18,800 Python and YAML files from 81 agent frameworks and apps, it reports 29: Open Interpreter's default profiles, AutoGen setups that run code on the host, Devon's local shell tool, and the frameworks' own code that creates these tools once a caller asks for them.
+
 ## 0.130.0 - 2026-11-06
 
 ### Added
