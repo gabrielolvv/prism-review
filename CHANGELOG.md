@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.126.0 - 2026-11-06
+
+### Added
+
+- `saml-validation-disabled` rule: reports SAML service providers set to skip checks on login responses. Signature and schema checks off, as high, let anyone forge or alter a response and sign in as any user: gosaml2's `SkipSignatureValidation`, Keycloak's `validateSignature: false`, node-saml's and passport-saml's `wantAssertionsSigned` and `wantAuthnResponseSigned` both off, pysaml2's signature switches, and samlify's schema validator replaced by one that accepts everything. Audience, destination, and strict checks off, as a warning: python3-saml's and php-saml's `strict: false` and ruby-saml's `skip_audience` and similar options. Single switches that still require a signature, other tools' `strict` and `validateSignature`, a library's own defaults, docstrings, examples, and tests are not reported. On about 337,500 source and settings files, including about 30,800 from SAML libraries and the apps that use them, it reports none.
+
 ## 0.125.0 - 2026-11-05
 
 ### Added

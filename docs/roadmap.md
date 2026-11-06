@@ -148,6 +148,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - AWS resource policies that allow every principal with no condition (0.123.0).
 - Load balancers, CDNs, and app platforms that serve plain HTTP without redirecting it (0.124.0).
 - Deployments that run container images with no tag or `latest` (0.125.0).
+- SAML logins with their signature, schema, audience, or destination checks turned off (0.126.0).
 
 ## Later
 
