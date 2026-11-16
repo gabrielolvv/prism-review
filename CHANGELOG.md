@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.136.0 - 2026-11-16
+
+### Added
+
+- `app-config-secret` rule: reports, as high, passwords, tokens, and keys written into an app's configuration, which are committed to the repository and shared by every environment that reads the file. It reads Spring Boot's `application.properties` and `application.yml`, ASP.NET's `appsettings.json`, connection strings, and `web.config`, Django settings and literal `os.environ.get` defaults, Rails' `database.yml` outside development and test, Laravel's `config/*.php` and literal `env()` defaults, and node-config's production files. It names only the settings, never the values, and reads them before redaction. Environment placeholders, Jasypt and Spring Cloud Config encrypted values, placeholders, development profiles and sections, examples, and tests are not reported. On about 2,520 config files from 53 apps and the earlier corpora, it reports 52, each a committed credential.
+
+### Changed
+
+- `deployment-env-secret` and `iac-hardcoded-password` also skip empty values followed by a comment, dotted module paths, instructions written in Chinese, Japanese, or Korean, and values that repeat their own name, which they share with the new rule. Their corpus results are unchanged.
+
 ## 0.135.0 - 2026-11-06
 
 ### Added
