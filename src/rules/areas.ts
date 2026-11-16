@@ -117,6 +117,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "app-config-secret": "secrets",
   "ci-config-secret": "secrets",
   "workflow-credential-exposure": "supply-chain",
+  "android-exported-component": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

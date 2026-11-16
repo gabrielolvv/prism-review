@@ -112,6 +112,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "app-config-secret": "Are the passwords in the app's configuration rotated, and read from the environment or a secret store?",
   "ci-config-secret": "Are the secrets in the CI pipeline rotated, and read from the CI's secret store instead?",
   "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
+  "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

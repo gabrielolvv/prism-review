@@ -916,6 +916,12 @@ import {
   testWorkflowCredentialExposureCanBeDisabled
 } from "./unit/workflow-credential-exposure.test.js";
 import {
+  testAndroidExportedComponentReadsEachKind,
+  testAndroidExportedComponentReportsOneFindingPerFile,
+  testAndroidExportedComponentSkipsProtectedComponents,
+  testAndroidExportedComponentSkipsTestsAndCanBeDisabled
+} from "./unit/android-exported-component.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1574,6 +1580,10 @@ const tests: Array<[string, Test]> = [
   ["workflow-credential-exposure reads each exposure", testWorkflowCredentialExposureReadsEachExposure],
   ["workflow-credential-exposure skips safe workflows", testWorkflowCredentialExposureSkipsSafeWorkflows],
   ["workflow-credential-exposure can be disabled", testWorkflowCredentialExposureCanBeDisabled],
+  ["android-exported-component reports one finding per file", testAndroidExportedComponentReportsOneFindingPerFile],
+  ["android-exported-component reads each kind", testAndroidExportedComponentReadsEachKind],
+  ["android-exported-component skips protected components", testAndroidExportedComponentSkipsProtectedComponents],
+  ["android-exported-component skips tests and can be disabled", testAndroidExportedComponentSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
