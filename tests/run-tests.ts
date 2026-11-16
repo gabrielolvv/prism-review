@@ -941,6 +941,12 @@ import {
   testAgentAutoApproveSkipsExamplesAndCanBeDisabled
 } from "./unit/agent-auto-approve.test.js";
 import {
+  testPackageInstallScriptReadsEachHook,
+  testPackageInstallScriptReportsOneFindingPerFile,
+  testPackageInstallScriptSkipsUsualAndPrivatePackages,
+  testPackageInstallScriptSkipsTestsAndCanBeDisabled
+} from "./unit/package-install-script.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1616,6 +1622,10 @@ const tests: Array<[string, Test]> = [
   ["agent-auto-approve reads each agent", testAgentAutoApproveReadsEachAgent],
   ["agent-auto-approve skips narrow permissions", testAgentAutoApproveSkipsNarrowPermissions],
   ["agent-auto-approve skips examples and can be disabled", testAgentAutoApproveSkipsExamplesAndCanBeDisabled],
+  ["package-install-script reports one finding per file", testPackageInstallScriptReportsOneFindingPerFile],
+  ["package-install-script reads each hook", testPackageInstallScriptReadsEachHook],
+  ["package-install-script skips usual and private packages", testPackageInstallScriptSkipsUsualAndPrivatePackages],
+  ["package-install-script skips tests and can be disabled", testPackageInstallScriptSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

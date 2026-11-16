@@ -121,6 +121,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "mobile-data-protection": "code",
   "mcp-server-config": "supply-chain",
   "agent-auto-approve": "supply-chain",
+  "package-install-script": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
