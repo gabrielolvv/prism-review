@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.141.0 - 2026-11-16
+
+### Added
+
+- `mcp-server-config` rule: reports risks in the MCP server configurations that coding assistants and agents read from a repository, such as `.mcp.json`, `claude_desktop_config.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`: a token in `env`, headers, or arguments (high, named but never printed, and read before redaction), a server started with `npx`, `bunx`, `pnpm dlx`, `uvx`, or Docker without a fixed version, and a remote server over plain HTTP (warning). Environment and prompt references such as `${input:github_token}`, pinned versions and digests, local servers, and example configurations are not reported. On 51 MCP configurations, it reports 5, each starting a server package without a fixed version.
+
 ## 0.140.0 - 2026-11-16
 
 ### Added
