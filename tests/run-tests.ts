@@ -922,6 +922,12 @@ import {
   testAndroidExportedComponentSkipsTestsAndCanBeDisabled
 } from "./unit/android-exported-component.test.js";
 import {
+  testMobileDataProtectionReadsEachPlatform,
+  testMobileDataProtectionReportsOneFindingPerFile,
+  testMobileDataProtectionSkipsProtectedData,
+  testMobileDataProtectionSkipsTestsAndCanBeDisabled
+} from "./unit/mobile-data-protection.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1584,6 +1590,10 @@ const tests: Array<[string, Test]> = [
   ["android-exported-component reads each kind", testAndroidExportedComponentReadsEachKind],
   ["android-exported-component skips protected components", testAndroidExportedComponentSkipsProtectedComponents],
   ["android-exported-component skips tests and can be disabled", testAndroidExportedComponentSkipsTestsAndCanBeDisabled],
+  ["mobile-data-protection reports one finding per file", testMobileDataProtectionReportsOneFindingPerFile],
+  ["mobile-data-protection reads each platform", testMobileDataProtectionReadsEachPlatform],
+  ["mobile-data-protection skips protected data", testMobileDataProtectionSkipsProtectedData],
+  ["mobile-data-protection skips tests and can be disabled", testMobileDataProtectionSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

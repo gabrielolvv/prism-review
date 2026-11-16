@@ -81,6 +81,7 @@ import { appConfigSecretRule } from "./app-config-secret.js";
 import { ciConfigSecretRule } from "./ci-config-secret.js";
 import { workflowCredentialExposureRule } from "./workflow-credential-exposure.js";
 import { androidExportedComponentRule } from "./android-exported-component.js";
+import { mobileDataProtectionRule } from "./mobile-data-protection.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -205,6 +206,7 @@ export const defaultRules: Rule[] = [
   ciConfigSecretRule,
   workflowCredentialExposureRule,
   androidExportedComponentRule,
+  mobileDataProtectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
