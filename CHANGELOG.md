@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.138.0 - 2026-11-16
+
+### Added
+
+- `workflow-credential-exposure` rule: reports, as high, GitHub Actions workflows that hand out their token. It reads `actions/checkout` before v6 without `persist-credentials: false` together with `actions/upload-artifact` before v4.4, or with `include-hidden-files: true`, uploading the whole workspace, whose `.git/config` holds the token, and `ACTIONS_ALLOW_UNSECURE_COMMANDS: true`, which lets any printed text set environment variables and the path for later steps. Versions come from the ref or the comment after a commit hash. Newer action versions, uploads of build folders, example workflows, and test fixtures are not reported. On about 3,100 workflows, it reports none, so detection is covered by the unit tests.
+
 ## 0.137.0 - 2026-11-16
 
 ### Added
