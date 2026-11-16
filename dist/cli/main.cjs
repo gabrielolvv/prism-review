@@ -15460,6 +15460,7 @@ var ruleIds = [
   "mobile-data-protection",
   "mcp-server-config",
   "agent-auto-approve",
+  "package-install-script",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15864,6 +15865,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     agentAutoApprove: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    packageInstallScript: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -26742,6 +26746,85 @@ var agentAutoApproveRule = {
   }
 };
 
+// src/rules/package-install-script.ts
+var packageJson = /(?:^|\/)package\.json$/;
+var setupPy = /(?:^|\/)setup\.py$/;
+var vendored = /(?:^|\/)(?:node_modules|vendor|third_party)\//;
+var installScript = /^\s*"(preinstall|install|postinstall)"\s*:\s*"((?:[^"\\]|\\.)*)"/;
+var usualCommand = /^(?:node-gyp(?:-build(?:-optional)?)?\b|prebuild-install\b|pkg-prebuilds-verify\b|(?:@mapbox\/)?node-pre-gyp\b|cmake-js\b|napi-postinstall\b|husky\b|is-ci\b|patch-package\b|opencollective(?:-postinstall)?\b|ngcc\b|echo\b|exit 0\b|true$|node-gyp rebuild\b)/;
+var privatePackage = /^\s*"private"\s*:\s*true\b/;
+var workspaces = /^\s*"workspaces"\s*:/;
+var installCommandClass = /\bcmdclass\s*=\s*\{[^}]*["'](install|develop|egg_info)["']\s*:|\bcmdclass\[\s*["'](install|develop|egg_info)["']\s*\]\s*=/;
+var cmdclassStart = /\bcmdclass\s*=\s*\{/;
+var cmdclassEntry = /^\s*["'](install|develop|egg_info)["']\s*:/;
+var cmdclassWindow = 8;
+function npmHooks(lines) {
+  if (lines.some(({ content }) => privatePackage.test(content) || workspaces.test(content))) {
+    return [];
+  }
+  return lines.flatMap(({ line, content, added }) => {
+    const match2 = installScript.exec(content);
+    if (!added || match2 === null) {
+      return [];
+    }
+    const command2 = (match2[2] ?? "").trim().replace(/^(?:cross-env\s+)?(?:[A-Z_][A-Z0-9_]*=\S*\s+)+/, "");
+    return command2 === "" || usualCommand.test(command2) ? [] : [{ line, name: match2[1] ?? "" }];
+  });
+}
+function pythonHooks(lines) {
+  return lines.flatMap(({ line, content, added }, index) => {
+    if (!added || /^\s*#/.test(content)) {
+      return [];
+    }
+    const inline = installCommandClass.exec(content);
+    if (inline !== null) {
+      return [{ line, name: `cmdclass ${inline[1] ?? inline[2]}` }];
+    }
+    const entry3 = cmdclassEntry.exec(content);
+    if (entry3 !== null && lines.slice(Math.max(0, index - cmdclassWindow), index).some(({ content: before2 }) => cmdclassStart.test(before2))) {
+      return [{ line, name: `cmdclass ${entry3[1]}` }];
+    }
+    return [];
+  });
+}
+var packageInstallScriptRule = {
+  id: "package-install-script",
+  description: "Flags install scripts added to published packages, such as `postinstall` in a `package.json` that is not private and `cmdclass` install hooks in `setup.py`, which run on every machine that installs the package.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.packageInstallScript.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const npm = packageJson.test(file.path);
+      if (!npm && !setupPy.test(file.path) || file.patch === void 0 || vendored.test(file.path) || // Example, sample, demo, and test packages.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = npm ? npmHooks(lines) : pythonHooks(lines);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
+      return [
+        {
+          ruleId: "package-install-script",
+          title: "Install script added to a published package",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "add" : "adds"} ${listOf(names2)}, which ${names2.length > 1 ? "run" : "runs"} code on the machine of everyone who installs this package, before they use it and with their files and credentials. Malware spreads this way, as the Shai-Hulud worm and the compromised nx releases did on npm in 2025, so a package that starts running code at install needs a reason.`,
+          recommendation: "Do the work at first use or in an explicit setup command instead, ship prebuilt files in the package, or download native binaries through optional dependencies per platform, as esbuild does. If an install script is needed, keep it small, avoid network access, and say why in the changelog, since many installs now run with `--ignore-scripts`."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -31084,6 +31167,7 @@ var defaultRules = [
   mobileDataProtectionRule,
   mcpServerConfigRule,
   agentAutoApproveRule,
+  packageInstallScriptRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -31298,14 +31382,14 @@ function parseGitAttributes(text) {
   return {
     isGenerated(path2) {
       let generated = false;
-      let vendored;
+      let vendored2;
       for (const rule of rules) {
         if (rule.matcher.match(path2)) {
           generated = rule.generated ?? generated;
-          vendored = rule.vendored ?? vendored;
+          vendored2 = rule.vendored ?? vendored2;
         }
       }
-      return generated || (vendored ?? defaultVendored.test(path2));
+      return generated || (vendored2 ?? defaultVendored.test(path2));
     }
   };
 }
@@ -31674,6 +31758,7 @@ var ruleAreas = {
   "mobile-data-protection": "code",
   "mcp-server-config": "supply-chain",
   "agent-auto-approve": "supply-chain",
+  "package-install-script": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -31834,6 +31919,7 @@ var ruleQuestions = {
   "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
   "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
   "agent-auto-approve": "Do the committed coding agent settings still ask before running commands?",
+  "package-install-script": "Does the package need to run code at install, and is that script small and offline?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -31963,6 +32049,7 @@ var ruleSections = {
   "mobile-data-protection": "Mobile Data Protection",
   "mcp-server-config": "MCP Server Configuration",
   "agent-auto-approve": "Coding Agent Approvals",
+  "package-install-script": "Package Install Scripts",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
