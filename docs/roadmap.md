@@ -158,6 +158,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Kubernetes Secrets committed with their values (0.133.0).
 - Secrets written into a deployment's environment in plain text (0.134.0).
 - Passwords written into Terraform, CloudFormation, and Ansible inventories (0.135.0).
+- Passwords written into Spring Boot, ASP.NET, Django, Rails, Laravel, and node-config settings (0.136.0).
 
 ## Later
 
