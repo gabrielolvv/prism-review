@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.139.0 - 2026-11-16
+
+### Added
+
+- `android-exported-component` rule: warns about Android services, broadcast receivers, and content providers that `AndroidManifest.xml` exports with `android:exported="true"` and no `android:permission`, `readPermission`, `writePermission`, or `<path-permission>`, which any app on the device can then call, and act through with this app's data and permissions. Components that only answer actions Android, Google Play services, phone makers, or Android Auto define, activities, removed components, debug, QA, and test manifests, and sample apps are not reported. On 326 manifests from 30 open-source Android apps, it reports 24, each an exported component without a permission, several of them deliberate APIs for other apps.
+
 ## 0.138.0 - 2026-11-16
 
 ### Added
