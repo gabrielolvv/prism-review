@@ -161,6 +161,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Passwords written into Spring Boot, ASP.NET, Django, Rails, Laravel, and node-config settings (0.136.0).
 - Secrets written into CI pipelines instead of read from the CI's secrets (0.137.0).
 - GitHub Actions workflows that upload their token in an artifact or turn on unsecure commands (0.138.0).
+- Android services, receivers, and providers exported without a permission (0.139.0).
 
 ## Later
 
