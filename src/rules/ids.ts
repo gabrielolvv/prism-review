@@ -89,6 +89,7 @@ export const ruleIds: readonly string[] = [
   "app-config-secret",
   "ci-config-secret",
   "workflow-credential-exposure",
+  "android-exported-component",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

@@ -80,6 +80,7 @@ import { iacHardcodedPasswordRule } from "./iac-hardcoded-password.js";
 import { appConfigSecretRule } from "./app-config-secret.js";
 import { ciConfigSecretRule } from "./ci-config-secret.js";
 import { workflowCredentialExposureRule } from "./workflow-credential-exposure.js";
+import { androidExportedComponentRule } from "./android-exported-component.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -203,6 +204,7 @@ export const defaultRules: Rule[] = [
   appConfigSecretRule,
   ciConfigSecretRule,
   workflowCredentialExposureRule,
+  androidExportedComponentRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
