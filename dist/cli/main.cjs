@@ -32079,7 +32079,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version2 = true ? "0.136.0" : "development";
+var version2 = true ? "0.137.0" : "development";
 
 // src/cli/main.ts
 var usage = [

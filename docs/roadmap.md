@@ -159,6 +159,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Secrets written into a deployment's environment in plain text (0.134.0).
 - Passwords written into Terraform, CloudFormation, and Ansible inventories (0.135.0).
 - Passwords written into Spring Boot, ASP.NET, Django, Rails, Laravel, and node-config settings (0.136.0).
+- Secrets written into CI pipelines instead of read from the CI's secrets (0.137.0).
 
 ## Later
 
