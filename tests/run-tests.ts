@@ -903,6 +903,13 @@ import {
   testAppConfigSecretSkipsTestsAndCanBeDisabled
 } from "./unit/app-config-secret.test.js";
 import {
+  testCiConfigSecretFindsValuesBeforeRedaction,
+  testCiConfigSecretReadsEachPipeline,
+  testCiConfigSecretReportsOneFindingPerFile,
+  testCiConfigSecretSkipsSecretReferencesAndServices,
+  testCiConfigSecretSkipsExamplesAndCanBeDisabled
+} from "./unit/ci-config-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1552,6 +1559,11 @@ const tests: Array<[string, Test]> = [
   ["app-config-secret skips references and placeholders", testAppConfigSecretSkipsReferencesAndPlaceholders],
   ["app-config-secret finds values before redaction", testAppConfigSecretFindsValuesBeforeRedaction],
   ["app-config-secret skips tests and can be disabled", testAppConfigSecretSkipsTestsAndCanBeDisabled],
+  ["ci-config-secret reports one finding per file", testCiConfigSecretReportsOneFindingPerFile],
+  ["ci-config-secret reads each pipeline", testCiConfigSecretReadsEachPipeline],
+  ["ci-config-secret skips secret references and services", testCiConfigSecretSkipsSecretReferencesAndServices],
+  ["ci-config-secret finds values before redaction", testCiConfigSecretFindsValuesBeforeRedaction],
+  ["ci-config-secret skips examples and can be disabled", testCiConfigSecretSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

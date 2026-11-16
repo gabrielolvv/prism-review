@@ -14,6 +14,7 @@ import { findTokenStorageLines } from "./token-storage.js";
 import { findLongSessionLines } from "./session-lifetime.js";
 import { findCryptoKeyLines } from "./crypto-keys.js";
 import { findAppConfigSecretLines } from "./app-config-secrets.js";
+import { findCiConfigSecretLines } from "./ci-config-secrets.js";
 import { findDeploymentEnvSecretLines } from "./deployment-env-secrets.js";
 import { findIacPasswordLines } from "./iac-passwords.js";
 import { findKubernetesSecretLines } from "./kubernetes-secrets.js";
@@ -47,6 +48,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     deploymentEnvSecretLines: file.patch === undefined ? [] : findDeploymentEnvSecretLines(file.path, file.patch),
     iacPasswordLines: file.patch === undefined ? [] : findIacPasswordLines(file.path, file.patch),
     appConfigSecretLines: file.patch === undefined ? [] : findAppConfigSecretLines(file.path, file.patch),
+    ciConfigSecretLines: file.patch === undefined ? [] : findCiConfigSecretLines(file.path, file.patch),
     ...(file.patch !== undefined && credentialFileKind(file.path)?.checksLines
       ? { credentialLines: findCredentialLines(file.path, file.patch) }
       : {}),

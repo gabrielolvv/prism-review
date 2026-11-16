@@ -35,7 +35,7 @@ const secretReference = /^(?:vault:|arn:|ssm:|sm:\/\/|gcp:|projects\/[^/\s]+\/se
 const notSecret = /^(?:true|false|yes|no|on|off|enabled?|disabled?|required|optional|none|\d{1,6}|seconds|minutes|hours|days|weeks)$/i;
 // Values that mark a test or an example, say there is no secret, such as `NO_TOKEN`, or are a
 // default such as `password1`.
-const sampleValue = /test|example|dummy|sample|fake|xyzzy|foobar|hunter2|^(?:no|not)[-_ ]?(?:set|token|password|secret|key|value)$|^(?:password|passwd|secret|admin|root)\d*!?$/i;
+const sampleValue = /test|example|dummy|sample|fake|xyzzy|foobar|hunter2|s3cr3t|passw0rd|^minio(?:admin|123)$|(?:^|[^a-z])foo(?:[^a-z]|$)|^(?:no|not)[-_ ]?(?:set|token|password|secret|key|value)$|^(?:password|passwd|secret|admin|root)\d*!?$/i;
 // Paths and names that say where a secret is kept, such as `/grafana/%s/api_key`.
 const storagePath = /^\/?[\w.%-]+(?:\/[\w.%-]+)+\/?$/;
 const sampleName = /^(?:example|sample|dummy|fake|test|mock)[-_]/i;

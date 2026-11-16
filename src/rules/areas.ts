@@ -115,6 +115,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "deployment-env-secret": "secrets",
   "iac-hardcoded-password": "secrets",
   "app-config-secret": "secrets",
+  "ci-config-secret": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
