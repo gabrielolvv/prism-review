@@ -93,6 +93,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "workflow-credential-exposure": "Workflow Credential Exposure",
   "android-exported-component": "Exported Android Components",
   "mobile-data-protection": "Mobile Data Protection",
+  "mcp-server-config": "MCP Server Configuration",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

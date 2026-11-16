@@ -3,6 +3,7 @@ import type { CiSecretLine } from "../security/ci-config-secrets.js";
 import type { EnvSecretLine } from "../security/deployment-env-secrets.js";
 import type { IacPasswordLine } from "../security/iac-passwords.js";
 import type { KubernetesSecretLine } from "../security/kubernetes-secrets.js";
+import type { McpConfigLine } from "../security/mcp-config.js";
 import type { LockfileSource } from "../security/lockfile-sources.js";
 import type { HiddenLine } from "./hidden-characters.js";
 
@@ -72,6 +73,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that write a
   // secret into a CI pipeline's configuration, with the variable or input's name.
   ciConfigSecretLines?: CiSecretLine[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines of an MCP client
+  // configuration that commit a token, start an unpinned server, or reach a server over HTTP.
+  mcpConfigLines?: McpConfigLine[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.

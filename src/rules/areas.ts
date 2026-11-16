@@ -119,6 +119,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "workflow-credential-exposure": "supply-chain",
   "android-exported-component": "code",
   "mobile-data-protection": "code",
+  "mcp-server-config": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

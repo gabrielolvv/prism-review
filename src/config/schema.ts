@@ -595,6 +595,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      mcpServerConfig: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       plaintextCredentials: z
         .object({
           enabled: z.boolean().default(true)
