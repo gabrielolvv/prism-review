@@ -928,6 +928,13 @@ import {
   testMobileDataProtectionSkipsTestsAndCanBeDisabled
 } from "./unit/mobile-data-protection.test.js";
 import {
+  testMcpServerConfigFindsTokensBeforeRedaction,
+  testMcpServerConfigReadsEachRisk,
+  testMcpServerConfigReportsOneFindingPerFile,
+  testMcpServerConfigSkipsSafeConfigs,
+  testMcpServerConfigSkipsExamplesAndCanBeDisabled
+} from "./unit/mcp-server-config.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1594,6 +1601,11 @@ const tests: Array<[string, Test]> = [
   ["mobile-data-protection reads each platform", testMobileDataProtectionReadsEachPlatform],
   ["mobile-data-protection skips protected data", testMobileDataProtectionSkipsProtectedData],
   ["mobile-data-protection skips tests and can be disabled", testMobileDataProtectionSkipsTestsAndCanBeDisabled],
+  ["mcp-server-config reports one finding per file", testMcpServerConfigReportsOneFindingPerFile],
+  ["mcp-server-config reads each risk", testMcpServerConfigReadsEachRisk],
+  ["mcp-server-config skips safe configs", testMcpServerConfigSkipsSafeConfigs],
+  ["mcp-server-config finds tokens before redaction", testMcpServerConfigFindsTokensBeforeRedaction],
+  ["mcp-server-config skips examples and can be disabled", testMcpServerConfigSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

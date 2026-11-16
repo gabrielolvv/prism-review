@@ -114,6 +114,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
   "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
   "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
+  "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
