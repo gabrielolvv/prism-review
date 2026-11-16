@@ -79,6 +79,7 @@ import { deploymentEnvSecretRule } from "./deployment-env-secret.js";
 import { iacHardcodedPasswordRule } from "./iac-hardcoded-password.js";
 import { appConfigSecretRule } from "./app-config-secret.js";
 import { ciConfigSecretRule } from "./ci-config-secret.js";
+import { workflowCredentialExposureRule } from "./workflow-credential-exposure.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -201,6 +202,7 @@ export const defaultRules: Rule[] = [
   iacHardcodedPasswordRule,
   appConfigSecretRule,
   ciConfigSecretRule,
+  workflowCredentialExposureRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
