@@ -93,6 +93,7 @@ export const ruleIds: readonly string[] = [
   "mobile-data-protection",
   "mcp-server-config",
   "agent-auto-approve",
+  "package-install-script",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

@@ -116,6 +116,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
   "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
   "agent-auto-approve": "Do the committed coding agent settings still ask before running commands?",
+  "package-install-script": "Does the package need to run code at install, and is that script small and offline?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
