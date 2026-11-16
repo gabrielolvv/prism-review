@@ -114,6 +114,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "kubernetes-secret-values": "secrets",
   "deployment-env-secret": "secrets",
   "iac-hardcoded-password": "secrets",
+  "app-config-secret": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

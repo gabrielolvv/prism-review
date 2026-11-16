@@ -86,6 +86,7 @@ export const ruleIds: readonly string[] = [
   "kubernetes-secret-values",
   "deployment-env-secret",
   "iac-hardcoded-password",
+  "app-config-secret",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

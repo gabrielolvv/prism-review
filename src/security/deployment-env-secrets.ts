@@ -39,6 +39,17 @@ const sampleValue = /test|example|dummy|sample|fake|xyzzy|foobar|hunter2|^(?:no|
 // Paths and names that say where a secret is kept, such as `/grafana/%s/api_key`.
 const storagePath = /^\/?[\w.%-]+(?:\/[\w.%-]+)+\/?$/;
 const sampleName = /^(?:example|sample|dummy|fake|test|mock)[-_]/i;
+// Dotted module paths, such as Django's `"app.utils.push_credentials"`, and instructions written in
+// Chinese, Japanese, or Korean, such as "fill in your key".
+const dottedPath = /^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*){2,}$/;
+const cjkText = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;
+
+// Whether the value repeats its own name, as in `token: token` or `client-secret: app-client-secret`.
+function namesItself(name: string, value: string): boolean {
+  const normalize = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const key = normalize(name.split(".").at(-1) ?? name);
+  return key.length >= 5 && normalize(value).includes(key);
+}
 // Names that hold a setting about a secret rather than the secret itself.
 const settingName = /_(?:FILE|PATH|DIR|NAME|ID|TTL|EXPIRY|EXPIRES?|LENGTH|HEADER|URL|URI|ENDPOINT|HOST|PORT|ENABLED|REQUIRED|TYPE|ALGORITHM|MODE|SECONDS|DAYS|HOURS|MINUTES)$|^(?:MIN|MAX)_/i;
 
@@ -58,7 +69,7 @@ export function isSecretValue(name: string, raw: string): boolean {
   if (!secretName.test(name) || publicName.test(name) || settingName.test(name) || sampleName.test(name)) {
     return false;
   }
-  const value = cleanValue(raw);
+  const value = cleanValue(raw.trim().startsWith("#") ? "" : raw);
   return (
     value.length >= 4 &&
     !/^[|>[{!]/.test(value) &&
@@ -68,6 +79,9 @@ export function isSecretValue(name: string, raw: string): boolean {
     !notSecret.test(value) &&
     !sampleValue.test(value) &&
     !storagePath.test(value) &&
+    !dottedPath.test(value) &&
+    !cjkText.test(value) &&
+    !namesItself(name, value) &&
     !placeholder.test(value) &&
     !isPlaceholder(value)
   );
