@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.140.0 - 2026-11-16
+
+### Added
+
+- `mobile-data-protection` rule: reports mobile app data left readable to other apps, to backups, or while the device is locked: Android's `MODE_WORLD_READABLE` and `MODE_WORLD_WRITEABLE` (high), `android:allowBackup="true"` without `fullBackupContent` or `dataExtractionRules`, iOS Keychain items with `kSecAttrAccessibleAlways` in the Security framework and in KeychainAccess, keychain-swift, SwiftKeychainWrapper, and Valet, and files written with `NSFileProtectionNone`, `.noFileProtection`, or `FileProtectionType.none` (warning). Imports, definitions, wrapper libraries' option tables, comments, debug and test source sets, Xcode tests, vendored dependencies, and sample apps are not reported. On about 37,900 files from 40 open-source iOS and Android apps and Keychain libraries, it reports 22: 16 manifests that turn backups on without rules and 6 files and databases written without data protection.
+
 ## 0.139.0 - 2026-11-16
 
 ### Added
