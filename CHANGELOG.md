@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.142.0 - 2026-11-16
+
+### Added
+
+- `agent-auto-approve` rule: reports coding agent settings committed to the repository that let the agent act without asking, which a prompt injection in an issue, a dependency, or a file can turn into commands on the machine of everyone who opens the repository with it. It reads Claude Code's `bypassPermissions`, Gemini CLI's YOLO mode, Codex's `danger-full-access` sandbox, VS Code's `chat.tools.autoApprove`, and Aider's `yes-always` (high), and `Bash(*)`, `run_shell_command` with no command, Cursor's `Shell(*)`, and a `/.*/` terminal approval (warning). Specific commands, deny lists, default modes, and example settings are not reported. On 42 coding agent settings files from popular open-source projects, it reports none, since they allow only specific commands.
+
 ## 0.141.0 - 2026-11-16
 
 ### Added

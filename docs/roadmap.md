@@ -164,6 +164,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Android services, receivers, and providers exported without a permission (0.139.0).
 - Mobile app data readable by other apps, backups, or while the device is locked (0.140.0).
 - MCP server configurations that commit tokens, run unpinned servers, or use plain HTTP (0.141.0).
+- Coding agent settings that run commands without asking (0.142.0).
 
 ## Later
 
