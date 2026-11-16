@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.137.0 - 2026-11-16
+
+### Added
+
+- `ci-config-secret` rule: reports, as high, tokens, passwords, and keys written into CI pipelines instead of read from the CI's secrets, where they are committed to the repository and the CI cannot mask them in logs. It reads GitHub Actions `env:` maps and `with:` inputs, GitLab CI and Azure Pipelines `variables:`, CircleCI, Drone, Woodpecker, Buildkite, and AppVeyor `environment:`, Travis `env:`, and Jenkins `environment {}` blocks, names only the variables, never the values, and reads them before redaction. Secret references such as `${{ secrets.NAME }}`, names of secrets kept elsewhere, Jenkins credential IDs, FOSSA's push-only keys, service containers and test database passwords, placeholders, and example pipelines are not reported. On about 3,280 CI files, including about 3,100 GitHub Actions workflows, it reports 5.
+
+### Changed
+
+- The secret rules that read values, `deployment-env-secret`, `iac-hardcoded-password`, and `app-config-secret`, also skip `s3cr3t`, `passw0rd`, MinIO's `minioadmin` and `minio123`, and values with `foo` in them. Their corpus results are unchanged.
+
 ## 0.136.0 - 2026-11-16
 
 ### Added
