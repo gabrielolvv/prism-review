@@ -910,6 +910,12 @@ import {
   testCiConfigSecretSkipsExamplesAndCanBeDisabled
 } from "./unit/ci-config-secret.test.js";
 import {
+  testWorkflowCredentialExposureReadsEachExposure,
+  testWorkflowCredentialExposureReportsOneFindingPerFile,
+  testWorkflowCredentialExposureSkipsSafeWorkflows,
+  testWorkflowCredentialExposureCanBeDisabled
+} from "./unit/workflow-credential-exposure.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1564,6 +1570,10 @@ const tests: Array<[string, Test]> = [
   ["ci-config-secret skips secret references and services", testCiConfigSecretSkipsSecretReferencesAndServices],
   ["ci-config-secret finds values before redaction", testCiConfigSecretFindsValuesBeforeRedaction],
   ["ci-config-secret skips examples and can be disabled", testCiConfigSecretSkipsExamplesAndCanBeDisabled],
+  ["workflow-credential-exposure reports one finding per file", testWorkflowCredentialExposureReportsOneFindingPerFile],
+  ["workflow-credential-exposure reads each exposure", testWorkflowCredentialExposureReadsEachExposure],
+  ["workflow-credential-exposure skips safe workflows", testWorkflowCredentialExposureSkipsSafeWorkflows],
+  ["workflow-credential-exposure can be disabled", testWorkflowCredentialExposureCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

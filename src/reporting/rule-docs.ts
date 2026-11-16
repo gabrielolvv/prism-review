@@ -90,6 +90,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "iac-hardcoded-password": "Infrastructure Code Passwords",
   "app-config-secret": "Application Config Passwords",
   "ci-config-secret": "CI Pipeline Secrets",
+  "workflow-credential-exposure": "Workflow Credential Exposure",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

@@ -116,6 +116,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "iac-hardcoded-password": "secrets",
   "app-config-secret": "secrets",
   "ci-config-secret": "secrets",
+  "workflow-credential-exposure": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
