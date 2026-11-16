@@ -15457,6 +15457,7 @@ var ruleIds = [
   "ci-config-secret",
   "workflow-credential-exposure",
   "android-exported-component",
+  "mobile-data-protection",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15852,6 +15853,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     androidExportedComponent: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    mobileDataProtection: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -26338,6 +26342,111 @@ var androidExportedComponentRule = {
   }
 };
 
+// src/rules/mobile-data-protection.ts
+var androidCode2 = /\.(?:java|kt)$/i;
+var appleCode = /\.(?:swift|m|mm)$/i;
+var manifestFile2 = /(?:^|\/)AndroidManifest\.xml$/;
+var debugSourceSet2 = /(?:^|\/)src\/(?:debug|qa|androidTest|test|testDebug|benchmark)\/|(?:^|\/)[^/]*Tests?\.(?:swift|m|mm)$|(?:^|\/)[^/]*Tests\/|(?:^|\/)(?:Carthage|Pods)\//i;
+var worldMode = /\bMODE_WORLD_(?:READABLE|WRITEABLE)\b/;
+var keychainAlways = /\bkSecAttrAccessibleAlways(?:ThisDeviceOnly)?\b|\.accessibility\(\s*\.always(?:ThisDeviceOnly)?\s*\)|\.accessibleAlways(?:ThisDeviceOnly)?\b|\bKeychainItemAccessibility\.always(?:ThisDeviceOnly)?\b|\bAccessibility\.always(?:ThisDeviceOnly)?\b/;
+var fileProtectionNone = /\bNSFileProtectionNone\b|\bNSDataWritingFileProtectionNone\b|\.noFileProtection\b|\bFileProtectionType\.none\b|\.protectionKey\s*:\s*\.none\b/;
+var applicationStart = /<application\b/;
+var allowBackup = /\bandroid:allowBackup\s*=\s*"true"/;
+var backupRules = /\bandroid:(?:fullBackupContent|dataExtractionRules)\s*=/;
+var commentLine80 = /^\s*(?:\/\/|\*|\/\*|<!--)/;
+var definitionLine = /^\s*(?:import|case|#define|public\s+static\s+final|const\s+val)\b|^\s*\.\w+\s*:\s*kSecAttrAccessible/;
+var trailingComment = /(?:^|\s)\/\/.*$/;
+var maxTagLines = 40;
+var caseLabel = /^\s*case\b.*:\s*$/;
+var returnLine = /^\s*return\b/;
+function codeExposures(lines, android2) {
+  let previous = "";
+  return lines.flatMap(({ line, content, added, startsHunk }) => {
+    const afterCase = !startsHunk && caseLabel.test(previous);
+    if (content.trim() !== "") {
+      previous = content;
+    }
+    if (!added || commentLine80.test(content) || definitionLine.test(content) || returnLine.test(content) && afterCase) {
+      return [];
+    }
+    const code4 = content.replace(trailingComment, "");
+    if (android2) {
+      return worldMode.test(code4) ? [{ line, kind: "world" }] : [];
+    }
+    if (keychainAlways.test(code4)) {
+      return [{ line, kind: "keychain" }];
+    }
+    return fileProtectionNone.test(code4) ? [{ line, kind: "files" }] : [];
+  });
+}
+function manifestExposures(lines) {
+  const found = [];
+  lines.forEach(({ content }, index) => {
+    if (!applicationStart.test(content) || commentLine80.test(content)) {
+      return;
+    }
+    const tag = [];
+    for (const line of lines.slice(index, index + maxTagLines)) {
+      if (tag.length > 0 && line.startsHunk) {
+        break;
+      }
+      tag.push(line);
+      if (/>/.test(line.content.slice(tag.length === 1 ? line.content.indexOf("<application") : 0))) {
+        break;
+      }
+    }
+    const backup = tag.find(({ content: text }) => allowBackup.test(text));
+    if (backup !== void 0 && backup.added && !tag.some(({ content: text }) => backupRules.test(text))) {
+      found.push({ line: backup.line, kind: "backup" });
+    }
+  });
+  return found;
+}
+var phrases2 = {
+  world: "makes files or preferences readable or writable by every app on the device",
+  backup: "lets Android back up all of its data, including tokens and databases, with no rules for what to leave out, so anyone with the unlocked phone and `adb backup` can copy it",
+  keychain: "keeps Keychain items readable while the device is locked, an option Apple has deprecated",
+  files: "writes files without data protection, so they stay readable while the device is locked"
+};
+var mobileDataProtectionRule = {
+  id: "mobile-data-protection",
+  description: "Flags mobile app data left readable: Android's `MODE_WORLD_READABLE` and `allowBackup` without backup rules, and iOS Keychain items and files readable while the device is locked.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.mobileDataProtection.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const android2 = androidCode2.test(file.path);
+      const manifest2 = manifestFile2.test(file.path);
+      if (!android2 && !manifest2 && !appleCode.test(file.path) || file.patch === void 0 || debugSourceSet2.test(file.path) || // Sample, demo, and test apps.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = manifest2 ? manifestExposures(lines) : codeExposures(lines, android2);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text } = describeLines(lineNumbers);
+      const kinds3 = [...new Set(found.map(({ kind }) => kind))];
+      return [
+        {
+          ruleId: "mobile-data-protection",
+          title: "Mobile app data left readable",
+          severity: kinds3.includes("world") ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the app ${listOf(kinds3.map((kind) => phrases2[kind]))}.`,
+          recommendation: 'On Android, keep files and preferences in `MODE_PRIVATE` and share them through a `FileProvider`, and set `android:allowBackup="false"` or give `android:dataExtractionRules` and `android:fullBackupContent` rules that leave out tokens and credentials. On iOS, store Keychain items with `kSecAttrAccessibleWhenUnlocked` or `kSecAttrAccessibleAfterFirstUnlock`, with `ThisDeviceOnly` for secrets, and write files with `.completeFileProtection` or `.completeUnlessOpen`.'
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -26405,7 +26514,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine80 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine81 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -26463,7 +26572,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine80.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine81.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -26560,9 +26669,9 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine81 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine82 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
-var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
+var definitionLine2 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
@@ -26577,7 +26686,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine81.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine82.test(content) || importLine2.test(content) || definitionLine2.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -28435,7 +28544,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine82 = /^\s*#/;
+var commentLine83 = /^\s*#/;
 var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -28479,7 +28588,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine82.test(content)) {
+    if (commentLine83.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -28513,7 +28622,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine83 = /^\s*#/;
+var commentLine84 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -28589,7 +28698,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine83.test(content)) {
+    if (commentLine84.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -28679,7 +28788,7 @@ var settings24 = [
   }
 ];
 var allowsEverything = settings24[0];
-var commentLine84 = /^\s*(?:#|\/\/)/;
+var commentLine85 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -28720,7 +28829,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine84.test(content)) {
+    if (!added || commentLine85.test(content)) {
       continue;
     }
     for (const setting of settings24) {
@@ -28779,7 +28888,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine85 = /^\s*#/;
+var commentLine86 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -28828,7 +28937,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine85.test(content) || content.trim() === "") {
+    if (commentLine86.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -28883,7 +28992,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine86 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine87 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -28898,7 +29007,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine86.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine87.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -28994,7 +29103,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine87 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine88 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -29011,7 +29120,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine87.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine88.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -29070,7 +29179,7 @@ var settings25 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -29085,7 +29194,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine88.test(content) && settings25.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine89.test(content) && settings25.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -29134,7 +29243,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine90 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -29151,7 +29260,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine89.test(content)) {
+        if (!added || commentLine90.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -29407,7 +29516,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine90 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine91 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -29425,7 +29534,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine90.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine91.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -29627,7 +29736,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine91 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine92 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -29691,7 +29800,7 @@ function commands2(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine91.test(content)) {
+    if (commentLine92.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -30445,7 +30554,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine92 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine93 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation82 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -30487,7 +30596,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine92.test(content)) {
+    if (commentLine93.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -30677,6 +30786,7 @@ var defaultRules = [
   ciConfigSecretRule,
   workflowCredentialExposureRule,
   androidExportedComponentRule,
+  mobileDataProtectionRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -31264,6 +31374,7 @@ var ruleAreas = {
   "ci-config-secret": "secrets",
   "workflow-credential-exposure": "supply-chain",
   "android-exported-component": "code",
+  "mobile-data-protection": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -31421,6 +31532,7 @@ var ruleQuestions = {
   "ci-config-secret": "Are the secrets in the CI pipeline rotated, and read from the CI's secret store instead?",
   "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
   "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
+  "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -31547,6 +31659,7 @@ var ruleSections = {
   "ci-config-secret": "CI Pipeline Secrets",
   "workflow-credential-exposure": "Workflow Credential Exposure",
   "android-exported-component": "Exported Android Components",
+  "mobile-data-protection": "Mobile Data Protection",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
