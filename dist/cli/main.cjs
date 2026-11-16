@@ -12624,9 +12624,9 @@ var memo = {
     if (!bucket)
       return empty;
     handoff = void 0;
-    const entry2 = { value: empty, issues: null };
-    bucket.set(payload.value, entry2);
-    open.push(entry2);
+    const entry3 = { value: empty, issues: null };
+    bucket.set(payload.value, entry3);
+    open.push(entry3);
     return empty;
   },
   guard(inst) {
@@ -12700,16 +12700,16 @@ var memo = {
         const depth = open.length;
         const result = base(payload, ctx);
         handoff = void 0;
-        const entry2 = open.length > depth ? open.pop() : void 0;
+        const entry3 = open.length > depth ? open.pop() : void 0;
         if (result instanceof Promise) {
           return result.then((r) => {
-            if (entry2)
-              entry2.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
+            if (entry3)
+              entry3.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
             return r;
           });
         }
-        if (entry2)
-          entry2.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
+        if (entry3)
+          entry3.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
         return result;
       };
       inst._zod.parse = wrapped;
@@ -13518,42 +13518,42 @@ function extractDefs(ctx, schema) {
   if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
     return;
   const idToSchema = /* @__PURE__ */ new Map();
-  for (const entry2 of ctx.seen.entries()) {
-    const id = ctx.metadataRegistry.get(entry2[0])?.id;
+  for (const entry3 of ctx.seen.entries()) {
+    const id = ctx.metadataRegistry.get(entry3[0])?.id;
     if (id) {
       const existing = idToSchema.get(id);
-      if (existing && existing !== entry2[0]) {
+      if (existing && existing !== entry3[0]) {
         throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
       }
-      idToSchema.set(id, entry2[0]);
+      idToSchema.set(id, entry3[0]);
     }
   }
-  const makeURI = (entry2) => {
+  const makeURI = (entry3) => {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
-      const externalId = ctx.external.registry.get(entry2[0])?.id;
+      const externalId = ctx.external.registry.get(entry3[0])?.id;
       const uriGenerator = ctx.external.uri ?? ((id2) => id2);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
-      const id = entry2[1].defId ?? entry2[1].schema.id ?? `schema${ctx.counter++}`;
-      entry2[1].defId = id;
+      const id = entry3[1].defId ?? entry3[1].schema.id ?? `schema${ctx.counter++}`;
+      entry3[1].defId = id;
       return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${encodeJSONPointerSegment(id)}` };
     }
     const uriPrefix = `#`;
     const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
-    if (entry2[1] === root && !entry2[1].schema.id) {
+    if (entry3[1] === root && !entry3[1].schema.id) {
       return { ref: uriPrefix };
     }
-    const defId = entry2[1].schema.id ?? `__schema${ctx.counter++}`;
+    const defId = entry3[1].schema.id ?? `__schema${ctx.counter++}`;
     return { defId, ref: defUriPrefix + encodeJSONPointerSegment(defId) };
   };
-  const extractToDef = (entry2) => {
-    if (entry2[1].schema.$ref) {
+  const extractToDef = (entry3) => {
+    if (entry3[1].schema.$ref) {
       return;
     }
-    const seen = entry2[1];
-    const { ref, defId } = makeURI(entry2);
+    const seen = entry3[1];
+    const { ref, defId } = makeURI(entry3);
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
@@ -13564,8 +13564,8 @@ function extractDefs(ctx, schema) {
     schema2.$ref = ref;
   };
   if (ctx.cycles === "throw") {
-    for (const entry2 of ctx.seen.entries()) {
-      const seen = entry2[1];
+    for (const entry3 of ctx.seen.entries()) {
+      const seen = entry3[1];
       if (seen.cycle) {
         throw new Error(`Cycle detected: #/${seen.cycle?.join("/")}/<root>
 
@@ -13573,31 +13573,31 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       }
     }
   }
-  for (const entry2 of ctx.seen.entries()) {
-    const seen = entry2[1];
-    if (schema === entry2[0]) {
-      extractToDef(entry2);
+  for (const entry3 of ctx.seen.entries()) {
+    const seen = entry3[1];
+    if (schema === entry3[0]) {
+      extractToDef(entry3);
       continue;
     }
     if (ctx.external) {
-      const ext2 = ctx.external.registry.get(entry2[0])?.id;
-      if (schema !== entry2[0] && ext2) {
-        extractToDef(entry2);
+      const ext2 = ctx.external.registry.get(entry3[0])?.id;
+      if (schema !== entry3[0] && ext2) {
+        extractToDef(entry3);
         continue;
       }
     }
-    const id = ctx.metadataRegistry.get(entry2[0])?.id;
+    const id = ctx.metadataRegistry.get(entry3[0])?.id;
     if (id) {
-      extractToDef(entry2);
+      extractToDef(entry3);
       continue;
     }
     if (seen.cycle) {
-      extractToDef(entry2);
+      extractToDef(entry3);
       continue;
     }
     if (seen.count > 1) {
       if (ctx.reused === "ref") {
-        extractToDef(entry2);
+        extractToDef(entry3);
       }
     }
   }
@@ -13779,12 +13779,12 @@ function finalize(ctx, schema) {
     });
   };
   if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-    for (const entry2 of [...ctx.seen.entries()].reverse()) {
-      flattenRef(entry2[0]);
+    for (const entry3 of [...ctx.seen.entries()].reverse()) {
+      flattenRef(entry3[0]);
     }
     if (ctx.target !== "openapi-3.0") {
-      for (const entry2 of ctx.seen.entries()) {
-        compactTypeUnion(entry2[1].def ?? entry2[1].schema);
+      for (const entry3 of ctx.seen.entries()) {
+        compactTypeUnion(entry3[1].def ?? entry3[1].schema);
       }
     }
     for (const rewrite of ctx.deferred)
@@ -13831,8 +13831,8 @@ function finalize(ctx, schema) {
     delete result.id;
   const defs = ctx.external?.defs ?? {};
   if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-    for (const entry2 of ctx.seen.entries()) {
-      const seen = entry2[1];
+    for (const entry3 of ctx.seen.entries()) {
+      const seen = entry3[1];
       if (seen.def && seen.defId) {
         if (seen.def.id === seen.defId)
           delete seen.def.id;
@@ -14272,9 +14272,9 @@ function stringifyKeyNames(bySchema, json, visited) {
 var pendingRecords = /* @__PURE__ */ new WeakMap();
 function rewriteKeyNames(ctx) {
   const bySchema = /* @__PURE__ */ new Map();
-  for (const entry2 of ctx.seen.values()) {
-    if (entry2.def && !bySchema.has(entry2.schema))
-      bySchema.set(entry2.schema, entry2);
+  for (const entry3 of ctx.seen.values()) {
+    if (entry3.def && !bySchema.has(entry3.schema))
+      bySchema.set(entry3.schema, entry3);
   }
   const rewrites = /* @__PURE__ */ new Map();
   for (const record2 of pendingRecords.get(ctx) ?? []) {
@@ -14288,8 +14288,8 @@ function rewriteKeyNames(ctx) {
   }
   if (!rewrites.size)
     return;
-  for (const entry2 of ctx.seen.values()) {
-    for (const carrier of [entry2.schema, entry2.def]) {
+  for (const entry3 of ctx.seen.values()) {
+    for (const carrier of [entry3.schema, entry3.def]) {
       const rewritten = carrier && rewrites.get(carrier.propertyNames);
       if (rewritten)
         carrier.propertyNames = rewritten;
@@ -15458,6 +15458,7 @@ var ruleIds = [
   "workflow-credential-exposure",
   "android-exported-component",
   "mobile-data-protection",
+  "mcp-server-config",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15856,6 +15857,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     mobileDataProtection: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    mcpServerConfig: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -17286,9 +17290,9 @@ function findIssues(patch, worker) {
   });
 }
 function handlerChecksSender(handler, lines, index) {
-  const named = handlerName.exec(handler)?.[1];
-  if (named !== void 0 && !/^(?:function|async)$/.test(named)) {
-    const name = named.slice(named.lastIndexOf(".") + 1).replace(/[$]/g, "\\$&");
+  const named2 = handlerName.exec(handler)?.[1];
+  if (named2 !== void 0 && !/^(?:function|async)$/.test(named2)) {
+    const name = named2.slice(named2.lastIndexOf(".") + 1).replace(/[$]/g, "\\$&");
     const definition4 = new RegExp(
       `(?:function\\s*\\*?\\s*${name}\\s*\\(|(?<![\\w$#])${name}\\s*[:=]\\s*(?:async\\s*)?(?:function\\b|\\(?[\\w$,\\s{}]*\\)?\\s*=>)|^\\s*(?:(?:private|public|protected|static|async)\\s+)*${name}\\s*\\([^)]*\\)\\s*(?::[^{]*)?\\{)`
     );
@@ -19945,10 +19949,10 @@ function findSettings(path2, patch) {
   const withCredentials = lines.filter(({ content }) => credentials.some((pattern) => pattern.test(content)));
   const paired = (left, right) => left.line === right.line || !wholeCorsCall.test(left.content) && !wholeCorsCall.test(right.content) && (Math.abs(left.line - right.line) <= corsReach || djangoSetting.test(left.content) && djangoSetting.test(right.content));
   for (const origin of origins) {
-    for (const credential of withCredentials.filter((entry2) => paired(origin, entry2))) {
-      for (const entry2 of [origin, credential]) {
-        if (entry2.added) {
-          found.push({ line: entry2.line, kind: "cors" });
+    for (const credential of withCredentials.filter((entry3) => paired(origin, entry3))) {
+      for (const entry3 of [origin, credential]) {
+        if (entry3.added) {
+          found.push({ line: entry3.line, kind: "cors" });
         }
       }
     }
@@ -22913,7 +22917,7 @@ var plaintextCredentialsRule = {
           continue;
         }
         for (const { line, added } of reportLogins === false ? clients : [...clients, ...logins]) {
-          if (added && !found.some((entry2) => entry2.line === line)) {
+          if (added && !found.some((entry3) => entry3.line === line)) {
             found.push({ line, label });
           }
         }
@@ -22940,7 +22944,7 @@ var plaintextCredentialsRule = {
   }
 };
 function chosenByOption(lines, line) {
-  const index = lines.findIndex((entry2) => entry2.line === line);
+  const index = lines.findIndex((entry3) => entry3.line === line);
   if (index < 0) {
     return false;
   }
@@ -23056,7 +23060,7 @@ var weakOauthFlowRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels17).filter((kind) => found.some((entry2) => entry2.kind === kind));
+      const kinds3 = Object.keys(labels17).filter((kind) => found.some((entry3) => entry3.kind === kind));
       return [
         {
           ruleId: "weak-oauth-flow",
@@ -23295,8 +23299,8 @@ function mountedReadOnly(lines, name) {
   if (name === void 0) {
     return false;
   }
-  const entry2 = new RegExp(String.raw`^\s*-?\s*name\s*:\s*["']?${name.replace(/[.]/g, "\\.")}["']?\s*$`);
-  const mounts = lines.map((_, index) => index).filter((index) => entry2.test(lines[index]?.content ?? "")).map((index) => lines.slice(Math.max(0, index - 2), index + 4).map(({ content }) => content)).filter((block) => block.some((content) => /\bmountPath\s*:/.test(content)));
+  const entry3 = new RegExp(String.raw`^\s*-?\s*name\s*:\s*["']?${name.replace(/[.]/g, "\\.")}["']?\s*$`);
+  const mounts = lines.map((_, index) => index).filter((index) => entry3.test(lines[index]?.content ?? "")).map((index) => lines.slice(Math.max(0, index - 2), index + 4).map(({ content }) => content)).filter((block) => block.some((content) => /\bmountPath\s*:/.test(content)));
   return mounts.length > 0 && mounts.every((block) => block.some((content) => /\breadOnly\s*:\s*true\b/.test(content)));
 }
 function normalize(path2) {
@@ -23705,7 +23709,7 @@ var sshServerConfigRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels18).filter((kind) => found.some((entry2) => entry2.kind === kind));
+      const kinds3 = Object.keys(labels18).filter((kind) => found.some((entry3) => entry3.kind === kind));
       return [
         {
           ruleId: "ssh-server-config",
@@ -23902,7 +23906,7 @@ var meshMtlsDisabledRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text: where, plural } = describeLines(lineNumbers);
-      const kinds3 = Object.keys(labels19).filter((kind) => found.some((entry2) => entry2.kind === kind));
+      const kinds3 = Object.keys(labels19).filter((kind) => found.some((entry3) => entry3.kind === kind));
       return [
         {
           ruleId: "mesh-mtls-disabled",
@@ -24448,11 +24452,11 @@ var plainHttpEndpointRule = {
 function listenerBlock(lines, index) {
   const block = [];
   for (let after2 = index + 1; after2 < Math.min(lines.length, index + listenerWindow); after2 += 1) {
-    const entry2 = lines[after2];
-    if (entry2 === void 0 || blockEnd.test(entry2.content)) {
+    const entry3 = lines[after2];
+    if (entry3 === void 0 || blockEnd.test(entry3.content)) {
       break;
     }
-    block.push(entry2);
+    block.push(entry3);
   }
   return block;
 }
@@ -25410,7 +25414,7 @@ var kubernetesSecretValuesRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
       const keys = [...new Set(found.map(({ key: key2 }) => `\`${key2}\``))];
-      const named = keys.length > maxKeys ? [...keys.slice(0, maxKeys), `${keys.length - maxKeys} other keys`] : keys;
+      const named2 = keys.length > maxKeys ? [...keys.slice(0, maxKeys), `${keys.length - maxKeys} other keys`] : keys;
       return [
         {
           ruleId: "kubernetes-secret-values",
@@ -25419,7 +25423,7 @@ var kubernetesSecretValuesRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "put" : "puts"} values for ${listOf(named)} in a Kubernetes Secret committed to the repository. Secret data is only base64-encoded, not encrypted, so anyone who can read the repository, a fork, or its history can read these values and use them.`,
+          message: `${text} ${plural ? "put" : "puts"} values for ${listOf(named2)} in a Kubernetes Secret committed to the repository. Secret data is only base64-encoded, not encrypted, so anyone who can read the repository, a fork, or its history can read these values and use them.`,
           recommendation: "Treat the values as exposed and rotate them. Keep Secret values out of the repository: create Secrets from a secret store with External Secrets or the Secrets Store CSI driver, encrypt them with Sealed Secrets or SOPS, or fill them in from values passed at deploy time, and commit only placeholders."
         }
       ];
@@ -25531,9 +25535,9 @@ function mapSecrets(lines) {
       mapIndent = void 0;
       continue;
     }
-    const entry2 = mapEntry.exec(content) ?? listEntry.exec(content);
-    if (entry2 !== null && added && isSecretValue(entry2[1] ?? "", entry2[2] ?? "")) {
-      found.push({ line, name: entry2[1] ?? "" });
+    const entry3 = mapEntry.exec(content) ?? listEntry.exec(content);
+    if (entry3 !== null && added && isSecretValue(entry3[1] ?? "", entry3[2] ?? "")) {
+      found.push({ line, name: entry3[1] ?? "" });
     }
   }
   return found;
@@ -25573,7 +25577,7 @@ var deploymentEnvSecretRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
       const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
-      const named = names2.length > maxNames ? [...names2.slice(0, maxNames), `${names2.length - maxNames} other variables`] : names2;
+      const named2 = names2.length > maxNames ? [...names2.slice(0, maxNames), `${names2.length - maxNames} other variables`] : names2;
       return [
         {
           ruleId: "deployment-env-secret",
@@ -25582,7 +25586,7 @@ var deploymentEnvSecretRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "write" : "writes"} ${listOf(named)} into a deployment's environment in plain text, so the ${names2.length > 1 ? "secrets are" : "secret is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and ${names2.length > 1 ? "show" : "shows"} to anyone who can read the deployment, such as with \`kubectl describe\` or in the ECS console.`,
+          message: `${text} ${plural ? "write" : "writes"} ${listOf(named2)} into a deployment's environment in plain text, so the ${names2.length > 1 ? "secrets are" : "secret is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and ${names2.length > 1 ? "show" : "shows"} to anyone who can read the deployment, such as with \`kubectl describe\` or in the ECS console.`,
           recommendation: "Rotate the values, then read them from a secret instead: Kubernetes' `valueFrom.secretKeyRef`, ECS's `secrets` with Secrets Manager or Parameter Store, Compose's `secrets`, App Engine's and Cloud Run's Secret Manager, or a Helm value passed at install time, filled from a secret store."
         }
       ];
@@ -25757,7 +25761,7 @@ var iacHardcodedPasswordRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
       const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
-      const named = names2.length > maxNames2 ? [...names2.slice(0, maxNames2), `${names2.length - maxNames2} others`] : names2;
+      const named2 = names2.length > maxNames2 ? [...names2.slice(0, maxNames2), `${names2.length - maxNames2} others`] : names2;
       return [
         {
           ruleId: "iac-hardcoded-password",
@@ -25766,7 +25770,7 @@ var iacHardcodedPasswordRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "write" : "writes"} ${listOf(named)} into infrastructure code in plain text, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and ${names2.length > 1 ? "stay" : "stays"} the same in every environment built from it.`,
+          message: `${text} ${plural ? "write" : "writes"} ${listOf(named2)} into infrastructure code in plain text, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and ${names2.length > 1 ? "stay" : "stays"} the same in every environment built from it.`,
           recommendation: "Rotate the values, then supply them at deploy time: a Terraform variable marked `sensitive` with no default, filled from a secret store or a `TF_VAR_` environment variable, `random_password` or RDS's `manage_master_user_password`, a CloudFormation dynamic reference such as `{{resolve:secretsmanager:...}}`, or Ansible Vault for inventory variables."
         }
       ];
@@ -25937,7 +25941,7 @@ var appConfigSecretRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
       const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
-      const named = names2.length > maxNames3 ? [...names2.slice(0, maxNames3), `${names2.length - maxNames3} others`] : names2;
+      const named2 = names2.length > maxNames3 ? [...names2.slice(0, maxNames3), `${names2.length - maxNames3} others`] : names2;
       return [
         {
           ruleId: "app-config-secret",
@@ -25946,7 +25950,7 @@ var appConfigSecretRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "write" : "writes"} ${listOf(named)} into the app's configuration in plain text, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and every environment that reads this file ${names2.length > 1 ? "shares them" : "shares it"}.`,
+          message: `${text} ${plural ? "write" : "writes"} ${listOf(named2)} into the app's configuration in plain text, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and every environment that reads this file ${names2.length > 1 ? "shares them" : "shares it"}.`,
           recommendation: 'Rotate the values, then read them from the environment or a secret store: Spring\'s `${DB_PASSWORD}` placeholders or Spring Cloud Vault, .NET user secrets, environment variables, or Key Vault, `os.environ` in Django, `<%= ENV["DB_PASSWORD"] %>` or encrypted credentials in Rails, `env("DB_PASSWORD")` without a default in Laravel, and environment variables with node-config.'
         }
       ];
@@ -26033,11 +26037,11 @@ function yamlSecrets(lines) {
       }
       return;
     }
-    const entry2 = listEntry2.exec(content) ?? mapEntry2.exec(content);
-    if (entry2 === null) {
+    const entry3 = listEntry2.exec(content) ?? mapEntry2.exec(content);
+    if (entry3 === null) {
       return;
     }
-    const [, key2 = "", raw = ""] = entry2;
+    const [, key2 = "", raw = ""] = entry3;
     if (raw === "" || raw.startsWith("#")) {
       const value = lines.slice(index + 1, index + 1 + pairWindow2).find(({ content: next }) => indentOf(next) > indent && pairValue2.test(next));
       if (value !== void 0) {
@@ -26064,9 +26068,9 @@ function jenkinsSecrets(lines) {
       inEnvironment = false;
       continue;
     }
-    const entry2 = inEnvironment ? jenkinsEntry.exec(content) : null;
-    if (entry2 !== null && added && !jenkinsCredentialId.test(entry2[1] ?? "") && isSecretValue(entry2[1] ?? "", entry2[3] ?? "")) {
-      found.push({ line, name: entry2[1] ?? "" });
+    const entry3 = inEnvironment ? jenkinsEntry.exec(content) : null;
+    if (entry3 !== null && added && !jenkinsCredentialId.test(entry3[1] ?? "") && isSecretValue(entry3[1] ?? "", entry3[3] ?? "")) {
+      found.push({ line, name: entry3[1] ?? "" });
     }
   }
   return found;
@@ -26105,7 +26109,7 @@ var ciConfigSecretRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
       const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
-      const named = names2.length > maxNames4 ? [...names2.slice(0, maxNames4), `${names2.length - maxNames4} others`] : names2;
+      const named2 = names2.length > maxNames4 ? [...names2.slice(0, maxNames4), `${names2.length - maxNames4} others`] : names2;
       return [
         {
           ruleId: "ci-config-secret",
@@ -26114,7 +26118,7 @@ var ciConfigSecretRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "write" : "writes"} ${listOf(named)} into the CI pipeline in plain text instead of reading ${names2.length > 1 ? "them" : "it"} from the CI's secrets, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and the CI cannot mask ${names2.length > 1 ? "them" : "it"} in its logs.`,
+          message: `${text} ${plural ? "write" : "writes"} ${listOf(named2)} into the CI pipeline in plain text instead of reading ${names2.length > 1 ? "them" : "it"} from the CI's secrets, so the ${names2.length > 1 ? "values are" : "value is"} committed to the repository, where anyone who can read it, a fork, or its history can use ${names2.length > 1 ? "them" : "it"}, and the CI cannot mask ${names2.length > 1 ? "them" : "it"} in its logs.`,
           recommendation: "Rotate the values, then store them in the CI's secrets and read them from there: `${{ secrets.NAME }}` in GitHub Actions, masked and protected variables in GitLab, contexts in CircleCI, secret variables or variable groups in Azure Pipelines, `credentials()` in Jenkins, and `from_secret` in Drone and Woodpecker."
         }
       ];
@@ -26319,7 +26323,7 @@ var androidExportedComponentRule = {
       }
       const lineNumbers = found.map(({ line }) => line);
       const { text, plural } = describeLines(lineNumbers);
-      const named = found.slice(0, 5).map(({ kind, name }) => `the ${kindNames[kind]} \`${name}\``);
+      const named2 = found.slice(0, 5).map(({ kind, name }) => `the ${kindNames[kind]} \`${name}\``);
       const them = found.length > 1 ? "them" : "it";
       const abilities = [
         `call ${them}`,
@@ -26334,7 +26338,7 @@ var androidExportedComponentRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `${text} ${plural ? "export" : "exports"} ${listOf(found.length > 5 ? [...named, `${found.length - 5} more`] : named)} with no permission, so any app installed on the device can ${listOf(abilities)}.`,
+          message: `${text} ${plural ? "export" : "exports"} ${listOf(found.length > 5 ? [...named2, `${found.length - 5} more`] : named2)} with no permission, so any app installed on the device can ${listOf(abilities)}.`,
           recommendation: 'Set `android:exported="false"` on components that only this app uses. Protect the others with `android:permission`, using a permission with `android:protectionLevel="signature"` when only your own apps should call them, or check the caller in code, and give content providers `android:readPermission` and `android:writePermission`.'
         }
       ];
@@ -26447,6 +26451,175 @@ var mobileDataProtectionRule = {
   }
 };
 
+// src/security/mcp-config.ts
+var mcpOnlyFile = /(?:^|\/)(?:\.mcp\.json|claude_desktop_config\.json|cline_mcp_settings\.json|mcp_settings\.json|\.cursor\/mcp\.json|\.vscode\/mcp\.json|\.roo\/mcp\.json|\.amazonq\/mcp\.json|\.kiro\/settings\/mcp\.json|\.windsurf\/mcp_config\.json)$/i;
+var mcpNamedFile = /(?:^|\/)(?:mcp|mcp[-_]config|mcp[-_]servers)\.jsonc?$|(?:^|\/)\.gemini\/settings\.json$/i;
+var serversKey = /"(?:mcpServers|servers|mcp_servers)"\s*:/;
+var entry2 = /"([\w.-]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+var authHeader = /^(?:authorization|proxy-authorization|x-api-key|api-key|x-auth-token|x-access-token)$/i;
+var authScheme = /^(?:Bearer|Token|Basic|ApiKey)\s+/i;
+var secretFlag = /"--?([\w-]*(?:key|token|secret|password))(?:=|"\s*,\s*")([^"]+)"/gi;
+var command = /"command"\s*:\s*"(?:[^"]*\/)?(npx|bunx|pnpm|uvx|docker)(?:\.exe|\.cmd)?"/;
+var argsStart = /"args"\s*:\s*\[/;
+var argItem = /"((?:[^"\\]|\\.)*)"/g;
+var argsWindow = 20;
+var dockerValueFlag = /^(?:-e|--env|-v|--volume|--mount|--name|--network|-p|--publish|-w|--workdir|--env-file|--platform|-u|--user|--entrypoint|-l|--label)$/;
+var remoteHttp = /"(?:url|serverUrl|endpoint|baseUrl)"\s*:\s*"http:\/\/([^/:"]+)/;
+function pinnedNpm(spec) {
+  const version4 = /^(?:@[^/@]+\/)?[^@]+@(.+)$/.exec(spec)?.[1];
+  return version4 !== void 0 && !/^(?:latest|next|beta|canary|\*)$/i.test(version4);
+}
+function launched(tool, args) {
+  const local = (spec2) => /^(?:\.{0,2}\/|[A-Za-z]:\\|~)|\.(?:js|mjs|cjs|ts|py)$/.test(spec2);
+  if (tool === "docker") {
+    if (!args.includes("run")) {
+      return void 0;
+    }
+    const after2 = args.slice(args.indexOf("run") + 1);
+    const image = after2.find((item, index) => !item.startsWith("-") && !dockerValueFlag.test(after2[index - 1] ?? "") && /^[a-z0-9][\w.\-/:@]*$/.test(item));
+    if (image === void 0) {
+      return void 0;
+    }
+    const pinned2 = /@sha256:[a-f0-9]{64}$/.test(image) || /:(?!latest$)[\w.-]+$/.test(image.split("/").at(-1) ?? "");
+    return { spec: image, pinned: pinned2 };
+  }
+  const items = tool === "pnpm" ? args.slice(args.indexOf("dlx") + 1) : args;
+  if (tool === "pnpm" && !args.includes("dlx")) {
+    return void 0;
+  }
+  const packageFlag = items.findIndex((item) => item === "--package" || item === "-p" || item === "--from");
+  const flagged = items.find((item) => /^--(?:package|from)=/.test(item))?.split("=").slice(1).join("=");
+  const spec = flagged ?? (packageFlag >= 0 ? items[packageFlag + 1] : items.find((item) => !item.startsWith("-")));
+  if (spec === void 0 || local(spec)) {
+    return void 0;
+  }
+  const pinned = tool === "uvx" ? /==|@\d/.test(spec) : pinnedNpm(spec);
+  return { spec, pinned };
+}
+function secrets(content) {
+  const names2 = [];
+  for (const [, key2 = "", value = ""] of content.matchAll(entry2)) {
+    if (authHeader.test(key2) ? isSecretValue("token", value.replace(authScheme, "")) : isSecretValue(key2, value)) {
+      names2.push(key2);
+    }
+  }
+  for (const [, flag2 = "", value = ""] of content.matchAll(secretFlag)) {
+    if (isSecretValue(flag2.replace(/-/g, "_"), value)) {
+      names2.push(`--${flag2}`);
+    }
+  }
+  return names2;
+}
+function argsAfter(lines, index) {
+  const window = lines.slice(index, index + argsWindow);
+  const start = window.findIndex(({ content }) => argsStart.test(content));
+  if (start < 0) {
+    return [];
+  }
+  const items = [];
+  for (const line of window.slice(start)) {
+    const text = line === window[start] ? line.content.slice(line.content.search(argsStart)).replace(argsStart, "") : line.content;
+    const closing = text.indexOf("]");
+    for (const [, item = ""] of (closing >= 0 ? text.slice(0, closing) : text).matchAll(argItem)) {
+      items.push({ item, line });
+    }
+    if (closing >= 0) {
+      break;
+    }
+  }
+  return items;
+}
+function findMcpConfigLines(path2, patch) {
+  const named2 = mcpNamedFile.test(path2);
+  if (!mcpOnlyFile.test(path2) && !named2) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  if (named2 && !lines.some(({ content }) => serversKey.test(content))) {
+    return [];
+  }
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (/^\s*\/\//.test(content)) {
+      return;
+    }
+    if (added) {
+      for (const name of secrets(content)) {
+        found.push({ line, kind: "secret", name });
+      }
+      const http = remoteHttp.exec(content);
+      if (http !== null && !localHost.test(http[1] ?? "") && !/\.(?:local|localhost|internal)$/i.test(http[1] ?? "")) {
+        found.push({ line, kind: "http", name: http[1] ?? "" });
+      }
+    }
+    const launcher = command.exec(content);
+    if (launcher === null) {
+      return;
+    }
+    const args = argsAfter(lines, index);
+    const started = launched(launcher[1] ?? "", args.map(({ item }) => item));
+    const specLine = args.find(({ item }) => item === started?.spec)?.line;
+    if (started !== void 0 && !started.pinned && (added || specLine?.added === true)) {
+      found.push({ line: specLine?.line ?? line, kind: "unpinned", name: started.spec });
+    }
+  });
+  return found;
+}
+
+// src/rules/mcp-server-config.ts
+var examplePath3 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|fixtures?|testdata|mocks?)(?:[\/_.-]|$)|(?:^|\/)docs?\//i;
+var maxNames5 = 3;
+function named(found, kind) {
+  const names2 = [...new Set(found.filter((item) => item.kind === kind).map(({ name }) => `\`${name}\``))];
+  return listOf(names2.length > maxNames5 ? [...names2.slice(0, maxNames5), `${names2.length - maxNames5} more`] : names2);
+}
+var mcpServerConfigRule = {
+  id: "mcp-server-config",
+  description: "Flags MCP client configurations that commit a token, start a server package without a fixed version, or reach a remote server over plain HTTP.",
+  seesIgnoredFiles: true,
+  run({ files, config: config3 }) {
+    if (!config3.rules.mcpServerConfig.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (examplePath3.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = configLines(file);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text } = describeLines(lineNumbers);
+      const kinds3 = new Set(found.map(({ kind }) => kind));
+      const phrases3 = [
+        ...kinds3.has("secret") ? [`writes ${named(found, "secret")} in plain text, so the token is committed to the repository, where anyone who can read it, a fork, or its history can use it`] : [],
+        ...kinds3.has("unpinned") ? [`starts ${named(found, "unpinned")} without a fixed version, so every start runs whatever was published last, with the tokens, files, and tools the server is given`] : [],
+        ...kinds3.has("http") ? [`reaches ${named(found, "http")} over plain HTTP, so anyone on the network can read the requests and change the tool results the model acts on`] : []
+      ];
+      return [
+        {
+          ruleId: "mcp-server-config",
+          title: "MCP server configuration exposes tokens or runs unpinned code",
+          severity: kinds3.has("secret") ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the MCP configuration ${listOf(phrases3)}.`,
+          recommendation: "Read tokens from the environment or the client's prompts, such as `${env:GITHUB_TOKEN}` or VS Code's `${input:github-token}`, and rotate any token that was committed. Pin server packages and images to a version or digest, such as `@modelcontextprotocol/server-github@2025.4.8` or `image@sha256:...`, and reach remote servers over HTTPS."
+        }
+      ];
+    });
+  }
+};
+function configLines(file) {
+  if (file.mcpConfigLines !== void 0) {
+    return file.mcpConfigLines;
+  }
+  return file.patch === void 0 ? [] : findMcpConfigLines(file.path, file.patch);
+}
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -26534,7 +26707,7 @@ var destructiveMigrationRule = {
         return [];
       }
       const listed = kinds.filter(({ kind }) => found.some((match2) => match2.kind === kind));
-      const destructive = listed.some((entry2) => entry2.destructive);
+      const destructive = listed.some((entry3) => entry3.destructive);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       const many = plural || listed.length > 1;
       return [
@@ -26545,7 +26718,7 @@ var destructiveMigrationRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry2) => entry2.kind).join(", ")}.`,
+          message: `${text} ${plural ? "change" : "changes"} the database in ${many ? "ways that are" : "a way that is"} hard to undo: ${listed.map((entry3) => entry3.kind).join(", ")}.`,
           recommendation: "Back up the affected data and deploy in steps: stop using the table or column in one release, then drop or rename it in a later one, so running code does not break. Check that the migration can be rolled back."
         }
       ];
@@ -26984,8 +27157,8 @@ function findLockfileSources(path2, patch, allowedSources) {
     if (!added) {
       continue;
     }
-    for (const entry2 of reader.urls(content, section)) {
-      const source2 = "kind" in entry2 ? entry2 : entry2.extraIndex ? { kind: "extra-index" } : classify(entry2.url, allowed, section === "GIT" || entry2.git === true);
+    for (const entry3 of reader.urls(content, section)) {
+      const source2 = "kind" in entry3 ? entry3 : entry3.extraIndex ? { kind: "extra-index" } : classify(entry3.url, allowed, section === "GIT" || entry3.git === true);
       if (source2 !== void 0) {
         found.push({ line, ...source2 });
       }
@@ -27171,7 +27344,7 @@ ${opened[1] ?? ""}`;
         version: (match2[2] ?? "").trim()
       }));
       if (/^tool\.poetry\.(?:dependencies|dev-dependencies|group\.[^.]+\.dependencies)$/.test(section)) {
-        return [...requirements, ...tomlEntries(content).filter((entry2) => entry2.name !== "python")];
+        return [...requirements, ...tomlEntries(content).filter((entry3) => entry3.name !== "python")];
       }
       return requirements;
     }
@@ -27311,11 +27484,11 @@ function declaredDependencies(path2, patch) {
     const content = line.slice(1);
     if (line.startsWith("+")) {
       newSection = sectionOf(content, newSection) ?? newSection;
-      added.push(...manifest2.entries(content, newSection).map((entry2) => ({ ...entry2, line: newLine })));
+      added.push(...manifest2.entries(content, newSection).map((entry3) => ({ ...entry3, line: newLine })));
       newLine += 1;
     } else if (line.startsWith("-")) {
       oldSection = sectionOf(content, oldSection) ?? oldSection;
-      removed2.push(...manifest2.entries(content, oldSection).map((entry2) => ({ ...entry2, line: oldLine ?? 0 })));
+      removed2.push(...manifest2.entries(content, oldSection).map((entry3) => ({ ...entry3, line: oldLine ?? 0 })));
       oldLine += 1;
     } else {
       newSection = sectionOf(content, newSection) ?? newSection;
@@ -27432,10 +27605,10 @@ function dependencyBlocks(lines, side) {
     if (!shown2 || !/<\/dependency\s*>/.test(line.content)) {
       continue;
     }
-    const text = block.filter((entry2) => entry2.kind === " " || entry2.kind === side).map((entry2) => entry2.content).join(" ");
+    const text = block.filter((entry3) => entry3.kind === " " || entry3.kind === side).map((entry3) => entry3.content).join(" ");
     const group = /<groupId>\s*([^<\s]{1,200})\s*<\/groupId>/.exec(text)?.[1];
     const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
-    const changed = block.find((entry2) => entry2.kind !== " ");
+    const changed = block.find((entry3) => entry3.kind !== " ");
     if (group !== void 0 && artifact !== void 0 && changed !== void 0) {
       const version4 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
       found.push({ name: `${group}:${artifact}`, version: version4, line: side === "+" ? changed.newLine : changed.oldLine });
@@ -28927,7 +29100,7 @@ var kubernetesRbacRule = {
 };
 function findGrants(patch) {
   const lines = patchLines(patch);
-  if (!lines.some((entry2) => rbacMarker.test(entry2.content) || rbacMarker.test(entry2.hunkContext ?? ""))) {
+  if (!lines.some((entry3) => rbacMarker.test(entry3.content) || rbacMarker.test(entry3.hunkContext ?? ""))) {
     return [];
   }
   const found = [];
@@ -28941,12 +29114,12 @@ function findGrants(patch) {
       continue;
     }
     const indent = content.length - content.trimStart().length;
-    const entry2 = listKey.exec(content);
+    const entry3 = listKey.exec(content);
     let values = [];
-    if (entry2 !== null) {
-      key2 = entry2[1];
+    if (entry3 !== null) {
+      key2 = entry3[1];
       keyIndent = indent;
-      values = inlineValues(entry2[2] ?? "");
+      values = inlineValues(entry3[2] ?? "");
     } else if (key2 !== void 0 && listItem.test(content) && indent >= keyIndent) {
       values = [listItem.exec(content)?.[1] ?? ""];
     } else {
@@ -29363,7 +29536,7 @@ function firstAtoms(item) {
   }
   const atoms = [];
   for (const alternative of item.alternatives ?? []) {
-    const start = alternative.find((entry2) => entry2.kind !== "lookaround");
+    const start = alternative.find((entry3) => entry3.kind !== "lookaround");
     const nested = start === void 0 || (start.quantifier?.min ?? 1) === 0 ? void 0 : firstAtoms(start);
     if (nested === void 0) {
       return void 0;
@@ -30069,18 +30242,18 @@ var secretInDiffRule = {
     }
     const allowlist2 = config3.security.redaction.allowlist.map((source2) => new RegExp(source2));
     const testGlobs = config3.rules.missingTests.testGlobs;
-    return files.map((file) => ({ file, secrets: secretsIn(file, allowlist2) })).map(({ file, secrets }) => ({
+    return files.map((file) => ({ file, secrets: secretsIn(file, allowlist2) })).map(({ file, secrets: secrets2 }) => ({
       file,
-      secrets: isSamplePath(file.path, testGlobs) ? secrets.filter((secret2) => secret2.kind !== "private key") : secrets
-    })).filter(({ secrets }) => secrets.length > 0).map(({ file, secrets }) => ({
+      secrets: isSamplePath(file.path, testGlobs) ? secrets2.filter((secret2) => secret2.kind !== "private key") : secrets2
+    })).filter(({ secrets: secrets2 }) => secrets2.length > 0).map(({ file, secrets: secrets2 }) => ({
       ruleId: "secret-in-diff",
       title: "Possible secret added",
       severity: "high",
       file: file.path,
-      line: Math.min(...secrets.map((secret2) => secret2.line)),
+      line: Math.min(...secrets2.map((secret2) => secret2.line)),
       message: describe3(
-        secrets.map((secret2) => secret2.line),
-        [...new Set(secrets.map((secret2) => secret2.kind))]
+        secrets2.map((secret2) => secret2.line),
+        [...new Set(secrets2.map((secret2) => secret2.kind))]
       ),
       recommendation: "Treat the credential as exposed: revoke or rotate it, remove it from the branch history, and load it from a secret store. If it is a known test value, add a pattern for it to security.redaction.allowlist."
     }));
@@ -30355,7 +30528,7 @@ function findTopLevelWrites(patch) {
   return found;
 }
 function setsNoPermissions(patch) {
-  const content = patchLines(patch).map((entry2) => entry2.content);
+  const content = patchLines(patch).map((entry3) => entry3.content);
   return !content.some((text) => /^\s*permissions\s*:/.test(text)) && !content.some((text) => /\bworkflow_call\b/.test(text) && !/^\s*#/.test(text));
 }
 function findInjections(patch) {
@@ -30373,12 +30546,12 @@ function findInjections(patch) {
     if (block) {
       executed = block.script;
     } else {
-      const entry2 = mapping.exec(content);
-      const key2 = entry2?.[2];
-      const value = entry2?.[3] ?? "";
+      const entry3 = mapping.exec(content);
+      const key2 = entry3?.[2];
+      const value = entry3?.[3] ?? "";
       executed = key2 === void 0 || scriptKeys.has(key2);
-      if (entry2 && key2 && blockScalar2.test(value)) {
-        block = { indent: (entry2[1] ?? "").length + (/^\s*-\s+/.test(content) ? content.trimStart().indexOf(key2) : 0), script: scriptKeys.has(key2) };
+      if (entry3 && key2 && blockScalar2.test(value)) {
+        block = { indent: (entry3[1] ?? "").length + (/^\s*-\s+/.test(content) ? content.trimStart().indexOf(key2) : 0), script: scriptKeys.has(key2) };
       }
     }
     if (!added || /^\s*#/.test(content)) {
@@ -30615,7 +30788,7 @@ function builds(argument, patterns3) {
   if (matched.length === 0) {
     return false;
   }
-  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry2) => entry2?.pattern);
+  const readable = [builtString[1], builtString[3], builtString[4], builtString[6]].map((entry3) => entry3?.pattern);
   if (!matched.every(({ pattern }) => readable.includes(pattern))) {
     return true;
   }
@@ -30787,6 +30960,7 @@ var defaultRules = [
   workflowCredentialExposureRule,
   androidExportedComponentRule,
   mobileDataProtectionRule,
+  mcpServerConfigRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -30937,9 +31111,9 @@ function applySeverityOverride(finding2, config3, pathOverrides) {
   let override = config3.severity[finding2.ruleId];
   const file = finding2.file;
   if (file !== void 0) {
-    for (const entry2 of pathOverrides) {
-      if (entry2.severity[finding2.ruleId] !== void 0 && entry2.matchers.some((matcher) => matcher.match(file))) {
-        override = entry2.severity[finding2.ruleId];
+    for (const entry3 of pathOverrides) {
+      if (entry3.severity[finding2.ruleId] !== void 0 && entry3.matchers.some((matcher) => matcher.match(file))) {
+        override = entry3.severity[finding2.ruleId];
       }
     }
   }
@@ -31375,6 +31549,7 @@ var ruleAreas = {
   "workflow-credential-exposure": "supply-chain",
   "android-exported-component": "code",
   "mobile-data-protection": "code",
+  "mcp-server-config": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -31533,6 +31708,7 @@ var ruleQuestions = {
   "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
   "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
   "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
+  "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -31660,6 +31836,7 @@ var ruleSections = {
   "workflow-credential-exposure": "Workflow Credential Exposure",
   "android-exported-component": "Exported Android Components",
   "mobile-data-protection": "Mobile Data Protection",
+  "mcp-server-config": "MCP Server Configuration",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -31716,7 +31893,7 @@ function renderState(findings) {
     }
   }
   const entries = [...byRule].map(([ruleId, hashes]) => `${ruleId}:${hashes.join(",")}`);
-  return `<!-- ${STATE_MARKER} v1${entries.map((entry2) => ` ${entry2}`).join("")} -->`;
+  return `<!-- ${STATE_MARKER} v1${entries.map((entry3) => ` ${entry3}`).join("")} -->`;
 }
 function compareWithPrevious(findings, previous) {
   const remaining = new Map(previous);
@@ -31800,7 +31977,7 @@ function renderAiSummary(summary) {
     advisoryText(summary.overview),
     "",
     ...summary.concerns.map(
-      (entry2) => `- ${entry2.file === void 0 ? "" : `${codeSpan(entry2.file)}: `}${advisoryText(entry2.concern)}`
+      (entry3) => `- ${entry3.file === void 0 ? "" : `${codeSpan(entry3.file)}: `}${advisoryText(entry3.concern)}`
     ),
     ...summary.concerns.length > 0 ? [""] : [],
     ...partial2
@@ -32199,6 +32376,7 @@ function prepareChangedFiles(files, config3) {
     iacPasswordLines: file.patch === void 0 ? [] : findIacPasswordLines(file.path, file.patch),
     appConfigSecretLines: file.patch === void 0 ? [] : findAppConfigSecretLines(file.path, file.patch),
     ciConfigSecretLines: file.patch === void 0 ? [] : findCiConfigSecretLines(file.path, file.patch),
+    mcpConfigLines: file.patch === void 0 ? [] : findMcpConfigLines(file.path, file.patch),
     ...file.patch !== void 0 && credentialFileKind(file.path)?.checksLines ? { credentialLines: findCredentialLines(file.path, file.patch) } : {},
     ...file.patch !== void 0 && isSourceFile(file.path) ? { lockfileSources: findLockfileSources(file.path, file.patch, config3.rules.lockfileSources.allowedSources) } : {}
   }));
@@ -32285,7 +32463,7 @@ function readRenamePath(lines, marker2) {
 }
 function readQuoted(text, start) {
   const bytes2 = [];
-  const named = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13 };
+  const named2 = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13 };
   for (let index = start + 1; index < text.length; index += 1) {
     const code4 = text.charCodeAt(index);
     if (code4 === QUOTE) {
@@ -32300,8 +32478,8 @@ function readQuoted(text, start) {
     if (octal) {
       bytes2.push(Number.parseInt(octal[0], 8));
       index += 3;
-    } else if (next in named) {
-      bytes2.push(named[next] ?? 0);
+    } else if (next in named2) {
+      bytes2.push(named2[next] ?? 0);
       index += 1;
     } else {
       bytes2.push(next.charCodeAt(0));
@@ -32458,22 +32636,22 @@ var failOnLevels = ["never", "warning", "high"];
 var UsageError = class extends Error {
 };
 async function main() {
-  const [command, ...args] = process.argv.slice(2);
-  if (command === "--help" || command === "-h") {
+  const [command2, ...args] = process.argv.slice(2);
+  if (command2 === "--help" || command2 === "-h") {
     process.stdout.write(usage);
     return;
   }
-  if (command === "--version" || command === "-v") {
+  if (command2 === "--version" || command2 === "-v") {
     process.stdout.write(`${version3}
 `);
     return;
   }
-  if (command === "init") {
+  if (command2 === "init") {
     await init(args);
     return;
   }
-  if (command !== "analyze") {
-    throw new UsageError(command ? `Unknown command: ${command}` : "Missing command.");
+  if (command2 !== "analyze") {
+    throw new UsageError(command2 ? `Unknown command: ${command2}` : "Missing command.");
   }
   const options = parseArgs(args);
   if (options.help) {
@@ -32499,7 +32677,7 @@ async function main() {
   const existingLockfiles = config3.rules.staleLockfiles.enabled ? await findLockfiles(
     files,
     async (directory) => (0, import_node_fs2.readdirSync)(directory === "" ? "." : directory, { withFileTypes: true }).flatMap(
-      (entry2) => entry2.isFile() ? [entry2.name] : []
+      (entry3) => entry3.isFile() ? [entry3.name] : []
     )
   ).catch(() => void 0) : void 0;
   const result = analyzePullRequest(files, config3, {
