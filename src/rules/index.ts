@@ -83,6 +83,7 @@ import { workflowCredentialExposureRule } from "./workflow-credential-exposure.j
 import { androidExportedComponentRule } from "./android-exported-component.js";
 import { mobileDataProtectionRule } from "./mobile-data-protection.js";
 import { mcpServerConfigRule } from "./mcp-server-config.js";
+import { agentAutoApproveRule } from "./agent-auto-approve.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -209,6 +210,7 @@ export const defaultRules: Rule[] = [
   androidExportedComponentRule,
   mobileDataProtectionRule,
   mcpServerConfigRule,
+  agentAutoApproveRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
