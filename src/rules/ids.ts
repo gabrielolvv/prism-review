@@ -92,6 +92,7 @@ export const ruleIds: readonly string[] = [
   "android-exported-component",
   "mobile-data-protection",
   "mcp-server-config",
+  "agent-auto-approve",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

@@ -935,6 +935,12 @@ import {
   testMcpServerConfigSkipsExamplesAndCanBeDisabled
 } from "./unit/mcp-server-config.test.js";
 import {
+  testAgentAutoApproveReadsEachAgent,
+  testAgentAutoApproveReportsOneFindingPerFile,
+  testAgentAutoApproveSkipsNarrowPermissions,
+  testAgentAutoApproveSkipsExamplesAndCanBeDisabled
+} from "./unit/agent-auto-approve.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1606,6 +1612,10 @@ const tests: Array<[string, Test]> = [
   ["mcp-server-config skips safe configs", testMcpServerConfigSkipsSafeConfigs],
   ["mcp-server-config finds tokens before redaction", testMcpServerConfigFindsTokensBeforeRedaction],
   ["mcp-server-config skips examples and can be disabled", testMcpServerConfigSkipsExamplesAndCanBeDisabled],
+  ["agent-auto-approve reports one finding per file", testAgentAutoApproveReportsOneFindingPerFile],
+  ["agent-auto-approve reads each agent", testAgentAutoApproveReadsEachAgent],
+  ["agent-auto-approve skips narrow permissions", testAgentAutoApproveSkipsNarrowPermissions],
+  ["agent-auto-approve skips examples and can be disabled", testAgentAutoApproveSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
