@@ -166,6 +166,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - MCP server configurations that commit tokens, run unpinned servers, or use plain HTTP (0.141.0).
 - Coding agent settings that run commands without asking (0.142.0).
 - Install scripts added to published npm and Python packages (0.143.0).
+- AWS roles that trust GitHub Actions, GitLab.com, HCP Terraform, or Buildkite tokens from any repository (0.144.0).
 
 ## Later
 

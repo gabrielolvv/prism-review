@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.144.0 - 2026-11-16
+
+### Added
+
+- `ci-oidc-trust` rule: reports, as high, AWS role trust policies that accept OIDC tokens from GitHub Actions, GitLab.com, HCP Terraform, or Buildkite without naming whose repository or project the token must come from, so a pipeline in anyone's account can assume the role. It reads `sts:AssumeRoleWithWebIdentity` statements in JSON and YAML policies, CloudFormation, Terraform, and the CDK, and reports those that check only the audience, branch, or environment, and `StringLike` subjects with a wildcard in the owner, such as `repo:*` or `repo:my-org*`. Subjects that name the owner, wildcards under `StringEquals`, computed conditions, edits whose conditions are outside the diff, and other issuers such as EKS are not reported. On 152 files that let a web identity assume a role, 13 of them trusting a CI issuer, it reports none, since each names the repository or organization; it reports the insecure GitHub trust policies in Checkov's tests that a token can match.
+
 ## 0.143.0 - 2026-11-16
 
 ### Added
