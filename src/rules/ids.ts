@@ -87,6 +87,7 @@ export const ruleIds: readonly string[] = [
   "deployment-env-secret",
   "iac-hardcoded-password",
   "app-config-secret",
+  "ci-config-secret",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
