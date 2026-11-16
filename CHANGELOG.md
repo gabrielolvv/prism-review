@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.143.0 - 2026-11-16
+
+### Added
+
+- `package-install-script` rule: warns about install scripts added to packages that others install, which run code on every machine that installs the package, the way the Shai-Hulud worm and the compromised nx releases spread on npm in 2025. It reads `preinstall`, `install`, and `postinstall` in a `package.json` that is not private or a workspace root, and `setup.py` `cmdclass` hooks that replace `install`, `develop`, or `egg_info`. Native addon builds such as `node-gyp rebuild` and `prebuild-install`, `husky`, `patch-package`, messages, vendored packages, and examples are not reported. On 211 npm manifests and 414 other `package.json` and `setup.py` files, it reports 47: 42 npm packages that download or build binaries at install, uWSGI's `setup.py`, and 4 unpublished roots not marked private.
+
 ## 0.142.0 - 2026-11-16
 
 ### Added
