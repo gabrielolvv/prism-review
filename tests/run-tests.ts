@@ -947,6 +947,12 @@ import {
   testPackageInstallScriptSkipsTestsAndCanBeDisabled
 } from "./unit/package-install-script.test.js";
 import {
+  testCiOidcTrustReadsEachFormat,
+  testCiOidcTrustReportsOneFindingPerFile,
+  testCiOidcTrustSkipsNamedOwnersAndOtherIssuers,
+  testCiOidcTrustSkipsTestsAndCanBeDisabled
+} from "./unit/ci-oidc-trust.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1626,6 +1632,10 @@ const tests: Array<[string, Test]> = [
   ["package-install-script reads each hook", testPackageInstallScriptReadsEachHook],
   ["package-install-script skips usual and private packages", testPackageInstallScriptSkipsUsualAndPrivatePackages],
   ["package-install-script skips tests and can be disabled", testPackageInstallScriptSkipsTestsAndCanBeDisabled],
+  ["ci-oidc-trust reports one finding per file", testCiOidcTrustReportsOneFindingPerFile],
+  ["ci-oidc-trust reads each format", testCiOidcTrustReadsEachFormat],
+  ["ci-oidc-trust skips named owners and other issuers", testCiOidcTrustSkipsNamedOwnersAndOtherIssuers],
+  ["ci-oidc-trust skips tests and can be disabled", testCiOidcTrustSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

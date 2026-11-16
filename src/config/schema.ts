@@ -610,6 +610,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      ciOidcTrust: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       plaintextCredentials: z
         .object({
           enabled: z.boolean().default(true)

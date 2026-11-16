@@ -117,6 +117,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
   "agent-auto-approve": "Do the committed coding agent settings still ask before running commands?",
   "package-install-script": "Does the package need to run code at install, and is that script small and offline?",
+  "ci-oidc-trust": "Does every CI role trust policy name the organization and repository or project allowed to assume it?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

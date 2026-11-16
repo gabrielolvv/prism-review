@@ -96,6 +96,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "mcp-server-config": "MCP Server Configuration",
   "agent-auto-approve": "Coding Agent Approvals",
   "package-install-script": "Package Install Scripts",
+  "ci-oidc-trust": "CI OIDC Trust",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
