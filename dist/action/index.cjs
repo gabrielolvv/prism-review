@@ -2953,10 +2953,10 @@ function helperHeader(value) {
 function wasCreatedByStainlessHelper(value) {
   return typeof value === "object" && value !== null && SDK_HELPER_SYMBOL in value;
 }
-function collectStainlessHelpers(tools, messages) {
+function collectStainlessHelpers(tools2, messages) {
   const helpers = /* @__PURE__ */ new Set();
-  if (tools) {
-    for (const tool of tools) {
+  if (tools2) {
+    for (const tool of tools2) {
       if (wasCreatedByStainlessHelper(tool)) {
         helpers.add(tool[SDK_HELPER_SYMBOL]);
       }
@@ -2983,8 +2983,8 @@ function collectStainlessHelpers(tools, messages) {
   }
   return Array.from(helpers);
 }
-function stainlessHelperHeader(tools, messages) {
-  const helpers = collectStainlessHelpers(tools, messages);
+function stainlessHelperHeader(tools2, messages) {
+  const helpers = collectStainlessHelpers(tools2, messages);
   if (helpers.length === 0)
     return {};
   return { [STAINLESS_HELPER_HEADER]: helpers.join(", ") };
@@ -9782,10 +9782,10 @@ var init_worker = __esm({
           } else {
             log.debug("memory stores disabled for this item", { work_id: work.id });
           }
-          const tools = typeof this.tools === "function" ? this.tools(ctx) : this.tools ?? agentToolset.betaAgentToolset20260401(ctx);
+          const tools2 = typeof this.tools === "function" ? this.tools(ctx) : this.tools ?? agentToolset.betaAgentToolset20260401(ctx);
           runner = new SessionToolRunner(sessionId, {
             client: sessionClient,
-            tools,
+            tools: tools2,
             ...this.maxIdleMs !== void 0 ? { maxIdleMs: this.maxIdleMs } : {},
             ...this.requestOptions !== void 0 ? { requestOptions: this.requestOptions } : {},
             signal: ctrl.signal
@@ -17687,9 +17687,9 @@ var init_BetaToolRunner = __esm({
          * @example
          * runner.addTools(queryDatabaseTool);
          */
-        addTools(...tools) {
+        addTools(...tools2) {
           const families = __classPrivateFieldGet(this, _BetaToolRunner_instances, "m", _BetaToolRunner_toolsetFamilies).call(this);
-          for (const tool of tools) {
+          for (const tool of tools2) {
             if (isRunnableToolset(tool)) {
               throw new ToolsetContractError(`addTools() can't add the '${quotedName(toolsetFamily(tool))}' toolset: ${USE_A_NEW_RUNNER}`);
             }
@@ -17698,7 +17698,7 @@ var init_BetaToolRunner = __esm({
               throw new ToolsetContractError(`addTools() can't replace the '${quotedName(family)}' toolset: ${USE_A_NEW_RUNNER}`);
             }
           }
-          for (const tool of tools) {
+          for (const tool of tools2) {
             if ("name" in tool) {
               __classPrivateFieldGet(this, _BetaToolRunner_toolOverrides, "f").set(tool.name, "run" in tool ? tool : null);
             }
@@ -17720,15 +17720,15 @@ var init_BetaToolRunner = __esm({
          * @example
          * runner.removeTools('query_database');
          */
-        removeTools(...tools) {
+        removeTools(...tools2) {
           const families = __classPrivateFieldGet(this, _BetaToolRunner_instances, "m", _BetaToolRunner_toolsetFamilies).call(this);
-          for (const tool of tools) {
+          for (const tool of tools2) {
             const name = typeof tool === "string" ? tool : tool.name;
             if (families.has(name)) {
               throw new ToolsetContractError(`removeTools() can't remove the '${quotedName(name)}' toolset: ${REMOVE_WITH_A_NEW_RUNNER}`);
             }
           }
-          for (const tool of tools) {
+          for (const tool of tools2) {
             const name = typeof tool === "string" ? tool : tool.name;
             __classPrivateFieldGet(this, _BetaToolRunner_toolOverrides, "f").set(name, null);
             __classPrivateFieldGet(this, _BetaToolRunner_pendingToolChanges, "f").push({ type: "removal", name });
@@ -36632,6 +36632,7 @@ var ruleIds = [
   "android-exported-component",
   "mobile-data-protection",
   "mcp-server-config",
+  "agent-auto-approve",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37033,6 +37034,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     mcpServerConfig: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    agentAutoApprove: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -47758,6 +47762,124 @@ function configLines(file) {
   return file.patch === void 0 ? [] : findMcpConfigLines(file.path, file.patch);
 }
 
+// src/rules/agent-auto-approve.ts
+var examplePath4 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|fixtures?|testdata|templates?)(?:[\/_.-]|$)|(?:^|\/)docs?\//i;
+function listEntries(lines, key3) {
+  const entries = [];
+  let open2 = false;
+  for (const line of lines) {
+    if (line.startsHunk) {
+      open2 = false;
+    }
+    let text = line.content;
+    const start = key3.exec(text);
+    if (start !== null) {
+      open2 = true;
+      text = text.slice(start.index + start[0].length);
+    }
+    if (!open2) {
+      continue;
+    }
+    const close = text.indexOf("]");
+    for (const [, entry3 = ""] of (close >= 0 ? text.slice(0, close) : text).matchAll(/"((?:[^"\\]|\\.)*)"/g)) {
+      entries.push({ entry: entry3, line });
+    }
+    if (close >= 0) {
+      open2 = false;
+    }
+  }
+  return entries;
+}
+function matching(lines, pattern, scope) {
+  return lines.filter(({ content, added }) => added && pattern.test(content) && !/^\s*(?:\/\/|#)/.test(content)).map(({ line }) => ({ line, scope }));
+}
+function shellEntries(lines, key3, shell2) {
+  return listEntries(lines, key3).filter(({ entry: entry3, line }) => line.added && shell2.test(entry3)).map(({ line }) => ({ line: line.line, scope: "shell" }));
+}
+var tools = [
+  {
+    // Claude Code's project settings: the permission mode, and `Bash` or `Bash(*)` in `allow`.
+    name: "Claude Code",
+    files: /(?:^|\/)\.claude\/settings(?:\.local)?\.json$/i,
+    grants: (lines) => [
+      ...matching(lines, /"defaultMode"\s*:\s*"bypassPermissions"/, "everything"),
+      ...shellEntries(lines, /"allow"\s*:\s*\[/, /^Bash(?:\((?:\*|:\*|\*\*|\* ?)\))?$/)
+    ]
+  },
+  {
+    // Gemini CLI's YOLO approval mode, and `run_shell_command` with no command in `tools.allowed`.
+    name: "Gemini CLI",
+    files: /(?:^|\/)\.gemini\/settings\.json$/i,
+    grants: (lines) => [
+      ...matching(lines, /"(?:approvalMode|approval-mode)"\s*:\s*"yolo"/i, "everything"),
+      ...shellEntries(lines, /"(?:allowed|autoApprove)"\s*:\s*\[/, /^run_shell_command$/)
+    ]
+  },
+  {
+    // Codex's sandbox turned off.
+    name: "Codex",
+    files: /(?:^|\/)\.codex\/config\.toml$/i,
+    grants: (lines) => matching(lines, /^\s*sandbox_mode\s*=\s*["']danger-full-access["']/, "everything")
+  },
+  {
+    // VS Code's agent mode approving every tool, or every terminal command.
+    name: "VS Code",
+    files: /(?:^|\/)\.vscode\/settings\.json$|\.code-workspace$/i,
+    grants: (lines) => [
+      ...matching(lines, /"chat\.tools\.(?:global\.)?autoApprove"\s*:\s*true/, "everything"),
+      ...matching(lines, /"\/\.\*\/[a-z]*"\s*:\s*(?:true|\{\s*"approve"\s*:\s*true)/, "shell")
+    ]
+  },
+  {
+    // Cursor's CLI permissions.
+    name: "Cursor",
+    files: /(?:^|\/)\.cursor\/cli(?:-config)?\.json$/i,
+    grants: (lines) => shellEntries(lines, /"allow"\s*:\s*\[/, /^Shell\((?:\*|\*\*)\)$/)
+  },
+  {
+    // Aider's confirmation of every question, including shell commands it suggests.
+    name: "Aider",
+    files: /(?:^|\/)\.aider\.conf\.ya?ml$/i,
+    grants: (lines) => matching(lines, /^\s*yes-always\s*:\s*true\b/, "everything")
+  }
+];
+var agentAutoApproveRule = {
+  id: "agent-auto-approve",
+  description: "Flags coding agent settings committed to the repository that let the agent run commands without asking, such as Claude Code's `bypassPermissions`, Gemini CLI's YOLO mode, and Codex's `danger-full-access`.",
+  seesIgnoredFiles: true,
+  run({ files, config: config3 }) {
+    if (!config3.rules.agentAutoApprove.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const tool = tools.find(({ files: pattern }) => pattern.test(file.path));
+      if (tool === void 0 || file.patch === void 0 || examplePath4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = tool.grants(patchLines(file.patch));
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text, plural } = describeLines(lineNumbers);
+      const everything = found.some(({ scope }) => scope === "everything");
+      return [
+        {
+          ruleId: "agent-auto-approve",
+          title: "Coding agent set to act without asking",
+          severity: everything ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "let" : "lets"} ${tool.name} ${everything ? "run commands and change files" : "run any shell command"} without asking for everyone who opens this repository with it, so instructions hidden in an issue, a dependency, a web page, or a file the agent reads can run commands on their machines with their credentials.`,
+          recommendation: "Keep the agent asking before it runs commands: leave permission modes at their defaults, allow only specific commands, such as `Bash(npm test)` or `run_shell_command(git status)`, and keep Codex's sandbox on. Put broader settings in each developer's personal, uncommitted settings, such as `.claude/settings.local.json` listed in `.gitignore`, or use them only in throwaway containers."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -52037,6 +52159,7 @@ var defaultRules = [
   androidExportedComponentRule,
   mobileDataProtectionRule,
   mcpServerConfigRule,
+  agentAutoApproveRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -52501,6 +52624,7 @@ var ruleAreas = {
   "android-exported-component": "code",
   "mobile-data-protection": "code",
   "mcp-server-config": "supply-chain",
+  "agent-auto-approve": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -52625,6 +52749,7 @@ var ruleQuestions = {
   "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
   "mobile-data-protection": "Does the app keep its files, backups, and Keychain items unreadable to other apps and while the device is locked?",
   "mcp-server-config": "Do MCP servers read their tokens from the environment and run pinned versions over HTTPS?",
+  "agent-auto-approve": "Do the committed coding agent settings still ask before running commands?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -52753,6 +52878,7 @@ var ruleSections = {
   "android-exported-component": "Exported Android Components",
   "mobile-data-protection": "Mobile Data Protection",
   "mcp-server-config": "MCP Server Configuration",
+  "agent-auto-approve": "Coding Agent Approvals",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
