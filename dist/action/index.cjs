@@ -5939,8 +5939,8 @@ var require_dist = __commonJS({
         const passedSignatures = msgSignature.split(" ");
         const encoder = new globalThis.TextEncoder();
         for (const versionedSignature of passedSignatures) {
-          const [version2, signature] = versionedSignature.split(",");
-          if (version2 !== "v1") {
+          const [version3, signature] = versionedSignature.split(",");
+          if (version3 !== "v1") {
             continue;
           }
           if ((0, timing_safe_equal_1.timingSafeEqual)(encoder.encode(signature), encoder.encode(expectedSignature))) {
@@ -7361,19 +7361,19 @@ async function setupSkills(ctx) {
   const created = [];
   for (const skill of session.agent.skills) {
     try {
-      const version2 = await client.beta.skills.versions.retrieve(skill.version, { skill_id: skill.skill_id });
-      let dirname3 = path.basename(version2.name.trim());
+      const version3 = await client.beta.skills.versions.retrieve(skill.version, { skill_id: skill.skill_id });
+      let dirname3 = path.basename(version3.name.trim());
       if (dirname3 === "" || dirname3 === "." || dirname3 === "..")
         dirname3 = skill.skill_id;
       const dest = path.resolve(skillsRoot, dirname3);
       if (dest !== skillsRoot && !dest.startsWith(skillsRoot + path.sep)) {
         log.warn("skill name escapes the skills dir; skipping", {
           component: "agent-tool-context",
-          name: version2.name
+          name: version3.name
         });
         continue;
       }
-      const resp = await client.beta.skills.versions.download(version2.id, { skill_id: skill.skill_id });
+      const resp = await client.beta.skills.versions.download(version3.id, { skill_id: skill.skill_id });
       await fs3.rm(dest, { recursive: true, force: true });
       await fs3.mkdir(dest, { recursive: true, mode: DIR_CREATE_MODE });
       created.push(dest);
@@ -7381,7 +7381,7 @@ async function setupSkills(ctx) {
       log.info("downloaded skill", {
         component: "agent-tool-context",
         skill_id: skill.skill_id,
-        version: version2.id,
+        version: version3.id,
         dest
       });
     } catch (e) {
@@ -13643,9 +13643,9 @@ var init_versions2 = __esm({
        *   );
        * ```
        */
-      retrieve(version2, params, options) {
+      retrieve(version3, params, options) {
         const { plugin_id, betas, ...query } = params;
-        return this._client.get(path2`/v1/organizations/plugins/${plugin_id}/versions/${version2}?beta=true`, {
+        return this._client.get(path2`/v1/organizations/plugins/${plugin_id}/versions/${version3}?beta=true`, {
           query,
           ...options,
           headers: buildHeaders([
@@ -13734,9 +13734,9 @@ var init_versions2 = __esm({
        * console.log(content);
        * ```
        */
-      download(version2, params, options) {
+      download(version3, params, options) {
         const { plugin_id, betas, ...query } = params;
-        return this._client.get(path2`/v1/organizations/plugins/${plugin_id}/versions/${version2}/content?beta=true`, {
+        return this._client.get(path2`/v1/organizations/plugins/${plugin_id}/versions/${version3}/content?beta=true`, {
           query,
           ...options,
           headers: buildHeaders([
@@ -16039,9 +16039,9 @@ var init_versions3 = __esm({
        *   });
        * ```
        */
-      retrieve(version2, params, options) {
+      retrieve(version3, params, options) {
         const { skill_id, betas, workspace_id } = params;
-        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
+        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version3}?beta=true`, {
           ...options,
           headers: buildHeaders([
             {
@@ -16090,9 +16090,9 @@ var init_versions3 = __esm({
        *   });
        * ```
        */
-      delete(version2, params, options) {
+      delete(version3, params, options) {
         const { skill_id, betas, workspace_id } = params;
-        return this._client.delete(path2`/v1/skills/${skill_id}/versions/${version2}?beta=true`, {
+        return this._client.delete(path2`/v1/skills/${skill_id}/versions/${version3}?beta=true`, {
           ...options,
           headers: buildHeaders([
             {
@@ -16117,9 +16117,9 @@ var init_versions3 = __esm({
        * console.log(content);
        * ```
        */
-      download(version2, params, options) {
+      download(version3, params, options) {
         const { skill_id, betas, workspace_id } = params;
-        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version2}/content?beta=true`, {
+        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version3}/content?beta=true`, {
           ...options,
           headers: buildHeaders([
             {
@@ -19938,9 +19938,9 @@ var init_versions4 = __esm({
        * );
        * ```
        */
-      retrieve(version2, params, options) {
+      retrieve(version3, params, options) {
         const { skill_id, workspace_id } = params;
-        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version2}`, {
+        return this._client.get(path2`/v1/skills/${skill_id}/versions/${version3}`, {
           ...options,
           headers: buildHeaders([
             { ...workspace_id != null ? { "anthropic-workspace-id": workspace_id } : void 0 },
@@ -19983,9 +19983,9 @@ var init_versions4 = __esm({
        *   });
        * ```
        */
-      delete(version2, params, options) {
+      delete(version3, params, options) {
         const { skill_id, workspace_id } = params;
-        return this._client.delete(path2`/v1/skills/${skill_id}/versions/${version2}`, {
+        return this._client.delete(path2`/v1/skills/${skill_id}/versions/${version3}`, {
           ...options,
           headers: buildHeaders([
             { ...workspace_id != null ? { "anthropic-workspace-id": workspace_id } : void 0 },
@@ -21229,13 +21229,13 @@ var require_directives = __commonJS({
               onError(0, "%YAML directive should contain exactly one part");
               return false;
             }
-            const [version2] = parts;
-            if (version2 === "1.1" || version2 === "1.2") {
-              this.yaml.version = version2;
+            const [version3] = parts;
+            if (version3 === "1.1" || version3 === "1.2") {
+              this.yaml.version = version3;
               return true;
             } else {
-              const isValid = /^\d+\.\d+$/.test(version2);
-              onError(6, `Unsupported YAML version ${version2}`, isValid);
+              const isValid = /^\d+\.\d+$/.test(version3);
+              onError(6, `Unsupported YAML version ${version3}`, isValid);
               return false;
             }
           }
@@ -24335,14 +24335,14 @@ var require_Document = __commonJS({
           version: "1.2"
         }, options);
         this.options = opt;
-        let { version: version2 } = opt;
+        let { version: version3 } = opt;
         if (options?._directives) {
           this.directives = options._directives.atDocument();
           if (this.directives.yaml.explicit)
-            version2 = this.directives.yaml.version;
+            version3 = this.directives.yaml.version;
         } else
-          this.directives = new directives2.Directives({ version: version2 });
-        this.setSchema(version2, options);
+          this.directives = new directives2.Directives({ version: version3 });
+        this.setSchema(version3, options);
         this.contents = value === void 0 ? null : this.createNode(value, _replacer, options);
       }
       /**
@@ -24522,11 +24522,11 @@ var require_Document = __commonJS({
        *
        * Overrides all previously set schema options.
        */
-      setSchema(version2, options = {}) {
-        if (typeof version2 === "number")
-          version2 = String(version2);
+      setSchema(version3, options = {}) {
+        if (typeof version3 === "number")
+          version3 = String(version3);
         let opt;
-        switch (version2) {
+        switch (version3) {
           case "1.1":
             if (this.directives)
               this.directives.yaml.version = "1.1";
@@ -24537,9 +24537,9 @@ var require_Document = __commonJS({
           case "1.2":
           case "next":
             if (this.directives)
-              this.directives.yaml.version = version2;
+              this.directives.yaml.version = version3;
             else
-              this.directives = new directives2.Directives({ version: version2 });
+              this.directives = new directives2.Directives({ version: version3 });
             opt = { resolveKnownTags: true, schema: "core" };
             break;
           case null:
@@ -24548,7 +24548,7 @@ var require_Document = __commonJS({
             opt = null;
             break;
           default: {
-            const sv = JSON.stringify(version2);
+            const sv = JSON.stringify(version3);
             throw new Error(`Expected '1.1', '1.2' or null as first argument, but found: ${sv}`);
           }
         }
@@ -29552,10 +29552,10 @@ function nanoidOfLength(length) {
 }
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-var uuid = (version2) => {
-  if (!version2)
+var uuid = (version3) => {
+  if (!version3)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
-  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version2}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
+  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version3}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
 var email = /^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
 var _emoji = `^(?=[\\s\\S]*[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3])[\\p{Extended_Pictographic}\\p{Emoji_Component}]+$`;
@@ -36628,6 +36628,7 @@ var ruleIds = [
   "iac-hardcoded-password",
   "app-config-secret",
   "ci-config-secret",
+  "workflow-credential-exposure",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37017,6 +37018,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     ciConfigSecret: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    workflowCredentialExposure: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -47254,6 +47258,110 @@ function secretLines5(file) {
   return file.patch === void 0 ? [] : findCiConfigSecretLines(file.path, file.patch);
 }
 
+// src/rules/workflow-credential-exposure.ts
+var workflowFile = /(?:^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i;
+var examplePath2 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|fixtures?|testdata)(?:[\/_.-]|$)/i;
+var checkoutStep = /^\s*-?\s*uses:\s*["']?actions\/checkout@([^\s"'#]+)["']?\s*(?:#\s*(\S+))?/i;
+var uploadStep = /^\s*-?\s*uses:\s*["']?actions\/upload-artifact@([^\s"'#]+)["']?\s*(?:#\s*(\S+))?/i;
+var keepsCredentials = /^\s*persist-credentials:\s*["']?false["']?\s*(?:#.*)?$/i;
+var includesHidden = /^\s*include-hidden-files:\s*["']?true["']?\s*(?:#.*)?$/i;
+var workspacePath = /^\s*path:\s*["']?(?:\.\/?|\$\{\{\s*github\.workspace\s*\}\}\/?)["']?\s*(?:#.*)?$/i;
+var unsecureCommands = /\bACTIONS_ALLOW_UNSECURE_COMMANDS\b["']?\s*[:=]\s*["']?true\b/i;
+var commentLine79 = /^\s*#/;
+function version2(ref, comment) {
+  const match2 = /^v?(\d+)(?:\.(\d+))?/.exec(/^[0-9a-f]{40}$/i.test(ref) ? comment ?? "" : ref);
+  return match2 === null ? void 0 : [Number(match2[1]), Number(match2[2] ?? Number.MAX_SAFE_INTEGER)];
+}
+function stepLines(lines, index) {
+  const start = lines[index]?.content ?? "";
+  const indent = /^\s*/.exec(start)?.[0].length ?? 0;
+  const dash = start.trimStart().startsWith("-") ? indent : indent - 2;
+  const step = [];
+  for (const line of lines.slice(index + 1)) {
+    const lineIndent = /^\s*/.exec(line.content)?.[0].length ?? 0;
+    if (line.startsHunk || line.content.trim() !== "" && lineIndent <= dash) {
+      break;
+    }
+    step.push(line);
+  }
+  return step;
+}
+function exposures(lines) {
+  const found = [];
+  const checkoutSavesToken = lines.some(({ content }, index) => {
+    const match2 = checkoutStep.exec(content);
+    if (match2 === null) {
+      return false;
+    }
+    const checkout = version2(match2[1] ?? "", match2[2]);
+    return (checkout === void 0 || checkout[0] < 6) && !stepLines(lines, index).some(({ content: setting }) => keepsCredentials.test(setting));
+  });
+  lines.forEach(({ line, content, added }, index) => {
+    if (commentLine79.test(content)) {
+      return;
+    }
+    const upload = uploadStep.exec(content);
+    if (upload !== null && checkoutSavesToken) {
+      const step = stepLines(lines, index);
+      const uploader = version2(upload[1] ?? "", upload[2]);
+      const hidden = step.some(({ content: setting }) => includesHidden.test(setting));
+      const workspace = step.find(({ content: setting }) => workspacePath.test(setting));
+      const oldUploader = uploader !== void 0 && (uploader[0] < 4 || uploader[0] === 4 && uploader[1] < 4);
+      if (workspace !== void 0 && (hidden || oldUploader) && (added || step.some(({ added: changed }) => changed))) {
+        found.push({ line: workspace.line, kind: "artifact" });
+      }
+      return;
+    }
+    if (!added) {
+      return;
+    }
+    if (unsecureCommands.test(content)) {
+      found.push({ line, kind: "commands" });
+    }
+  });
+  return found;
+}
+var phrases = {
+  artifact: "uploads the checked-out workspace as an artifact with the token `actions/checkout` saved in `.git/config`, so anyone who can download the artifact can use the token while the run lasts",
+  commands: "turns on the deprecated `set-env` and `add-path` commands, so any text a step prints, such as a pull request title or a dependency's output, can set environment variables and the path for every later step"
+};
+var workflowCredentialExposureRule = {
+  id: "workflow-credential-exposure",
+  description: "Flags GitHub Actions workflows that hand out their token: a workspace artifact with the token `actions/checkout` saved, and `ACTIONS_ALLOW_UNSECURE_COMMANDS`.",
+  seesIgnoredFiles: true,
+  run({ files, config: config3 }) {
+    if (!config3.rules.workflowCredentialExposure.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!workflowFile.test(file.path) || examplePath2.test(file.path) || file.patch === void 0 || // Workflows kept as test data, such as a scanner's fixtures.
+      isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = exposures(patchLines(file.patch));
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text } = describeLines(lineNumbers);
+      const kinds3 = [...new Set(found.map(({ kind }) => kind))];
+      return [
+        {
+          ruleId: "workflow-credential-exposure",
+          title: "Workflow hands out its token",
+          severity: "high",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the workflow ${listOf(kinds3.map((kind) => phrases[kind]))}.`,
+          recommendation: "Set `persist-credentials: false` on `actions/checkout`, or use `actions/checkout@v6` or later, and upload only the build output with `actions/upload-artifact@v4` or later. Remove `ACTIONS_ALLOW_UNSECURE_COMMANDS` and write to `$GITHUB_ENV` and `$GITHUB_PATH` instead."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -47321,7 +47429,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine79 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine80 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -47379,7 +47487,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine79.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine80.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -47476,7 +47584,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine80 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine81 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation71 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -47493,7 +47601,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine80.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine81.test(content) || importLine2.test(content) || definitionLine.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -47878,15 +47986,15 @@ var manifests = [
     // `"name": "version"` in a dependencies object. The section holds the keys of the objects and
     // arrays a line is in, one per line, with "" for those without a key, as far as the hunk shows.
     entries(content, section) {
-      const [matched, name = "", version2 = ""] = npmEntry.exec(content) ?? [];
-      if (matched === void 0 || npmFields.has(name) || !npmVersion.test(version2)) {
+      const [matched, name = "", version3 = ""] = npmEntry.exec(content) ?? [];
+      if (matched === void 0 || npmFields.has(name) || !npmVersion.test(version3)) {
         return [];
       }
       const enclosing = section.split("\n").filter(Boolean).at(-1);
       if (enclosing === void 0) {
-        return npmMetadataFields.has(name) ? [] : [{ name, version: version2 }];
+        return npmMetadataFields.has(name) ? [] : [{ name, version: version3 }];
       }
-      return npmDependencySections.has(enclosing) ? [{ name, version: version2 }] : [];
+      return npmDependencySections.has(enclosing) ? [{ name, version: version3 }] : [];
     },
     section(content, current) {
       const opened = npmOpen.exec(content);
@@ -47903,8 +48011,8 @@ ${opened[1] ?? ""}`;
     files: /(?:^|\/)(?:requirements[^/]*|requirements\/[^/]+)\.(?:txt|in)$/i,
     // `name`, `name[extra]`, `name>=1.0`, or `name @ url`; options and URLs are not package names.
     entries(content) {
-      const [matched, name = "", version2 = ""] = requirementLine.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2.trim() }];
+      const [matched, name = "", version3 = ""] = requirementLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3.trim() }];
     }
   },
   {
@@ -47930,8 +48038,8 @@ ${opened[1] ?? ""}`;
     ecosystem: "RubyGems",
     files: /(?:^|\/)(?:Gemfile|[^/]+\.gemspec)$/,
     entries(content) {
-      const [matched, name = "", version2 = ""] = gemLine.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2 }];
+      const [matched, name = "", version3 = ""] = gemLine.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3 }];
     }
   },
   {
@@ -47939,8 +48047,8 @@ ${opened[1] ?? ""}`;
     files: /(?:^|\/)composer\.json$/,
     // `"vendor/name": "^1.0"`; platform requirements such as `php` and `ext-json` have no vendor.
     entries(content) {
-      const [matched, name = "", version2 = ""] = composerEntry.exec(content) ?? [];
-      return matched !== void 0 && composerVersion.test(version2) ? [{ name, version: version2 }] : [];
+      const [matched, name = "", version3 = ""] = composerEntry.exec(content) ?? [];
+      return matched !== void 0 && composerVersion.test(version3) ? [{ name, version: version3 }] : [];
     }
   },
   {
@@ -47975,8 +48083,8 @@ ${opened[1] ?? ""}`;
     // `implementation("group:artifact:1.0")`, `implementation 'group:artifact:1.0'`, `platform(...)`,
     // and `implementation group: 'g', name: 'a', version: '1.0'`.
     entries(content) {
-      const [matched, group = "", artifact = "", version2 = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
-      return matched === void 0 ? [] : [{ name: `${group}:${artifact}`, version: version2 }];
+      const [matched, group = "", artifact = "", version3 = ""] = gradleCoordinate.exec(content) ?? gradleMap.exec(content) ?? [];
+      return matched === void 0 ? [] : [{ name: `${group}:${artifact}`, version: version3 }];
     }
   },
   {
@@ -47993,14 +48101,14 @@ ${opened[1] ?? ""}`;
       const module2 = /\bmodule\s*=\s*"([A-Za-z0-9_.-]{1,200}):([A-Za-z0-9_.-]{1,200})"/.exec(value);
       const group = /\bgroup\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
       const name = /\bname\s*=\s*"([A-Za-z0-9_.-]{1,200})"/.exec(value)?.[1];
-      const version2 = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
+      const version3 = /\bversion\s*=\s*"([^"]{1,100})"/.exec(value)?.[1] ?? "";
       if (short2) {
         return [{ name: `${short2[1]}:${short2[2]}`, version: short2[3] ?? "" }];
       }
       if (module2) {
-        return [{ name: `${module2[1]}:${module2[2]}`, version: version2 }];
+        return [{ name: `${module2[1]}:${module2[2]}`, version: version3 }];
       }
-      return group !== void 0 && name !== void 0 ? [{ name: `${group}:${name}`, version: version2 }] : [];
+      return group !== void 0 && name !== void 0 ? [{ name: `${group}:${name}`, version: version3 }] : [];
     }
   },
   {
@@ -48009,8 +48117,8 @@ ${opened[1] ?? ""}`;
     // `require path v1.2.3`, or `path v1.2.3` inside a `require (` block; `replace` and `exclude`
     // blocks name modules too, but not dependencies.
     entries(content, section) {
-      const [matched, name = "", version2 = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
-      return matched === void 0 ? [] : [{ name, version: version2 }];
+      const [matched, name = "", version3 = ""] = goRequireLine.exec(content) ?? (section === "require" ? goBlockEntry.exec(content) : null) ?? [];
+      return matched === void 0 ? [] : [{ name, version: version3 }];
     },
     section: (content) => goBlockStart.exec(content)?.[1] ?? (/^\s*\)\s*$/.test(content) ? "" : void 0)
   },
@@ -48126,8 +48234,8 @@ function tomlEntries(content) {
   if (matched === void 0) {
     return [];
   }
-  const version2 = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
-  return [{ name, version: version2 }];
+  const version3 = /^"([^"]{0,100})"/.exec(value.trim())?.[1] ?? /\bversion\s*=\s*"([^"]{0,100})"/.exec(value)?.[1] ?? "";
+  return [{ name, version: version3 }];
 }
 function mavenDependencies(patch) {
   const added = [];
@@ -48182,8 +48290,8 @@ function dependencyBlocks(lines, side) {
     const artifact = /<artifactId>\s*([^<\s]{1,200})\s*<\/artifactId>/.exec(text)?.[1];
     const changed = block.find((entry2) => entry2.kind !== " ");
     if (group !== void 0 && artifact !== void 0 && changed !== void 0) {
-      const version2 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
-      found.push({ name: `${group}:${artifact}`, version: version2, line: side === "+" ? changed.newLine : changed.oldLine });
+      const version3 = /<version>\s*([^<\s]{1,100})\s*<\/version>/.exec(text)?.[1] ?? "";
+      found.push({ name: `${group}:${artifact}`, version: version3, line: side === "+" ? changed.newLine : changed.oldLine });
     }
     block = [];
   }
@@ -49108,11 +49216,11 @@ function describeProblem(change) {
   }
   return void 0;
 }
-function shown(version2) {
-  return version2 === "" ? "no version" : version2;
+function shown(version3) {
+  return version3 === "" ? "no version" : version3;
 }
-function isOpenEnded(version2, ecosystem) {
-  const spec = version2.trim();
+function isOpenEnded(version3, ecosystem) {
+  const spec = version3.trim();
   if (spec === "" && ecosystem === "Maven") {
     return false;
   }
@@ -49125,11 +49233,11 @@ function isOpenEnded(version2, ecosystem) {
   const parts = spec.split(/\s*,\s*|\s+(?=[<>=])/).filter(Boolean);
   return parts.length > 0 && !spec.includes("||") && parts.every((part) => /^>=?\s*v?\d/.test(part));
 }
-function versionNumbers(version2) {
-  if (/:\/\/|^(?:git|file|link|workspace|npm|github)[:+]/i.test(version2.trim())) {
+function versionNumbers(version3) {
+  if (/:\/\/|^(?:git|file|link|workspace|npm|github)[:+]/i.test(version3.trim())) {
     return void 0;
   }
-  const match2 = /(\d{1,9})(?:\.(\d{1,9}))?(?:\.(\d{1,9}))?/.exec(version2);
+  const match2 = /(\d{1,9})(?:\.(\d{1,9}))?(?:\.(\d{1,9}))?/.exec(version3);
   return match2 === null ? void 0 : match2.slice(1).filter((part) => part !== void 0).map(Number);
 }
 function compareVersions(left, right) {
@@ -49289,7 +49397,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine81 = /^\s*#/;
+var commentLine82 = /^\s*#/;
 var documentation72 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -49333,7 +49441,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine81.test(content)) {
+    if (commentLine82.test(content)) {
       continue;
     }
     const key3 = mappingKey.exec(content)?.[1];
@@ -49367,7 +49475,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine82 = /^\s*#/;
+var commentLine83 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -49443,7 +49551,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine82.test(content)) {
+    if (commentLine83.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -49533,7 +49641,7 @@ var settings24 = [
   }
 ];
 var allowsEverything = settings24[0];
-var commentLine83 = /^\s*(?:#|\/\/)/;
+var commentLine84 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -49574,7 +49682,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine83.test(content)) {
+    if (!added || commentLine84.test(content)) {
       continue;
     }
     for (const setting of settings24) {
@@ -49633,7 +49741,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine84 = /^\s*#/;
+var commentLine85 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -49682,7 +49790,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key3 = void 0;
     }
-    if (commentLine84.test(content) || content.trim() === "") {
+    if (commentLine85.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -49737,7 +49845,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine85 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine86 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -49752,7 +49860,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine85.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine86.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -49848,7 +49956,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine86 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine87 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -49865,7 +49973,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine86.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine87.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -49924,7 +50032,7 @@ var settings25 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine87 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -49939,7 +50047,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine87.test(content) && settings25.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine88.test(content) && settings25.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -49988,7 +50096,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -50005,7 +50113,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine88.test(content)) {
+        if (!added || commentLine89.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -50261,7 +50369,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine90 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -50279,7 +50387,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine89.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine90.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -50481,7 +50589,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine90 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine91 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -50545,7 +50653,7 @@ function commands2(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine90.test(content)) {
+    if (commentLine91.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -50911,7 +51019,7 @@ function pathWords(path5) {
 }
 
 // src/rules/unpinned-action.ts
-var workflowFile = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile2 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
@@ -50927,7 +51035,7 @@ var unpinnedActionRule = {
     }
     const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !workflowFile.test(file.path)) {
+      if (file.patch === void 0 || !workflowFile2.test(file.path)) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(({ line, content }) => {
@@ -50983,7 +51091,7 @@ function list(targets) {
 }
 
 // src/rules/workflow-risk.ts
-var workflowFile2 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile3 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var workflowOnly = /^\.github\/workflows\//;
 var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
 var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
@@ -51034,7 +51142,7 @@ var workflowRiskRule = {
     if (!config3.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile2.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile3.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const workflow = workflowOnly.test(file.path);
@@ -51299,7 +51407,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine91 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine92 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation82 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -51341,7 +51449,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine91.test(content)) {
+    if (commentLine92.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -51529,6 +51637,7 @@ var defaultRules = [
   iacHardcodedPasswordRule,
   appConfigSecretRule,
   ciConfigSecretRule,
+  workflowCredentialExposureRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -51989,6 +52098,7 @@ var ruleAreas = {
   "iac-hardcoded-password": "secrets",
   "app-config-secret": "secrets",
   "ci-config-secret": "secrets",
+  "workflow-credential-exposure": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -52109,6 +52219,7 @@ var ruleQuestions = {
   "iac-hardcoded-password": "Are the passwords in infrastructure code rotated, and supplied at deploy time instead?",
   "app-config-secret": "Are the passwords in the app's configuration rotated, and read from the environment or a secret store?",
   "ci-config-secret": "Are the secrets in the CI pipeline rotated, and read from the CI's secret store instead?",
+  "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -52233,6 +52344,7 @@ var ruleSections = {
   "iac-hardcoded-password": "Infrastructure Code Passwords",
   "app-config-secret": "Application Config Passwords",
   "ci-config-secret": "CI Pipeline Secrets",
+  "workflow-credential-exposure": "Workflow Credential Exposure",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
@@ -52467,11 +52579,11 @@ function renderDependencyChanges(changes) {
     return [];
   }
   const cell = (value) => codeSpan(value).replace(/\|/g, "\\|");
-  const version2 = (value) => value === void 0 || value === "" ? "" : ` ${cell(value)}`;
+  const version3 = (value) => value === void 0 || value === "" ? "" : ` ${cell(value)}`;
   const rows = [];
   let length = 0;
   for (const change of changes.slice(0, maxDependencyRows)) {
-    const what = change.from === void 0 ? `added${version2(change.to)}` : change.to === void 0 ? `removed${version2(change.from)}` : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
+    const what = change.from === void 0 ? `added${version3(change.to)}` : change.to === void 0 ? `removed${version3(change.from)}` : `${cell(change.from || unversioned(change))} to ${cell(change.to || unversioned(change))}`;
     const row = `| ${cell(change.file)} | ${cell(change.name)} | ${what} |`;
     if (length + row.length > maxDependencyLength) {
       break;
