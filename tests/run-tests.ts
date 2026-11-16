@@ -896,6 +896,13 @@ import {
   testIacHardcodedPasswordSkipsTestsAndCanBeDisabled
 } from "./unit/iac-hardcoded-password.test.js";
 import {
+  testAppConfigSecretFindsValuesBeforeRedaction,
+  testAppConfigSecretReadsEachFramework,
+  testAppConfigSecretReportsOneFindingPerFile,
+  testAppConfigSecretSkipsReferencesAndPlaceholders,
+  testAppConfigSecretSkipsTestsAndCanBeDisabled
+} from "./unit/app-config-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1540,6 +1547,11 @@ const tests: Array<[string, Test]> = [
   ["iac-hardcoded-password skips references and placeholders", testIacHardcodedPasswordSkipsReferencesAndPlaceholders],
   ["iac-hardcoded-password finds values before redaction", testIacHardcodedPasswordFindsValuesBeforeRedaction],
   ["iac-hardcoded-password skips tests and can be disabled", testIacHardcodedPasswordSkipsTestsAndCanBeDisabled],
+  ["app-config-secret reports one finding per file", testAppConfigSecretReportsOneFindingPerFile],
+  ["app-config-secret reads each framework", testAppConfigSecretReadsEachFramework],
+  ["app-config-secret skips references and placeholders", testAppConfigSecretSkipsReferencesAndPlaceholders],
+  ["app-config-secret finds values before redaction", testAppConfigSecretFindsValuesBeforeRedaction],
+  ["app-config-secret skips tests and can be disabled", testAppConfigSecretSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

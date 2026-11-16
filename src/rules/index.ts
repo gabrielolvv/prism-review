@@ -77,6 +77,7 @@ import { untrustedModelCodeRule } from "./untrusted-model-code.js";
 import { kubernetesSecretValuesRule } from "./kubernetes-secret-values.js";
 import { deploymentEnvSecretRule } from "./deployment-env-secret.js";
 import { iacHardcodedPasswordRule } from "./iac-hardcoded-password.js";
+import { appConfigSecretRule } from "./app-config-secret.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -197,6 +198,7 @@ export const defaultRules: Rule[] = [
   kubernetesSecretValuesRule,
   deploymentEnvSecretRule,
   iacHardcodedPasswordRule,
+  appConfigSecretRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

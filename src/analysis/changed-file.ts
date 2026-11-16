@@ -1,3 +1,4 @@
+import type { ConfigSecretLine } from "../security/app-config-secrets.js";
 import type { EnvSecretLine } from "../security/deployment-env-secrets.js";
 import type { IacPasswordLine } from "../security/iac-passwords.js";
 import type { KubernetesSecretLine } from "../security/kubernetes-secrets.js";
@@ -64,6 +65,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines that write a
   // password, token, or key into Terraform, CloudFormation, or an Ansible inventory, with its name.
   iacPasswordLines?: IacPasswordLine[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that write a
+  // password, token, or key into an application's configuration, with the setting's name.
+  appConfigSecretLines?: ConfigSecretLine[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
