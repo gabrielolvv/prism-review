@@ -15456,6 +15456,7 @@ var ruleIds = [
   "app-config-secret",
   "ci-config-secret",
   "workflow-credential-exposure",
+  "android-exported-component",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15848,6 +15849,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     workflowCredentialExposure: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    androidExportedComponent: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -26224,6 +26228,116 @@ var workflowCredentialExposureRule = {
   }
 };
 
+// src/rules/android-exported-component.ts
+var manifestFile = /(?:^|\/)AndroidManifest\.xml$/;
+var debugManifest = /(?:^|\/)src\/(?:debug|qa|androidTest|test|testDebug|benchmark)\//i;
+var componentStart = /<(service|receiver|provider)\b/;
+var exported = /\bandroid:exported\s*=\s*"true"/;
+var permission = /\bandroid:(?:permission|readPermission|writePermission)\s*=\s*"[^"]+"|<path-permission\b/;
+var removed = /\btools:node\s*=\s*"(?:remove|removeAll)"/;
+var nameAttribute = /\bandroid:name\s*=\s*"([^"]+)"/;
+var action = /<action\b[^>]*\bandroid:name\s*=\s*"([^"]+)"/g;
+var systemAction = /^(?:android\.|com\.android\.|com\.google\.android\.|com\.htc\.intent\.action\.|androidx\.media|androidx\.car\.app\.)/;
+var maxComponentLines = 80;
+function componentLines(lines, index, kind) {
+  const tag = [];
+  let position = index;
+  for (; position < lines.length && position < index + maxComponentLines; position += 1) {
+    const line = lines[position];
+    if (line === void 0 || position > index && line.startsHunk) {
+      break;
+    }
+    tag.push(line);
+    if (/>/.test(line.content.slice(position === index ? line.content.indexOf("<") : 0))) {
+      break;
+    }
+  }
+  const closes = /\/>\s*$/.test(tag.at(-1)?.content ?? "");
+  const body = [];
+  if (!closes) {
+    const end = new RegExp(`</${kind}\\s*>`);
+    for (position += 1; position < lines.length && position < index + maxComponentLines; position += 1) {
+      const line = lines[position];
+      if (line === void 0 || line.startsHunk) {
+        break;
+      }
+      body.push(line);
+      if (end.test(line.content)) {
+        break;
+      }
+    }
+  }
+  return { tag, body };
+}
+function exportedComponents(lines) {
+  const found = [];
+  lines.forEach(({ content }, index) => {
+    const start = componentStart.exec(content);
+    if (start === null || /^\s*<!--/.test(content)) {
+      return;
+    }
+    const kind = start[1];
+    const { tag, body } = componentLines(lines, index, kind);
+    const tagText = tag.map(({ content: text }) => text).join(" ");
+    const exportLine = tag.find(({ content: text }) => exported.test(text));
+    if (exportLine === void 0 || !tag.some(({ added }) => added) || permission.test(tagText) || removed.test(tagText)) {
+      return;
+    }
+    const bodyText = body.map(({ content: text }) => text).join(" ");
+    if (permission.test(bodyText)) {
+      return;
+    }
+    const actions = [...bodyText.matchAll(action)].map((match2) => match2[1] ?? "");
+    if (kind !== "provider" && actions.length > 0 && actions.every((name) => systemAction.test(name))) {
+      return;
+    }
+    found.push({ line: exportLine.line, kind, name: nameAttribute.exec(tagText)?.[1] ?? kind });
+  });
+  return found;
+}
+var kindNames = { service: "service", receiver: "broadcast receiver", provider: "content provider" };
+var androidExportedComponentRule = {
+  id: "android-exported-component",
+  description: "Flags Android services, broadcast receivers, and content providers exported to every app with no permission.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.androidExportedComponent.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!manifestFile.test(file.path) || file.patch === void 0 || debugManifest.test(file.path) || // Sample, demo, and test apps.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = exportedComponents(patchLines(file.patch));
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text, plural } = describeLines(lineNumbers);
+      const named = found.slice(0, 5).map(({ kind, name }) => `the ${kindNames[kind]} \`${name}\``);
+      const them = found.length > 1 ? "them" : "it";
+      const abilities = [
+        `call ${them}`,
+        ...found.some(({ kind }) => kind === "provider") ? ["read and change the provider's data"] : [],
+        `use this app's data and permissions through ${them}`
+      ];
+      return [
+        {
+          ruleId: "android-exported-component",
+          title: "Android component open to every app",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "export" : "exports"} ${listOf(found.length > 5 ? [...named, `${found.length - 5} more`] : named)} with no permission, so any app installed on the device can ${listOf(abilities)}.`,
+          recommendation: 'Set `android:exported="false"` on components that only this app uses. Protect the others with `android:permission`, using a permission with `android:protectionLevel="signature"` when only your own apps should call them, or check the caller in code, and give content providers `android:readPermission` and `android:writePermission`.'
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -27062,9 +27176,9 @@ function manifestFor(path2) {
 function declaredDependencies(path2, patch) {
   const manifest2 = manifestFor(path2);
   const added = [];
-  const removed = [];
+  const removed2 = [];
   if (manifest2 === void 0) {
-    return { added, removed };
+    return { added, removed: removed2 };
   }
   if (manifest2.parse !== void 0) {
     return manifest2.parse(patch);
@@ -27092,7 +27206,7 @@ function declaredDependencies(path2, patch) {
       newLine += 1;
     } else if (line.startsWith("-")) {
       oldSection = sectionOf(content, oldSection) ?? oldSection;
-      removed.push(...manifest2.entries(content, oldSection).map((entry2) => ({ ...entry2, line: oldLine ?? 0 })));
+      removed2.push(...manifest2.entries(content, oldSection).map((entry2) => ({ ...entry2, line: oldLine ?? 0 })));
       oldLine += 1;
     } else {
       newSection = sectionOf(content, newSection) ?? newSection;
@@ -27101,7 +27215,7 @@ function declaredDependencies(path2, patch) {
       oldLine += 1;
     }
   }
-  return { added, removed };
+  return { added, removed: removed2 };
 }
 function dependencyChanges(files) {
   return files.flatMap((file) => {
@@ -27109,8 +27223,8 @@ function dependencyChanges(files) {
     if (ecosystem === void 0 || file.patch === void 0) {
       return [];
     }
-    const { added, removed } = declaredDependencies(file.path, file.patch);
-    const before2 = byName(removed, ecosystem);
+    const { added, removed: removed2 } = declaredDependencies(file.path, file.patch);
+    const before2 = byName(removed2, ecosystem);
     const after2 = byName(added, ecosystem);
     const changes = [];
     for (const [key2, dependency] of after2) {
@@ -27163,12 +27277,12 @@ function tomlEntries(content) {
 }
 function mavenDependencies(patch) {
   const added = [];
-  const removed = [];
+  const removed2 = [];
   for (const hunk of hunksOf(patch)) {
     added.push(...dependencyBlocks(hunk, "+"));
-    removed.push(...dependencyBlocks(hunk, "-"));
+    removed2.push(...dependencyBlocks(hunk, "-"));
   }
-  return { added, removed };
+  return { added, removed: removed2 };
 }
 function hunksOf(patch) {
   const hunks = [];
@@ -30562,6 +30676,7 @@ var defaultRules = [
   appConfigSecretRule,
   ciConfigSecretRule,
   workflowCredentialExposureRule,
+  androidExportedComponentRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -31148,6 +31263,7 @@ var ruleAreas = {
   "app-config-secret": "secrets",
   "ci-config-secret": "secrets",
   "workflow-credential-exposure": "supply-chain",
+  "android-exported-component": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -31304,6 +31420,7 @@ var ruleQuestions = {
   "app-config-secret": "Are the passwords in the app's configuration rotated, and read from the environment or a secret store?",
   "ci-config-secret": "Are the secrets in the CI pipeline rotated, and read from the CI's secret store instead?",
   "workflow-credential-exposure": "Do workflows keep their token out of artifacts and pass other repositories only the secrets they need?",
+  "android-exported-component": "Are exported Android components protected by a permission or a caller check?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -31429,6 +31546,7 @@ var ruleSections = {
   "app-config-secret": "Application Config Passwords",
   "ci-config-secret": "CI Pipeline Secrets",
   "workflow-credential-exposure": "Workflow Credential Exposure",
+  "android-exported-component": "Exported Android Components",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
