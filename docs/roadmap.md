@@ -175,6 +175,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - JSON Web Token code that turns signature verification off, across .NET, Ruby, Java, Go, JavaScript, PHP, and Rust libraries (0.150.0).
 - Pull request jobs that run on self-hosted GitHub Actions runners (0.151.0).
 - `workflow_run` workflows that unpack pull request artifacts over the checked-out code (0.152.0).
+- Privileged workflows that fetch pull request code with `gh pr checkout` or git commands (0.153.0).
 
 ## Later
 
