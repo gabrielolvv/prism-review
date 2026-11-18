@@ -15470,6 +15470,7 @@ var ruleIds = [
   "jwt-signature-bypass",
   "self-hosted-pr-runner",
   "workflow-artifact-poisoning",
+  "privileged-pr-checkout",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15904,6 +15905,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     workflowArtifactPoisoning: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    privilegedPrCheckout: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -28358,6 +28362,61 @@ var workflowArtifactPoisoningRule = {
   }
 };
 
+// src/rules/privileged-pr-checkout.ts
+var workflowFile4 = /(?:^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i;
+var exampleWorkflow3 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|templates?|fixtures?|testdata)(?:[\/_.-]|$)/i;
+var privilegedTrigger = /^\s*(?:pull_request_target|issue_comment|workflow_run)\s*:|^\s*on\s*:.*\b(?:pull_request_target|issue_comment|workflow_run)\b|^\s*-\s*(?:pull_request_target|issue_comment|workflow_run)\s*$/m;
+var fetchesPullRequest = /\b(?:gh|hub)\s+pr\s+checkout\b|\bgit\s+fetch\b[^\n#]*\bpull\/(?:\$\{\{[^}]*\}\}|[^\s/]+)\/(?:head|merge)\b|\bgit\s+(?:checkout|switch|reset\s+--hard|merge|pull)\b[^\n#]*(?:\bpull_request\.head\.(?:sha|ref)\b|\bgithub\.head_ref\b|\bhead_sha\b|\bpull\/(?:\$\{\{[^}]*\}\}|[^\s/]+)\/head\b)|\bgit\s+clone\b[^\n#]*\bhead\.repo\.(?:clone_url|full_name|ssh_url)\b/;
+var maintainerGuard = /author_association|isTeamMember|teams?-membership|getCollaboratorPermissionLevel|collaborators\/[^\s/]+\/permission|\bpermission\s*(?:==|!=|in\b)|has-permissions?|github\.event\.label\.name|pull_request\.labels|head\.repo\.full_name\s*==|head\.repo\.fork\s*==\s*false|!\s*github\.event\.pull_request\.head\.repo\.fork/;
+var commentLine85 = /^\s*#/;
+var privilegedPrCheckoutRule = {
+  id: "privileged-pr-checkout",
+  description: "Flags `pull_request_target`, `issue_comment`, and `workflow_run` workflows that fetch a pull request's code with `gh pr checkout` or git commands, where it runs with the repository's secrets, unless only maintainers can start the job.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.privilegedPrCheckout.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!workflowFile4.test(file.path) || file.patch === void 0 || exampleWorkflow3.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      if (!privilegedTrigger.test(text) || maintainerGuard.test(text)) {
+        return [];
+      }
+      const triggerAdded = lines.some(({ content, added }) => added && privilegedTrigger.test(content));
+      const found = [];
+      lines.forEach(({ line, content, added }, index) => {
+        if (commentLine85.test(content) || !fetchesPullRequest.test(content) || !added && !triggerAdded) {
+          return;
+        }
+        const runsCode2 = lines.slice(index + 1).some(({ content: later }) => !commentLine85.test(later) && runsWorkspaceCode.test(later));
+        found.push({ line, runsCode: runsCode2 });
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = found.map(({ line }) => line);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const runsCode = found.some((entry3) => entry3.runsCode);
+      return [
+        {
+          ruleId: "privileged-pr-checkout",
+          title: "Pull request code fetched in a privileged workflow",
+          severity: runsCode ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "fetch" : "fetches"} a pull request's code in a workflow that runs with the repository's secrets and a write token, and that anyone can start from a fork or a comment${runsCode ? ". Later steps run code from the workspace, so the pull request's own scripts and build files run with that access" : ". Tools that read the workspace, such as linters and scanners, can be led by the pull request's own settings"}.`,
+          recommendation: "Run pull request code in a `pull_request` workflow, which has no secrets for forks, and pass results to a privileged workflow as data. If a comment or label must start it, check first that a maintainer asked, with `github.event.comment.author_association` or a permission lookup, and pin the commit that was reviewed instead of the branch's latest."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -28425,7 +28484,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine85 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine86 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -28483,7 +28542,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine85.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine86.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -28580,7 +28639,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine86 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine87 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine3 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -28597,7 +28656,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine86.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine87.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -30455,7 +30514,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine87 = /^\s*#/;
+var commentLine88 = /^\s*#/;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -30499,7 +30558,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine87.test(content)) {
+    if (commentLine88.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -30533,7 +30592,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine88 = /^\s*#/;
+var commentLine89 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -30609,7 +30668,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine88.test(content)) {
+    if (commentLine89.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -30699,7 +30758,7 @@ var settings27 = [
   }
 ];
 var allowsEverything = settings27[0];
-var commentLine89 = /^\s*(?:#|\/\/)/;
+var commentLine90 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -30740,7 +30799,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine89.test(content)) {
+    if (!added || commentLine90.test(content)) {
       continue;
     }
     for (const setting of settings27) {
@@ -30799,7 +30858,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine90 = /^\s*#/;
+var commentLine91 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -30848,7 +30907,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine90.test(content) || content.trim() === "") {
+    if (commentLine91.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -30903,7 +30962,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine91 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine92 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -30918,7 +30977,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine91.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine92.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -31014,7 +31073,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine92 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine93 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -31031,7 +31090,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine92.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine93.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -31090,7 +31149,7 @@ var settings28 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine93 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine94 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -31105,7 +31164,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine93.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine94.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -31154,7 +31213,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine94 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine95 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -31171,7 +31230,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine94.test(content)) {
+        if (!added || commentLine95.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -31427,7 +31486,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine95 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine96 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation80 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -31445,7 +31504,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine95.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine96.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -31498,7 +31557,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine96 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine97 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation81 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -31562,7 +31621,7 @@ function commands3(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine96.test(content)) {
+    if (commentLine97.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -31928,7 +31987,7 @@ function pathWords(path2) {
 }
 
 // src/rules/unpinned-action.ts
-var workflowFile4 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile5 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
@@ -31944,7 +32003,7 @@ var unpinnedActionRule = {
     }
     const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !workflowFile4.test(file.path)) {
+      if (file.patch === void 0 || !workflowFile5.test(file.path)) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(({ line, content }) => {
@@ -32000,7 +32059,7 @@ function list(targets) {
 }
 
 // src/rules/workflow-risk.ts
-var workflowFile5 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile6 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var workflowOnly = /^\.github\/workflows\//;
 var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
 var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
@@ -32051,7 +32110,7 @@ var workflowRiskRule = {
     if (!config3.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile5.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile6.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const workflow = workflowOnly.test(file.path);
@@ -32316,7 +32375,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine98 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation84 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -32358,7 +32417,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine97.test(content)) {
+    if (commentLine98.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -32561,6 +32620,7 @@ var defaultRules = [
   jwtSignatureBypassRule,
   selfHostedPrRunnerRule,
   workflowArtifactPoisoningRule,
+  privilegedPrCheckoutRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -33161,6 +33221,7 @@ var ruleAreas = {
   "jwt-signature-bypass": "code",
   "self-hosted-pr-runner": "supply-chain",
   "workflow-artifact-poisoning": "supply-chain",
+  "privileged-pr-checkout": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -33331,6 +33392,7 @@ var ruleQuestions = {
   "jwt-signature-bypass": "Is every token verified with the issuer's key before its claims are used?",
   "self-hosted-pr-runner": "Can pull requests from forks reach this self-hosted runner, and is it rebuilt after every job?",
   "workflow-artifact-poisoning": "Are artifacts from pull request runs unpacked outside the workspace and treated as untrusted data?",
+  "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -33470,6 +33532,7 @@ var ruleSections = {
   "jwt-signature-bypass": "JWT Signature Bypass",
   "self-hosted-pr-runner": "Self-Hosted Runners for Pull Requests",
   "workflow-artifact-poisoning": "Workflow Artifact Poisoning",
+  "privileged-pr-checkout": "Privileged Pull Request Checkout",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
