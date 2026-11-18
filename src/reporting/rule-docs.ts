@@ -98,6 +98,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "package-install-script": "Package Install Scripts",
   "ci-oidc-trust": "CI OIDC Trust",
   "configmap-secret": "ConfigMap Secrets",
+  "public-snapshot": "Public Images and Snapshots",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

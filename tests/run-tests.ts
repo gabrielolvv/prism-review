@@ -960,6 +960,12 @@ import {
   testConfigMapSecretSkipsTestsAndCanBeDisabled
 } from "./unit/configmap-secret.test.js";
 import {
+  testPublicSnapshotReadsEachForm,
+  testPublicSnapshotReportsOneFindingPerFile,
+  testPublicSnapshotSkipsAccountsAndRemovals,
+  testPublicSnapshotSkipsTestsAndCanBeDisabled
+} from "./unit/public-snapshot.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1648,6 +1654,10 @@ const tests: Array<[string, Test]> = [
   ["configmap-secret skips references and placeholders", testConfigMapSecretSkipsReferencesAndPlaceholders],
   ["configmap-secret finds values before redaction", testConfigMapSecretFindsValuesBeforeRedaction],
   ["configmap-secret skips tests and can be disabled", testConfigMapSecretSkipsTestsAndCanBeDisabled],
+  ["public-snapshot reports one finding per file", testPublicSnapshotReportsOneFindingPerFile],
+  ["public-snapshot reads each form", testPublicSnapshotReadsEachForm],
+  ["public-snapshot skips accounts and removals", testPublicSnapshotSkipsAccountsAndRemovals],
+  ["public-snapshot skips tests and can be disabled", testPublicSnapshotSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

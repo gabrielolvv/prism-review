@@ -124,6 +124,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "package-install-script": "supply-chain",
   "ci-oidc-trust": "infrastructure",
   "configmap-secret": "secrets",
+  "public-snapshot": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
