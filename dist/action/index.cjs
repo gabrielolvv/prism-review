@@ -36642,6 +36642,7 @@ var ruleIds = [
   "compose-published-port",
   "jwt-signature-bypass",
   "self-hosted-pr-runner",
+  "workflow-artifact-poisoning",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37073,6 +37074,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     selfHostedPrRunner: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    workflowArtifactPoisoning: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -47349,8 +47353,8 @@ function exposures(lines) {
     if (match2 === null) {
       return false;
     }
-    const checkout = version2(match2[1] ?? "", match2[2]);
-    return (checkout === void 0 || checkout[0] < 6) && !stepLines(lines, index).some(({ content: setting }) => keepsCredentials.test(setting));
+    const checkout2 = version2(match2[1] ?? "", match2[2]);
+    return (checkout2 === void 0 || checkout2[0] < 6) && !stepLines(lines, index).some(({ content: setting }) => keepsCredentials.test(setting));
   });
   lines.forEach(({ line, content, added }, index) => {
     if (commentLine79.test(content)) {
@@ -49372,6 +49376,120 @@ var selfHostedPrRunnerRule = {
           lines: lineNumbers,
           message: `${where} ${plural ? "run" : "runs"} ${listOf(jobs)} on a self-hosted runner for pull requests, including those from forks, whose code then runs on your machine. By default, GitHub asks a maintainer to approve the run only for first-time contributors, and code that runs there can stay on the machine, read the secrets and caches of later jobs, and reach the network the runner is in, as in the 2024 attacks on PyTorch's runners.`,
           recommendation: "Run pull request jobs on GitHub-hosted runners, or keep self-hosted jobs to branches of this repository with `if: github.event.pull_request.head.repo.full_name == github.repository`. If fork pull requests must run there, use ephemeral runners that are rebuilt after every job and kept away from internal networks and other jobs' secrets, and require approval for all outside contributors."
+        }
+      ];
+    });
+  }
+};
+
+// src/rules/workflow-artifact-poisoning.ts
+var workflowFile3 = /(?:^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i;
+var exampleWorkflow2 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|templates?|fixtures?|testdata)(?:[\/_.-]|$)/i;
+var workflowRunTrigger = /^\s*workflow_run\s*:|^\s*on\s*:.*\bworkflow_run\b|^\s*-\s*workflow_run\s*$/m;
+var stepStart = /^(\s*)-\s+(?:name|uses|run|id|if|with|env|shell|working-directory|continue-on-error|timeout-minutes)\s*:/;
+var trustedRun = /workflow_run\.event\s*==\s*['"](?:push|schedule|release|workflow_dispatch)['"]|workflow_run\.event\s*!=\s*['"]pull_request['"]|workflow_run\.head_repository\.(?:full_name|fork)|workflow_run\.head_repository\.owner/;
+var downloadArtifact = /\buses\s*:\s*actions\/download-artifact@/;
+var runIdFromTrigger = /\brun-id\s*:\s*.*\bworkflow_run\b|\brun-id\s*:\s*\$\{\{\s*github\.event\.workflow_run\.id\s*\}\}/;
+var thirdPartyDownload = /\buses\s*:\s*dawidd6\/action-download-artifact@/;
+var ghRunDownload = /\bgh\s+run\s+download\b/;
+var apiDownload = /\b(?:downloadArtifact|listWorkflowRunArtifacts)\b/;
+var unzip = /\bunzip\b(?![^\n]*\s-d\s+(?!\.(?:\/)?(?:\s|["'`)]|$))\S)[^\n]*\.zip\b/;
+var pathKey = /^\s*(?:-\s+)?path\s*:\s*(.*)$/m;
+var workspacePath2 = /^(?:["']?\.\/?["']?|["']?\$\{\{\s*github\.workspace\s*\}\}\/?["']?|)\s*(?:#.*)?$/;
+var ghRunDir = /\s(?:-D|--dir)\s+(?!\.(?:\/)?(?:\s|$))\S/;
+var checkout = /\buses\s*:\s*actions\/checkout@/;
+var runsWorkspaceCode = /\buses\s*:\s*\.\/|\brun\s*:.*(?:\.\/[\w./-]+|\b(?:npm|npx|yarn|pnpm|make|python3?|node|bash|sh|go|mvn|gradle|\.\/gradlew|cargo|bundle|rake|pip)\b)/;
+function indentOf6(content) {
+  return /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function stepsIn(lines) {
+  const steps = [];
+  let current = [];
+  let indent = -1;
+  for (const line of lines) {
+    const start = stepStart.exec(line.content);
+    if (start !== null && (indent < 0 || (start[1] ?? "").length <= indent)) {
+      if (current.length > 0) {
+        steps.push({ lines: current, text: current.map(({ content }) => content).join("\n") });
+      }
+      current = [line];
+      indent = (start[1] ?? "").length;
+      continue;
+    }
+    if (current.length > 0 && line.content.trim() !== "" && indentOf6(line.content) <= indent && !/^\s*#/.test(line.content)) {
+      steps.push({ lines: current, text: current.map(({ content }) => content).join("\n") });
+      current = [];
+      indent = -1;
+      continue;
+    }
+    if (current.length > 0) {
+      current.push(line);
+    }
+  }
+  if (current.length > 0) {
+    steps.push({ lines: current, text: current.map(({ content }) => content).join("\n") });
+  }
+  return steps;
+}
+function intoWorkspace(step, usesApi) {
+  const path5 = pathKey.exec(step.text)?.[1] ?? "";
+  if (downloadArtifact.test(step.text) && runIdFromTrigger.test(step.text) || thirdPartyDownload.test(step.text)) {
+    return workspacePath2.test(path5.trim()) ? step.lines[0] : void 0;
+  }
+  const gh = step.lines.find(({ content }) => ghRunDownload.test(content));
+  if (gh !== void 0 && /workflow_run|RUN_ID|run_id/i.test(step.text) && !ghRunDir.test(step.text)) {
+    return gh;
+  }
+  return usesApi ? step.lines.find(({ content }) => unzip.test(content)) : void 0;
+}
+var workflowArtifactPoisoningRule = {
+  id: "workflow-artifact-poisoning",
+  description: "Flags `workflow_run` workflows that unpack the triggering run's artifacts, which a fork pull request can fill, into the workspace over the checked-out code.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.workflowArtifactPoisoning.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!workflowFile3.test(file.path) || file.patch === void 0 || exampleWorkflow2.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      if (!workflowRunTrigger.test(text) || trustedRun.test(text)) {
+        return [];
+      }
+      const steps = stepsIn(lines);
+      const usesApi = apiDownload.test(text);
+      const found = [];
+      steps.forEach((step, index) => {
+        const line = intoWorkspace(step, usesApi);
+        if (line === void 0 || !step.lines.some(({ added }) => added)) {
+          return;
+        }
+        const before2 = steps.slice(0, index).some(({ text: earlier }) => checkout.test(earlier));
+        const after2 = steps.slice(index + 1);
+        const runsCode2 = after2.some(({ text: later }) => runsWorkspaceCode.test(later));
+        if (before2 || runsCode2) {
+          found.push({ line: line.line, runsCode: runsCode2 });
+        }
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const runsCode = found.some((entry3) => entry3.runsCode);
+      return [
+        {
+          ruleId: "workflow-artifact-poisoning",
+          title: "Untrusted artifacts unpacked over the workspace",
+          severity: runsCode ? "high" : "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "unpack" : "unpacks"} artifacts of the run that triggered this \`workflow_run\` workflow into the workspace. A pull request from a fork can fill those artifacts, and their files can replace the checked-out code${runsCode ? ", which later steps run" : ""} with this workflow's secrets and write token.`,
+          recommendation: "Download artifacts from pull request runs into a separate directory, such as `path: ${{ runner.temp }}/artifacts` or `unzip -d`, and treat what they hold as untrusted data: check values such as pull request numbers before using them, never run files from them, and never write their contents to `$GITHUB_ENV`. Or limit the job to runs from this repository with `if: github.event.workflow_run.event == 'push'`."
         }
       ];
     });
@@ -52886,7 +53004,7 @@ function pathWords(path5) {
 }
 
 // src/rules/unpinned-action.ts
-var workflowFile3 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile4 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
@@ -52902,7 +53020,7 @@ var unpinnedActionRule = {
     }
     const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !workflowFile3.test(file.path)) {
+      if (file.patch === void 0 || !workflowFile4.test(file.path)) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(({ line, content }) => {
@@ -52958,7 +53076,7 @@ function list(targets) {
 }
 
 // src/rules/workflow-risk.ts
-var workflowFile4 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile5 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var workflowOnly = /^\.github\/workflows\//;
 var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
 var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
@@ -53009,7 +53127,7 @@ var workflowRiskRule = {
     if (!config3.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile4.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile5.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const workflow = workflowOnly.test(file.path);
@@ -53518,6 +53636,7 @@ var defaultRules = [
   composePublishedPortRule,
   jwtSignatureBypassRule,
   selfHostedPrRunnerRule,
+  workflowArtifactPoisoningRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -53992,6 +54111,7 @@ var ruleAreas = {
   "compose-published-port": "infrastructure",
   "jwt-signature-bypass": "code",
   "self-hosted-pr-runner": "supply-chain",
+  "workflow-artifact-poisoning": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -54126,6 +54246,7 @@ var ruleQuestions = {
   "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
   "jwt-signature-bypass": "Is every token verified with the issuer's key before its claims are used?",
   "self-hosted-pr-runner": "Can pull requests from forks reach this self-hosted runner, and is it rebuilt after every job?",
+  "workflow-artifact-poisoning": "Are artifacts from pull request runs unpacked outside the workspace and treated as untrusted data?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -54264,6 +54385,7 @@ var ruleSections = {
   "compose-published-port": "Compose Published Ports",
   "jwt-signature-bypass": "JWT Signature Bypass",
   "self-hosted-pr-runner": "Self-Hosted Runners for Pull Requests",
+  "workflow-artifact-poisoning": "Workflow Artifact Poisoning",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
