@@ -169,6 +169,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - AWS roles that trust GitHub Actions, GitLab.com, HCP Terraform, or Buildkite tokens from any repository (0.144.0).
 - Passwords, tokens, and keys written into Kubernetes ConfigMaps (0.145.0).
 - Machine images and snapshots shared with every AWS account, and Azure galleries shared with the community (0.146.0).
+- Kubernetes API servers, etcd, and kubelets that accept requests without authentication (0.147.0).
 
 ## Later
 

@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.147.0 - 2026-11-18
+
+### Added
+
+- `kubernetes-control-plane` rule: reports Kubernetes control plane settings that let requests in without authentication, which give whoever reaches the port the cluster's Secrets and pod specs. It reads the API server's insecure port and binding (high), static token and password files, and `AlwaysAdmit` (warning), etcd without client certificates or over HTTP beyond localhost (high) or with `auto-tls` (warning), and the kubelet's `AlwaysAllow` (high), read-only port, and anonymous access (warning), as flags, kubeadm, k3s, RKE, and kops settings, kubelet and etcd configuration files, and `ETCD_` environment variables. Safe values, templates, schemas, benchmark checks such as kube-bench's, mock data, and tests are not reported. On about 770 settings files and scripts from Kubernetes distributions, installers, and security tools, it reports 8, including Kubernetes' GCE `kube-up` scripts, Cilium's etcd unit, and MicroK8s' upgrade script, and etcd 3.3's functional test settings, which sit at the repository's root.
+
 ## 0.146.0 - 2026-11-18
 
 ### Added
