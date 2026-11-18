@@ -122,6 +122,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "public-snapshot": "Is this image or snapshot meant to be public, and has it been checked for keys, credentials, and private data?",
   "kubernetes-control-plane": "Do the API server, etcd, and kubelets require authentication on every port they listen on?",
   "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
+  "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

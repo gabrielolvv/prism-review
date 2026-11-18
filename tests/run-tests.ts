@@ -978,6 +978,12 @@ import {
   testPublicLoadBalancerSkipsTestsAndCanBeDisabled
 } from "./unit/public-load-balancer.test.js";
 import {
+  testComposePublishedPortReadsEachForm,
+  testComposePublishedPortReportsOneFindingPerFile,
+  testComposePublishedPortSkipsPrivateBindingsAndDevelopment,
+  testComposePublishedPortSkipsTestsAndCanBeDisabled
+} from "./unit/compose-published-port.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1678,6 +1684,10 @@ const tests: Array<[string, Test]> = [
   ["public-load-balancer reads each form", testPublicLoadBalancerReadsEachForm],
   ["public-load-balancer skips private and web services", testPublicLoadBalancerSkipsPrivateAndWebServices],
   ["public-load-balancer skips tests and can be disabled", testPublicLoadBalancerSkipsTestsAndCanBeDisabled],
+  ["compose-published-port reports one finding per file", testComposePublishedPortReportsOneFindingPerFile],
+  ["compose-published-port reads each form", testComposePublishedPortReadsEachForm],
+  ["compose-published-port skips private bindings and development", testComposePublishedPortSkipsPrivateBindingsAndDevelopment],
+  ["compose-published-port skips tests and can be disabled", testComposePublishedPortSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

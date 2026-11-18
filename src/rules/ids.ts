@@ -99,6 +99,7 @@ export const ruleIds: readonly string[] = [
   "public-snapshot",
   "kubernetes-control-plane",
   "public-load-balancer",
+  "compose-published-port",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
