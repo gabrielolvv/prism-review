@@ -12,7 +12,7 @@ const composeFile = /\.ya?ml$/i;
 // Compose files for servers, by the same path words `deployment-env-secret` reads: production, stack,
 // deploy, release, live, and Swarm. Development overrides are left out.
 const productionPath = /(?:^|[\/_.-])(?:prod|production|stack|deploy|deployment|release|live|swarm)(?:[\/_.-]|$)/i;
-const overrideFile = /(?:^|\/)(?:docker-)?compose\.override\.ya?ml$|(?:^|[\/_.-])(?:dev|development|local|test|ci|e2e)(?:[\/_.-]|$)/i;
+const overrideFile = /(?:^|\/)(?:docker-)?compose\.override\.ya?ml$|(?:^|[\/_.-])(?:dev|development|local|sandbox|test|ci|e2e)(?:[\/_.-]|$)/i;
 const servicesKey = /^services\s*:\s*(?:#.*)?$/m;
 const portsKey = /^(\s*)ports\s*:\s*(?:#.*)?$/;
 const exposedPorts = new Set([...sensitivePorts, ...Object.keys(servicePorts).map(Number)]);

@@ -59,6 +59,7 @@ export function testComposePublishedPortSkipsPrivateBindingsAndDevelopment(): vo
     ["docker-compose.yml", compose("- \"5432:5432\"")],
     ["deploy/docker-compose.override.yml", compose("- \"5432:5432\"")],
     ["deploy/docker-compose.dev.yml", compose("- \"5432:5432\"")],
+    ["deploy/sandbox/docker-compose.yml", compose("- \"5432:5432\"")],
     ["deploy/k8s/postgres.yaml", ["kind: Pod", "spec:", "  containers:", "    - name: db", "      ports:", "        - 5432"]]
   ];
   for (const [path, lines] of cases) {
