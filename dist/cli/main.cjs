@@ -15465,6 +15465,7 @@ var ruleIds = [
   "configmap-secret",
   "public-snapshot",
   "kubernetes-control-plane",
+  "public-load-balancer",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15884,6 +15885,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     kubernetesControlPlane: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    publicLoadBalancer: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -25397,16 +25401,16 @@ function generatorLiterals(lines, generator) {
   return found;
 }
 function yamlDocuments(lines) {
-  const documents = [[]];
+  const documents2 = [[]];
   for (const line of lines) {
-    if (/^---\s*(?:#.*)?$/.test(line.content) || line.startsHunk && (documents.at(-1)?.length ?? 0) > 0) {
-      documents.push([]);
+    if (/^---\s*(?:#.*)?$/.test(line.content) || line.startsHunk && (documents2.at(-1)?.length ?? 0) > 0) {
+      documents2.push([]);
     }
     if (!/^---/.test(line.content)) {
-      documents.at(-1)?.push(line);
+      documents2.at(-1)?.push(line);
     }
   }
-  return documents;
+  return documents2;
 }
 function findKubernetesSecretLines(path2, patch) {
   if (!yamlFile2.test(path2)) {
@@ -27508,6 +27512,376 @@ ${file.patch}`;
   }
 };
 
+// src/rules/public-exposure.ts
+var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
+var settings26 = [
+  [
+    "makes a storage bucket public",
+    /\bacl\s*[=:]\s*["']public-read(?:-write)?["']|\bAccessControl["']?\s*:\s*["']?PublicRead(?:Write)?\b|\b(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b|\b(?:BlockPublicAcls|BlockPublicPolicy|IgnorePublicAcls|RestrictPublicBuckets)["']?\s*:\s*["']?false\b|\b(?:allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b/
+  ],
+  ["makes a database publicly accessible", /\bpublicly_accessible\s*=\s*true\b|\bPubliclyAccessible["']?\s*:\s*["']?true\b/],
+  ["grants access to allUsers", /["'](?:allUsers|allAuthenticatedUsers)["']/]
+];
+var worldSource = /(?:^|[^\d.])0\.0\.0\.0\/0\b|(?:^|[^:\w])::\/0\b|\bsource_address_prefix\s*=\s*"(?:\*|Internet|Any)"|\bSourceAddressPrefix["']?\s*:\s*["']?(?:\*|Internet)\b/i;
+var outbound = /egress|outbound/i;
+var notInbound = /\b(?:type|direction)["']?\s*[=:]\s*["']?(?:egress|outbound)|\begress\s*=\s*true\b|\b(?:rule_action|access|Access|RuleAction)["']?\s*[=:]\s*["']?deny\b/i;
+var sensitivePorts = [22, 23, 2375, 2376, 2379, 2380, 3306, 3389, 5432, 5601, 5900, 5984, 6379, 9042, 9200, 9300, 10250, 11211, 1433, 1521, 27017];
+var publicExposureRule = {
+  id: "public-exposure",
+  description: "Flags infrastructure that opens sensitive ports to the internet or makes storage and databases public.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.publicExposure.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (file.patch === void 0 || !infrastructureFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const found = findExposure(file.patch, /\.ya?ml$/i.test(file.path));
+      if (found.length === 0) {
+        return [];
+      }
+      const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
+      const labels26 = [
+        ...settings26.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
+        ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
+        ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
+      ];
+      const lines = found.map((match2) => match2.line);
+      const { text, plural } = describeLines(lines);
+      return [
+        {
+          ruleId: "public-exposure",
+          title: "Resource exposed to the internet",
+          severity: "high",
+          file: file.path,
+          line: Math.min(...lines),
+          lines,
+          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels3(labels26)}.`,
+          recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
+        }
+      ];
+    });
+  }
+};
+function findExposure(patch, yaml) {
+  const found = [];
+  const pending = [];
+  let stack = [];
+  for (const { line, content, added, startsHunk } of patchLines(patch)) {
+    if (startsHunk) {
+      stack = [];
+    }
+    if (/^\s*(?:#|\/\/)/.test(content) || content.trim() === "") {
+      continue;
+    }
+    let touched;
+    if (yaml) {
+      const indent = /^\s*/.exec(content)?.[0].length ?? 0;
+      stack = stack.filter((block) => block.indent < indent);
+      for (const block of stack) {
+        block.lines.push(content);
+      }
+      if (/^\s*-\s/.test(content) || /:\s*$/.test(content)) {
+        stack.push({ header: content, indent, lines: [content] });
+      }
+      touched = [...stack];
+    } else {
+      for (const block of stack) {
+        block.lines.push(content);
+      }
+      touched = [...stack];
+      for (const brace of content.replace(/"(?:[^"\\]|\\.)*"/g, '""').match(/[{}]/g) ?? []) {
+        if (brace === "{") {
+          const block = { header: content, indent: 0, lines: [content] };
+          stack.push(block);
+          touched.push(block);
+        } else {
+          stack.pop();
+        }
+      }
+    }
+    if (!added) {
+      continue;
+    }
+    for (const [label, pattern] of settings26) {
+      if (pattern.test(content)) {
+        found.push({ line, label });
+      }
+    }
+    if (worldSource.test(content)) {
+      pending.push({ line, chain: touched.reverse() });
+    }
+  }
+  for (const { line, chain } of pending) {
+    if (chain.some((block2) => outbound.test(block2.header) || notInbound.test(block2.lines.join("\n")))) {
+      continue;
+    }
+    const block = chain.find((candidate) => portsIn(candidate.lines) !== void 0);
+    const ports = block === void 0 ? void 0 : portsIn(block.lines);
+    if (ports === "all") {
+      found.push({ line, allPorts: true });
+    } else if (ports !== void 0) {
+      const open2 = sensitivePorts.filter((port2) => ports.some(([from, to]) => port2 >= from && port2 <= to));
+      if (open2.length > 0) {
+        found.push({ line, ports: open2 });
+      }
+    }
+  }
+  return found.sort((left, right) => left.line - right.line);
+}
+function portsIn(lines) {
+  const text = lines.join("\n");
+  if (/\b(?:protocol|IpProtocol)["']?\s*[=:]\s*["']?(?:-1|all)\b/i.test(text)) {
+    return "all";
+  }
+  const ranges = [];
+  const froms = [...text.matchAll(/\b(?:from_port|FromPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
+  const tos = [...text.matchAll(/\b(?:to_port|ToPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
+  froms.forEach((from, index) => ranges.push([from, tos[index] ?? from]));
+  const values = [
+    ...[...text.matchAll(/\b(?:port|Port|destination_port_range|DestinationPortRange)["']?\s*[=:]\s*["']?(\*|\d+(?:-\d+)?)/g)].map((match2) => match2[1] ?? ""),
+    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]{0,500})\]/g)].flatMap(
+      (match2) => (match2[1] ?? "").split(",").map((value) => value.replace(/["'\s]/g, ""))
+    )
+  ].filter(Boolean);
+  for (const value of values) {
+    if (value === "*") {
+      return "all";
+    }
+    const [from, to] = value.split("-").map(Number);
+    if (from !== void 0 && !Number.isNaN(from)) {
+      ranges.push([from, to ?? from]);
+    }
+  }
+  return ranges.length > 0 ? ranges : void 0;
+}
+function joinLabels3(labels26) {
+  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
+}
+
+// src/rules/public-load-balancer.ts
+var manifestFile3 = /\.(?:ya?ml|json|tf|tf\.json)$/i;
+var ciOrTestSetup19 = /(?:^|[\/_.-])(?:e2e|integ\w*|kind|minikube|k3d)(?:[\/_.-]|$)|__snapshots__|\.snap$|(?:^|\/)(?:hack|docs?)\//i;
+var servicePorts = {
+  22: "SSH",
+  23: "Telnet",
+  1433: "SQL Server",
+  1521: "Oracle",
+  2181: "ZooKeeper",
+  2375: "Docker",
+  2376: "Docker",
+  2379: "etcd",
+  2380: "etcd",
+  3306: "MySQL",
+  3389: "RDP",
+  5432: "PostgreSQL",
+  5601: "Kibana",
+  5672: "AMQP",
+  5900: "VNC",
+  5984: "CouchDB",
+  6379: "Redis",
+  8086: "InfluxDB",
+  8123: "ClickHouse",
+  8500: "Consul",
+  9042: "Cassandra",
+  9092: "Kafka",
+  9200: "Elasticsearch",
+  9300: "Elasticsearch",
+  10250: "the kubelet",
+  11211: "Memcached",
+  15672: "RabbitMQ's console",
+  27017: "MongoDB"
+};
+var exposedPorts = /* @__PURE__ */ new Set([...sensitivePorts, ...Object.keys(servicePorts).map(Number)]);
+var loadBalancerType = /^(\s*)["']?type["']?\s*:\s*["']?LoadBalancer["']?\s*,?\s*(?:#.*)?$/;
+var terraformType = /^\s*type\s*=\s*"LoadBalancer"/;
+var portKey = /(?:^|[\s{,-])["']?(?:port|targetPort|target_port|servicePort|containerPort)["']?\s*[:=]\s*["']?(\d{2,5})(?![\d.])/;
+var namedPort = /^\s*["']?[\w-]+["']?\s*:\s*["']?(\d{2,5})["']?\s*(?:#.*)?$/;
+var portsKey = /^\s*["']?ports["']?\s*:\s*(?:#.*)?$/;
+var internal = /aws-load-balancer-internal["']?\s*[:=]\s*["']?(?:true|0\.0\.0\.0\/0)|aws-load-balancer-scheme["']?\s*[:=]\s*["']?internal\b|load-balancer-type["']?\s*[:=]\s*["']?internal\b|azure-load-balancer-internal["']?\s*[:=]\s*["']?true|openstack-internal-load-balancer["']?\s*[:=]\s*["']?true|ip-type["']?\s*[:=]\s*["']?private\b|oci-load-balancer-internal["']?\s*[:=]\s*["']?true|address-type["']?\s*[:=]\s*["']?intranet\b/i;
+var sourceRanges = /loadBalancerSourceRanges|load_balancer_source_ranges/;
+var worldRange = /0\.0\.0\.0\/0|::\/0/;
+var privateRange = /\b(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|\d+\.\d+\.\d+\.\d+\/(?:[89]|[12]\d|3[0-2]))\b/;
+function indentOf3(content) {
+  return /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function documents(lines) {
+  const found = [[]];
+  for (const line of lines) {
+    if (/^---\s*(?:#.*)?$/.test(line.content) || line.startsHunk && (found.at(-1)?.length ?? 0) > 0) {
+      found.push([]);
+    }
+    if (!/^---/.test(line.content)) {
+      found.at(-1)?.push(line);
+    }
+  }
+  return found;
+}
+function keptPrivate(document) {
+  const text = document.map(({ content }) => content).join("\n");
+  if (internal.test(text)) {
+    return true;
+  }
+  if (!sourceRanges.test(text)) {
+    return false;
+  }
+  const start = document.findIndex(({ content }) => sourceRanges.test(content));
+  const ranges = document.slice(start, start + 12).map(({ content }) => content).join("\n");
+  return !worldRange.test(ranges) && privateRange.test(ranges);
+}
+function mappingAround(document, index, indent) {
+  let first = index;
+  while (first > 0) {
+    const previous = document[first - 1]?.content ?? "";
+    if (previous.trim() !== "" && (indentOf3(previous) < indent || /^\s*-\s/.test(previous) && indentOf3(previous) + 2 <= indent)) {
+      break;
+    }
+    first -= 1;
+  }
+  let last = index;
+  while (last + 1 < document.length) {
+    const next = document[last + 1]?.content ?? "";
+    if (next.trim() !== "" && indentOf3(next) < indent) {
+      break;
+    }
+    last += 1;
+  }
+  return document.slice(first, last + 1);
+}
+function turnedOff3(document, index, indent) {
+  let position = index;
+  let level = indent;
+  for (let depth = 0; depth < 3 && level > 0; depth += 1) {
+    const mapping2 = mappingAround(document, position, level);
+    if (mapping2.some(({ content }) => indentOf3(content) === level && /^\s*["']?enabled["']?\s*:\s*false\b/.test(content))) {
+      return true;
+    }
+    const start = document.indexOf(mapping2[0]);
+    const parent = start - 1;
+    const parentLine = document[parent]?.content ?? "";
+    if (parent < 0 || parentLine.trim() === "") {
+      return false;
+    }
+    position = parent;
+    level = indentOf3(parentLine);
+  }
+  return false;
+}
+function portsIn2(mapping2) {
+  const found = [];
+  let portsIndent;
+  for (const line of mapping2) {
+    const { content } = line;
+    if (content.trim() === "" || /^\s*#/.test(content)) {
+      continue;
+    }
+    if (portsIndent !== void 0 && indentOf3(content) <= portsIndent) {
+      portsIndent = void 0;
+    }
+    if (portsKey.test(content)) {
+      portsIndent = indentOf3(content);
+      continue;
+    }
+    const match2 = portKey.exec(content) ?? (portsIndent !== void 0 ? namedPort.exec(content) : null);
+    const port2 = Number(match2?.[1]);
+    if (match2 !== null && exposedPorts.has(port2)) {
+      found.push({ port: port2, line });
+    }
+  }
+  return found;
+}
+function yamlExposures(lines) {
+  return documents(lines).flatMap((document) => {
+    if (keptPrivate(document)) {
+      return [];
+    }
+    return document.flatMap((typeLine, index) => {
+      const type = loadBalancerType.exec(typeLine.content);
+      if (type === null) {
+        return [];
+      }
+      const indent = (type[1] ?? "").length;
+      const ports = portsIn2(mappingAround(document, index, indent));
+      if (ports.length === 0 || !typeLine.added && !ports.some(({ line }) => line.added) || turnedOff3(document, index, indent)) {
+        return [];
+      }
+      return [{ line: typeLine.line, ports: ports.map(({ port: port2 }) => port2) }];
+    });
+  });
+}
+function terraformExposures(lines) {
+  const found = [];
+  lines.forEach((typeLine, index) => {
+    if (!terraformType.test(typeLine.content)) {
+      return;
+    }
+    let start = index;
+    while (start > 0 && index - start < 40 && !/^\s*resource\s+"kubernetes_service(?:_v1)?"/.test(lines[start]?.content ?? "")) {
+      start -= 1;
+    }
+    if (!/^\s*resource\s+"kubernetes_service(?:_v1)?"/.test(lines[start]?.content ?? "")) {
+      return;
+    }
+    let end = start;
+    let depth = 0;
+    for (; end < lines.length && end < start + 120; end += 1) {
+      const content = lines[end]?.content ?? "";
+      depth += (content.match(/\{/g)?.length ?? 0) - (content.match(/\}/g)?.length ?? 0);
+      if (end > start && depth <= 0) {
+        break;
+      }
+    }
+    const block = lines.slice(start, end + 1);
+    if (keptPrivate(block)) {
+      return;
+    }
+    const ports = portsIn2(block);
+    if (ports.length > 0 && (typeLine.added || ports.some(({ line }) => line.added))) {
+      found.push({ line: typeLine.line, ports: ports.map(({ port: port2 }) => port2) });
+    }
+  });
+  return found;
+}
+var publicLoadBalancerRule = {
+  id: "public-load-balancer",
+  description: "Flags Kubernetes Services of type `LoadBalancer` that put a database, cache, broker, or remote shell on a public load balancer, in manifests, Helm values, and Terraform, unless an internal annotation or source ranges keep it private.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.publicLoadBalancer.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!manifestFile3.test(file.path) || file.patch === void 0 || ciOrTestSetup19.test(file.path) || // Development, example, and test clusters.
+      developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = /\.tf(?:\.json)?$/i.test(file.path) ? terraformExposures(lines) : yamlExposures(lines);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text, plural } = describeLines(lineNumbers);
+      const ports = [...new Set(found.flatMap((exposure2) => exposure2.ports))].sort((left, right) => left - right);
+      const named2 = ports.map((port2) => servicePorts[port2] === void 0 ? `${port2}` : `${port2} (${servicePorts[port2]})`);
+      return [
+        {
+          ruleId: "public-load-balancer",
+          title: "Database or admin port on a public load balancer",
+          severity: "high",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "expose" : "exposes"} ${ports.length > 1 ? "ports" : "port"} ${listOf(named2)} through a public cloud load balancer, so anyone on the internet can connect to ${ports.length > 1 ? "them" : "it"} and try passwords, or read data if authentication is off.`,
+          recommendation: 'Keep databases, caches, brokers, and shells on a `ClusterIP` Service and reach them through the cluster, a VPN, or `kubectl port-forward`. If something outside the cluster needs the port, make the load balancer internal with your cloud\'s annotation, such as `service.beta.kubernetes.io/aws-load-balancer-internal: "true"` or `networking.gke.io/load-balancer-type: "Internal"`, or limit it with `loadBalancerSourceRanges`.'
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -27764,7 +28138,7 @@ var disabledSecurityCheckRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels3(labels26)}.`,
+          message: `${text} ${plural ? "turn off security checks" : listed.length > 1 ? "turns off security checks" : "turns off a security check"}: ${joinLabels4(labels26)}.`,
           recommendation: "Keep these checks on outside local development. Trust a private certificate authority by adding its certificate rather than turning verification off, verify tokens with the expected algorithm, and exempt from CSRF only endpoints that authenticate another way, such as signed webhooks."
         }
       ];
@@ -27780,7 +28154,7 @@ function checksIn(content) {
 function isLocalDownload(content) {
   return /\b(?:curl|wget)\b/.test(content) && localUrl.test(content);
 }
-function joinLabels3(labels26) {
+function joinLabels4(labels26) {
   return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
@@ -29635,7 +30009,7 @@ var privilegedContainerRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels4(labels26)}.`,
+          message: `${text} ${plural ? "weaken" : "weakens"} a container's isolation from its host: ${joinLabels5(labels26)}.`,
           recommendation: "Anything that breaks out of a privileged container, or reaches the Docker socket, controls the host. Grant only the capabilities the workload needs, run as a non-root user, and keep host namespaces and the Docker socket out unless the workload is trusted."
         }
       ];
@@ -29670,7 +30044,7 @@ function findSettings2(patch) {
   }
   return found;
 }
-function joinLabels4(labels26) {
+function joinLabels5(labels26) {
   return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
@@ -29718,7 +30092,7 @@ var dockerfileRiskRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: [...new Set(found.map((match2) => match2.line))],
-          message: `${text} ${plural ? "add" : "adds"} ${joinLabels5(listed.map((kind) => labels20[kind]))}.`,
+          message: `${text} ${plural ? "add" : "adds"} ${joinLabels6(listed.map((kind) => labels20[kind]))}.`,
           recommendation: "Pin base images to a version or digest, switch to a non-root USER before the image runs, give remote ADD sources a --checksum, and pass secrets with RUN --mount=type=secret, since ENV values and build arguments stay in the image and its history."
         }
       ];
@@ -29809,14 +30183,14 @@ function isSecretName3(name) {
   }
   return words.some((word2) => secretWords3.has(word2)) || secretPairs3.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
-function joinLabels5(labels26) {
+function joinLabels6(labels26) {
   return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/insecure-infrastructure.ts
 var terraformFile3 = /\.(?:tf|tf\.json|hcl)$/i;
 var templateFile = /\.(?:json|ya?ml)$/i;
-var settings26 = [
+var settings27 = [
   {
     label: "allows every action in an IAM policy",
     high: true,
@@ -29848,7 +30222,7 @@ var settings26 = [
     cloudFormation: /\bHttpTokens["']?\s*:\s*["']?optional\b/
   }
 ];
-var allowsEverything = settings26[0];
+var allowsEverything = settings27[0];
 var commentLine88 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
@@ -29869,7 +30243,7 @@ var insecureInfrastructureRule = {
       if (found.length === 0) {
         return [];
       }
-      const listed = settings26.filter((setting) => found.some((match2) => match2.setting === setting));
+      const listed = settings27.filter((setting) => found.some((match2) => match2.setting === setting));
       const high3 = listed.some((setting) => setting.high);
       const { text, plural } = describeLines(found.map((match2) => match2.line));
       return [
@@ -29880,7 +30254,7 @@ var insecureInfrastructureRule = {
           file: file.path,
           line: Math.min(...found.map((match2) => match2.line)),
           lines: found.map((match2) => match2.line),
-          message: `${text} ${plural ? "change" : "changes"} infrastructure so that it ${joinLabels6(listed.map((setting) => setting.label))}.`,
+          message: `${text} ${plural ? "change" : "changes"} infrastructure so that it ${joinLabels7(listed.map((setting) => setting.label))}.`,
           recommendation: 'Grant only the actions a role needs, keep encryption at rest and in transit on, require TLS 1.2 or later, keep audit logs on, and require IMDSv2 tokens with http_tokens = "required".'
         }
       ];
@@ -29893,7 +30267,7 @@ function findSettings3(lines, terraform2) {
     if (!added || commentLine88.test(content)) {
       continue;
     }
-    for (const setting of settings26) {
+    for (const setting of settings27) {
       const pattern = terraform2 ? setting.terraform : setting.cloudFormation;
       if (pattern === void 0 || !pattern.test(content)) {
         continue;
@@ -29928,7 +30302,7 @@ function nearestEffect(lines, index) {
   }
   return void 0;
 }
-function joinLabels6(labels26) {
+function joinLabels7(labels26) {
   return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
@@ -29979,7 +30353,7 @@ var kubernetesRbacRule = {
           file: file.path,
           line: lines[0],
           lines,
-          message: `${text} ${plural ? "change" : "changes"} Kubernetes RBAC so that it ${joinLabels7(listed.map((kind) => labels21[kind]))}.`,
+          message: `${text} ${plural ? "change" : "changes"} Kubernetes RBAC so that it ${joinLabels8(listed.map((kind) => labels21[kind]))}.`,
           recommendation: "List the verbs, resources, and API groups each role needs, bind service accounts to those roles instead of cluster-admin, and never bind roles to system:anonymous, system:unauthenticated, or system:authenticated."
         }
       ];
@@ -30038,7 +30412,7 @@ function inlineValues(value) {
   const inline = /^\[([^\]]{0,1000})\]/.exec(value.trim())?.[1];
   return inline === void 0 ? [] : inline.split(",").map((item) => item.trim());
 }
-function joinLabels7(items) {
+function joinLabels8(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
@@ -30084,7 +30458,7 @@ var filePermissionsRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "change" : "changes"} file permissions in a way that ${joinLabels8(listed.map((kind) => labels22[kind]))}.`,
+          message: `${text} ${plural ? "change" : "changes"} file permissions in a way that ${joinLabels9(listed.map((kind) => labels22[kind]))}.`,
           recommendation: "Grant the owner and group what they need, such as 755 for programs and 644 or 640 for data, keep the setuid bit off, and keep a umask of 022 or stricter. Shared temporary directories can use 1777, whose sticky bit stops users from deleting each other's files."
         }
       ];
@@ -30142,7 +30516,7 @@ function modeKinds(mode) {
   }
   return kinds3;
 }
-function joinLabels8(items) {
+function joinLabels9(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
@@ -30197,7 +30571,7 @@ var weakCryptoRule = {
           file: file.path,
           line: Math.min(...lines),
           lines,
-          message: `${text} ${plural ? "use" : "uses"} cryptography that ${joinLabels9(listed.map((kind) => labels23[kind]))}.`,
+          message: `${text} ${plural ? "use" : "uses"} cryptography that ${joinLabels10(listed.map((kind) => labels23[kind]))}.`,
           recommendation: "Hash passwords with bcrypt, scrypt, or Argon2, encrypt with AES-GCM or ChaCha20-Poly1305, and make tokens with a cryptographic generator such as crypto.randomBytes, secrets.token_urlsafe, or SecureRandom."
         }
       ];
@@ -30217,12 +30591,12 @@ function mentionsSecret(content) {
   const words = content.split(/[^A-Za-z0-9]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/)).filter(Boolean).map((word2) => word2.toLowerCase());
   return words.some((word2) => secretWords4.has(word2)) || secretPairs4.some(([first, second2]) => words.some((word2, index) => word2 === first && words[index + 1] === second2));
 }
-function joinLabels9(items) {
+function joinLabels10(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
 // src/rules/xml-external-entities.ts
-var settings27 = [
+var settings28 = [
   // lxml and Python's SAX parser.
   /\b(?:resolve_entities|load_dtd)\s*=\s*True\b|\bno_network\s*=\s*False\b/,
   /\bsetFeature\(\s*(?:[\w.]{0,40}\.)?feature_external_(?:ges|pes)\s*,\s*(?:True|1)\s*\)/,
@@ -30255,7 +30629,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine92.test(content) && settings27.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine92.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -30344,14 +30718,14 @@ var massAssignmentRule = {
           file: file.path,
           line: Math.min(...numbers),
           lines: numbers,
-          message: `${text} ${plural ? "let" : "lets"} a request set fields it should not, such as a role or an owner: the code ${joinLabels10(listed.map((kind) => labels24[kind]))}.`,
+          message: `${text} ${plural ? "let" : "lets"} a request set fields it should not, such as a role or an owner: the code ${joinLabels11(listed.map((kind) => labels24[kind]))}.`,
           recommendation: "List the fields a request may set: permit(:name, :email) in Rails, an explicit fields list in Django forms and serializers, $fillable in Laravel, and picking the expected properties from the body before a create or update."
         }
       ];
     });
   }
 };
-function joinLabels10(items) {
+function joinLabels11(items) {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}` : items[0] ?? "";
 }
 
@@ -30633,155 +31007,6 @@ function withoutDelimiters(pattern) {
   const closing = { "(": ")", "[": "]", "{": "}", "<": ">" }[delimiter] ?? delimiter;
   const end = pattern.lastIndexOf(closing);
   return end > 0 ? pattern.slice(1, end) : pattern;
-}
-
-// src/rules/public-exposure.ts
-var infrastructureFile = /\.(?:tf|tf\.json|hcl|json|ya?ml)$/i;
-var settings28 = [
-  [
-    "makes a storage bucket public",
-    /\bacl\s*[=:]\s*["']public-read(?:-write)?["']|\bAccessControl["']?\s*:\s*["']?PublicRead(?:Write)?\b|\b(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b|\b(?:BlockPublicAcls|BlockPublicPolicy|IgnorePublicAcls|RestrictPublicBuckets)["']?\s*:\s*["']?false\b|\b(?:allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b/
-  ],
-  ["makes a database publicly accessible", /\bpublicly_accessible\s*=\s*true\b|\bPubliclyAccessible["']?\s*:\s*["']?true\b/],
-  ["grants access to allUsers", /["'](?:allUsers|allAuthenticatedUsers)["']/]
-];
-var worldSource = /(?:^|[^\d.])0\.0\.0\.0\/0\b|(?:^|[^:\w])::\/0\b|\bsource_address_prefix\s*=\s*"(?:\*|Internet|Any)"|\bSourceAddressPrefix["']?\s*:\s*["']?(?:\*|Internet)\b/i;
-var outbound = /egress|outbound/i;
-var notInbound = /\b(?:type|direction)["']?\s*[=:]\s*["']?(?:egress|outbound)|\begress\s*=\s*true\b|\b(?:rule_action|access|Access|RuleAction)["']?\s*[=:]\s*["']?deny\b/i;
-var sensitivePorts = [22, 23, 2375, 2376, 2379, 2380, 3306, 3389, 5432, 5601, 5900, 5984, 6379, 9042, 9200, 9300, 10250, 11211, 1433, 1521, 27017];
-var publicExposureRule = {
-  id: "public-exposure",
-  description: "Flags infrastructure that opens sensitive ports to the internet or makes storage and databases public.",
-  run({ files, config: config3 }) {
-    if (!config3.rules.publicExposure.enabled) {
-      return [];
-    }
-    const testGlobs = config3.rules.missingTests.testGlobs;
-    return files.flatMap((file) => {
-      if (file.patch === void 0 || !infrastructureFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
-        return [];
-      }
-      const found = findExposure(file.patch, /\.ya?ml$/i.test(file.path));
-      if (found.length === 0) {
-        return [];
-      }
-      const ports = [...new Set(found.flatMap((match2) => match2.ports ?? []))].sort((left, right) => left - right);
-      const labels26 = [
-        ...settings28.map(([label]) => label).filter((label) => found.some((match2) => match2.label === label)),
-        ...ports.length > 0 ? [`opens ${ports.length > 1 ? "ports" : "port"} ${ports.join(", ")} to the internet`] : [],
-        ...found.some((match2) => match2.allPorts) ? ["opens every port to the internet"] : []
-      ];
-      const lines = found.map((match2) => match2.line);
-      const { text, plural } = describeLines(lines);
-      return [
-        {
-          ruleId: "public-exposure",
-          title: "Resource exposed to the internet",
-          severity: "high",
-          file: file.path,
-          line: Math.min(...lines),
-          lines,
-          message: `${text} ${plural ? "expose" : "exposes"} resources to the internet: ${joinLabels11(labels26)}.`,
-          recommendation: "Limit the source to known address ranges or reach the service through a VPN, bastion, or private endpoint. Keep buckets and databases private, and serve public files through a CDN with read-only access."
-        }
-      ];
-    });
-  }
-};
-function findExposure(patch, yaml) {
-  const found = [];
-  const pending = [];
-  let stack = [];
-  for (const { line, content, added, startsHunk } of patchLines(patch)) {
-    if (startsHunk) {
-      stack = [];
-    }
-    if (/^\s*(?:#|\/\/)/.test(content) || content.trim() === "") {
-      continue;
-    }
-    let touched;
-    if (yaml) {
-      const indent = /^\s*/.exec(content)?.[0].length ?? 0;
-      stack = stack.filter((block) => block.indent < indent);
-      for (const block of stack) {
-        block.lines.push(content);
-      }
-      if (/^\s*-\s/.test(content) || /:\s*$/.test(content)) {
-        stack.push({ header: content, indent, lines: [content] });
-      }
-      touched = [...stack];
-    } else {
-      for (const block of stack) {
-        block.lines.push(content);
-      }
-      touched = [...stack];
-      for (const brace of content.replace(/"(?:[^"\\]|\\.)*"/g, '""').match(/[{}]/g) ?? []) {
-        if (brace === "{") {
-          const block = { header: content, indent: 0, lines: [content] };
-          stack.push(block);
-          touched.push(block);
-        } else {
-          stack.pop();
-        }
-      }
-    }
-    if (!added) {
-      continue;
-    }
-    for (const [label, pattern] of settings28) {
-      if (pattern.test(content)) {
-        found.push({ line, label });
-      }
-    }
-    if (worldSource.test(content)) {
-      pending.push({ line, chain: touched.reverse() });
-    }
-  }
-  for (const { line, chain } of pending) {
-    if (chain.some((block2) => outbound.test(block2.header) || notInbound.test(block2.lines.join("\n")))) {
-      continue;
-    }
-    const block = chain.find((candidate) => portsIn(candidate.lines) !== void 0);
-    const ports = block === void 0 ? void 0 : portsIn(block.lines);
-    if (ports === "all") {
-      found.push({ line, allPorts: true });
-    } else if (ports !== void 0) {
-      const open2 = sensitivePorts.filter((port2) => ports.some(([from, to]) => port2 >= from && port2 <= to));
-      if (open2.length > 0) {
-        found.push({ line, ports: open2 });
-      }
-    }
-  }
-  return found.sort((left, right) => left.line - right.line);
-}
-function portsIn(lines) {
-  const text = lines.join("\n");
-  if (/\b(?:protocol|IpProtocol)["']?\s*[=:]\s*["']?(?:-1|all)\b/i.test(text)) {
-    return "all";
-  }
-  const ranges = [];
-  const froms = [...text.matchAll(/\b(?:from_port|FromPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
-  const tos = [...text.matchAll(/\b(?:to_port|ToPort)["']?\s*[=:]\s*"?(\d+)/g)].map((match2) => Number(match2[1]));
-  froms.forEach((from, index) => ranges.push([from, tos[index] ?? from]));
-  const values = [
-    ...[...text.matchAll(/\b(?:port|Port|destination_port_range|DestinationPortRange)["']?\s*[=:]\s*["']?(\*|\d+(?:-\d+)?)/g)].map((match2) => match2[1] ?? ""),
-    ...[...text.matchAll(/\b(?:ports|destination_port_ranges|DestinationPortRanges)["']?\s*[=:]\s*\[([^\]]{0,500})\]/g)].flatMap(
-      (match2) => (match2[1] ?? "").split(",").map((value) => value.replace(/["'\s]/g, ""))
-    )
-  ].filter(Boolean);
-  for (const value of values) {
-    if (value === "*") {
-      return "all";
-    }
-    const [from, to] = value.split("-").map(Number);
-    if (from !== void 0 && !Number.isNaN(from)) {
-      ranges.push([from, to ?? from]);
-    }
-  }
-  return ranges.length > 0 ? ranges : void 0;
-}
-function joinLabels11(labels26) {
-  return labels26.length > 1 ? `${labels26.slice(0, -1).join(", ")}, and ${labels26.at(-1)}` : labels26[0] ?? "";
 }
 
 // src/rules/remote-script.ts
@@ -31855,6 +32080,7 @@ var defaultRules = [
   configMapSecretRule,
   publicSnapshotRule,
   kubernetesControlPlaneRule,
+  publicLoadBalancerRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -32450,6 +32676,7 @@ var ruleAreas = {
   "configmap-secret": "secrets",
   "public-snapshot": "infrastructure",
   "kubernetes-control-plane": "infrastructure",
+  "public-load-balancer": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -32615,6 +32842,7 @@ var ruleQuestions = {
   "configmap-secret": "Have the credentials in this ConfigMap been rotated and moved to a Secret?",
   "public-snapshot": "Is this image or snapshot meant to be public, and has it been checked for keys, credentials, and private data?",
   "kubernetes-control-plane": "Do the API server, etcd, and kubelets require authentication on every port they listen on?",
+  "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -32749,6 +32977,7 @@ var ruleSections = {
   "configmap-secret": "ConfigMap Secrets",
   "public-snapshot": "Public Images and Snapshots",
   "kubernetes-control-plane": "Kubernetes Control Plane",
+  "public-load-balancer": "Public Load Balancers",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
