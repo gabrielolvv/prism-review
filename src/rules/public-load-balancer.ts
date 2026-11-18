@@ -12,7 +12,7 @@ const manifestFile = /\.(?:ya?ml|json|tf|tf\.json)$/i;
 const ciOrTestSetup = /(?:^|[\/_.-])(?:e2e|integ\w*|kind|minikube|k3d)(?:[\/_.-]|$)|__snapshots__|\.snap$|(?:^|\/)(?:hack|docs?)\//i;
 
 // The ports `public-exposure` reports, and brokers, consoles, and stores that Kubernetes often runs.
-const servicePorts: Record<number, string> = {
+export const servicePorts: Record<number, string> = {
   22: "SSH",
   23: "Telnet",
   1433: "SQL Server",
