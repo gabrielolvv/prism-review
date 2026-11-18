@@ -128,6 +128,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "workflow-artifact-poisoning": "Are artifacts from pull request runs unpacked outside the workspace and treated as untrusted data?",
   "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
   "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
+  "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

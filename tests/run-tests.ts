@@ -1014,6 +1014,12 @@ import {
   testAiServiceExposureSkipsTestsAndCanBeDisabled
 } from "./unit/ai-service-exposure.test.js";
 import {
+  testUnpinnedRemoteSourceReadsEachSource,
+  testUnpinnedRemoteSourceReportsOneFindingPerFile,
+  testUnpinnedRemoteSourceSkipsPinnedAndLocalSources,
+  testUnpinnedRemoteSourceSkipsTestsAndCanBeDisabled
+} from "./unit/unpinned-remote-source.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1738,6 +1744,10 @@ const tests: Array<[string, Test]> = [
   ["ai-service-exposure reads each service", testAiServiceExposureReadsEachService],
   ["ai-service-exposure skips containers and authenticated services", testAiServiceExposureSkipsContainersAndAuthenticatedServices],
   ["ai-service-exposure skips tests and can be disabled", testAiServiceExposureSkipsTestsAndCanBeDisabled],
+  ["unpinned-remote-source reports one finding per file", testUnpinnedRemoteSourceReportsOneFindingPerFile],
+  ["unpinned-remote-source reads each source", testUnpinnedRemoteSourceReadsEachSource],
+  ["unpinned-remote-source skips pinned and local sources", testUnpinnedRemoteSourceSkipsPinnedAndLocalSources],
+  ["unpinned-remote-source skips tests and can be disabled", testUnpinnedRemoteSourceSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
