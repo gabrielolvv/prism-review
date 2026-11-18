@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.154.0 - 2026-11-18
+
+### Added
+
+- `ai-service-exposure` rule: reports AI tools opened to others without a login. It reads Open WebUI's `WEBUI_AUTH` turned off and Ray's dashboard on every interface of a host from systemd units and shell scripts (high), and `ray.init(dashboard_host="0.0.0.0")` in Python, Gradio share links without `auth`, `--share` in text-generation-webui and Stable Diffusion web UI, `OLLAMA_ORIGINS=*`, and `OLLAMA_HOST=0.0.0.0` on a host (warning). Bindings inside Dockerfiles, Compose files, and Kubernetes manifests, where published ports and Services decide exposure, logins, tests, and examples are not reported. On about 12,900 files from AI model servers, web UIs, and ML libraries, it reports 3, each turning Open WebUI's login off.
+
 ## 0.153.0 - 2026-11-18
 
 ### Added
