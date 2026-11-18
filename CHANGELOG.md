@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.150.0 - 2026-11-18
+
+### Added
+
+- `jwt-signature-bypass` rule: reports, as high, JSON Web Token code that turns signature verification off, so anyone can write a token with the claims they want and have it accepted. It reads .NET's `RequireSignedTokens = false` and pass-through `SignatureValidator`s, Ruby's `JWT.decode(token, key, false)`, jose4j's skip and no-constraint switches, Java JWT's `Algorithm.none()`, JJWT's `unsecured()` and unsecured parsing, Nimbus's `PlainJWT`, jwx's `WithVerify(false)` and `ParseInsecure`, golang-jwt's `UnsafeAllowNoneSignatureType`, jose's `UnsecuredJWT`, lcobucci/jwt's unsecured signer, and Rust's `insecure_disable_signature_validation()`. Tokens verified with a key right after they are read, uses with a comment that explains why the token is trusted, claim-only checks, library definitions, and tests are not reported. On 43 files that name these switches or claim checks, it reports 2, both accepting unsigned tokens on purpose: golang-jwt's command-line tool and Ory Fosite's OpenID Connect request objects.
+
 ## 0.149.0 - 2026-11-18
 
 ### Added
