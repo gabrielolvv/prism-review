@@ -129,6 +129,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
   "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
   "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
+  "terraform-sensitive-value": "Are the secrets in these Terraform variables marked sensitive, and were any printed in CI logs rotated?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

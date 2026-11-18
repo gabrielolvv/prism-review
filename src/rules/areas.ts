@@ -134,6 +134,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "privileged-pr-checkout": "supply-chain",
   "ai-service-exposure": "infrastructure",
   "unpinned-remote-source": "supply-chain",
+  "terraform-sensitive-value": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

@@ -97,6 +97,7 @@ import { workflowArtifactPoisoningRule } from "./workflow-artifact-poisoning.js"
 import { privilegedPrCheckoutRule } from "./privileged-pr-checkout.js";
 import { aiServiceExposureRule } from "./ai-service-exposure.js";
 import { unpinnedRemoteSourceRule } from "./unpinned-remote-source.js";
+import { terraformSensitiveValueRule } from "./terraform-sensitive-value.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -237,6 +238,7 @@ export const defaultRules: Rule[] = [
   privilegedPrCheckoutRule,
   aiServiceExposureRule,
   unpinnedRemoteSourceRule,
+  terraformSensitiveValueRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
