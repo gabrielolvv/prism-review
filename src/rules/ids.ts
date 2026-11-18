@@ -105,6 +105,7 @@ export const ruleIds: readonly string[] = [
   "workflow-artifact-poisoning",
   "privileged-pr-checkout",
   "ai-service-exposure",
+  "unpinned-remote-source",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

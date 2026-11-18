@@ -133,6 +133,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "workflow-artifact-poisoning": "supply-chain",
   "privileged-pr-checkout": "supply-chain",
   "ai-service-exposure": "infrastructure",
+  "unpinned-remote-source": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
