@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.155.0 - 2026-11-18
+
+### Added
+
+- `unpinned-remote-source` rule: warns about code pulled from a reference that moves, so whoever can push to it changes what runs here without a review. It reads Terraform and Terragrunt modules whose git source has no `ref` or names a branch, registry and `tfr://` modules without a version, pre-commit hooks with `rev:` set to a branch, and GitLab CI `remote:` includes without a commit SHA, `project:` includes without a `ref` or on a branch, and components without a version or at `~latest`. Tags, commit SHAs, local paths, templated sources, tflint plugins, and development, example, and test stacks are not reported. On 21,917 Terraform, Terragrunt, pre-commit, and GitLab CI files, it reports 39: 34 workspace definitions from one organization that use its own module without a `ref`, 3 Stratus Red Team techniques that use a registry module without a `version`, Apache Camel K's pre-commit hook at `master`, and GitLab's own pipeline, which includes a file from another project's `main` branch.
+
+### Fixed
+
+- `compose-published-port` no longer reports Compose files for sandboxes, such as Tinkerbell's sandbox in Lokomotive. A new run of the earlier validations, on candidate lists rebuilt one file at a time after the parallel build had dropped some paths, found the same reports for `public-snapshot`, `kubernetes-control-plane`, `public-load-balancer`, and `ai-service-exposure`, and one more for `compose-published-port`: AIBrix's standalone deployment, which publishes Redis on every interface. Its documentation now gives about 1,030 Compose files, 81 of them for production, and 3 reports.
+
 ## 0.154.0 - 2026-11-18
 
 ### Added
