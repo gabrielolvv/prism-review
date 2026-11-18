@@ -1020,6 +1020,12 @@ import {
   testUnpinnedRemoteSourceSkipsTestsAndCanBeDisabled
 } from "./unit/unpinned-remote-source.test.js";
 import {
+  testTerraformSensitiveValueReadsEachForm,
+  testTerraformSensitiveValueReportsOneFindingPerFile,
+  testTerraformSensitiveValueSkipsMarkedAndNonSecretValues,
+  testTerraformSensitiveValueSkipsTestsAndCanBeDisabled
+} from "./unit/terraform-sensitive-value.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1748,6 +1754,10 @@ const tests: Array<[string, Test]> = [
   ["unpinned-remote-source reads each source", testUnpinnedRemoteSourceReadsEachSource],
   ["unpinned-remote-source skips pinned and local sources", testUnpinnedRemoteSourceSkipsPinnedAndLocalSources],
   ["unpinned-remote-source skips tests and can be disabled", testUnpinnedRemoteSourceSkipsTestsAndCanBeDisabled],
+  ["terraform-sensitive-value reports one finding per file", testTerraformSensitiveValueReportsOneFindingPerFile],
+  ["terraform-sensitive-value reads each form", testTerraformSensitiveValueReadsEachForm],
+  ["terraform-sensitive-value skips marked and non-secret values", testTerraformSensitiveValueSkipsMarkedAndNonSecretValues],
+  ["terraform-sensitive-value skips tests and can be disabled", testTerraformSensitiveValueSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

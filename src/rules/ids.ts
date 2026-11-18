@@ -106,6 +106,7 @@ export const ruleIds: readonly string[] = [
   "privileged-pr-checkout",
   "ai-service-exposure",
   "unpinned-remote-source",
+  "terraform-sensitive-value",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
