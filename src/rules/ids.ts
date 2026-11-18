@@ -101,6 +101,7 @@ export const ruleIds: readonly string[] = [
   "public-load-balancer",
   "compose-published-port",
   "jwt-signature-bypass",
+  "self-hosted-pr-runner",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

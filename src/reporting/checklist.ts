@@ -124,6 +124,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
   "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
   "jwt-signature-bypass": "Is every token verified with the issuer's key before its claims are used?",
+  "self-hosted-pr-runner": "Can pull requests from forks reach this self-hosted runner, and is it rebuilt after every job?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

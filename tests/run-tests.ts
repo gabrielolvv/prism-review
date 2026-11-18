@@ -990,6 +990,12 @@ import {
   testJwtSignatureBypassSkipsVerifiedAndExplainedUses
 } from "./unit/jwt-signature-bypass.test.js";
 import {
+  testSelfHostedPrRunnerReadsEachForm,
+  testSelfHostedPrRunnerReportsOneFindingPerFile,
+  testSelfHostedPrRunnerSkipsExamplesAndCanBeDisabled,
+  testSelfHostedPrRunnerSkipsGuardedAndHostedJobs
+} from "./unit/self-hosted-pr-runner.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1698,6 +1704,10 @@ const tests: Array<[string, Test]> = [
   ["jwt-signature-bypass reads each library", testJwtSignatureBypassReadsEachLibrary],
   ["jwt-signature-bypass skips verified and explained uses", testJwtSignatureBypassSkipsVerifiedAndExplainedUses],
   ["jwt-signature-bypass skips tests and can be disabled", testJwtSignatureBypassSkipsTestsAndCanBeDisabled],
+  ["self-hosted-pr-runner reports one finding per file", testSelfHostedPrRunnerReportsOneFindingPerFile],
+  ["self-hosted-pr-runner reads each form", testSelfHostedPrRunnerReadsEachForm],
+  ["self-hosted-pr-runner skips guarded and hosted jobs", testSelfHostedPrRunnerSkipsGuardedAndHostedJobs],
+  ["self-hosted-pr-runner skips examples and can be disabled", testSelfHostedPrRunnerSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
