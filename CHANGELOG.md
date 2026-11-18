@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.152.0 - 2026-11-18
+
+### Added
+
+- `workflow-artifact-poisoning` rule: reports GitHub Actions workflows triggered by `workflow_run` that unpack the triggering run's artifacts into the workspace, where files from a fork pull request's run can replace the scripts, actions, and build files that later steps run with the workflow's secrets and write token. It reads `actions/download-artifact` with the triggering run's `run-id`, `dawidd6/action-download-artifact`, `gh run download`, and the REST API with `unzip`, and reports high when a later step runs workspace code and a warning otherwise. Artifacts unpacked into a separate directory, workflows without checked-out code, runs limited to pushes, and example workflows are not reported. On 3,104 workflows, 17 of them downloading a triggering run's artifacts, it reports one: a pull request linter that unpacks a pull request run's artifact into the workspace and then runs a script from the checkout.
+
 ## 0.151.0 - 2026-11-18
 
 ### Added
