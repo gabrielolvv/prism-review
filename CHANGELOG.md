@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.146.0 - 2026-11-18
+
+### Added
+
+- `public-snapshot` rule: reports machine images and snapshots shared with every AWS account, which anyone can then launch, mount, or restore to read the files, keys, and data in them. RDS and Aurora snapshots and EBS snapshots are high; public AMIs and Azure Compute Galleries shared with the community are warnings, since operating system and product publishers share images on purpose, and so is a snapshot shared next to a public image. It reads Terraform's `shared_accounts` and `aws_ami_launch_permission`, Packer's `ami_groups` and `snapshot_groups`, EC2 Image Builder's `user_groups`, the AWS CLI and PowerShell commands that share with `all`, and SDK calls in Python, Go, and JavaScript. Sharing with named accounts, removals, and other uses of `all` are not reported. On about 6,700 files from Packer, AMI, and cloud security projects and the earlier corpora's matching files, it reports four warnings, all for images meant to be public: Buildkite's Elastic CI Stack AMIs, and Flatcar's and CoreOS's operating system AMIs.
+
 ## 0.145.0 - 2026-11-18
 
 ### Added
