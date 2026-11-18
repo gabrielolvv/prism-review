@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.157.0 - 2026-11-18
+
+### Added
+
+- `release-cache-poisoning` rule: warns about GitHub Actions jobs that publish a release and restore a cache, which any workflow on the default branch can poison, as in the December 2024 Ultralytics compromise. It reads publishing commands and actions, from `npm publish` and `twine upload` to GoReleaser and `pypa/gh-action-pypi-publish`, every job of workflows started only by a release or tag, and caches from `actions/cache`, `actions/setup-go`'s default, Gradle's setup, `Swatinem/rust-cache`, setup actions with `cache:`, `setup-ruby`, `setup-uv`, and Docker's `type=gha`. Caching turned off, checks that also run on tags, snapshot builds, pushes to a local registry, and example workflows are not reported. On 2,756 workflows, 158 with a publishing job, it reports 59 in 47 repositories.
+
 ## 0.156.0 - 2026-11-18
 
 ### Added
