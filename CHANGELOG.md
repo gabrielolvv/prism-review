@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.153.0 - 2026-11-18
+
+### Added
+
+- `privileged-pr-checkout` rule: reports `pull_request_target`, `issue_comment`, and `workflow_run` workflows that fetch a pull request's code with commands, such as `gh pr checkout`, `git fetch` of `pull/N/head`, `git checkout` of the head SHA, or a clone of the fork, where it runs with the repository's secrets and a write token. `workflow-risk` already reads `actions/checkout` with a pull request `ref`. Findings are high when later steps run workspace code and warnings otherwise. Jobs that only maintainers can start, by association, team membership, permission lookup, or approval label, `pull_request` workflows, and example workflows are not reported. On 3,104 workflows, 294 of them with these triggers, it warns about one: a `pull_request_target` workflow that checks out pull requests with `gh` and scans them.
+
 ## 0.152.0 - 2026-11-18
 
 ### Added
