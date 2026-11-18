@@ -103,6 +103,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "public-load-balancer": "Public Load Balancers",
   "compose-published-port": "Compose Published Ports",
   "jwt-signature-bypass": "JWT Signature Bypass",
+  "self-hosted-pr-runner": "Self-Hosted Runners for Pull Requests",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
