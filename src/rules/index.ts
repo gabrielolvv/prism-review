@@ -98,6 +98,7 @@ import { privilegedPrCheckoutRule } from "./privileged-pr-checkout.js";
 import { aiServiceExposureRule } from "./ai-service-exposure.js";
 import { unpinnedRemoteSourceRule } from "./unpinned-remote-source.js";
 import { terraformSensitiveValueRule } from "./terraform-sensitive-value.js";
+import { releaseCachePoisoningRule } from "./release-cache-poisoning.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -239,6 +240,7 @@ export const defaultRules: Rule[] = [
   aiServiceExposureRule,
   unpinnedRemoteSourceRule,
   terraformSensitiveValueRule,
+  releaseCachePoisoningRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
