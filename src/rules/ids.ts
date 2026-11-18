@@ -97,6 +97,7 @@ export const ruleIds: readonly string[] = [
   "ci-oidc-trust",
   "configmap-secret",
   "public-snapshot",
+  "kubernetes-control-plane",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",

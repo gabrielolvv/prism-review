@@ -120,6 +120,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "ci-oidc-trust": "Does every CI role trust policy name the organization and repository or project allowed to assume it?",
   "configmap-secret": "Have the credentials in this ConfigMap been rotated and moved to a Secret?",
   "public-snapshot": "Is this image or snapshot meant to be public, and has it been checked for keys, credentials, and private data?",
+  "kubernetes-control-plane": "Do the API server, etcd, and kubelets require authentication on every port they listen on?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
