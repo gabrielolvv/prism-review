@@ -1008,6 +1008,12 @@ import {
   testPrivilegedPrCheckoutSkipsMaintainerJobsAndPullRequestTriggers
 } from "./unit/privileged-pr-checkout.test.js";
 import {
+  testAiServiceExposureReadsEachService,
+  testAiServiceExposureReportsOneFindingPerFile,
+  testAiServiceExposureSkipsContainersAndAuthenticatedServices,
+  testAiServiceExposureSkipsTestsAndCanBeDisabled
+} from "./unit/ai-service-exposure.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1728,6 +1734,10 @@ const tests: Array<[string, Test]> = [
   ["privileged-pr-checkout reads each command", testPrivilegedPrCheckoutReadsEachCommand],
   ["privileged-pr-checkout skips maintainer jobs and pull request triggers", testPrivilegedPrCheckoutSkipsMaintainerJobsAndPullRequestTriggers],
   ["privileged-pr-checkout skips examples and can be disabled", testPrivilegedPrCheckoutSkipsExamplesAndCanBeDisabled],
+  ["ai-service-exposure reports one finding per file", testAiServiceExposureReportsOneFindingPerFile],
+  ["ai-service-exposure reads each service", testAiServiceExposureReadsEachService],
+  ["ai-service-exposure skips containers and authenticated services", testAiServiceExposureSkipsContainersAndAuthenticatedServices],
+  ["ai-service-exposure skips tests and can be disabled", testAiServiceExposureSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

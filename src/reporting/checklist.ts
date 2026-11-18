@@ -127,6 +127,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "self-hosted-pr-runner": "Can pull requests from forks reach this self-hosted runner, and is it rebuilt after every job?",
   "workflow-artifact-poisoning": "Are artifacts from pull request runs unpacked outside the workspace and treated as untrusted data?",
   "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
+  "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
