@@ -132,6 +132,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "self-hosted-pr-runner": "supply-chain",
   "workflow-artifact-poisoning": "supply-chain",
   "privileged-pr-checkout": "supply-chain",
+  "ai-service-exposure": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
