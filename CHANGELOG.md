@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.156.0 - 2026-11-18
+
+### Added
+
+- `terraform-sensitive-value` rule: warns about Terraform secrets left visible in `plan` and `apply` output, which usually end up in CI logs and pull request comments. It reads `variable` blocks whose name ends in a secret, such as `db_password`, `github_token`, or `slack_webhook_url`, without `sensitive = true` or `ephemeral = true`, and `nonsensitive()` around a value named for a secret. Settings about secrets, such as `password_length` or `secret_name`, `bool` and `number` variables, descriptions of a secret's name or ARN, comparisons, map keys, and hashes, `.tfvars` files, and tests and examples are not reported. On about 4,650 Terraform files, where 41 of 150 variables named for secrets are marked, it reports 61 files in 14 repositories, including two secrets passed to a Helm chart through `nonsensitive()`.
+
 ## 0.155.0 - 2026-11-18
 
 ### Added
