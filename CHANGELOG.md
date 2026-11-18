@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.158.0 - 2026-11-18
+
+### Added
+
+- `production-source-map` rule: warns about production web builds that publish source maps, which let anyone rebuild the application's original source with its comments, internal routes, and feature flags. It reads Next.js `productionBrowserSourceMaps`, Vue CLI `productionSourceMap`, Vite and Nuxt `sourcemap`, webpack, Rspack, and Rsbuild `devtool`, including the production branch of a condition, Angular's production `sourceMap`, and `GENERATE_SOURCEMAP=true`. Hidden maps, maps deleted after upload to an error tracker, development servers and settings, library and server builds, tests, and examples are not reported. On about 760 build configuration files from 73 open-source web applications and the earlier corpora, it reports 26 in 20 projects.
+
 ## 0.157.0 - 2026-11-18
 
 ### Added
