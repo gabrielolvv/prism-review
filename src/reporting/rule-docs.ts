@@ -102,6 +102,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "kubernetes-control-plane": "Kubernetes Control Plane",
   "public-load-balancer": "Public Load Balancers",
   "compose-published-port": "Compose Published Ports",
+  "jwt-signature-bypass": "JWT Signature Bypass",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
