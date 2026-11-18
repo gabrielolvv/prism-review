@@ -34,6 +34,12 @@ const rayStart = /\bray\s+start\b[^\n]*--dashboard-host[=\s]+["']?0\.0\.0\.0/;
 const rayInit = /\bray\.init\s*\(/;
 const rayInitDashboard = /\bdashboard_host\s*=\s*["']0\.0\.0\.0["']/;
 
+// Whether a setting appears outside backticks, which descriptions and messages use to quote one.
+function sets(pattern: RegExp, content: string): boolean {
+  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+  return [...content.matchAll(global)].some((match) => content[(match.index ?? 0) - 1] !== "`");
+}
+
 // A call's text from `start`, over the lines it may span.
 function callText(lines: PatchLine[], index: number, start: RegExp): string {
   const call = lines
@@ -58,23 +64,23 @@ function exposures(lines: PatchLine[], host: boolean, python: boolean): Found[] 
     }
     // Ray's dashboard: high from a host's units and scripts, a warning from Python, which may run in a
     // container.
-    if (host && rayStart.test(content)) {
+    if (host && sets(rayStart, content)) {
       add(line, "ray", true);
     }
     if (python && rayInit.test(content) && rayInitDashboard.test(callText(lines, index, rayInit))) {
       add(line, "ray");
     }
-    if (shareFlag.test(content) && !gradioAuthFlag.test(content)) {
+    if (sets(shareFlag, content) && !gradioAuthFlag.test(content)) {
       add(line, "share");
     }
     const next = lines[index + 1]?.content ?? "";
-    if (webuiAuthOff.test(content) || (webuiAuthName.test(content) && falseValue.test(next))) {
+    if (sets(webuiAuthOff, content) || (webuiAuthName.test(content) && falseValue.test(next))) {
       add(line, "webui", true);
     }
-    if (ollamaOrigins.test(content)) {
+    if (sets(ollamaOrigins, content)) {
       add(line, "origins");
     }
-    if (host && ollamaHost.test(content)) {
+    if (host && sets(ollamaHost, content)) {
       add(line, "ollama");
     }
   });
