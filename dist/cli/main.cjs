@@ -33192,7 +33192,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version3 = true ? "0.144.0" : "development";
+var version3 = true ? "0.145.0" : "development";
 
 // src/cli/main.ts
 var usage = [

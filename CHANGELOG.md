@@ -2,6 +2,16 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.145.0 - 2026-11-18
+
+### Added
+
+- `configmap-secret` rule: reports, as high, passwords, tokens, and keys written into Kubernetes ConfigMaps, which are committed to the repository and, in the cluster, readable by the built-in `view` role and usually left out of encryption at rest. It reads keys named like secrets in `data`, settings in config files kept in a ConfigMap, such as `spring.datasource.password=...` in `application.properties`, and Kustomize `configMapGenerator` literals, before redaction and without printing the values. Templated values, placeholders, base64-encoded sample values, names of Secrets and their keys, non-secret settings, examples, and tests are not reported. On about 3,090 ConfigMap manifests and Kustomize files, it reports one: the gateway admin password in the Apache Linkis 1.8.0 Helm chart.
+
+### Changed
+
+- `kubernetes-secret-values` now shares its reading of manifest data sections and Kustomize literals with `configmap-secret`. Its results are unchanged.
+
 ## 0.144.0 - 2026-11-16
 
 ### Added

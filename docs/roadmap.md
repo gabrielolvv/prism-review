@@ -167,6 +167,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Coding agent settings that run commands without asking (0.142.0).
 - Install scripts added to published npm and Python packages (0.143.0).
 - AWS roles that trust GitHub Actions, GitLab.com, HCP Terraform, or Buildkite tokens from any repository (0.144.0).
+- Passwords, tokens, and keys written into Kubernetes ConfigMaps (0.145.0).
 
 ## Later
 
