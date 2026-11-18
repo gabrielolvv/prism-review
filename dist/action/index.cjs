@@ -36646,6 +36646,7 @@ var ruleIds = [
   "privileged-pr-checkout",
   "ai-service-exposure",
   "unpinned-remote-source",
+  "terraform-sensitive-value",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37089,6 +37090,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     unpinnedRemoteSource: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    terraformSensitiveValue: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -47791,7 +47795,7 @@ var mcpServerConfigRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text } = describeLines(lineNumbers);
       const kinds3 = new Set(found.map(({ kind }) => kind));
-      const phrases6 = [
+      const phrases7 = [
         ...kinds3.has("secret") ? [`writes ${named(found, "secret")} in plain text, so the token is committed to the repository, where anyone who can read it, a fork, or its history can use it`] : [],
         ...kinds3.has("unpinned") ? [`starts ${named(found, "unpinned")} without a fixed version, so every start runs whatever was published last, with the tokens, files, and tools the server is given`] : [],
         ...kinds3.has("http") ? [`reaches ${named(found, "http")} over plain HTTP, so anyone on the network can read the requests and change the tool results the model acts on`] : []
@@ -47804,7 +47808,7 @@ var mcpServerConfigRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the MCP configuration ${listOf(phrases6)}.`,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the MCP configuration ${listOf(phrases7)}.`,
           recommendation: "Read tokens from the environment or the client's prompts, such as `${env:GITHUB_TOKEN}` or VS Code's `${input:github-token}`, and rotate any token that was committed. Pin server packages and images to a version or digest, such as `@modelcontextprotocol/server-github@2025.4.8` or `image@sha256:...`, and reach remote servers over HTTPS."
         }
       ];
@@ -49835,6 +49839,119 @@ var unpinnedRemoteSourceRule = {
   }
 };
 
+// src/rules/terraform-sensitive-value.ts
+var terraformFile4 = /\.tf$/i;
+var ciOrTestSetup22 = /(?:^|[\/_.-])(?:e2e|integ|inttest|tests?|fixtures?|examples?|samples?|demos?|testdata|enos)(?:[\/_.-]|$)|(?:^|\/)(?:hack|docs?)\//i;
+var secretName2 = /(?:^|[_-])(?:password|passwd|pwd|secret|client_secret|token|api_?key|apikey|private_?key|access_?key|secret_?key|signing_?key|ssh_?key|deploy_?key|passphrase|credentials?|connection_?string|conn_?str|webhook_?url|sas)$/i;
+var describesReference = /\b(?:name|names|arn|arns|id|ids|ocid|path|url|uri|reference|location|key id)\s+(?:of|for|to|where|that|in|containing)\b|\b(?:secret|secrets manager|key vault|parameter|parameter store|ssm|vault|chamber)\s+(?:name|arn|id|path|reference|key)\b|\bwhether\b|\benable\b|\bif true\b/i;
+var variableStart = /^\s*variable\s+"([^"]+)"\s*\{/;
+var markedKey = /^\s*(?:sensitive|ephemeral)\s*=\s*true\b/;
+var nonSecretType = /^\s*type\s*=\s*(?:bool|number|object\s*\(|map\s*\(\s*object|list\s*\(\s*object)/;
+var literalDefault = /^\s*default\s*=\s*(?:true|false|-?\d+(?:\.\d+)?|null)\s*$/;
+var nonsensitiveCall = /\bnonsensitive\s*\(/g;
+var secretExpression = /password|passwd|secret|token|private_?key|api_?key|access_?key|deploy_?key|passphrase|credential/i;
+var harmless = /^\s*(?:keys|length|toset\s*\(\s*keys|sha\d*|md5|base64sha\d*|bcrypt|can|type)\s*\(|\b(?:_?names?|_?arns?|_?ids?|_?length|_?keys)\b\s*\)?\s*$/i;
+var commentLine87 = /^\s*(?:#|\/\/)/;
+function blockAt2(lines, index) {
+  const block = [];
+  let depth = 0;
+  for (const line of lines.slice(index, index + 40)) {
+    if (block.length > 0 && line.startsHunk) {
+      break;
+    }
+    block.push(line);
+    depth += (line.content.match(/\{/g)?.length ?? 0) - (line.content.match(/\}/g)?.length ?? 0);
+    if (depth <= 0) {
+      break;
+    }
+  }
+  return block;
+}
+function argumentAt(content, start) {
+  let depth = 1;
+  let index = start;
+  while (index < content.length && depth > 0) {
+    depth += content[index] === "(" ? 1 : content[index] === ")" ? -1 : 0;
+    index += 1;
+  }
+  return { text: content.slice(start, depth === 0 ? index - 1 : index), end: index };
+}
+function unmarkedVariables(lines) {
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    const name = variableStart.exec(content)?.[1];
+    if (!added || name === void 0 || !secretName2.test(name) || /public/i.test(name)) {
+      return;
+    }
+    const block = blockAt2(lines, index).map(({ content: text }) => text);
+    const description = block.find((text) => /^\s*description\s*=/.test(text)) ?? "";
+    if (block.some((text) => markedKey.test(text) || nonSecretType.test(text) || literalDefault.test(text)) || // One-line blocks, such as `variable "token" { sensitive = true }`.
+    /\b(?:sensitive|ephemeral)\s*=\s*true\b/.test(content) || describesReference.test(description)) {
+      return;
+    }
+    found.push({ line, kind: "variable", name });
+  });
+  return found;
+}
+function unmarkedSecrets(lines) {
+  const found = [];
+  for (const { line, content, added } of lines) {
+    if (!added || commentLine87.test(content)) {
+      continue;
+    }
+    for (const match2 of content.matchAll(nonsensitiveCall)) {
+      const start = (match2.index ?? 0) + match2[0].length;
+      const { text, end } = argumentAt(content, start);
+      const rest = content.slice(end);
+      if (secretExpression.test(text) && !harmless.test(text) && !/^\s*(?:==|!=|>|<)/.test(rest)) {
+        found.push({ line, kind: "unmarked", name: text.trim() });
+      }
+    }
+  }
+  return found;
+}
+var phrases6 = {
+  variable: "declares Terraform variables named for secrets without `sensitive = true`, so their values appear in `plan` and `apply` output, and in CI logs, wherever a resource uses them in a setting the provider does not hide",
+  unmarked: "removes Terraform's redaction from secrets with `nonsensitive()`, so `plan` and `apply` print them"
+};
+var terraformSensitiveValueRule = {
+  id: "terraform-sensitive-value",
+  description: "Warns about Terraform secrets left visible in `plan` and `apply` output: variables named for a password, token, or key without `sensitive = true`, and secrets passed through `nonsensitive()`.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.terraformSensitiveValue.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!terraformFile4.test(file.path) || file.patch === void 0 || ciOrTestSetup22.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = [...unmarkedVariables(lines), ...unmarkedSecrets(lines)];
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text } = describeLines(lineNumbers);
+      const kinds3 = Object.keys(phrases6).filter((kind) => found.some((entry3) => entry3.kind === kind));
+      const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
+      const named2 = names2.length > 3 ? [...names2.slice(0, 3), `${names2.length - 3} more`] : names2;
+      return [
+        {
+          ruleId: "terraform-sensitive-value",
+          title: "Terraform secret shown in plan output",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the change ${listOf(kinds3.map((kind) => phrases6[kind]))}: ${listOf(named2)}.`,
+          recommendation: "Add `sensitive = true` to variables that hold secrets, or `ephemeral = true` on Terraform 1.10 and later for values that should stay out of the state too. Pass secrets to Helm with `set_sensitive`, and keep `nonsensitive()` for values that reveal nothing, such as a map's keys or a comparison."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -49902,7 +50019,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine87 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine88 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -49960,7 +50077,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine87.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine88.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -50057,7 +50174,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine88 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine3 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -50074,7 +50191,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine88.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine89.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -51870,7 +51987,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine89 = /^\s*#/;
+var commentLine90 = /^\s*#/;
 var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -51914,7 +52031,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine89.test(content)) {
+    if (commentLine90.test(content)) {
       continue;
     }
     const key3 = mappingKey.exec(content)?.[1];
@@ -51948,7 +52065,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine90 = /^\s*#/;
+var commentLine91 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -52024,7 +52141,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine90.test(content)) {
+    if (commentLine91.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -52079,7 +52196,7 @@ function joinLabels6(labels25) {
 }
 
 // src/rules/insecure-infrastructure.ts
-var terraformFile4 = /\.(?:tf|tf\.json|hcl)$/i;
+var terraformFile5 = /\.(?:tf|tf\.json|hcl)$/i;
 var templateFile = /\.(?:json|ya?ml)$/i;
 var settings27 = [
   {
@@ -52114,7 +52231,7 @@ var settings27 = [
   }
 ];
 var allowsEverything = settings27[0];
-var commentLine91 = /^\s*(?:#|\/\/)/;
+var commentLine92 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -52126,7 +52243,7 @@ var insecureInfrastructureRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const terraform2 = terraformFile4.test(file.path);
+      const terraform2 = terraformFile5.test(file.path);
       if (file.patch === void 0 || !terraform2 && !templateFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
         return [];
       }
@@ -52155,7 +52272,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine91.test(content)) {
+    if (!added || commentLine92.test(content)) {
       continue;
     }
     for (const setting of settings27) {
@@ -52214,7 +52331,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine92 = /^\s*#/;
+var commentLine93 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -52263,7 +52380,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key3 = void 0;
     }
-    if (commentLine92.test(content) || content.trim() === "") {
+    if (commentLine93.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -52318,7 +52435,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine93 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine94 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -52333,7 +52450,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine93.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine94.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -52429,7 +52546,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine94 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine95 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -52446,7 +52563,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine94.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine95.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -52505,7 +52622,7 @@ var settings28 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine95 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine96 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -52520,7 +52637,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine95.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine96.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -52569,7 +52686,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine96 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation80 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -52586,7 +52703,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine96.test(content)) {
+        if (!added || commentLine97.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -52842,7 +52959,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine98 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation81 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -52860,7 +52977,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine97.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine98.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -52913,7 +53030,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine98 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine99 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation82 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -52977,7 +53094,7 @@ function commands3(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine98.test(content)) {
+    if (commentLine99.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -53731,7 +53848,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine99 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine100 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation85 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -53773,7 +53890,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine99.test(content)) {
+    if (commentLine100.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -53979,6 +54096,7 @@ var defaultRules = [
   privilegedPrCheckoutRule,
   aiServiceExposureRule,
   unpinnedRemoteSourceRule,
+  terraformSensitiveValueRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -54457,6 +54575,7 @@ var ruleAreas = {
   "privileged-pr-checkout": "supply-chain",
   "ai-service-exposure": "infrastructure",
   "unpinned-remote-source": "supply-chain",
+  "terraform-sensitive-value": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -54595,6 +54714,7 @@ var ruleQuestions = {
   "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
   "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
   "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
+  "terraform-sensitive-value": "Are the secrets in these Terraform variables marked sensitive, and were any printed in CI logs rotated?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -54737,6 +54857,7 @@ var ruleSections = {
   "privileged-pr-checkout": "Privileged Pull Request Checkout",
   "ai-service-exposure": "AI Service Exposure",
   "unpinned-remote-source": "Unpinned Remote Sources",
+  "terraform-sensitive-value": "Terraform Sensitive Values",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
