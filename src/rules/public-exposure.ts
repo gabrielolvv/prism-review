@@ -23,7 +23,7 @@ const outbound = /egress|outbound/i;
 const notInbound =
   /\b(?:type|direction)["']?\s*[=:]\s*["']?(?:egress|outbound)|\begress\s*=\s*true\b|\b(?:rule_action|access|Access|RuleAction)["']?\s*[=:]\s*["']?deny\b/i;
 // Remote shells and desktops, databases, caches, search, container and cluster APIs.
-const sensitivePorts = [22, 23, 2375, 2376, 2379, 2380, 3306, 3389, 5432, 5601, 5900, 5984, 6379, 9042, 9200, 9300, 10250, 11211, 1433, 1521, 27017];
+export const sensitivePorts = [22, 23, 2375, 2376, 2379, 2380, 3306, 3389, 5432, 5601, 5900, 5984, 6379, 9042, 9200, 9300, 10250, 11211, 1433, 1521, 27017];
 
 type Block = { header: string; lines: string[] };
 
