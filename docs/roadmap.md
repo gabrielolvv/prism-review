@@ -172,6 +172,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Kubernetes API servers, etcd, and kubelets that accept requests without authentication (0.147.0).
 - Databases, caches, and shells behind public Kubernetes load balancers (0.148.0).
 - Database and broker ports published on every interface in production Docker Compose files (0.149.0).
+- JSON Web Token code that turns signature verification off, across .NET, Ruby, Java, Go, JavaScript, PHP, and Rust libraries (0.150.0).
 
 ## Later
 
