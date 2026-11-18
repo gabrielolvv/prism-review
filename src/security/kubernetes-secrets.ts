@@ -69,14 +69,14 @@ function holdsCredential(key: string, value: string | undefined): boolean {
   return [...value.matchAll(credentialLine)].some((match) => realValue(match[1] ?? "", false) !== undefined);
 }
 
-// The `data` and `stringData` entries of one YAML document, with the line of each key.
-function secretEntries(document: PatchLine[]): Array<{ key: string; line: PatchLine }> {
-  const contents = document.map(({ content }) => content);
-  if (!contents.some((content) => secretKind.test(content)) || contents.some((content) => encrypted.test(content) || tokenType.test(content))) {
-    return [];
-  }
+// An entry of a manifest's data section: its key, the line of the key, the section it is in, and
+// its value, unquoted, or for a block scalar the more indented lines that follow.
+export type DataEntry = { key: string; line: PatchLine; section: string; value: string; block?: PatchLine[] };
 
-  const found: Array<{ key: string; line: PatchLine }> = [];
+// The entries of one YAML document's top-level sections that `sections` matches, such as `data:`.
+export function dataEntries(document: PatchLine[], sections: RegExp): DataEntry[] {
+  const contents = document.map(({ content }) => content);
+  const found: DataEntry[] = [];
   let section: string | undefined;
   let entryIndent: number | undefined;
   for (let index = 0; index < document.length; index += 1) {
@@ -84,7 +84,7 @@ function secretEntries(document: PatchLine[]): Array<{ key: string; line: PatchL
     if (content.trim() === "" || /^\s*#/.test(content)) {
       continue;
     }
-    const sectionMatch = dataSection.exec(content);
+    const sectionMatch = sections.exec(content);
     if (sectionMatch !== null) {
       section = sectionMatch[1];
       entryIndent = undefined;
@@ -119,26 +119,36 @@ function secretEntries(document: PatchLine[]): Array<{ key: string; line: PatchL
           block.push(next);
         }
       }
-      const value = block.map(({ content: text }) => text.trim()).join("\n");
-      if (holdsCredential(key, realValue(value, section === "data")) && (line.added || block.some(({ added }) => added))) {
-        found.push({ key, line });
-      }
+      found.push({ key, line, section, value: block.map(({ content: text }) => text.trim()).join("\n"), block });
       continue;
     }
-    if (line.added && holdsCredential(key, realValue(unquote(rawValue), section === "data"))) {
-      found.push({ key, line });
-    }
+    found.push({ key, line, section, value: unquote(rawValue) });
   }
   return found;
+}
+
+// The `data` and `stringData` entries of a Secret that hold a credential, with the line of each key.
+function secretEntries(document: PatchLine[]): Array<{ key: string; line: PatchLine }> {
+  const contents = document.map(({ content }) => content);
+  if (!contents.some((content) => secretKind.test(content)) || contents.some((content) => encrypted.test(content) || tokenType.test(content))) {
+    return [];
+  }
+  return dataEntries(document, dataSection)
+    .filter(({ key, line, section, value, block }) => {
+      const changed = block === undefined ? line.added : line.added || block.some(({ added }) => added);
+      return changed && holdsCredential(key, realValue(value, section === "data"));
+    })
+    .map(({ key, line }) => ({ key, line }));
 }
 
 function leadingSpaces(content: string): number {
   return content.trim() === "" ? Number.POSITIVE_INFINITY : (/^\s*/.exec(content)?.[0].length ?? 0);
 }
 
-// Kustomize's `secretGenerator` entries with `literals`, such as `- password=s3cret`.
-function generatorLiterals(lines: PatchLine[]): Array<{ key: string; line: PatchLine }> {
-  const found: Array<{ key: string; line: PatchLine }> = [];
+// Kustomize generator entries with `literals`, such as `- password=s3cret`, under the top-level key
+// that `generator` matches.
+export function generatorLiterals(lines: PatchLine[], generator: RegExp): Array<{ key: string; value: string; line: PatchLine }> {
+  const found: Array<{ key: string; value: string; line: PatchLine }> = [];
   let inGenerator = false;
   let inLiterals = false;
   for (const line of lines) {
@@ -151,7 +161,7 @@ function generatorLiterals(lines: PatchLine[]): Array<{ key: string; line: Patch
       continue;
     }
     if (!/^\s/.test(content) && !/^-/.test(content)) {
-      inGenerator = secretGenerator.test(content);
+      inGenerator = generator.test(content);
       inLiterals = false;
       continue;
     }
@@ -167,21 +177,16 @@ function generatorLiterals(lines: PatchLine[]): Array<{ key: string; line: Patch
       continue;
     }
     const match = literal.exec(content);
-    if (inLiterals && match !== null && line.added && holdsCredential(match[1] ?? "", realValue(match[2] ?? "", false))) {
-      found.push({ key: match[1] ?? "", line });
+    if (inLiterals && match !== null && line.added) {
+      found.push({ key: match[1] ?? "", value: match[2] ?? "", line });
     }
   }
   return found;
 }
 
-// Added lines that put a credential in a Kubernetes Secret's `data` or `stringData`, or in a
-// Kustomize secret generator's `literals`. Runs before redaction, which hides the values.
-export function findKubernetesSecretLines(path: string, patch: string): KubernetesSecretLine[] {
-  if (!yamlFile.test(path)) {
-    return [];
-  }
-  const lines = patchLines(patch);
-  // YAML documents end at `---`; a new hunk may start in another document.
+// A patch's lines split into YAML documents, which end at `---`; a new hunk may start in another
+// document.
+export function yamlDocuments(lines: PatchLine[]): PatchLine[][] {
   const documents: PatchLine[][] = [[]];
   for (const line of lines) {
     if (/^---\s*(?:#.*)?$/.test(line.content) || (line.startsHunk && (documents.at(-1)?.length ?? 0) > 0)) {
@@ -191,7 +196,18 @@ export function findKubernetesSecretLines(path: string, patch: string): Kubernet
       documents.at(-1)?.push(line);
     }
   }
-  return [...documents.flatMap((document) => secretEntries(document)), ...(kustomization.test(path) ? generatorLiterals(lines) : [])].map(
-    ({ key, line }) => ({ line: line.line, key })
-  );
+  return documents;
+}
+
+// Added lines that put a credential in a Kubernetes Secret's `data` or `stringData`, or in a
+// Kustomize secret generator's `literals`. Runs before redaction, which hides the values.
+export function findKubernetesSecretLines(path: string, patch: string): KubernetesSecretLine[] {
+  if (!yamlFile.test(path)) {
+    return [];
+  }
+  const lines = patchLines(patch);
+  const literals = kustomization.test(path)
+    ? generatorLiterals(lines, secretGenerator).filter(({ key, value }) => holdsCredential(key, realValue(value, false)))
+    : [];
+  return [...yamlDocuments(lines).flatMap((document) => secretEntries(document)), ...literals].map(({ key, line }) => ({ line: line.line, key }));
 }

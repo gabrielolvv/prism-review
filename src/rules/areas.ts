@@ -123,6 +123,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "agent-auto-approve": "supply-chain",
   "package-install-script": "supply-chain",
   "ci-oidc-trust": "infrastructure",
+  "configmap-secret": "secrets",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

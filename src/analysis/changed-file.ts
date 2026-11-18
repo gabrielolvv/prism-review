@@ -1,5 +1,6 @@
 import type { ConfigSecretLine } from "../security/app-config-secrets.js";
 import type { CiSecretLine } from "../security/ci-config-secrets.js";
+import type { ConfigMapSecretLine } from "../security/configmap-secrets.js";
 import type { EnvSecretLine } from "../security/deployment-env-secrets.js";
 import type { IacPasswordLine } from "../security/iac-passwords.js";
 import type { KubernetesSecretLine } from "../security/kubernetes-secrets.js";
@@ -76,6 +77,9 @@ export type ChangedFile = {
   // Set by prepareChangedFiles before the size limit and redaction: added lines of an MCP client
   // configuration that commit a token, start an unpinned server, or reach a server over HTTP.
   mcpConfigLines?: McpConfigLine[];
+  // Set by prepareChangedFiles before the size limit and redaction: added lines that put a
+  // password, token, or key in a Kubernetes ConfigMap or a Kustomize ConfigMap generator.
+  configMapSecretLines?: ConfigMapSecretLine[];
 };
 
 // A credential found on an added line, numbered as in the new version of the file.
