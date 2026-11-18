@@ -130,6 +130,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "compose-published-port": "infrastructure",
   "jwt-signature-bypass": "code",
   "self-hosted-pr-runner": "supply-chain",
+  "workflow-artifact-poisoning": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
