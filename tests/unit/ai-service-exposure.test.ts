@@ -59,6 +59,8 @@ export function testAiServiceExposureSkipsContainersAndAuthenticatedServices(): 
     ["deploy/docker-compose.yml", ["    environment:", "      - OLLAMA_HOST=0.0.0.0"]],
     ["Dockerfile", ["ENV OLLAMA_HOST=0.0.0.0:11434"]],
     ["k8s/ray-cluster.yaml", ["  headGroupSpec:", "    rayStartParams:", "      dashboard-host: \"0.0.0.0\""]],
+    // Settings quoted in descriptions and messages.
+    ["src/rules/ai.ts", ["  description: \"Flags Ollama's `OLLAMA_ORIGINS=*` and Open WebUI's `WEBUI_AUTH=False`.\","]],
     // Reading the setting, and comments.
     ["client.py", ["host = os.getenv(\"OLLAMA_HOST\", \"http://localhost:11434\")"]],
     ["app.py", ["# demo.launch(share=True)"]]
