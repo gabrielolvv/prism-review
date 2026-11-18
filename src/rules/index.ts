@@ -99,6 +99,7 @@ import { aiServiceExposureRule } from "./ai-service-exposure.js";
 import { unpinnedRemoteSourceRule } from "./unpinned-remote-source.js";
 import { terraformSensitiveValueRule } from "./terraform-sensitive-value.js";
 import { releaseCachePoisoningRule } from "./release-cache-poisoning.js";
+import { productionSourceMapRule } from "./production-source-map.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -241,6 +242,7 @@ export const defaultRules: Rule[] = [
   unpinnedRemoteSourceRule,
   terraformSensitiveValueRule,
   releaseCachePoisoningRule,
+  productionSourceMapRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
