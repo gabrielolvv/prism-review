@@ -178,6 +178,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Privileged workflows that fetch pull request code with `gh pr checkout` or git commands (0.153.0).
 - AI tools opened without a login, such as Open WebUI, Ray's dashboard, Gradio share links, and Ollama (0.154.0).
 - Terraform modules, pre-commit hooks, and GitLab CI includes pulled from a branch or without a version (0.155.0).
+- Terraform secrets left visible in `plan` output, without `sensitive = true` or through `nonsensitive()` (0.156.0).
 
 ## Later
 
