@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.148.0 - 2026-11-18
+
+### Added
+
+- `public-load-balancer` rule: reports, as high, Kubernetes Services of type `LoadBalancer` that put a database, cache, broker, search engine, or remote shell on a public cloud load balancer, where anyone on the internet can try passwords or read data left without authentication. It reads Service manifests in YAML and JSON, Helm values with a `LoadBalancer` service and named ports, and Terraform's `kubernetes_service` resources, for the ports `public-exposure` reports and Kafka, ZooKeeper, AMQP, RabbitMQ's console, InfluxDB, ClickHouse, and Consul. Internal load balancer annotations for AWS, Google Cloud, Azure, OpenStack, IBM Cloud, Oracle Cloud, and Alibaba Cloud, `loadBalancerSourceRanges` without `0.0.0.0/0`, web ports, templated types, values turned off with `enabled: false`, and test and local clusters are not reported. On 721 files with a `LoadBalancer` Service, it reports 3: two archived Elasticsearch examples in Kubernetes' examples and Bitnami's Gitea chart, which puts SSH on a public load balancer by default.
+
 ## 0.147.0 - 2026-11-18
 
 ### Added

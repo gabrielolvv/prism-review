@@ -170,6 +170,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Passwords, tokens, and keys written into Kubernetes ConfigMaps (0.145.0).
 - Machine images and snapshots shared with every AWS account, and Azure galleries shared with the community (0.146.0).
 - Kubernetes API servers, etcd, and kubelets that accept requests without authentication (0.147.0).
+- Databases, caches, and shells behind public Kubernetes load balancers (0.148.0).
 
 ## Later
 
