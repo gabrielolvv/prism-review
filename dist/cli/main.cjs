@@ -28440,6 +28440,10 @@ var ollamaHost = /\bOLLAMA_HOST["']?\s*[:=\s]\s*["']?(?:https?:\/\/)?(?:0\.0\.0\
 var rayStart = /\bray\s+start\b[^\n]*--dashboard-host[=\s]+["']?0\.0\.0\.0/;
 var rayInit = /\bray\.init\s*\(/;
 var rayInitDashboard = /\bdashboard_host\s*=\s*["']0\.0\.0\.0["']/;
+function sets(pattern, content) {
+  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+  return [...content.matchAll(global)].some((match2) => content[(match2.index ?? 0) - 1] !== "`");
+}
 function callText(lines, index, start) {
   const call = lines.slice(index, index + 8).map(({ content }) => content).join(" ");
   return call.slice(Math.max(0, call.search(start)));
@@ -28457,23 +28461,23 @@ function exposures3(lines, host, python10) {
         add(line, "share");
       }
     }
-    if (host && rayStart.test(content)) {
+    if (host && sets(rayStart, content)) {
       add(line, "ray", true);
     }
     if (python10 && rayInit.test(content) && rayInitDashboard.test(callText(lines, index, rayInit))) {
       add(line, "ray");
     }
-    if (shareFlag.test(content) && !gradioAuthFlag.test(content)) {
+    if (sets(shareFlag, content) && !gradioAuthFlag.test(content)) {
       add(line, "share");
     }
     const next = lines[index + 1]?.content ?? "";
-    if (webuiAuthOff.test(content) || webuiAuthName.test(content) && falseValue2.test(next)) {
+    if (sets(webuiAuthOff, content) || webuiAuthName.test(content) && falseValue2.test(next)) {
       add(line, "webui", true);
     }
-    if (ollamaOrigins.test(content)) {
+    if (sets(ollamaOrigins, content)) {
       add(line, "origins");
     }
-    if (host && ollamaHost.test(content)) {
+    if (host && sets(ollamaHost, content)) {
       add(line, "ollama");
     }
   });
@@ -34406,7 +34410,7 @@ severity: {}
 `;
 
 // src/cli/version.ts
-var version3 = true ? "0.153.0" : "development";
+var version3 = true ? "0.154.0" : "development";
 
 // src/cli/main.ts
 var usage = [
