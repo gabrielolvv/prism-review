@@ -125,6 +125,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "ci-oidc-trust": "infrastructure",
   "configmap-secret": "secrets",
   "public-snapshot": "infrastructure",
+  "kubernetes-control-plane": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

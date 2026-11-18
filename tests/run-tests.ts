@@ -966,6 +966,12 @@ import {
   testPublicSnapshotSkipsTestsAndCanBeDisabled
 } from "./unit/public-snapshot.test.js";
 import {
+  testKubernetesControlPlaneReadsEachSetting,
+  testKubernetesControlPlaneReportsOneFindingPerFile,
+  testKubernetesControlPlaneSkipsSafeSettingsAndChecks,
+  testKubernetesControlPlaneSkipsTestsAndCanBeDisabled
+} from "./unit/kubernetes-control-plane.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1658,6 +1664,10 @@ const tests: Array<[string, Test]> = [
   ["public-snapshot reads each form", testPublicSnapshotReadsEachForm],
   ["public-snapshot skips accounts and removals", testPublicSnapshotSkipsAccountsAndRemovals],
   ["public-snapshot skips tests and can be disabled", testPublicSnapshotSkipsTestsAndCanBeDisabled],
+  ["kubernetes-control-plane reports one finding per file", testKubernetesControlPlaneReportsOneFindingPerFile],
+  ["kubernetes-control-plane reads each setting", testKubernetesControlPlaneReadsEachSetting],
+  ["kubernetes-control-plane skips safe settings and checks", testKubernetesControlPlaneSkipsSafeSettingsAndChecks],
+  ["kubernetes-control-plane skips tests and can be disabled", testKubernetesControlPlaneSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

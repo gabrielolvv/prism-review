@@ -99,6 +99,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "ci-oidc-trust": "CI OIDC Trust",
   "configmap-secret": "ConfigMap Secrets",
   "public-snapshot": "Public Images and Snapshots",
+  "kubernetes-control-plane": "Kubernetes Control Plane",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
