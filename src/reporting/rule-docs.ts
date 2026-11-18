@@ -100,6 +100,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "configmap-secret": "ConfigMap Secrets",
   "public-snapshot": "Public Images and Snapshots",
   "kubernetes-control-plane": "Kubernetes Control Plane",
+  "public-load-balancer": "Public Load Balancers",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

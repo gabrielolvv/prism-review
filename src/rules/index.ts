@@ -89,6 +89,7 @@ import { ciOidcTrustRule } from "./ci-oidc-trust.js";
 import { configMapSecretRule } from "./configmap-secret.js";
 import { publicSnapshotRule } from "./public-snapshot.js";
 import { kubernetesControlPlaneRule } from "./kubernetes-control-plane.js";
+import { publicLoadBalancerRule } from "./public-load-balancer.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -221,6 +222,7 @@ export const defaultRules: Rule[] = [
   configMapSecretRule,
   publicSnapshotRule,
   kubernetesControlPlaneRule,
+  publicLoadBalancerRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

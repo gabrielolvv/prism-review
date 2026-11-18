@@ -972,6 +972,12 @@ import {
   testKubernetesControlPlaneSkipsTestsAndCanBeDisabled
 } from "./unit/kubernetes-control-plane.test.js";
 import {
+  testPublicLoadBalancerReadsEachForm,
+  testPublicLoadBalancerReportsOneFindingPerFile,
+  testPublicLoadBalancerSkipsPrivateAndWebServices,
+  testPublicLoadBalancerSkipsTestsAndCanBeDisabled
+} from "./unit/public-load-balancer.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1668,6 +1674,10 @@ const tests: Array<[string, Test]> = [
   ["kubernetes-control-plane reads each setting", testKubernetesControlPlaneReadsEachSetting],
   ["kubernetes-control-plane skips safe settings and checks", testKubernetesControlPlaneSkipsSafeSettingsAndChecks],
   ["kubernetes-control-plane skips tests and can be disabled", testKubernetesControlPlaneSkipsTestsAndCanBeDisabled],
+  ["public-load-balancer reports one finding per file", testPublicLoadBalancerReportsOneFindingPerFile],
+  ["public-load-balancer reads each form", testPublicLoadBalancerReadsEachForm],
+  ["public-load-balancer skips private and web services", testPublicLoadBalancerSkipsPrivateAndWebServices],
+  ["public-load-balancer skips tests and can be disabled", testPublicLoadBalancerSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
