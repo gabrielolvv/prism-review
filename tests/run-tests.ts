@@ -984,6 +984,12 @@ import {
   testComposePublishedPortSkipsTestsAndCanBeDisabled
 } from "./unit/compose-published-port.test.js";
 import {
+  testJwtSignatureBypassReadsEachLibrary,
+  testJwtSignatureBypassReportsOneFindingPerFile,
+  testJwtSignatureBypassSkipsTestsAndCanBeDisabled,
+  testJwtSignatureBypassSkipsVerifiedAndExplainedUses
+} from "./unit/jwt-signature-bypass.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1688,6 +1694,10 @@ const tests: Array<[string, Test]> = [
   ["compose-published-port reads each form", testComposePublishedPortReadsEachForm],
   ["compose-published-port skips private bindings and development", testComposePublishedPortSkipsPrivateBindingsAndDevelopment],
   ["compose-published-port skips tests and can be disabled", testComposePublishedPortSkipsTestsAndCanBeDisabled],
+  ["jwt-signature-bypass reports one finding per file", testJwtSignatureBypassReportsOneFindingPerFile],
+  ["jwt-signature-bypass reads each library", testJwtSignatureBypassReadsEachLibrary],
+  ["jwt-signature-bypass skips verified and explained uses", testJwtSignatureBypassSkipsVerifiedAndExplainedUses],
+  ["jwt-signature-bypass skips tests and can be disabled", testJwtSignatureBypassSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

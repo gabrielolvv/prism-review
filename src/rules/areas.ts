@@ -128,6 +128,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "kubernetes-control-plane": "infrastructure",
   "public-load-balancer": "infrastructure",
   "compose-published-port": "infrastructure",
+  "jwt-signature-bypass": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
