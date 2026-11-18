@@ -104,6 +104,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "compose-published-port": "Compose Published Ports",
   "jwt-signature-bypass": "JWT Signature Bypass",
   "self-hosted-pr-runner": "Self-Hosted Runners for Pull Requests",
+  "workflow-artifact-poisoning": "Workflow Artifact Poisoning",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",

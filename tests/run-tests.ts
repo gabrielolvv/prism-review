@@ -996,6 +996,12 @@ import {
   testSelfHostedPrRunnerSkipsGuardedAndHostedJobs
 } from "./unit/self-hosted-pr-runner.test.js";
 import {
+  testWorkflowArtifactPoisoningReadsEachDownload,
+  testWorkflowArtifactPoisoningReportsOneFindingPerFile,
+  testWorkflowArtifactPoisoningSkipsExamplesAndCanBeDisabled,
+  testWorkflowArtifactPoisoningSkipsSeparateDirectoriesAndTrustedRuns
+} from "./unit/workflow-artifact-poisoning.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1708,6 +1714,10 @@ const tests: Array<[string, Test]> = [
   ["self-hosted-pr-runner reads each form", testSelfHostedPrRunnerReadsEachForm],
   ["self-hosted-pr-runner skips guarded and hosted jobs", testSelfHostedPrRunnerSkipsGuardedAndHostedJobs],
   ["self-hosted-pr-runner skips examples and can be disabled", testSelfHostedPrRunnerSkipsExamplesAndCanBeDisabled],
+  ["workflow-artifact-poisoning reports one finding per file", testWorkflowArtifactPoisoningReportsOneFindingPerFile],
+  ["workflow-artifact-poisoning reads each download", testWorkflowArtifactPoisoningReadsEachDownload],
+  ["workflow-artifact-poisoning skips separate directories and trusted runs", testWorkflowArtifactPoisoningSkipsSeparateDirectoriesAndTrustedRuns],
+  ["workflow-artifact-poisoning skips examples and can be disabled", testWorkflowArtifactPoisoningSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],
