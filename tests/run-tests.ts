@@ -1002,6 +1002,12 @@ import {
   testWorkflowArtifactPoisoningSkipsSeparateDirectoriesAndTrustedRuns
 } from "./unit/workflow-artifact-poisoning.test.js";
 import {
+  testPrivilegedPrCheckoutReadsEachCommand,
+  testPrivilegedPrCheckoutReportsOneFindingPerFile,
+  testPrivilegedPrCheckoutSkipsExamplesAndCanBeDisabled,
+  testPrivilegedPrCheckoutSkipsMaintainerJobsAndPullRequestTriggers
+} from "./unit/privileged-pr-checkout.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1718,6 +1724,10 @@ const tests: Array<[string, Test]> = [
   ["workflow-artifact-poisoning reads each download", testWorkflowArtifactPoisoningReadsEachDownload],
   ["workflow-artifact-poisoning skips separate directories and trusted runs", testWorkflowArtifactPoisoningSkipsSeparateDirectoriesAndTrustedRuns],
   ["workflow-artifact-poisoning skips examples and can be disabled", testWorkflowArtifactPoisoningSkipsExamplesAndCanBeDisabled],
+  ["privileged-pr-checkout reports one finding per file", testPrivilegedPrCheckoutReportsOneFindingPerFile],
+  ["privileged-pr-checkout reads each command", testPrivilegedPrCheckoutReadsEachCommand],
+  ["privileged-pr-checkout skips maintainer jobs and pull request triggers", testPrivilegedPrCheckoutSkipsMaintainerJobsAndPullRequestTriggers],
+  ["privileged-pr-checkout skips examples and can be disabled", testPrivilegedPrCheckoutSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

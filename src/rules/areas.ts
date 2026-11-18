@@ -131,6 +131,7 @@ export const ruleAreas: Readonly<Record<string, Area>> = {
   "jwt-signature-bypass": "code",
   "self-hosted-pr-runner": "supply-chain",
   "workflow-artifact-poisoning": "supply-chain",
+  "privileged-pr-checkout": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",

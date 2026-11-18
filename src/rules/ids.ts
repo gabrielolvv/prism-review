@@ -103,6 +103,7 @@ export const ruleIds: readonly string[] = [
   "jwt-signature-bypass",
   "self-hosted-pr-runner",
   "workflow-artifact-poisoning",
+  "privileged-pr-checkout",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
