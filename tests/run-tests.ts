@@ -1026,6 +1026,12 @@ import {
   testTerraformSensitiveValueSkipsTestsAndCanBeDisabled
 } from "./unit/terraform-sensitive-value.test.js";
 import {
+  testReleaseCachePoisoningReadsEachCache,
+  testReleaseCachePoisoningReportsOneFindingPerFile,
+  testReleaseCachePoisoningSkipsChecksAndUncachedReleases,
+  testReleaseCachePoisoningSkipsExamplesAndCanBeDisabled
+} from "./unit/release-cache-poisoning.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1758,6 +1764,10 @@ const tests: Array<[string, Test]> = [
   ["terraform-sensitive-value reads each form", testTerraformSensitiveValueReadsEachForm],
   ["terraform-sensitive-value skips marked and non-secret values", testTerraformSensitiveValueSkipsMarkedAndNonSecretValues],
   ["terraform-sensitive-value skips tests and can be disabled", testTerraformSensitiveValueSkipsTestsAndCanBeDisabled],
+  ["release-cache-poisoning reports one finding per file", testReleaseCachePoisoningReportsOneFindingPerFile],
+  ["release-cache-poisoning reads each cache", testReleaseCachePoisoningReadsEachCache],
+  ["release-cache-poisoning skips checks and uncached releases", testReleaseCachePoisoningSkipsChecksAndUncachedReleases],
+  ["release-cache-poisoning skips examples and can be disabled", testReleaseCachePoisoningSkipsExamplesAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

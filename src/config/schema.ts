@@ -675,6 +675,11 @@ export const prismConfigSchema = z.object({
           enabled: z.boolean().default(true)
         })
         .prefault({}),
+      releaseCachePoisoning: z
+        .object({
+          enabled: z.boolean().default(true)
+        })
+        .prefault({}),
       plaintextCredentials: z
         .object({
           enabled: z.boolean().default(true)
