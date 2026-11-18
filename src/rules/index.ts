@@ -94,6 +94,7 @@ import { composePublishedPortRule } from "./compose-published-port.js";
 import { jwtSignatureBypassRule } from "./jwt-signature-bypass.js";
 import { selfHostedPrRunnerRule } from "./self-hosted-pr-runner.js";
 import { workflowArtifactPoisoningRule } from "./workflow-artifact-poisoning.js";
+import { privilegedPrCheckoutRule } from "./privileged-pr-checkout.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -231,6 +232,7 @@ export const defaultRules: Rule[] = [
   jwtSignatureBypassRule,
   selfHostedPrRunnerRule,
   workflowArtifactPoisoningRule,
+  privilegedPrCheckoutRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -30,7 +30,7 @@ const ghRunDir = /\s(?:-D|--dir)\s+(?!\.(?:\/)?(?:\s|$))\S/;
 
 const checkout = /\buses\s*:\s*actions\/checkout@/;
 // Later steps that run code from the workspace: local actions, scripts, and build tools.
-const runsWorkspaceCode =
+export const runsWorkspaceCode =
   /\buses\s*:\s*\.\/|\brun\s*:.*(?:\.\/[\w./-]+|\b(?:npm|npx|yarn|pnpm|make|python3?|node|bash|sh|go|mvn|gradle|\.\/gradlew|cargo|bundle|rake|pip)\b)/;
 
 function indentOf(content: string): number {
