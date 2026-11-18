@@ -36641,6 +36641,7 @@ var ruleIds = [
   "public-load-balancer",
   "compose-published-port",
   "jwt-signature-bypass",
+  "self-hosted-pr-runner",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37069,6 +37070,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     jwtSignatureBypass: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    selfHostedPrRunner: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -49254,6 +49258,126 @@ var jwtSignatureBypassRule = {
   }
 };
 
+// src/rules/self-hosted-pr-runner.ts
+var workflowFile2 = /(?:^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i;
+var exampleWorkflow = /(?:^|[\/_.-])(?:examples?|samples?|demos?|templates?|fixtures?|testdata)(?:[\/_.-]|$)/i;
+var pullRequestTrigger = /^\s*on\s*:.*\bpull_request\b(?!_)|^\s*-\s*pull_request\s*(?:#.*)?$|^\s+pull_request\s*:\s*(?:#.*)?$|^\s+pull_request\s*$/m;
+var jobsKey = /^jobs\s*:\s*(?:#.*)?$/;
+var jobKey = /^ {2}(["']?[\w-]+["']?)\s*:\s*(?:#.*)?$/;
+var runsOn = /^(\s*)runs-on\s*:\s*(.*)$/;
+var selfHosted = /\bself-hosted\b/;
+var matrixReference = /\$\{\{\s*matrix\.([\w-]+)\s*\}\}/;
+var forkGuard = /head\.repo\.(?:full_name|fork|owner)|\bgithub\.repository\b|github\.repository_owner|github\.event_name\s*(?:!=|==)|author_association|pull_request\.labels|github\.event\.label\.name|github\.actor\s*==|needs\.[\w-]+\.outputs\.[\w-]*(?:repo|repository|enterprise|private|fork)[\w-]*/i;
+function indentOf5(content) {
+  return /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function jobsIn(lines) {
+  const start = lines.findIndex(({ content }) => jobsKey.test(content));
+  if (start < 0) {
+    return [];
+  }
+  const jobs = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\S/.test(line.content) && line.content.trim() !== "" && !/^\s*#/.test(line.content)) {
+      break;
+    }
+    const key3 = jobKey.exec(line.content);
+    if (key3 !== null) {
+      jobs.push({ name: (key3[1] ?? "").replace(/["']/g, ""), lines: [line] });
+      continue;
+    }
+    jobs.at(-1)?.lines.push(line);
+  }
+  return jobs;
+}
+function selfHostedRunsOn(job) {
+  const found = [];
+  job.lines.forEach((line, index) => {
+    const match2 = runsOn.exec(line.content);
+    if (match2 === null || /^\s*#/.test(line.content)) {
+      return;
+    }
+    const indent = (match2[1] ?? "").length;
+    const value = (match2[2] ?? "").replace(/\s+#.*$/, "");
+    const below = job.lines.slice(index + 1).filter((_, position, rest) => rest.slice(0, position + 1).every(({ content }) => content.trim() === "" || indentOf5(content) > indent));
+    const listed = value.trim() === "" && below.some(({ content }) => /^\s*-\s*["']?self-hosted["']?\s*$/.test(content));
+    if (value.includes("${{")) {
+      if (/github\.repository/.test(value)) {
+        return;
+      }
+      const reference = matrixReference.exec(value);
+      const matrix = reference === null ? [] : job.lines.filter(({ content }) => new RegExp(`^\\s*-?\\s*["']?${reference[1]}["']?\\s*:`).test(content));
+      if (matrix.some(({ content }) => selfHosted.test(content)) || selfHosted.test(value)) {
+        found.push(line);
+      }
+      return;
+    }
+    if (selfHosted.test(value) || listed) {
+      found.push(line);
+    }
+  });
+  return found;
+}
+function jobCondition(job) {
+  const index = job.lines.findIndex(({ content }) => /^ {4}if\s*:/.test(content));
+  if (index < 0) {
+    return "";
+  }
+  const parts = [job.lines[index]?.content ?? ""];
+  for (const line of job.lines.slice(index + 1)) {
+    if (line.content.trim() !== "" && indentOf5(line.content) <= 4) {
+      break;
+    }
+    parts.push(line.content);
+  }
+  return parts.join(" ");
+}
+var selfHostedPrRunnerRule = {
+  id: "self-hosted-pr-runner",
+  description: "Warns about GitHub Actions workflows that run `pull_request` jobs on self-hosted runners, where code from forks runs on the organization's machines, unless the job keeps fork pull requests out.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.selfHostedPrRunner.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!workflowFile2.test(file.path) || file.patch === void 0 || exampleWorkflow.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      if (!pullRequestTrigger.test(text)) {
+        return [];
+      }
+      const triggerAdded = lines.some(({ content, added }) => added && pullRequestTrigger.test(content));
+      const found = jobsIn(lines).flatMap((job) => {
+        if (forkGuard.test(jobCondition(job))) {
+          return [];
+        }
+        return selfHostedRunsOn(job).filter((line) => line.added || triggerAdded || job.lines.some(({ added, content }) => added && selfHosted.test(content))).map((line) => ({ line: line.line, job: job.name }));
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const jobs = [...new Set(found.map(({ job }) => `\`${job}\``))];
+      return [
+        {
+          ruleId: "self-hosted-pr-runner",
+          title: "Pull request jobs on a self-hosted runner",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "run" : "runs"} ${listOf(jobs)} on a self-hosted runner for pull requests, including those from forks, whose code then runs on your machine. By default, GitHub asks a maintainer to approve the run only for first-time contributors, and code that runs there can stay on the machine, read the secrets and caches of later jobs, and reach the network the runner is in, as in the 2024 attacks on PyTorch's runners.`,
+          recommendation: "Run pull request jobs on GitHub-hosted runners, or keep self-hosted jobs to branches of this repository with `if: github.event.pull_request.head.repo.full_name == github.repository`. If fork pull requests must run there, use ephemeral runners that are rebuilt after every job and kept away from internal networks and other jobs' secrets, and require approval for all outside contributors."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -52762,7 +52886,7 @@ function pathWords(path5) {
 }
 
 // src/rules/unpinned-action.ts
-var workflowFile2 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile3 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
@@ -52778,7 +52902,7 @@ var unpinnedActionRule = {
     }
     const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !workflowFile2.test(file.path)) {
+      if (file.patch === void 0 || !workflowFile3.test(file.path)) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(({ line, content }) => {
@@ -52834,7 +52958,7 @@ function list(targets) {
 }
 
 // src/rules/workflow-risk.ts
-var workflowFile3 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile4 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var workflowOnly = /^\.github\/workflows\//;
 var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
 var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
@@ -52885,7 +53009,7 @@ var workflowRiskRule = {
     if (!config3.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile3.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile4.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const workflow = workflowOnly.test(file.path);
@@ -53393,6 +53517,7 @@ var defaultRules = [
   publicLoadBalancerRule,
   composePublishedPortRule,
   jwtSignatureBypassRule,
+  selfHostedPrRunnerRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -53866,6 +53991,7 @@ var ruleAreas = {
   "public-load-balancer": "infrastructure",
   "compose-published-port": "infrastructure",
   "jwt-signature-bypass": "code",
+  "self-hosted-pr-runner": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -53999,6 +54125,7 @@ var ruleQuestions = {
   "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
   "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
   "jwt-signature-bypass": "Is every token verified with the issuer's key before its claims are used?",
+  "self-hosted-pr-runner": "Can pull requests from forks reach this self-hosted runner, and is it rebuilt after every job?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -54136,6 +54263,7 @@ var ruleSections = {
   "public-load-balancer": "Public Load Balancers",
   "compose-published-port": "Compose Published Ports",
   "jwt-signature-bypass": "JWT Signature Bypass",
+  "self-hosted-pr-runner": "Self-Hosted Runners for Pull Requests",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
