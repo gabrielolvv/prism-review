@@ -36639,6 +36639,7 @@ var ruleIds = [
   "public-snapshot",
   "kubernetes-control-plane",
   "public-load-balancer",
+  "compose-published-port",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37061,6 +37062,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     publicLoadBalancer: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    composePublishedPort: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -49020,6 +49024,148 @@ var publicLoadBalancerRule = {
   }
 };
 
+// src/rules/compose-published-port.ts
+var composeFile3 = /\.ya?ml$/i;
+var productionPath3 = /(?:^|[\/_.-])(?:prod|production|stack|deploy|deployment|release|live|swarm)(?:[\/_.-]|$)/i;
+var overrideFile = /(?:^|\/)(?:docker-)?compose\.override\.ya?ml$|(?:^|[\/_.-])(?:dev|development|local|test|ci|e2e)(?:[\/_.-]|$)/i;
+var servicesKey = /^services\s*:\s*(?:#.*)?$/m;
+var portsKey2 = /^(\s*)ports\s*:\s*(?:#.*)?$/;
+var exposedPorts2 = /* @__PURE__ */ new Set([...sensitivePorts, ...Object.keys(servicePorts).map(Number)]);
+var loopback = /^(?:127\.\d+\.\d+\.\d+|localhost|::1|\[::1\])$/i;
+var privateAddress = /^(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|f[cd][0-9a-f]{2}:.*)$/i;
+function indentOf4(content) {
+  return /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function unquote2(value) {
+  return value.trim().replace(/\s+#.*$/, "").replace(/^(["'])(.*)\1$/, "$2");
+}
+function everyInterface(address) {
+  if (address === "" || address === "0.0.0.0" || address === "::" || address === "[::]") {
+    return true;
+  }
+  return !loopback.test(address) && !privateAddress.test(address) && !/\$/.test(address) && /^[\d.]+$/.test(address);
+}
+function shortSyntax(entry3) {
+  const spec = entry3.replace(/\$\{[^}]*\}/g, "$VAR").replace(/\/(?:tcp|udp|sctp)$/i, "");
+  let address = "";
+  let rest = spec;
+  const bracketed = /^\[([^\]]*)\]:(.*)$/.exec(spec);
+  if (bracketed !== null) {
+    address = bracketed[1] ?? "";
+    rest = bracketed[2] ?? "";
+  } else {
+    const parts = spec.split(":");
+    if (parts.length >= 3) {
+      address = parts.slice(0, -2).join(":");
+      rest = parts.slice(-2).join(":");
+    }
+  }
+  if (!everyInterface(address)) {
+    return [];
+  }
+  const container = rest.split(":").at(-1) ?? "";
+  const range2 = /^(\d{1,5})(?:-(\d{1,5}))?$/.exec(container);
+  if (range2 === null) {
+    return [];
+  }
+  const first = Number(range2[1]);
+  const last = Number(range2[2] ?? range2[1]);
+  return [...exposedPorts2].filter((port2) => port2 >= first && port2 <= last && last - first < 2e3);
+}
+function publishedPorts(lines) {
+  const found = [];
+  lines.forEach(({ content }, index) => {
+    const ports = portsKey2.exec(content);
+    if (ports === null) {
+      return;
+    }
+    const keyIndent = (ports[1] ?? "").length;
+    for (let position = index + 1; position < lines.length; position += 1) {
+      const item = lines[position];
+      if (item === void 0 || item.startsHunk) {
+        break;
+      }
+      if (item.content.trim() === "" || /^\s*#/.test(item.content)) {
+        continue;
+      }
+      const itemIndent = indentOf4(item.content);
+      if (itemIndent < keyIndent || itemIndent === keyIndent && !/^\s*-/.test(item.content)) {
+        break;
+      }
+      const short2 = /^\s*-\s+(?!target\s*:|published\s*:|host_ip\s*:|mode\s*:|protocol\s*:|name\s*:|app_protocol\s*:)(.+)$/.exec(item.content);
+      if (short2 !== null) {
+        if (item.added) {
+          found.push(...shortSyntax(unquote2(short2[1] ?? "")).map((port2) => ({ line: item.line, port: port2 })));
+        }
+        continue;
+      }
+      const start = /^(\s*)-\s+\w+\s*:/.exec(item.content);
+      if (start === null) {
+        continue;
+      }
+      const dash = (start[1] ?? "").length;
+      const entry3 = [item];
+      while (position + 1 < lines.length) {
+        const next = lines[position + 1];
+        if (next === void 0 || next.startsHunk || next.content.trim() !== "" && indentOf4(next.content) <= dash) {
+          break;
+        }
+        entry3.push(next);
+        position += 1;
+      }
+      const field = (name) => entry3.map(({ content: text }) => new RegExp(`^\\s*-?\\s*${name}\\s*:\\s*(.+)$`).exec(text)?.[1]).find((value) => value !== void 0);
+      const target = Number(unquote2(field("target") ?? ""));
+      if (exposedPorts2.has(target) && everyInterface(unquote2(field("host_ip") ?? "")) && entry3.some(({ added }) => added)) {
+        found.push({ line: item.line, port: target });
+      }
+    }
+  });
+  return found;
+}
+var composePublishedPortRule = {
+  id: "compose-published-port",
+  description: "Warns about production Docker Compose and Swarm stack files that publish a database, cache, broker, or shell port on every interface of the host, where Docker opens it past host firewalls such as ufw.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.composePublishedPort.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!composeFile3.test(file.path) || file.patch === void 0 || !productionPath3.test(file.path) || overrideFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const text = lines.map(({ content }) => content).join("\n");
+      if (!servicesKey.test(text) && !/compose|stack/i.test(file.path)) {
+        return [];
+      }
+      if (/^kind\s*:/m.test(text)) {
+        return [];
+      }
+      const found = publishedPorts(lines);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text: where, plural } = describeLines(lineNumbers);
+      const ports = [...new Set(found.map(({ port: port2 }) => port2))].sort((left, right) => left - right);
+      const named2 = ports.map((port2) => servicePorts[port2] === void 0 ? `${port2}` : `${port2} (${servicePorts[port2]})`);
+      return [
+        {
+          ruleId: "compose-published-port",
+          title: "Database or admin port published on every interface",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${where} ${plural ? "publish" : "publishes"} ${ports.length > 1 ? "ports" : "port"} ${listOf(named2)} on every network interface of the host. Docker opens published ports past host firewalls such as ufw and firewalld, so unless something in front of the host blocks ${ports.length > 1 ? "them" : "it"}, anyone on the internet can connect.`,
+          recommendation: "Drop `ports` from services that only other containers use: they reach each other by service name on the Compose network. If the host itself needs the port, bind it to the loopback or a private address, such as `127.0.0.1:5432:5432`, and connect through an SSH tunnel or a VPN."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -53157,6 +53303,7 @@ var defaultRules = [
   publicSnapshotRule,
   kubernetesControlPlaneRule,
   publicLoadBalancerRule,
+  composePublishedPortRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -53628,6 +53775,7 @@ var ruleAreas = {
   "public-snapshot": "infrastructure",
   "kubernetes-control-plane": "infrastructure",
   "public-load-balancer": "infrastructure",
+  "compose-published-port": "infrastructure",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -53759,6 +53907,7 @@ var ruleQuestions = {
   "public-snapshot": "Is this image or snapshot meant to be public, and has it been checked for keys, credentials, and private data?",
   "kubernetes-control-plane": "Do the API server, etcd, and kubelets require authentication on every port they listen on?",
   "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
+  "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -53894,6 +54043,7 @@ var ruleSections = {
   "public-snapshot": "Public Images and Snapshots",
   "kubernetes-control-plane": "Kubernetes Control Plane",
   "public-load-balancer": "Public Load Balancers",
+  "compose-published-port": "Compose Published Ports",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
