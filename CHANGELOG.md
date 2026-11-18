@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.149.0 - 2026-11-18
+
+### Added
+
+- `compose-published-port` rule: warns about production Docker Compose and Swarm stack files that publish a database, cache, broker, search engine, or shell port on every network interface of the host. Docker opens published ports ahead of host firewalls such as ufw and firewalld, so the service is reachable from the internet unless something in front of the host blocks it. It reads short and long port syntax, including remapped host ports, variables, ranges, and IPv6, in files whose path names a production, stack, deploy, release, live, or Swarm setup. Loopback and private bindings, web ports, `expose`, development and override Compose files, and Kubernetes manifests are not reported. On about 945 Compose files, 90 of them for production, it reports 2: Apache DolphinScheduler's deployment file, which publishes PostgreSQL, and Sock Shop's logging stack, which publishes Kibana.
+
 ## 0.148.0 - 2026-11-18
 
 ### Added

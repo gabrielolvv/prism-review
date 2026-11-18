@@ -171,6 +171,7 @@ This roadmap is intentionally staged so the project grows like a real developer 
 - Machine images and snapshots shared with every AWS account, and Azure galleries shared with the community (0.146.0).
 - Kubernetes API servers, etcd, and kubelets that accept requests without authentication (0.147.0).
 - Databases, caches, and shells behind public Kubernetes load balancers (0.148.0).
+- Database and broker ports published on every interface in production Docker Compose files (0.149.0).
 
 ## Later
 
