@@ -15474,6 +15474,7 @@ var ruleIds = [
   "ai-service-exposure",
   "unpinned-remote-source",
   "terraform-sensitive-value",
+  "release-cache-poisoning",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15920,6 +15921,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     terraformSensitiveValue: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    releaseCachePoisoning: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -28814,6 +28818,168 @@ var terraformSensitiveValueRule = {
   }
 };
 
+// src/rules/release-cache-poisoning.ts
+var workflowFile5 = /(?:^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i;
+var exampleWorkflow4 = /(?:^|[\/_.-])(?:examples?|samples?|demos?|templates?|fixtures?|testdata)(?:[\/_.-]|$)/i;
+var jobsKey2 = /^jobs\s*:\s*(?:#.*)?$/;
+var jobKey2 = /^ {2}(["']?[\w-]+["']?)\s*:\s*(?:#.*)?$/;
+var commentLine88 = /^\s*#/;
+var releaseTrigger = /^\s*on\s*:.*\brelease\b|^\s*-\s*release\s*(?:#.*)?$|^\s+release\s*:\s*(?:#.*)?$|^\s+tags\s*:/m;
+var publishStep = new RegExp(
+  [
+    String.raw`uses\s*:\s*["']?(?:pypa/gh-action-pypi-publish|softprops/action-gh-release|ncipollo/release-action|svenstaro/upload-release-action|JS-DevTools/npm-publish|rubygems/release-gem|changesets/action|cycjimmy/semantic-release-action)@`,
+    String.raw`\b(?:npm|pnpm|lerna|changeset)\s+publish\b|\byarn\s+(?:npm\s+)?publish\b|\btwine\s+upload\b|\b(?:poetry|uv|flit|hatch)\s+publish\b|\bcargo\s+publish\b|\bgem\s+push\b|\bdotnet\s+nuget\s+push\b|\bmvn\b[^\n]*\bdeploy\b|\bgradlew?\b[^\n]*\bpublish\w*\b|\bgh\s+release\s+(?:create|upload)\b|\bsemantic-release\b`
+  ].join("|"),
+  "i"
+);
+var goreleaserAction = /uses\s*:\s*["']?goreleaser\/goreleaser-action@/i;
+var goreleaserRelease = /\brelease\b/;
+var goreleaserLocal = /--snapshot\b|--skip[=\s]+[\w,]*publish|--skip-publish\b/;
+var dockerPush = /\bdocker\s+(?:image\s+)?push\s+(\S+)/;
+var localRegistry = /localhost|127\.0\.0\.1|:5000\b|kind-registry|\$\{?\w*HOST\b/i;
+var cacheAction = /uses\s*:\s*["']?(actions\/cache(?:\/restore)?|Swatinem\/rust-cache|actions\/setup-go|gradle\/actions\/setup-gradle|gradle\/gradle-build-action|actions\/setup-(?:node|python|java|dotnet)|ruby\/setup-ruby|astral-sh\/setup-uv|docker\/(?:build-push|bake)-action|denoland\/setup-deno)@([^\s"'#]*)/i;
+function indentOf7(content) {
+  return /^\s*/.exec(content)?.[0].length ?? 0;
+}
+function jobsIn2(lines) {
+  const start = lines.findIndex(({ content }) => jobsKey2.test(content));
+  if (start < 0) {
+    return [];
+  }
+  const jobs = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\S/.test(line.content) && line.content.trim() !== "" && !commentLine88.test(line.content)) {
+      break;
+    }
+    const key2 = jobKey2.exec(line.content);
+    if (key2 !== null) {
+      jobs.push({ name: (key2[1] ?? "").replace(/["']/g, ""), lines: [line] });
+      continue;
+    }
+    jobs.at(-1)?.lines.push(line);
+  }
+  return jobs;
+}
+function stepSettings(lines, index) {
+  const usesLine2 = lines[index]?.content ?? "";
+  const stepIndent = indentOf7(usesLine2.replace(/^(\s*)-\s+/, "$1  "));
+  const settings29 = [];
+  for (const { content } of lines.slice(index + 1, index + 30)) {
+    if (content.trim() === "" || commentLine88.test(content)) {
+      continue;
+    }
+    if (indentOf7(content) < stepIndent || /^\s*-\s/.test(content) && indentOf7(content) <= stepIndent) {
+      break;
+    }
+    settings29.push(content.trim());
+  }
+  return settings29;
+}
+var enabled = (settings29, key2) => settings29.some((text) => new RegExp(`^${key2}\\s*:\\s*["']?(?!false\\b|["']|$)\\S`).test(text));
+var disabled = (settings29, key2) => settings29.some((text) => new RegExp(`^${key2}\\s*:\\s*["']?(?:false|off)\\b`).test(text));
+function restoresCache(action2, version4, settings29) {
+  const name = action2.toLowerCase();
+  const major = Number(/^v(\d+)/.exec(version4)?.[1] ?? Number.NaN);
+  if (name === "actions/cache" || name === "actions/cache/restore") {
+    return !settings29.some((text) => /^lookup-only\s*:\s*true\b/.test(text));
+  }
+  if (name === "swatinem/rust-cache") {
+    return true;
+  }
+  if (name === "actions/setup-go") {
+    return Number.isNaN(major) || major >= 4 ? !disabled(settings29, "cache") : enabled(settings29, "cache");
+  }
+  if (name === "gradle/actions/setup-gradle" || name === "gradle/gradle-build-action") {
+    return !settings29.some((text) => /^cache-disabled\s*:\s*true\b/.test(text));
+  }
+  if (name === "ruby/setup-ruby") {
+    return settings29.some((text) => /^bundler-cache\s*:\s*true\b/.test(text));
+  }
+  if (name === "astral-sh/setup-uv") {
+    return settings29.some((text) => /^enable-cache\s*:\s*["']?true\b/.test(text));
+  }
+  if (name === "docker/build-push-action" || name === "docker/bake-action") {
+    return settings29.some((text) => /\btype=gha\b/.test(text));
+  }
+  return enabled(settings29, "cache");
+}
+function publishes(job) {
+  const found = [];
+  job.lines.forEach(({ line, content, added }, index) => {
+    if (commentLine88.test(content)) {
+      return;
+    }
+    const push = dockerPush.exec(content);
+    const goreleaser = goreleaserAction.test(content) ? stepSettings(job.lines, index).find((text) => /^args\s*:/.test(text)) ?? "" : /\bgoreleaser\s+release\b/.test(content) ? content : void 0;
+    if (publishStep.test(content) || push !== null && !localRegistry.test(push[1] ?? "") || goreleaser !== void 0 && goreleaserRelease.test(goreleaser) && !goreleaserLocal.test(goreleaser)) {
+      found.push({ line, added });
+    }
+  });
+  return found;
+}
+function cachingSteps(job) {
+  const found = [];
+  job.lines.forEach(({ line, content }, index) => {
+    const match2 = cacheAction.exec(content);
+    if (match2 === null || commentLine88.test(content)) {
+      return;
+    }
+    const action2 = match2[1] ?? "";
+    if (restoresCache(action2, match2[2] ?? "", stepSettings(job.lines, index))) {
+      found.push({ line, name: action2 });
+    }
+  });
+  return found;
+}
+var releaseCachePoisoningRule = {
+  id: "release-cache-poisoning",
+  description: "Warns about GitHub Actions release and publishing jobs that restore caches, which any workflow run on the default branch, including one that runs a pull request's code, can poison, as in the 2024 Ultralytics compromise.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.releaseCachePoisoning.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!workflowFile5.test(file.path) || file.patch === void 0 || exampleWorkflow4.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const jobsStart = lines.findIndex(({ content }) => jobsKey2.test(content));
+      const triggers = (jobsStart < 0 ? lines : lines.slice(0, jobsStart)).filter(({ content }) => !commentLine88.test(content));
+      const jobs = jobsIn2(lines);
+      const triggerText = triggers.map(({ content }) => content).join("\n");
+      const releaseWorkflow = releaseTrigger.test(triggerText) && !/\bpull_request\b|^\s+branches(?:-ignore)?\s*:|\bschedule\s*:/m.test(triggerText) && jobs.some((job) => publishes(job).length > 0);
+      const found = jobs.flatMap((job) => {
+        const publishing = publishes(job);
+        if (publishing.length === 0 && !releaseWorkflow) {
+          return [];
+        }
+        const steps = cachingSteps(job);
+        const madeRelease = publishing.some(({ added }) => added) || triggers.some(({ content, added }) => added && releaseTrigger.test(content));
+        return madeRelease ? steps : steps.filter(({ line }) => job.lines.some((entry3) => entry3.line === line && entry3.added));
+      });
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text } = describeLines(lineNumbers);
+      const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
+      return [
+        {
+          ruleId: "release-cache-poisoning",
+          title: "Release job restores a shared cache",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, a release or publishing job restores a GitHub Actions cache with ${listOf(names2)}. Caches written on the default branch are shared with every workflow there, so code that runs in any of them, such as a pull request's code in a \`pull_request_target\` workflow or a compromised test dependency, can plant files that this job builds and publishes.`,
+          recommendation: "Turn caching off in jobs that build or publish releases, such as `cache: false` for `actions/setup-go` and no `cache:` for the other setup actions, and drop `actions/cache` there. A release built from a clean install is slower but cannot pick up files another workflow left behind."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -28881,7 +29047,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine88 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine89 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -28939,7 +29105,7 @@ function findChanges(path2, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine88.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine89.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -29036,7 +29202,7 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine89 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine90 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
 var definitionLine3 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -29053,7 +29219,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine89.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine90.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -30911,7 +31077,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine90 = /^\s*#/;
+var commentLine91 = /^\s*#/;
 var documentation75 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -30955,7 +31121,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine90.test(content)) {
+    if (commentLine91.test(content)) {
       continue;
     }
     const key2 = mappingKey.exec(content)?.[1];
@@ -30989,7 +31155,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine91 = /^\s*#/;
+var commentLine92 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -31065,7 +31231,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine91.test(content)) {
+    if (commentLine92.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -31155,7 +31321,7 @@ var settings27 = [
   }
 ];
 var allowsEverything = settings27[0];
-var commentLine92 = /^\s*(?:#|\/\/)/;
+var commentLine93 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -31196,7 +31362,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine92.test(content)) {
+    if (!added || commentLine93.test(content)) {
       continue;
     }
     for (const setting of settings27) {
@@ -31255,7 +31421,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine93 = /^\s*#/;
+var commentLine94 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -31304,7 +31470,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key2 = void 0;
     }
-    if (commentLine93.test(content) || content.trim() === "") {
+    if (commentLine94.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -31359,7 +31525,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine94 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine95 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -31374,7 +31540,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine94.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine95.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -31470,7 +31636,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine95 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine96 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -31487,7 +31653,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine95.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine96.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -31546,7 +31712,7 @@ var settings28 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine96 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -31561,7 +31727,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine96.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine97.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -31610,7 +31776,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine98 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation80 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -31627,7 +31793,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine97.test(content)) {
+        if (!added || commentLine98.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -31883,7 +32049,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine98 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine99 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation81 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -31901,7 +32067,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine98.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine99.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -31954,7 +32120,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine99 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine100 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation82 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -32018,7 +32184,7 @@ function commands3(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine99.test(content)) {
+    if (commentLine100.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -32384,7 +32550,7 @@ function pathWords(path2) {
 }
 
 // src/rules/unpinned-action.ts
-var workflowFile5 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile6 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
 var commitSha2 = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
@@ -32400,7 +32566,7 @@ var unpinnedActionRule = {
     }
     const allowedOwners = new Set(ruleConfig.allowedOwners.map((owner) => owner.toLowerCase()));
     return files.flatMap((file) => {
-      if (file.patch === void 0 || !workflowFile5.test(file.path)) {
+      if (file.patch === void 0 || !workflowFile6.test(file.path)) {
         return [];
       }
       const found = addedLines(file.patch).flatMap(({ line, content }) => {
@@ -32456,7 +32622,7 @@ function list(targets) {
 }
 
 // src/rules/workflow-risk.ts
-var workflowFile6 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
+var workflowFile7 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var workflowOnly = /^\.github\/workflows\//;
 var topLevelPermissions = /^permissions\s*:\s*(?:#.*)?$/;
 var inlineTopLevelPermissions = /^permissions\s*:\s*\{([^}]{0,1000})\}/;
@@ -32507,7 +32673,7 @@ var workflowRiskRule = {
     if (!config3.rules.workflowRisk.enabled) {
       return [];
     }
-    return files.filter((file) => file.patch !== void 0 && workflowFile6.test(file.path)).flatMap((file) => {
+    return files.filter((file) => file.patch !== void 0 && workflowFile7.test(file.path)).flatMap((file) => {
       const injections = findInjections(file.patch ?? "");
       const flagged = matchAddedLines(file.patch ?? "", warnings, /^\s*#/);
       const workflow = workflowOnly.test(file.path);
@@ -32772,7 +32938,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine100 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine101 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation85 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -32814,7 +32980,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine100.test(content)) {
+    if (commentLine101.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -33021,6 +33187,7 @@ var defaultRules = [
   aiServiceExposureRule,
   unpinnedRemoteSourceRule,
   terraformSensitiveValueRule,
+  releaseCachePoisoningRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -33625,6 +33792,7 @@ var ruleAreas = {
   "ai-service-exposure": "infrastructure",
   "unpinned-remote-source": "supply-chain",
   "terraform-sensitive-value": "secrets",
+  "release-cache-poisoning": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -33799,6 +33967,7 @@ var ruleQuestions = {
   "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
   "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
   "terraform-sensitive-value": "Are the secrets in these Terraform variables marked sensitive, and were any printed in CI logs rotated?",
+  "release-cache-poisoning": "Do the release jobs build from a clean install, without restoring caches?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -33942,6 +34111,7 @@ var ruleSections = {
   "ai-service-exposure": "AI Service Exposure",
   "unpinned-remote-source": "Unpinned Remote Sources",
   "terraform-sensitive-value": "Terraform Sensitive Values",
+  "release-cache-poisoning": "Release Cache Poisoning",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
