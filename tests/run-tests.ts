@@ -1032,6 +1032,12 @@ import {
   testReleaseCachePoisoningSkipsExamplesAndCanBeDisabled
 } from "./unit/release-cache-poisoning.test.js";
 import {
+  testProductionSourceMapReadsEachTool,
+  testProductionSourceMapReportsOneFindingPerFile,
+  testProductionSourceMapSkipsHiddenDevelopmentAndLibraryMaps,
+  testProductionSourceMapSkipsTestsAndCanBeDisabled
+} from "./unit/production-source-map.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1768,6 +1774,10 @@ const tests: Array<[string, Test]> = [
   ["release-cache-poisoning reads each cache", testReleaseCachePoisoningReadsEachCache],
   ["release-cache-poisoning skips checks and uncached releases", testReleaseCachePoisoningSkipsChecksAndUncachedReleases],
   ["release-cache-poisoning skips examples and can be disabled", testReleaseCachePoisoningSkipsExamplesAndCanBeDisabled],
+  ["production-source-map reports one finding per file", testProductionSourceMapReportsOneFindingPerFile],
+  ["production-source-map reads each tool", testProductionSourceMapReadsEachTool],
+  ["production-source-map skips hidden, development, and library maps", testProductionSourceMapSkipsHiddenDevelopmentAndLibraryMaps],
+  ["production-source-map skips tests and can be disabled", testProductionSourceMapSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

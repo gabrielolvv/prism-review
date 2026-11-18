@@ -131,6 +131,7 @@ export const ruleQuestions: Readonly<Record<string, string>> = {
   "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
   "terraform-sensitive-value": "Are the secrets in these Terraform variables marked sensitive, and were any printed in CI logs rotated?",
   "release-cache-poisoning": "Do the release jobs build from a clean install, without restoring caches?",
+  "production-source-map": "Should this production build publish its source maps, or keep them hidden for the error tracker?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",

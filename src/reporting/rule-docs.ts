@@ -110,6 +110,7 @@ export const ruleSections: Readonly<Record<string, string>> = {
   "unpinned-remote-source": "Unpinned Remote Sources",
   "terraform-sensitive-value": "Terraform Sensitive Values",
   "release-cache-poisoning": "Release Cache Poisoning",
+  "production-source-map": "Production Source Maps",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
