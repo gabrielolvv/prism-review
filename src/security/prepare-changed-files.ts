@@ -19,6 +19,7 @@ import { findDeploymentEnvSecretLines } from "./deployment-env-secrets.js";
 import { findIacPasswordLines } from "./iac-passwords.js";
 import { findKubernetesSecretLines } from "./kubernetes-secrets.js";
 import { findMcpConfigLines } from "./mcp-config.js";
+import { findConfigMapSecretLines } from "./configmap-secrets.js";
 import { findLockfileSources, isSourceFile } from "./lockfile-sources.js";
 import { limitPatchSizes } from "./limit-patches.js";
 import { redactChangedFiles } from "./redact-secrets.js";
@@ -51,6 +52,7 @@ export function prepareChangedFiles(files: ChangedFile[], config: PrismConfig): 
     appConfigSecretLines: file.patch === undefined ? [] : findAppConfigSecretLines(file.path, file.patch),
     ciConfigSecretLines: file.patch === undefined ? [] : findCiConfigSecretLines(file.path, file.patch),
     mcpConfigLines: file.patch === undefined ? [] : findMcpConfigLines(file.path, file.patch),
+    configMapSecretLines: file.patch === undefined ? [] : findConfigMapSecretLines(file.path, file.patch),
     ...(file.patch !== undefined && credentialFileKind(file.path)?.checksLines
       ? { credentialLines: findCredentialLines(file.path, file.patch) }
       : {}),

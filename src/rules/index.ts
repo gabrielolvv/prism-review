@@ -86,6 +86,7 @@ import { mcpServerConfigRule } from "./mcp-server-config.js";
 import { agentAutoApproveRule } from "./agent-auto-approve.js";
 import { packageInstallScriptRule } from "./package-install-script.js";
 import { ciOidcTrustRule } from "./ci-oidc-trust.js";
+import { configMapSecretRule } from "./configmap-secret.js";
 import { dependencyRiskRule } from "./dependency-risk.js";
 import { destructiveMigrationRule } from "./destructive-migration.js";
 import { disabledSecurityCheckRule } from "./disabled-security-check.js";
@@ -215,6 +216,7 @@ export const defaultRules: Rule[] = [
   agentAutoApproveRule,
   packageInstallScriptRule,
   ciOidcTrustRule,
+  configMapSecretRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,

@@ -953,6 +953,13 @@ import {
   testCiOidcTrustSkipsTestsAndCanBeDisabled
 } from "./unit/ci-oidc-trust.test.js";
 import {
+  testConfigMapSecretFindsValuesBeforeRedaction,
+  testConfigMapSecretReadsEachForm,
+  testConfigMapSecretReportsOneFindingPerFile,
+  testConfigMapSecretSkipsReferencesAndPlaceholders,
+  testConfigMapSecretSkipsTestsAndCanBeDisabled
+} from "./unit/configmap-secret.test.js";
+import {
   testConfigChangeReportsExtendedFiles,
   testParseExtendsReadsBothForms,
   testResolveConfigLimitsTheDepth,
@@ -1636,6 +1643,11 @@ const tests: Array<[string, Test]> = [
   ["ci-oidc-trust reads each format", testCiOidcTrustReadsEachFormat],
   ["ci-oidc-trust skips named owners and other issuers", testCiOidcTrustSkipsNamedOwnersAndOtherIssuers],
   ["ci-oidc-trust skips tests and can be disabled", testCiOidcTrustSkipsTestsAndCanBeDisabled],
+  ["configmap-secret reports one finding per file", testConfigMapSecretReportsOneFindingPerFile],
+  ["configmap-secret reads each form", testConfigMapSecretReadsEachForm],
+  ["configmap-secret skips references and placeholders", testConfigMapSecretSkipsReferencesAndPlaceholders],
+  ["configmap-secret finds values before redaction", testConfigMapSecretFindsValuesBeforeRedaction],
+  ["configmap-secret skips tests and can be disabled", testConfigMapSecretSkipsTestsAndCanBeDisabled],
   ["text output lists findings by severity", testRenderTextListsFindingsBySeverity],
   ["text output shows info findings when asked", testRenderTextShowsInfoFindingsWhenAsked],
   ["text output is colored only when asked", testRenderTextColorsOnlyWhenAsked],

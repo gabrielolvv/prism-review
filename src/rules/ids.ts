@@ -95,6 +95,7 @@ export const ruleIds: readonly string[] = [
   "agent-auto-approve",
   "package-install-script",
   "ci-oidc-trust",
+  "configmap-secret",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
