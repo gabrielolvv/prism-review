@@ -15472,6 +15472,7 @@ var ruleIds = [
   "workflow-artifact-poisoning",
   "privileged-pr-checkout",
   "ai-service-exposure",
+  "unpinned-remote-source",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -15912,6 +15913,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     aiServiceExposure: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    unpinnedRemoteSource: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -26649,7 +26653,7 @@ var mcpServerConfigRule = {
       const lineNumbers = found.map(({ line }) => line);
       const { text } = describeLines(lineNumbers);
       const kinds3 = new Set(found.map(({ kind }) => kind));
-      const phrases5 = [
+      const phrases6 = [
         ...kinds3.has("secret") ? [`writes ${named(found, "secret")} in plain text, so the token is committed to the repository, where anyone who can read it, a fork, or its history can use it`] : [],
         ...kinds3.has("unpinned") ? [`starts ${named(found, "unpinned")} without a fixed version, so every start runs whatever was published last, with the tokens, files, and tools the server is given`] : [],
         ...kinds3.has("http") ? [`reaches ${named(found, "http")} over plain HTTP, so anyone on the network can read the requests and change the tool results the model acts on`] : []
@@ -26662,7 +26666,7 @@ var mcpServerConfigRule = {
           file: file.path,
           line: lineNumbers[0],
           lines: lineNumbers,
-          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the MCP configuration ${listOf(phrases5)}.`,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the MCP configuration ${listOf(phrases6)}.`,
           recommendation: "Read tokens from the environment or the client's prompts, such as `${env:GITHUB_TOKEN}` or VS Code's `${input:github-token}`, and rotate any token that was committed. Pin server packages and images to a version or digest, such as `@modelcontextprotocol/server-github@2025.4.8` or `image@sha256:...`, and reach remote servers over HTTPS."
         }
       ];
@@ -27909,7 +27913,7 @@ var publicLoadBalancerRule = {
 // src/rules/compose-published-port.ts
 var composeFile3 = /\.ya?ml$/i;
 var productionPath3 = /(?:^|[\/_.-])(?:prod|production|stack|deploy|deployment|release|live|swarm)(?:[\/_.-]|$)/i;
-var overrideFile = /(?:^|\/)(?:docker-)?compose\.override\.ya?ml$|(?:^|[\/_.-])(?:dev|development|local|test|ci|e2e)(?:[\/_.-]|$)/i;
+var overrideFile = /(?:^|\/)(?:docker-)?compose\.override\.ya?ml$|(?:^|[\/_.-])(?:dev|development|local|sandbox|test|ci|e2e)(?:[\/_.-]|$)/i;
 var servicesKey = /^services\s*:\s*(?:#.*)?$/m;
 var portsKey2 = /^(\s*)ports\s*:\s*(?:#.*)?$/;
 var exposedPorts2 = /* @__PURE__ */ new Set([...sensitivePorts, ...Object.keys(servicePorts).map(Number)]);
@@ -28520,6 +28524,173 @@ var aiServiceExposureRule = {
           lines: lineNumbers,
           message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the change ${listOf(kinds3.map((kind) => phrases4[kind]))}.`,
           recommendation: "Keep AI tools on localhost or a private network and put a login in front of them: Gradio's `auth=` or `--gradio-auth`, Open WebUI's own login, or a reverse proxy with authentication for Ollama and Ray. List the origins that may call Ollama instead of `*`, and reach Ray's dashboard through a tunnel or `kubectl port-forward`."
+        }
+      ];
+    });
+  }
+};
+
+// src/rules/unpinned-remote-source.ts
+var terraformFile3 = /\.(?:tf|tf\.json|hcl)$/i;
+var tflintFile = /(?:^|\/)\.?tflint[^/]*\.hcl$/i;
+var preCommitFile = /(?:^|\/)\.pre-commit-config\.ya?ml$/i;
+var gitlabFile = /(?:^|\/)\.gitlab-ci[^/]*\.ya?ml$|(?:^|\/)\.gitlab\/ci\/[^/]+\.ya?ml$|(?:^|\/)\.gitlab-ci\/[^/]+\.ya?ml$/i;
+var ciOrTestSetup21 = /(?:^|[\/_.-])(?:e2e|integ|inttest|tests?|fixtures?|examples?)(?:[\/_.-]|$)|(?:^|\/)(?:hack|docs?)\//i;
+var branchName = /^(?:main|master|develop|development|dev|trunk|HEAD|latest|stable|next|staging|production|prod)$/i;
+var commitSha = /^[0-9a-f]{40}$/i;
+var templated2 = /\$\{|\{\{|__\w+__|\$[A-Z_]/;
+var moduleStart = /^\s*module\s+"[^"]+"\s*\{/;
+var terragruntBlock = /^\s*(?:terraform|unit|stack)\s*(?:"[^"]+"\s*)?\{/;
+var sourceKey = /^\s*source\s*=\s*"([^"]+)"/;
+var versionKey = /^\s*version\s*=\s*"[^"]+"/;
+var registrySource = /^(?:[\w.-]+\.[a-z]{2,}\/)?[\w-]+\/[\w-]+\/[\w-]+$/i;
+var gitSource = /^(?:git::|git@|(?:https?:\/\/)?(?:github\.com|gitlab\.com|bitbucket\.org)\/)/i;
+function gitRef(source2) {
+  return /[?&]ref=([^&]+)/.exec(source2)?.[1];
+}
+function movingSource(source2, hasVersion) {
+  if (templated2.test(source2) || /^(?:\.{1,2}\/|\/)/.test(source2)) {
+    return false;
+  }
+  if (gitSource.test(source2)) {
+    const ref = gitRef(source2);
+    return ref === void 0 || branchName.test(ref);
+  }
+  if (/^tfr:\/\//.test(source2)) {
+    return !/[?&]version=/.test(source2);
+  }
+  return registrySource.test(source2) && !hasVersion;
+}
+function blockAt(lines, index) {
+  const block = [];
+  let depth = 0;
+  for (const line of lines.slice(index, index + 60)) {
+    if (block.length > 0 && line.startsHunk) {
+      break;
+    }
+    block.push(line);
+    depth += (line.content.match(/\{/g)?.length ?? 0) - (line.content.match(/\}/g)?.length ?? 0);
+    if (depth <= 0) {
+      break;
+    }
+  }
+  return block;
+}
+function terraformSources(lines) {
+  const found = [];
+  lines.forEach(({ content }, index) => {
+    if (!moduleStart.test(content) && !terragruntBlock.test(content)) {
+      return;
+    }
+    const block = blockAt(lines, index);
+    const source2 = block.find(({ content: text }) => sourceKey.test(text));
+    const value = sourceKey.exec(source2?.content ?? "")?.[1];
+    if (source2 === void 0 || value === void 0) {
+      return;
+    }
+    const version4 = block.find(({ content: text }) => versionKey.test(text));
+    if ((source2.added || block[0]?.added === true || version4?.added === true) && movingSource(value, version4 !== void 0)) {
+      found.push({ line: source2.line, kind: "module", name: value.replace(/\?.*$/, "") });
+    }
+  });
+  return found;
+}
+function preCommitHooks(lines) {
+  const found = [];
+  let repo = "";
+  for (const { line, content, added } of lines) {
+    const repoMatch = /^\s*-\s*repo\s*:\s*["']?([^"'\s#]+)/.exec(content);
+    if (repoMatch !== null) {
+      repo = repoMatch[1] ?? "";
+      continue;
+    }
+    const rev = /^\s*rev\s*:\s*["']?([^"'\s#]+)/.exec(content)?.[1];
+    if (rev !== void 0 && added && branchName.test(rev) && repo !== "local" && repo !== "meta") {
+      found.push({ line, kind: "hook", name: `${repo}@${rev}` });
+    }
+  }
+  return found;
+}
+function gitlabIncludes(lines) {
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (/^\s*#/.test(content)) {
+      return;
+    }
+    const remote3 = /^\s*(?:-\s*)?(?:remote\s*:|include\s*:)\s*["']?(https?:\/\/[^"'\s]+)/.exec(content);
+    if (remote3 !== null && added && !/[0-9a-f]{40}/i.test(remote3[1] ?? "")) {
+      found.push({ line, kind: "include", name: remote3[1] ?? "" });
+      return;
+    }
+    const component = /^\s*(?:-\s*)?component\s*:\s*["']?([^"'\s#]+)/.exec(content);
+    if (component !== null && added) {
+      const reference = (component[1] ?? "").split("@")[1];
+      if (!templated2.test(reference ?? "") && (reference === void 0 || reference === "~latest" || branchName.test(reference))) {
+        found.push({ line, kind: "include", name: component[1] ?? "" });
+      }
+      return;
+    }
+    const project = /^(\s*)-\s*project\s*:\s*["']?([^"'\s#]+)/.exec(content);
+    if (project === null) {
+      return;
+    }
+    const indent = (project[1] ?? "").length;
+    const entry3 = [lines[index]];
+    for (const next of lines.slice(index + 1, index + 12)) {
+      if (next.startsHunk || next.content.trim() !== "" && (/^\s*-\s/.test(next.content) ? (/^\s*/.exec(next.content)?.[0].length ?? 0) <= indent : (/^\s*/.exec(next.content)?.[0].length ?? 0) <= indent)) {
+        break;
+      }
+      entry3.push(next);
+    }
+    const ref = entry3.map(({ content: text }) => /^\s*ref\s*:\s*["']?([^"'\s#]+)/.exec(text)?.[1]).find((value) => value !== void 0);
+    if (entry3.some(({ added: changed }) => changed) && !templated2.test(project[2] ?? "") && (ref === void 0 || branchName.test(ref) && !commitSha.test(ref))) {
+      found.push({ line, kind: "include", name: project[2] ?? "" });
+    }
+  });
+  return found;
+}
+var phrases5 = {
+  module: "pulls Terraform modules from a branch or without a version, so whoever can push to them changes this infrastructure at the next `init`",
+  hook: "runs pre-commit hooks from a branch, so each new commit there runs on every developer's machine and in CI",
+  include: "includes CI configuration without pinning it, so changes there run in these pipelines with their variables and credentials"
+};
+var unpinnedRemoteSourceRule = {
+  id: "unpinned-remote-source",
+  description: "Warns about code pulled from a moving reference: Terraform and Terragrunt modules from a git branch or the registry without a version, pre-commit hooks at a branch, and GitLab CI includes and components without a fixed version.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.unpinnedRemoteSource.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      const terraform2 = terraformFile3.test(file.path) && !tflintFile.test(file.path);
+      const preCommit = preCommitFile.test(file.path);
+      const gitlab = gitlabFile.test(file.path);
+      if (!terraform2 && !preCommit && !gitlab || file.patch === void 0 || ciOrTestSetup21.test(file.path) || // Development, example, and test stacks. The path check also matches CI file names, which the
+      // GitLab check reads.
+      terraform2 && developmentPath.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
+        return [];
+      }
+      const lines = patchLines(file.patch);
+      const found = terraform2 ? terraformSources(lines) : preCommit ? preCommitHooks(lines) : gitlabIncludes(lines);
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text } = describeLines(lineNumbers);
+      const kinds3 = Object.keys(phrases5).filter((kind) => found.some((entry3) => entry3.kind === kind));
+      const names2 = [...new Set(found.map(({ name }) => `\`${name}\``))];
+      const named2 = names2.length > 3 ? [...names2.slice(0, 3), `${names2.length - 3} more`] : names2;
+      return [
+        {
+          ruleId: "unpinned-remote-source",
+          title: "Code pulled from a moving reference",
+          severity: "warning",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `In ${text.charAt(0).toLowerCase()}${text.slice(1)}, the change ${listOf(kinds3.map((kind) => phrases5[kind]))}: ${listOf(named2)}.`,
+          recommendation: 'Pin each source to a release tag or, better, a commit SHA: `?ref=v1.4.0` or `?ref=<sha>` for git module sources, `version = "5.1.2"` for registry modules, `rev: <sha>` with `# frozen: v4.6.0` for pre-commit (`pre-commit autoupdate --freeze`), and `ref:` or `@1.2.3` for GitLab includes and components. Update the pins on purpose, with a review of what changed.'
         }
       ];
     });
@@ -30832,7 +31003,7 @@ function joinLabels6(labels26) {
 }
 
 // src/rules/insecure-infrastructure.ts
-var terraformFile3 = /\.(?:tf|tf\.json|hcl)$/i;
+var terraformFile4 = /\.(?:tf|tf\.json|hcl)$/i;
 var templateFile = /\.(?:json|ya?ml)$/i;
 var settings27 = [
   {
@@ -30879,7 +31050,7 @@ var insecureInfrastructureRule = {
     }
     const testGlobs = config3.rules.missingTests.testGlobs;
     return files.flatMap((file) => {
-      const terraform2 = terraformFile3.test(file.path);
+      const terraform2 = terraformFile4.test(file.path);
       if (file.patch === void 0 || !terraform2 && !templateFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob) => minimatch(file.path, glob))) {
         return [];
       }
@@ -32098,7 +32269,7 @@ function pathWords(path2) {
 // src/rules/unpinned-action.ts
 var workflowFile5 = /^\.github\/workflows\/[^/]+\.ya?ml$|(?:^|\/)action\.ya?ml$/;
 var usesLine = /^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)/;
-var commitSha = /^[0-9a-f]{40}$/i;
+var commitSha2 = /^[0-9a-f]{40}$/i;
 var maxListed3 = 3;
 var unpinnedActionRule = {
   id: "unpinned-action",
@@ -32156,7 +32327,7 @@ function unpinnedKind(target, allowedOwners) {
     return void 0;
   }
   const owner = target.slice(0, target.indexOf("/")).toLowerCase();
-  return allowedOwners.has(owner) || commitSha.test(target.slice(at + 1)) ? void 0 : "action";
+  return allowedOwners.has(owner) || commitSha2.test(target.slice(at + 1)) ? void 0 : "action";
 }
 function unique(values) {
   return [...new Set(values)];
@@ -32731,6 +32902,7 @@ var defaultRules = [
   workflowArtifactPoisoningRule,
   privilegedPrCheckoutRule,
   aiServiceExposureRule,
+  unpinnedRemoteSourceRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -33333,6 +33505,7 @@ var ruleAreas = {
   "workflow-artifact-poisoning": "supply-chain",
   "privileged-pr-checkout": "supply-chain",
   "ai-service-exposure": "infrastructure",
+  "unpinned-remote-source": "supply-chain",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -33505,6 +33678,7 @@ var ruleQuestions = {
   "workflow-artifact-poisoning": "Are artifacts from pull request runs unpacked outside the workspace and treated as untrusted data?",
   "privileged-pr-checkout": "Can only maintainers start the job that fetches pull request code with the repository's secrets?",
   "ai-service-exposure": "Is this AI tool behind a login or kept on a private network?",
+  "unpinned-remote-source": "Is every module, hook, and CI include pinned to a tag or commit?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -33646,6 +33820,7 @@ var ruleSections = {
   "workflow-artifact-poisoning": "Workflow Artifact Poisoning",
   "privileged-pr-checkout": "Privileged Pull Request Checkout",
   "ai-service-exposure": "AI Service Exposure",
+  "unpinned-remote-source": "Unpinned Remote Sources",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
