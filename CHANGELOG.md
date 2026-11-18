@@ -2,6 +2,12 @@
 
 All notable changes to Prism Review are documented in this file.
 
+## 0.151.0 - 2026-11-18
+
+### Added
+
+- `self-hosted-pr-runner` rule: warns about GitHub Actions workflows that run `pull_request` jobs on self-hosted runners, where code from fork pull requests runs on your machines and can stay there, read later jobs' secrets and caches, and reach the runner's network, as in the 2024 attacks on PyTorch's runners. It reads every `pull_request` trigger form and `runs-on` with the `self-hosted` label, inline, as a list, or through the matrix. Jobs whose `if:` keeps fork pull requests out or waits for a maintainer, runners and jobs kept to a named repository, such as a private enterprise copy, GitHub-hosted runners, and example workflows are not reported. On 3,104 workflows, 47 of them naming self-hosted runners, it warns about 4: three Checkov workflows and Microsoft's hcsshim.
+
 ## 0.150.0 - 2026-11-18
 
 ### Added
