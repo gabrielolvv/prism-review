@@ -36640,6 +36640,7 @@ var ruleIds = [
   "kubernetes-control-plane",
   "public-load-balancer",
   "compose-published-port",
+  "jwt-signature-bypass",
   "sql-injection",
   "insecure-web-config",
   "weak-crypto",
@@ -37065,6 +37066,9 @@ var prismConfigSchema = object({
       enabled: boolean2().default(true)
     }).prefault({}),
     composePublishedPort: object({
+      enabled: boolean2().default(true)
+    }).prefault({}),
+    jwtSignatureBypass: object({
       enabled: boolean2().default(true)
     }).prefault({}),
     plaintextCredentials: object({
@@ -49166,6 +49170,90 @@ var composePublishedPortRule = {
   }
 };
 
+// src/rules/jwt-signature-bypass.ts
+var sourceFile11 = /\.(?:cs|java|kt|scala|groovy|rb|go|php|rs|py|[cm]?[jt]sx?)$/i;
+var generatedFile = /\.d\.[cm]?ts$|\.min\.[cm]?js$|\.map$/i;
+var commentLine84 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var definitionLine2 = /^\s*(?:(?:public|private|protected|internal|static|final|override|virtual|abstract|async|export|pub(?:\([^)]*\))?)\s+)*(?:def|func|fn|function|[\w<>[\],.?]+)\s+\w+\s*\(|^\s*func\s+\([^)]*\)\s*\w+\s*\(/;
+var bypasses = [
+  // .NET: unsigned tokens allowed, or a signature validator that returns the token unchecked.
+  { library: ".NET", pattern: /\bRequireSignedTokens\s*=\s*false\b/ },
+  { library: ".NET", pattern: /\bSignatureValidator\s*=[^;]*\bnew\s+(?:JwtSecurityToken|JsonWebToken)\s*\(\s*\w+\s*\)/ },
+  // Ruby's jwt gem with `verify` set to false.
+  { library: "Ruby's jwt", pattern: /\bJWT\.decode\s*\(\s*[^,()]+(?:\([^()]*\))?\s*,\s*[^,()]+\s*,\s*false\b/ },
+  // jose4j, Java JWT, JJWT, and Nimbus.
+  { library: "jose4j", pattern: /\.(?:setSkipSignatureVerification|setDisableRequireSignature|setSkipAllValidators)\s*\(\s*\)/ },
+  { library: "jose4j", pattern: /\bAlgorithmConstraints\.NO_CONSTRAINTS\b/ },
+  { library: "Java JWT", pattern: /\bJWT\.require\s*\(\s*Algorithm\.none\s*\(\s*\)/ },
+  { library: "JJWT", pattern: /\.unsecured\s*\(\s*\)|\.parseUnsecuredClaims\s*\(|\.parseClaimsJwt\s*\(/ },
+  { library: "Nimbus JOSE", pattern: /\bPlainJWT\.parse\s*\(/ },
+  // Go: lestrrat-go/jwx without verification, and golang-jwt's "none" key.
+  { library: "jwx", pattern: /\bjwt\.(?:Parse(?:String|Request|Reader)?)\s*\([^)]*\bjwt\.WithVerify\s*\(\s*false\s*\)|\bjwt\.ParseInsecure\s*\(/ },
+  { library: "golang-jwt", pattern: /\bjwt\.UnsafeAllowNoneSignatureType\b/ },
+  // JavaScript's jose, PHP's lcobucci/jwt, and Rust's jsonwebtoken.
+  { library: "jose", pattern: /\bUnsecuredJWT\.decode\s*\(/ },
+  { library: "lcobucci/jwt", pattern: /\bConfiguration::forUnsecuredSigner\s*\(|\bnew\s+(?:\\?Lcobucci\\JWT\\Signer\\)?None\s*\(\s*\)/ },
+  { library: "Rust's jsonwebtoken", pattern: /\.insecure_disable_signature_validation\s*\(\s*\)/ }
+];
+var justification = /\b(?:verified|validated|trusted|safe|already|intentional(?:ly)?)\b/i;
+var justificationLines = 4;
+var laterVerification = /\bWithKey(?:Set)?\s*\(|\.verify\s*\(|\bjwtVerify\s*\(|\bparse(?:Signed)?Claims(?:Jws)?\s*\(|\bparseClaimsJws\s*\(|\bverifyWith\s*\(|\bValidateToken(?:Async)?\s*\(|\bJWT\.decode\s*\([^)]*,\s*true\b|\bjwt\.Parse(?:WithClaims)?\s*\([^)]*func\b/;
+var verificationLines = 25;
+function codeMatch(content, pattern) {
+  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+  return [...content.matchAll(global)].some((match2) => !insideString6(content, match2.index ?? 0));
+}
+function bypassesIn(lines) {
+  const found = [];
+  lines.forEach(({ line, content, added }, index) => {
+    if (!added || commentLine84.test(content) || definitionLine2.test(content)) {
+      return;
+    }
+    const text = /\bSignatureValidator\s*=/.test(content) ? lines.slice(index, index + 4).map(({ content: next }) => next).join(" ") : content;
+    const match2 = bypasses.find(({ pattern }) => codeMatch(text, pattern));
+    const justified = lines.slice(Math.max(0, index - justificationLines), index).some(({ content: before2 }) => commentLine84.test(before2) && justification.test(before2));
+    const verified = lines.slice(index + 1, index + 1 + verificationLines).some(({ content: after2 }) => !commentLine84.test(after2) && laterVerification.test(after2));
+    if (match2 !== void 0 && !justified && !verified) {
+      found.push({ line, library: match2.library });
+    }
+  });
+  return found;
+}
+var jwtSignatureBypassRule = {
+  id: "jwt-signature-bypass",
+  description: "Flags JSON Web Token code that turns signature verification off, such as .NET's `RequireSignedTokens = false`, Ruby's `JWT.decode(token, nil, false)`, jose4j's `setSkipSignatureVerification()`, JJWT's `unsecured()`, jwx's `WithVerify(false)`, and Rust's `insecure_disable_signature_validation()`.",
+  run({ files, config: config3 }) {
+    if (!config3.rules.jwtSignatureBypass.enabled) {
+      return [];
+    }
+    const testGlobs = config3.rules.missingTests.testGlobs;
+    return files.flatMap((file) => {
+      if (!sourceFile11.test(file.path) || file.patch === void 0 || generatedFile.test(file.path) || isTestDataPath(file.path) || testGlobs.some((glob2) => minimatch(file.path, glob2))) {
+        return [];
+      }
+      const found = bypassesIn(patchLines(file.patch));
+      if (found.length === 0) {
+        return [];
+      }
+      const lineNumbers = [...new Set(found.map(({ line }) => line))].sort((left, right) => left - right);
+      const { text, plural } = describeLines(lineNumbers);
+      const libraries = [...new Set(found.map(({ library }) => library))];
+      return [
+        {
+          ruleId: "jwt-signature-bypass",
+          title: "Token accepted without a signature check",
+          severity: "high",
+          file: file.path,
+          line: lineNumbers[0],
+          lines: lineNumbers,
+          message: `${text} ${plural ? "turn" : "turns"} off ${listOf(libraries)}'s signature verification for JSON Web Tokens, so anyone can write a token with the claims they want, such as another user's ID or an admin role, and have it accepted.`,
+          recommendation: "Verify every token with the issuer's key and a fixed list of algorithms before reading its claims. If you only need a field to find the key, such as `kid`, read the header, then verify the whole token with that key. If the token came straight from the issuer over TLS, as an OpenID Connect ID token from the token endpoint can, say so in a comment and keep its claims out of authorization decisions."
+        }
+      ];
+    });
+  }
+};
+
 // src/rules/dependency-risk.ts
 var ecosystemHints = [
   [/package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock/, "Node.js"],
@@ -49233,7 +49321,7 @@ var migrationName = /(?:^|\/)versions\/[^/]+$|(?:^|\/)[Vv]?\d[^/]*$/;
 var rollbackFile = /(?:^|[._/-])down\.sql$|(?:^|\/)U\d[^/]*__[^/]*\.sql$/i;
 var rollbackStart = /^\s*(?:def\s+(?:self\.)?down(?:grade)?\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Dd]own\s*\(|(?:module\.)?exports\.down\s*=|down\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Dd]own\w*|\w*Down\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+down|migrate:down)\b/i;
 var forwardStart = /^\s*(?:def\s+(?:self\.)?(?:up(?:grade)?|change)\b|(?:(?:public|protected|private|internal|override|static|async|export|function|void)\s+)*[Uu]p\s*\(|(?:module\.)?exports\.up\s*=|up\s*:\s*(?:async\s*)?(?:function\b|\()|func\s+(?:[Uu]p\w*|\w*Up\w*)\s*\()|^\s*--\s*(?:\+(?:goose|migrate)\s+up|migrate:up)\b/i;
-var commentLine84 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
+var commentLine85 = /^\s*(?:--|#|\/\/|\/\*|\*)/;
 var operationDefinition = /^\s*(?:class|def|module|raise|throw)\s/;
 var definition3 = /^(\s*)(?:(?:public|protected|private|internal|override|static|async|export|void)\s+)*(?:def\s+(?:self\.)?|function\s+|func\s+(?:\([^)]*\)\s*)?)(\w+)/;
 var destructiveMigrationRule = {
@@ -49291,7 +49379,7 @@ function findChanges(path5, patch) {
     if (sql) {
       ({ code: code4, inBlockComment } = stripSqlComments(content, inBlockComment));
     }
-    if (!added || rollbackIndent !== void 0 || commentLine84.test(code4) || operationDefinition.test(code4)) {
+    if (!added || rollbackIndent !== void 0 || commentLine85.test(code4) || operationDefinition.test(code4)) {
       continue;
     }
     for (const { kind, pattern } of kinds) {
@@ -49388,9 +49476,9 @@ var csrf = {
   ]
 };
 var checks = [tls, token, csrf];
-var commentLine85 = /^\s*(?:#|\/\/|\/\*|\*)/;
+var commentLine86 = /^\s*(?:#|\/\/|\/\*|\*)/;
 var importLine2 = /^\s*(?:from\s+[\w.]+\s+import|import)\b/;
-var definitionLine2 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
+var definitionLine3 = /^\s*(?:func\s|(?:(?:public|protected|private|internal|abstract|final|static|sealed|open|data)\s+)*(?:class|interface|enum|record|object)\s+\w)/;
 var documentation73 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var disabledSecurityCheckRule = {
   id: "disabled-security-check",
@@ -49405,7 +49493,7 @@ var disabledSecurityCheckRule = {
         return [];
       }
       const found = addedLines(file.patch).flatMap(
-        ({ line, content }) => commentLine85.test(content) || importLine2.test(content) || definitionLine2.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
+        ({ line, content }) => commentLine86.test(content) || importLine2.test(content) || definitionLine3.test(content) ? [] : checksIn(content).map((check) => ({ line, check }))
       );
       if (found.length === 0) {
         return [];
@@ -51201,7 +51289,7 @@ var kinds2 = [
 var capabilityKind = kinds2[1];
 var capabilityItem = /^\s*-\s*["']?(?:CAP_)?(?:ALL|SYS_ADMIN)["']?\s*(?:#.*)?$/;
 var mappingKey = /^\s*([\w-]+)\s*:\s*(?:#.*)?$/;
-var commentLine86 = /^\s*#/;
+var commentLine87 = /^\s*#/;
 var documentation74 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var privilegedContainerRule = {
   id: "privileged-container",
@@ -51245,7 +51333,7 @@ function findSettings2(patch) {
     if (startsHunk) {
       listKey2 = "";
     }
-    if (commentLine86.test(content)) {
+    if (commentLine87.test(content)) {
       continue;
     }
     const key3 = mappingKey.exec(content)?.[1];
@@ -51279,7 +51367,7 @@ var labels20 = {
 };
 var dockerfile = /(?:^|\/)(?:(?:Dockerfile|Containerfile)(?:\.[\w.-]{1,100})?|[\w.-]{1,100}\.(?:dockerfile|containerfile))$/i;
 var instruction = /^\s*([A-Za-z]{2,11})\s+(.*)$/;
-var commentLine87 = /^\s*#/;
+var commentLine88 = /^\s*#/;
 var secretWords3 = /* @__PURE__ */ new Set(["password", "passwd", "secret", "token", "apikey", "credential", "credentials"]);
 var secretPairs3 = [
   ["api", "key"],
@@ -51355,7 +51443,7 @@ function readInstructions(patch) {
     if (startsHunk) {
       current = void 0;
     }
-    if (commentLine87.test(content)) {
+    if (commentLine88.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -51445,7 +51533,7 @@ var settings27 = [
   }
 ];
 var allowsEverything = settings27[0];
-var commentLine88 = /^\s*(?:#|\/\/)/;
+var commentLine89 = /^\s*(?:#|\/\/)/;
 var effect2 = /\b[Ee]ffect["']?\s*[=:]\s*["']?(Allow|Deny)\b/;
 var statementReach = 15;
 var insecureInfrastructureRule = {
@@ -51486,7 +51574,7 @@ var insecureInfrastructureRule = {
 function findSettings3(lines, terraform2) {
   const found = [];
   for (const [index, { line, content, added }] of lines.entries()) {
-    if (!added || commentLine88.test(content)) {
+    if (!added || commentLine89.test(content)) {
       continue;
     }
     for (const setting of settings27) {
@@ -51545,7 +51633,7 @@ var wildcard = /^["']?\*["']?$/;
 var clusterAdmin = /^\s*name\s*:\s*["']?cluster-admin["']?\s*(?:#.*)?$/;
 var everyone = /^\s*(?:-\s+)?name\s*:\s*["']?system:(?:anonymous|unauthenticated|authenticated)["']?\s*(?:#.*)?$/;
 var escalationVerbs = /* @__PURE__ */ new Set(["escalate", "bind", "impersonate"]);
-var commentLine89 = /^\s*#/;
+var commentLine90 = /^\s*#/;
 var kubernetesRbacRule = {
   id: "kubernetes-rbac",
   description: "Flags Kubernetes RBAC that binds cluster-admin, grants roles to everyone, or allows every verb or resource.",
@@ -51594,7 +51682,7 @@ function findGrants(patch) {
     if (startsHunk) {
       key3 = void 0;
     }
-    if (commentLine89.test(content) || content.trim() === "") {
+    if (commentLine90.test(content) || content.trim() === "") {
       continue;
     }
     const indent = content.length - content.trimStart().length;
@@ -51649,7 +51737,7 @@ var dockerChmod = /--chmod=([0-7]{1,4}|[ugoa+=,\-rwxXst]{1,50})(?=\s|$)/g;
 var chmodCall = /\b(?:chmod|Chmod|chmodSync|lchmod|fchmod)\s*\(\s*[^,()]{1,300},\s*(0o?[0-7]{3,4})\b/g;
 var shellUmask = /(?:^|[\s;&|(])umask\s+(0{0,4}[0-7]{1,4})(?=\s|$|[;&|)])/g;
 var umaskCall = /\b(?:umask|Umask)\s*\(\s*(0o?[0-7]{0,4}|0)\s*\)/g;
-var commentLine90 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
+var commentLine91 = /^\s*(?:#|\/\/|\*|REM\b|::)/i;
 var documentation76 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var filePermissionsRule = {
   id: "file-permissions",
@@ -51664,7 +51752,7 @@ var filePermissionsRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine90.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine91.test(content) ? kindsIn(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -51760,7 +51848,7 @@ var weakHash = /\bhashlib\.(?:md5|sha1)\s*\(|\bhashlib\.new\(\s*["'](?:md5|sha1)
 var brokenCipher = /\bcreateCipher(?:iv)?\(\s*["'](?:des|des-ede3?|des3|rc4|rc2|bf|blowfish)(?:-[\w-]{1,20})?["']|\bCipher\.getInstance\(\s*"(?:DES|DESede|TripleDES|RC4|ARCFOUR|RC2|Blowfish)\b|\b(?:DES|DES3|ARC4|ARC2|Blowfish)\.new\(|\b(?:des\.New(?:TripleDES)?Cipher|rc4\.NewCipher)\(|\b(?:DES|TripleDES|RC2)\.Create\(/;
 var ecbMode = /\bMODE_ECB\b|(?<!RSA)\/ECB\/|\bcreateCipher(?:iv)?\(\s*["'][\w-]{1,30}-ecb["']|\bCipher\.getInstance\(\s*"AES"\s*\)|\bCipherMode\.ECB\b|\bmodes\.ECB\(/;
 var weakRandom = /\bMath\.random\(\)|\brandom\.(?:random|randint|randrange|choice|choices|sample|getrandbits)\(|\brand\(\)|\bmt_rand\(/;
-var commentLine91 = /^\s*(?:#|\/\/|\*|--)/;
+var commentLine92 = /^\s*(?:#|\/\/|\*|--)/;
 var minified = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength72 = 500;
 var documentation77 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
@@ -51777,7 +51865,7 @@ var weakCryptoRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine91.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
+        ({ line, content, added }) => added && !commentLine92.test(content) && content.length <= maxLineLength72 ? kindsIn2(content).map((kind) => ({ line, kind })) : []
       );
       if (found.length === 0) {
         return [];
@@ -51836,7 +51924,7 @@ var settings28 = [
   // Nokogiri and libxml-ruby.
   /\bconfig\.(?:noent|dtdload)\b|\b(?:ParseOptions|Options)::(?:NOENT|DTDLOAD)\b/
 ];
-var commentLine92 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine93 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation78 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var xmlExternalEntitiesRule = {
   id: "xml-external-entities",
@@ -51851,7 +51939,7 @@ var xmlExternalEntitiesRule = {
         return [];
       }
       const lines = patchLines(file.patch).flatMap(
-        ({ line, content, added }) => added && !commentLine92.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
+        ({ line, content, added }) => added && !commentLine93.test(content) && settings28.some((pattern) => pattern.test(content)) ? [line] : []
       );
       if (lines.length === 0) {
         return [];
@@ -51900,7 +51988,7 @@ var patterns = [
 var digest = /\bcreate(?:Hash|Hmac)\b|\bhmac\b|\.digest\s*\(/i;
 var allFields = /^\s*fields\s*=\s*["']__all__["']/;
 var filterSet = /\bFilterSet\b|(?:^|\/)filters?\.py$/;
-var commentLine93 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine94 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation79 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var massAssignmentRule = {
   id: "mass-assignment",
@@ -51917,7 +52005,7 @@ var massAssignmentRule = {
       const lines = patchLines(file.patch);
       const filters = filterSet.test(file.path) || lines.some(({ content }) => filterSet.test(content));
       const found = lines.flatMap(({ line, content, added }) => {
-        if (!added || commentLine93.test(content)) {
+        if (!added || commentLine94.test(content)) {
           return [];
         }
         const kinds3 = patterns.filter(([kind, pattern]) => pattern.test(content) && !(kind === "whole-request" && digest.test(content))).map(([kind]) => kind);
@@ -52173,7 +52261,7 @@ var languages7 = [
     )
   }
 ];
-var commentLine94 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine95 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation80 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$|(?:^|\/)(?:PKG-INFO|README|CHANGES|CHANGELOG|HISTORY|NEWS)$/i;
 var minified2 = /\.min\.(?:js|mjs|cjs)$/i;
 var maxLineLength73 = 1e3;
@@ -52191,7 +52279,7 @@ var redosRule = {
         return [];
       }
       const found = patchLines(file.patch).flatMap(({ line, content, added }) => {
-        if (!added || commentLine94.test(content) || content.length > maxLineLength73) {
+        if (!added || commentLine95.test(content) || content.length > maxLineLength73) {
           return [];
         }
         const group = language.find(content).map(({ pattern, raw }) => ambiguousGroup(raw ? pattern : unescapeString(pattern))).find((match2) => match2 !== void 0);
@@ -52244,7 +52332,7 @@ var patterns2 = [
   // `iex (iwr ...)`, `iex ((New-Object Net.WebClient).DownloadString(...))`
   new RegExp(String.raw`\b(?:iex|Invoke-Expression)\s*\(+\s*(?:New-Object\b[^)]{0,200}\)\.)?${downloader}\b`, "i")
 ];
-var commentLine95 = /^\s*(?:#|\/\/|REM\b|::)/i;
+var commentLine96 = /^\s*(?:#|\/\/|REM\b|::)/i;
 var documentation81 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var firstUrl2 = /\b(https?):\/\/([^\s"'|)/:\\]+)/i;
 var remoteScriptRule = {
@@ -52308,7 +52396,7 @@ function commands3(patch) {
     if (startsHunk) {
       flush();
     }
-    if (commentLine95.test(content)) {
+    if (commentLine96.test(content)) {
       continue;
     }
     const continues = /\\\s*$/.test(content);
@@ -53062,7 +53150,7 @@ var languageStrings = [
   [/\.php$/i, /"[^"]*\$[a-zA-Z_]|"\s*\.\s*\$|\$\w+\s*\.\s*"/],
   [/\.cs$/i, /\$@?"[^"]*\{/]
 ];
-var commentLine96 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
+var commentLine97 = /^\s*(?:#|\/\/|\/\*|\*|--)/;
 var documentation84 = /\.(?:md|mdx|markdown|rst|txt|adoc|asciidoc|html?)$/i;
 var sqlInjectionRule = {
   id: "sql-injection",
@@ -53104,7 +53192,7 @@ function findBuiltSql(patch, patterns3) {
     if (startsHunk) {
       pendingCall = void 0;
     }
-    if (commentLine96.test(content)) {
+    if (commentLine97.test(content)) {
       continue;
     }
     const call = sqlCall.exec(content) ?? sqlVariable.exec(content);
@@ -53304,6 +53392,7 @@ var defaultRules = [
   kubernetesControlPlaneRule,
   publicLoadBalancerRule,
   composePublishedPortRule,
+  jwtSignatureBypassRule,
   sqlInjectionRule,
   insecureWebConfigRule,
   weakCryptoRule,
@@ -53776,6 +53865,7 @@ var ruleAreas = {
   "kubernetes-control-plane": "infrastructure",
   "public-load-balancer": "infrastructure",
   "compose-published-port": "infrastructure",
+  "jwt-signature-bypass": "code",
   "disabled-security-check": "code",
   "hidden-unicode": "code",
   "blanket-suppression": "code",
@@ -53908,6 +53998,7 @@ var ruleQuestions = {
   "kubernetes-control-plane": "Do the API server, etcd, and kubelets require authentication on every port they listen on?",
   "public-load-balancer": "Does this database, cache, or shell need a public load balancer, or can it stay internal?",
   "compose-published-port": "Does this service need a published port, or can it stay on the Compose network or bind to 127.0.0.1?",
+  "jwt-signature-bypass": "Is every token verified with the issuer's key before its claims are used?",
   "disabled-security-check": "Is turning off each security check intended, and limited to where it is needed?",
   "hidden-unicode": "Do the lines with hidden characters do what they appear to do?",
   "blanket-suppression": "Can the blanket suppressions name the rules they skip?",
@@ -54044,6 +54135,7 @@ var ruleSections = {
   "kubernetes-control-plane": "Kubernetes Control Plane",
   "public-load-balancer": "Public Load Balancers",
   "compose-published-port": "Compose Published Ports",
+  "jwt-signature-bypass": "JWT Signature Bypass",
   "sql-injection": "SQL Injection",
   "insecure-web-config": "Insecure Web Configuration",
   "weak-crypto": "Weak Cryptography",
